@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projekt Fit – Beta herunterladen</title>
+    <meta name="description" content="Lade die Projekt Fit Beta-App herunter und teste den KI-Fitness-Trainer.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0D0D15;
+            --bg-card: #161625;
+            --bg-surface: #1A1A2E;
+            --border: rgba(255,255,255,0.06);
+            --green: #2D6A4F;
+            --green-light: #40916C;
+            --blue: #2E75B6;
+            --blue-light: #5BB8FF;
+            --orange: #E07A3A;
+            --text: #F0F0F5;
+            --text-secondary: #8888A0;
+            --text-muted: #55556A;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 40px 24px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 28px;
+            font-weight: 900;
+            margin-bottom: 40px;
+            letter-spacing: -1px;
+        }
+
+        .logo span { color: var(--green-light); }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 48px 32px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(45,106,79,0.12), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .card h1 {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 12px;
+            position: relative;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            position: relative;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 18px 32px;
+            border-radius: 14px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 17px;
+            font-weight: 700;
+            text-decoration: none;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .btn-orange {
+            background: linear-gradient(135deg, var(--orange), #e8944f);
+            color: #FFFFFF;
+            box-shadow: 0 4px 20px rgba(224,122,58,0.3);
+        }
+
+        .btn-orange:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(224,122,58,0.5);
+        }
+
+        .btn-green {
+            background: linear-gradient(135deg, var(--green), var(--green-light));
+            color: var(--text);
+            box-shadow: 0 4px 20px rgba(45,106,79,0.3);
+        }
+
+        .btn-green:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(45,106,79,0.5);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid rgba(255,255,255,0.1);
+            color: var(--text-secondary);
+            margin-top: 12px;
+        }
+
+        .btn-outline:hover {
+            border-color: rgba(255,255,255,0.2);
+            color: var(--text);
+        }
+
+        .redirect-note {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 16px;
+            position: relative;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-muted);
+            border-top-color: var(--orange);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo">Projekt<span>Fit</span></div>
+
+    <!-- ANDROID -->
+    <div class="card hidden" id="android-card">
+        <div class="icon">📱</div>
+        <h1>Beta-App herunterladen</h1>
+        <p>Du wirst gleich zum Download der Projekt Fit Beta-App weitergeleitet.</p>
+        <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/fe1ee3ae-6753-483b-a919-a4689d1a3c2d" class="btn btn-orange" id="android-btn">⬇ Jetzt herunterladen</a>
+        <p class="redirect-note"><span class="spinner"></span>Weiterleitung in <span id="countdown">3</span> Sekunden...</p>
+    </div>
+
+    <!-- iOS -->
+    <div class="card hidden" id="ios-card">
+        <div class="icon">🍎</div>
+        <h1>iOS-Version kommt bald!</h1>
+        <p>Wir arbeiten an der iPhone-Version von Projekt Fit. Trag dich in die Warteliste ein, um als Erster Bescheid zu bekommen, sobald sie verfügbar ist.</p>
+        <a href="https://projektfit.net/#waitlist" class="btn btn-green">Auf die Warteliste →</a>
+        <a href="https://projektfit.net/" class="btn btn-outline">Zurück zur Startseite</a>
+    </div>
+
+    <!-- DESKTOP / FALLBACK -->
+    <div class="card hidden" id="desktop-card">
+        <div class="icon">💻</div>
+        <h1>Projekt Fit Beta</h1>
+        <p>Scanne den QR-Code mit deinem Android-Handy, um die Beta-App herunterzuladen. Die iOS-Version kommt bald!</p>
+        <div style="background:#fff; border-radius:12px; padding:16px; display:inline-block; margin-bottom:24px;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Faccounts%2Fdirkbleckmanns-organization%2Fprojects%2Fprojekt-fit%2Fbuilds%2Ffe1ee3ae-6753-483b-a919-a4689d1a3c2d" alt="QR-Code" width="180" height="180" style="display:block; border-radius:4px;">
+        </div>
+        <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:24px;">
+            <span style="background:var(--green); color:var(--text); font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px;">Android</span>
+            <span style="font-size:13px; color:var(--text-muted);">verfügbar</span>
+            <span style="margin:0 4px; color:var(--text-muted);">·</span>
+            <span style="background:var(--bg-surface); color:var(--text-secondary); font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px;">iOS</span>
+            <span style="font-size:13px; color:var(--text-muted);">bald</span>
+        </div>
+        <a href="https://projektfit.net/#waitlist" class="btn btn-green">Auf die Warteliste →</a>
+        <a href="https://projektfit.net/" class="btn btn-outline">Zurück zur Startseite</a>
+    </div>
+</div>
+
+<script>
+    const ua = navigator.userAgent || '';
+    const isAndroid = /android/i.test(ua);
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
+
+    if (isAndroid) {
+        document.getElementById('android-card').classList.remove('hidden');
+        let seconds = 3;
+        const countdownEl = document.getElementById('countdown');
+        const timer = setInterval(() => {
+            seconds--;
+            countdownEl.textContent = seconds;
+            if (seconds <= 0) {
+                clearInterval(timer);
+                window.location.href = document.getElementById('android-btn').href;
+            }
+        }, 1000);
+    } else if (isIOS) {
+        document.getElementById('ios-card').classList.remove('hidden');
+    } else {
+        document.getElementById('desktop-card').classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>

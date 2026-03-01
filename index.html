@@ -650,6 +650,35 @@
         .beta-step .num { width: 32px; height: 32px; background: var(--green); border-radius: 50%; color: var(--text); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; margin: 0 auto 8px; }
         .beta-step span { font-size: 13px; color: var(--text-secondary); }
 
+        .beta-ios-notice {
+            background: rgba(45,106,79,0.1);
+            border: 1px solid rgba(45,106,79,0.25);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 32px;
+            position: relative;
+        }
+        .beta-ios-notice .ios-icon { font-size: 36px; margin-bottom: 12px; }
+        .beta-ios-notice h4 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .beta-ios-notice p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
+        .beta-ios-notice a {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: linear-gradient(135deg, var(--green), var(--green-light));
+            color: var(--text); padding: 12px 28px; border-radius: 12px;
+            text-decoration: none; font-weight: 700; font-size: 15px; transition: all 0.3s;
+        }
+        .beta-ios-notice a:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(45,106,79,0.4); }
+
+        .beta-platform-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 700; padding: 5px 14px;
+            border-radius: 50px; margin-bottom: 16px; position: relative;
+        }
+        .badge-android { background: var(--green); color: var(--text); }
+        .badge-ios { background: var(--bg-surface); color: var(--text-secondary); }
+
+        .beta-hidden { display: none; }
+
         /* ═══ WAITLIST ═══ */
         .waitlist {
             padding: 120px 24px;
@@ -979,26 +1008,78 @@
     <div class="section-inner">
         <div class="section-label reveal">Beta-Test</div>
         <h2 class="section-title reveal">Teste die App jetzt – kostenlos</h2>
-        <p class="section-sub reveal" style="margin: 0 auto 20px;">Lade die Beta-App herunter und teste alle aktuellen Features auf deinem Android-Gerät.</p>
+        <p class="section-sub reveal" style="margin: 0 auto 20px;" id="beta-subtitle">Lade die Beta-App herunter und teste alle aktuellen Features.</p>
         <div class="beta-card reveal">
             <h3>📱 Projekt Fit Beta</h3>
-            <p>Scanne den QR-Code oder klicke auf den Download-Button</p>
-            <div class="qr-placeholder">
-                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Faccounts%2Fdirkbleckmanns-organization%2Fprojects%2Fprojekt-fit%2Fbuilds%2Ffe1ee3ae-6753-483b-a919-a4689d1a3c2d" alt="QR-Code zum Beta-Download" style="width:180px; height:180px; border-radius:8px;">
+
+            <!-- Android: Download -->
+            <div id="beta-android" class="beta-hidden">
+                <p>Klicke auf den Button, um die Beta-App herunterzuladen</p>
+                <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/fe1ee3ae-6753-483b-a919-a4689d1a3c2d" target="_blank" rel="noopener" class="beta-download">⬇ Beta-App herunterladen</a>
+                <div class="beta-steps">
+                    <div class="beta-step">
+                        <div class="num">1</div>
+                        <span>Beta-App herunterladen</span>
+                    </div>
+                    <div class="beta-step">
+                        <div class="num">2</div>
+                        <span>Öffnen – Updates laden automatisch</span>
+                    </div>
+                    <div class="beta-step">
+                        <div class="num">3</div>
+                        <span>Testen & Feedback geben</span>
+                    </div>
+                </div>
             </div>
-            <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/fe1ee3ae-6753-483b-a919-a4689d1a3c2d" target="_blank" rel="noopener" class="beta-download">⬇ Beta-App herunterladen</a>
-            <div class="beta-steps">
-                <div class="beta-step">
-                    <div class="num">1</div>
-                    <span>Beta-App herunterladen</span>
+
+            <!-- iOS: Hinweis + Warteliste -->
+            <div id="beta-ios" class="beta-hidden">
+                <div class="beta-ios-notice">
+                    <div class="ios-icon">🍎</div>
+                    <h4>Die iOS-Version kommt bald!</h4>
+                    <p>Wir arbeiten mit Hochdruck an der iPhone-Version. Trag dich in die Warteliste ein, um als Erster Bescheid zu bekommen, sobald sie verfügbar ist.</p>
+                    <a href="#waitlist">Auf die Warteliste →</a>
                 </div>
-                <div class="beta-step">
-                    <div class="num">2</div>
-                    <span>Öffnen – Updates laden automatisch</span>
+                <div class="beta-steps">
+                    <div class="beta-step">
+                        <div class="num">1</div>
+                        <span>In Warteliste eintragen</span>
+                    </div>
+                    <div class="beta-step">
+                        <div class="num">2</div>
+                        <span>Benachrichtigung erhalten</span>
+                    </div>
+                    <div class="beta-step">
+                        <div class="num">3</div>
+                        <span>App downloaden & loslegen</span>
+                    </div>
                 </div>
-                <div class="beta-step">
-                    <div class="num">3</div>
-                    <span>Testen & Feedback geben</span>
+            </div>
+
+            <!-- Desktop: QR-Code + beide Plattform-Infos -->
+            <div id="beta-desktop" class="beta-hidden">
+                <p>Scanne den QR-Code mit deinem Handy oder wähle deine Plattform</p>
+                <div class="qr-placeholder">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fprojektfit.net%2Fbeta" alt="QR-Code zum Beta-Download" style="width:180px; height:180px; border-radius:8px;">
+                </div>
+                <div style="display:flex; gap:10px; justify-content:center; margin-bottom:28px; flex-wrap:wrap;">
+                    <span class="beta-platform-badge badge-android">✓ Android – verfügbar</span>
+                    <span class="beta-platform-badge badge-ios">🍎 iOS – bald verfügbar</span>
+                </div>
+                <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/fe1ee3ae-6753-483b-a919-a4689d1a3c2d" target="_blank" rel="noopener" class="beta-download">⬇ Android Beta herunterladen</a>
+                <div class="beta-steps">
+                    <div class="beta-step">
+                        <div class="num">1</div>
+                        <span>QR-Code scannen oder downloaden</span>
+                    </div>
+                    <div class="beta-step">
+                        <div class="num">2</div>
+                        <span>Öffnen – Updates laden automatisch</span>
+                    </div>
+                    <div class="beta-step">
+                        <div class="num">3</div>
+                        <span>Testen & Feedback geben</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1051,6 +1132,25 @@
     }, { threshold: 0.1 });
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Beta section: device detection
+    (function() {
+        const ua = navigator.userAgent || '';
+        const isAndroid = /android/i.test(ua);
+        const isIOS = /iphone|ipad|ipod/i.test(ua);
+        const subtitle = document.getElementById('beta-subtitle');
+
+        if (isAndroid) {
+            document.getElementById('beta-android').classList.remove('beta-hidden');
+            if (subtitle) subtitle.textContent = 'Lade die Beta-App herunter und teste alle aktuellen Features auf deinem Android-Gerät.';
+        } else if (isIOS) {
+            document.getElementById('beta-ios').classList.remove('beta-hidden');
+            if (subtitle) subtitle.textContent = 'Die iOS-Version ist bald verfügbar – trag dich in die Warteliste ein!';
+        } else {
+            document.getElementById('beta-desktop').classList.remove('beta-hidden');
+            if (subtitle) subtitle.textContent = 'Scanne den QR-Code mit deinem Handy, um die Beta-App zu testen.';
+        }
+    })();
 
     async function handleWaitlist(e) {
         e.preventDefault();
