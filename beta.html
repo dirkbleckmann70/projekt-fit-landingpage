@@ -186,26 +186,26 @@
     <!-- iOS -->
     <div class="card hidden" id="ios-card">
         <div class="icon">🍎</div>
-        <h1>iOS-Version kommt bald!</h1>
-        <p>Wir arbeiten an der iPhone-Version von Projekt Fit. Trag dich in die Warteliste ein, um als Erster Bescheid zu bekommen, sobald sie verfügbar ist.</p>
-        <a href="https://projektfit.net/#waitlist" class="btn btn-green">Auf die Warteliste →</a>
-        <a href="https://projektfit.net/" class="btn btn-outline">Zurück zur Startseite</a>
+        <h1>Beta-App herunterladen</h1>
+        <p>Du wirst gleich zum Download der Projekt Fit Beta-App für iOS weitergeleitet.</p>
+        <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/a7f85e08-25f8-476b-b67a-c37daf7fd048" class="btn btn-orange" id="ios-btn">⬇ Jetzt herunterladen</a>
+        <p class="redirect-note"><span class="spinner"></span>Weiterleitung in <span id="countdown-ios">3</span> Sekunden...</p>
     </div>
 
     <!-- DESKTOP / FALLBACK -->
     <div class="card hidden" id="desktop-card">
         <div class="icon">💻</div>
         <h1>Projekt Fit Beta</h1>
-        <p>Scanne den QR-Code mit deinem Android-Handy, um die Beta-App herunterzuladen. Die iOS-Version kommt bald!</p>
+        <p>Scanne den QR-Code mit deinem Handy, um die Beta-App herunterzuladen. Verfügbar für Android und iOS!</p>
         <div style="background:#fff; border-radius:12px; padding:16px; display:inline-block; margin-bottom:24px;">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Faccounts%2Fdirkbleckmanns-organization%2Fprojects%2Fprojekt-fit%2Fbuilds%2Ffe1ee3ae-6753-483b-a919-a4689d1a3c2d" alt="QR-Code" width="180" height="180" style="display:block; border-radius:4px;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fprojektfit.net%2Fbeta" alt="QR-Code" width="180" height="180" style="display:block; border-radius:4px;">
         </div>
         <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:24px;">
-            <span style="background:var(--green); color:var(--text); font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px;">Android</span>
+            <span style="background:var(--green); color:var(--text); font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px;">✓ Android</span>
             <span style="font-size:13px; color:var(--text-muted);">verfügbar</span>
             <span style="margin:0 4px; color:var(--text-muted);">·</span>
-            <span style="background:var(--bg-surface); color:var(--text-secondary); font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px;">iOS</span>
-            <span style="font-size:13px; color:var(--text-muted);">bald</span>
+            <span style="background:var(--green); color:var(--text); font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px;">✓ iOS</span>
+            <span style="font-size:13px; color:var(--text-muted);">verfügbar</span>
         </div>
         <a href="https://projektfit.net/#waitlist" class="btn btn-green">Auf die Warteliste →</a>
         <a href="https://projektfit.net/" class="btn btn-outline">Zurück zur Startseite</a>
@@ -217,20 +217,24 @@
     const isAndroid = /android/i.test(ua);
     const isIOS = /iphone|ipad|ipod/i.test(ua);
 
-    if (isAndroid) {
-        document.getElementById('android-card').classList.remove('hidden');
+    function startCountdown(cardId, btnId, countdownId) {
+        document.getElementById(cardId).classList.remove('hidden');
         let seconds = 3;
-        const countdownEl = document.getElementById('countdown');
+        const countdownEl = document.getElementById(countdownId);
         const timer = setInterval(() => {
             seconds--;
             countdownEl.textContent = seconds;
             if (seconds <= 0) {
                 clearInterval(timer);
-                window.location.href = document.getElementById('android-btn').href;
+                window.location.href = document.getElementById(btnId).href;
             }
         }, 1000);
+    }
+
+    if (isAndroid) {
+        startCountdown('android-card', 'android-btn', 'countdown');
     } else if (isIOS) {
-        document.getElementById('ios-card').classList.remove('hidden');
+        startCountdown('ios-card', 'ios-btn', 'countdown-ios');
     } else {
         document.getElementById('desktop-card').classList.remove('hidden');
     }
