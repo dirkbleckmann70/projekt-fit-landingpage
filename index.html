@@ -9,18 +9,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --dark: #0B1628;
-            --navy: #1B2A4A;
-            --accent: #2E75B6;
-            --accent-light: #4A9BE8;
-            --glow: #5BB8FF;
-            --green: #27AE60;
-            --green-dark: #1E8449;
-            --orange: #F39C12;
-            --bg: #F5F7FA;
-            --white: #FFFFFF;
-            --gray: #8892A4;
-            --text: #2D3748;
+            --bg-primary: #0D0D15;
+            --bg-card: #161625;
+            --bg-surface: #1A1A2E;
+            --border: rgba(255,255,255,0.06);
+            --green: #2D6A4F;
+            --green-light: #40916C;
+            --blue: #2E75B6;
+            --blue-light: #5BB8FF;
+            --orange: #E07A3A;
+            --text: #F0F0F5;
+            --text-secondary: #8888A0;
+            --text-muted: #55556A;
+            --success: #27AE60;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -28,7 +29,7 @@
         body {
             font-family: 'Outfit', sans-serif;
             color: var(--text);
-            background: var(--white);
+            background: var(--bg-primary);
             overflow-x: hidden;
         }
 
@@ -62,9 +63,10 @@
         }
 
         nav.scrolled {
-            background: rgba(11,22,40,0.95);
+            background: rgba(13,13,21,0.95);
             backdrop-filter: blur(20px);
-            box-shadow: 0 4px 30px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 30px rgba(0,0,0,0.4);
+            border-bottom: 1px solid var(--border);
         }
 
         .nav-inner {
@@ -78,12 +80,12 @@
         .logo {
             font-size: 24px;
             font-weight: 900;
-            color: var(--white);
+            color: var(--text);
             text-decoration: none;
             letter-spacing: -1px;
         }
 
-        .logo span { color: var(--glow); }
+        .logo span { color: var(--green-light); }
 
         .nav-links {
             display: flex;
@@ -92,24 +94,24 @@
         }
 
         .nav-links a {
-            color: rgba(255,255,255,0.7);
+            color: var(--text-secondary);
             text-decoration: none;
             font-size: 15px;
             font-weight: 500;
             transition: color 0.3s;
         }
 
-        .nav-links a:hover { color: var(--white); }
+        .nav-links a:hover { color: var(--text); }
 
         .nav-cta {
-            background: var(--accent) !important;
-            color: var(--white) !important;
+            background: var(--green) !important;
+            color: var(--text) !important;
             padding: 10px 24px !important;
             border-radius: 10px !important;
             transition: all 0.3s !important;
         }
 
-        .nav-cta:hover { background: var(--accent-light) !important; }
+        .nav-cta:hover { background: var(--green-light) !important; }
 
         .mobile-menu { display: none; background: none; border: none; cursor: pointer; }
 
@@ -129,7 +131,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(165deg, rgba(11,22,40,0.85) 0%, rgba(27,42,74,0.75) 40%, rgba(46,117,182,0.6) 100%);
+            background: linear-gradient(165deg, rgba(13,13,21,0.94) 0%, rgba(26,26,46,0.88) 40%, rgba(45,106,79,0.55) 100%);
         }
 
         .hero-content {
@@ -148,13 +150,13 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.15);
+            background: rgba(45,106,79,0.15);
+            border: 1px solid rgba(45,106,79,0.3);
             border-radius: 50px;
             padding: 8px 20px;
             font-size: 14px;
             font-weight: 500;
-            color: var(--glow);
+            color: var(--green-light);
             margin-bottom: 24px;
             backdrop-filter: blur(10px);
             animation: fadeInUp 0.8s ease;
@@ -163,7 +165,7 @@
         .hero-tag .dot {
             width: 8px;
             height: 8px;
-            background: var(--green);
+            background: var(--success);
             border-radius: 50%;
             animation: blink 2s ease infinite;
         }
@@ -176,7 +178,7 @@
         .hero h1 {
             font-size: clamp(40px, 6vw, 72px);
             font-weight: 900;
-            color: var(--white);
+            color: var(--text);
             line-height: 1.05;
             margin-bottom: 24px;
             letter-spacing: -2px;
@@ -185,7 +187,7 @@
         }
 
         .hero h1 .gradient-text {
-            background: linear-gradient(135deg, var(--glow), var(--accent-light), #9BE8FF);
+            background: linear-gradient(135deg, var(--green-light), var(--blue-light), var(--green-light));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -193,12 +195,11 @@
 
         .hero-sub {
             font-size: 20px;
-            color: rgba(255,255,255,0.8);
+            color: var(--text-secondary);
             line-height: 1.6;
             margin-bottom: 40px;
             max-width: 500px;
             animation: fadeInUp 0.8s ease 0.2s both;
-            text-shadow: 0 1px 10px rgba(0,0,0,0.2);
         }
 
         .hero-buttons {
@@ -223,25 +224,25 @@
         }
 
         .btn-primary {
-            background: var(--white);
-            color: var(--navy);
-            box-shadow: 0 4px 30px rgba(91,184,255,0.3);
+            background: linear-gradient(135deg, var(--orange), #e8944f);
+            color: #FFFFFF;
+            box-shadow: 0 4px 30px rgba(224,122,58,0.3);
         }
 
         .btn-primary:hover {
             transform: translateY(-3px);
-            box-shadow: 0 8px 40px rgba(91,184,255,0.5);
+            box-shadow: 0 8px 40px rgba(224,122,58,0.5);
         }
 
         .btn-secondary {
-            background: rgba(255,255,255,0.1);
-            color: var(--white);
-            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.05);
+            color: var(--text);
+            border: 1px solid rgba(255,255,255,0.12);
             backdrop-filter: blur(10px);
         }
 
         .btn-secondary:hover {
-            background: rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.1);
             transform: translateY(-3px);
         }
 
@@ -255,11 +256,11 @@
         .phone-mockup {
             width: 280px;
             height: 570px;
-            background: var(--dark);
+            background: #000;
             border-radius: 40px;
-            border: 3px solid rgba(255,255,255,0.2);
+            border: 3px solid rgba(255,255,255,0.12);
             padding: 12px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 60px rgba(91,184,255,0.15);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(45,106,79,0.15);
             position: relative;
             overflow: hidden;
         }
@@ -267,7 +268,7 @@
         .phone-screen {
             width: 100%;
             height: 100%;
-            background: linear-gradient(180deg, #F5F7FA 0%, #E8EDF5 100%);
+            background: var(--bg-primary);
             border-radius: 30px;
             padding: 40px 20px 20px;
             overflow: hidden;
@@ -280,32 +281,32 @@
             transform: translateX(-50%);
             width: 120px;
             height: 28px;
-            background: var(--dark);
+            background: #000;
             border-radius: 20px;
             z-index: 5;
         }
 
         .screen-header { margin-top: 10px; margin-bottom: 16px; }
-        .screen-header h3 { font-size: 22px; font-weight: 800; color: var(--navy); }
-        .screen-header p { font-size: 12px; color: var(--gray); margin-top: 2px; }
+        .screen-header h3 { font-size: 22px; font-weight: 800; color: var(--text); }
+        .screen-header p { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
         .screen-card {
-            background: var(--white);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 16px;
             padding: 16px;
             margin-bottom: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
         }
 
-        .screen-card-title { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--gray); letter-spacing: 1px; margin-bottom: 6px; }
-        .screen-card h4 { font-size: 16px; font-weight: 700; color: var(--navy); }
-        .screen-card .meta { font-size: 11px; color: var(--gray); margin-top: 4px; }
-        .screen-btn { display: block; background: var(--accent); color: white; text-align: center; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; margin-top: 10px; }
+        .screen-card-title { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 6px; }
+        .screen-card h4 { font-size: 16px; font-weight: 700; color: var(--text); }
+        .screen-card .meta { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+        .screen-btn { display: block; background: var(--green); color: var(--text); text-align: center; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; margin-top: 10px; }
 
         .screen-week { display: flex; justify-content: space-between; padding: 0 4px; }
-        .screen-day { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: var(--gray); background: #F0F2F5; }
-        .screen-day.active { background: var(--accent); color: white; }
-        .screen-day.done { background: var(--green); color: white; }
+        .screen-day { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: var(--text-muted); background: var(--bg-surface); }
+        .screen-day.active { background: var(--green); color: var(--text); }
+        .screen-day.done { background: var(--green-light); color: var(--text); }
 
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(30px); }
@@ -315,7 +316,7 @@
         /* ═══ FEATURES ═══ */
         .features {
             padding: 120px 24px;
-            background: var(--white);
+            background: var(--bg-primary);
         }
 
         .section-inner { max-width: 1200px; margin: 0 auto; }
@@ -327,14 +328,14 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 3px;
-            color: var(--accent);
+            color: var(--green-light);
             margin-bottom: 16px;
         }
 
         .section-title {
             font-size: clamp(32px, 4vw, 52px);
             font-weight: 800;
-            color: var(--navy);
+            color: var(--text);
             line-height: 1.1;
             letter-spacing: -1.5px;
             margin-bottom: 20px;
@@ -342,7 +343,7 @@
 
         .section-sub {
             font-size: 18px;
-            color: var(--gray);
+            color: var(--text-secondary);
             max-width: 600px;
             line-height: 1.6;
             margin-bottom: 60px;
@@ -355,17 +356,18 @@
         }
 
         .feature-card {
-            background: var(--bg);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 20px;
             padding: 36px;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 1px solid rgba(0,0,0,0.04);
         }
 
         .feature-card:hover {
             transform: translateY(-8px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.08);
-            background: var(--white);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.1);
+            background: var(--bg-surface);
         }
 
         .feature-icon {
@@ -379,15 +381,15 @@
             margin-bottom: 20px;
         }
 
-        .feature-card h3 { font-size: 20px; font-weight: 700; color: var(--navy); margin-bottom: 10px; }
-        .feature-card p { font-size: 15px; color: var(--gray); line-height: 1.6; }
+        .feature-card h3 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+        .feature-card p { font-size: 15px; color: var(--text-secondary); line-height: 1.6; }
 
-        .fi-1 { background: linear-gradient(135deg, #E8F4FD, #D1ECFF); }
-        .fi-2 { background: linear-gradient(135deg, #E8F8F0, #C6F0D9); }
-        .fi-3 { background: linear-gradient(135deg, #E8F5E9, #A5D6A7); }
-        .fi-4 { background: linear-gradient(135deg, #F3E8FF, #E1D0FF); }
-        .fi-5 { background: linear-gradient(135deg, #FFF3E0, #FFE0B2); }
-        .fi-6 { background: linear-gradient(135deg, #E8F5E9, #C8E6C9); }
+        .fi-1 { background: linear-gradient(135deg, rgba(46,117,182,0.2), rgba(91,184,255,0.1)); }
+        .fi-2 { background: linear-gradient(135deg, rgba(45,106,79,0.25), rgba(64,145,108,0.1)); }
+        .fi-3 { background: linear-gradient(135deg, rgba(45,106,79,0.3), rgba(64,145,108,0.15)); }
+        .fi-4 { background: linear-gradient(135deg, rgba(91,184,255,0.15), rgba(46,117,182,0.1)); }
+        .fi-5 { background: linear-gradient(135deg, rgba(224,122,58,0.2), rgba(224,122,58,0.1)); }
+        .fi-6 { background: linear-gradient(135deg, rgba(39,174,96,0.2), rgba(45,106,79,0.15)); }
 
         /* ═══ IMAGE DIVIDER ═══ */
         .img-divider {
@@ -405,7 +407,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: rgba(11,22,40,0.5);
+            background: rgba(13,13,21,0.6);
         }
 
         .img-divider-content {
@@ -418,15 +420,15 @@
         .img-divider-content h2 {
             font-size: clamp(28px, 4vw, 48px);
             font-weight: 800;
-            color: var(--white);
+            color: var(--text);
             margin-bottom: 12px;
-            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            text-shadow: 0 2px 20px rgba(0,0,0,0.4);
         }
 
         .img-divider-content p {
             font-size: 20px;
-            color: rgba(255,255,255,0.8);
-            text-shadow: 0 1px 10px rgba(0,0,0,0.2);
+            color: var(--text-secondary);
+            text-shadow: 0 1px 10px rgba(0,0,0,0.3);
         }
 
         @media (max-width: 768px) {
@@ -436,7 +438,7 @@
         /* ═══ HOW IT WORKS ═══ */
         .how {
             padding: 120px 24px;
-            background: var(--white);
+            background: var(--bg-primary);
         }
 
         .steps {
@@ -454,7 +456,7 @@
             right: -20px;
             top: 40px;
             font-size: 24px;
-            color: var(--accent);
+            color: var(--green-light);
             font-weight: 700;
         }
 
@@ -464,19 +466,19 @@
             width: 72px;
             height: 72px;
             border-radius: 50%;
-            background: linear-gradient(135deg, var(--navy), var(--accent));
-            color: var(--white);
+            background: linear-gradient(135deg, var(--green), var(--green-light));
+            color: var(--text);
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 28px;
             font-weight: 800;
             margin: 0 auto 20px;
-            box-shadow: 0 8px 30px rgba(46,117,182,0.3);
+            box-shadow: 0 8px 30px rgba(45,106,79,0.3);
         }
 
-        .step h3 { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
-        .step p { font-size: 14px; color: var(--gray); line-height: 1.5; }
+        .step h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .step p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
 
         /* ═══ PRICING ═══ */
         .pricing {
@@ -492,7 +494,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: rgba(245,247,250,0.92);
+            background: rgba(13,13,21,0.93);
         }
 
         .pricing .section-inner { position: relative; z-index: 2; }
@@ -506,24 +508,24 @@
         }
 
         .price-card {
-            background: var(--white);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 24px;
             padding: 40px 32px;
             text-align: center;
-            border: 2px solid transparent;
             transition: all 0.3s;
             position: relative;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
         }
 
         .price-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            border-color: rgba(255,255,255,0.1);
         }
 
         .price-card.popular {
-            border-color: var(--accent);
-            background: linear-gradient(180deg, #F0F7FF 0%, var(--white) 30%);
+            border-color: var(--orange);
+            background: linear-gradient(180deg, rgba(224,122,58,0.08) 0%, var(--bg-card) 30%);
         }
 
         .price-badge {
@@ -531,30 +533,30 @@
             top: -14px;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(135deg, var(--accent), var(--accent-light));
-            color: var(--white);
+            background: linear-gradient(135deg, var(--orange), #e8944f);
+            color: #FFFFFF;
             padding: 6px 24px;
             border-radius: 50px;
             font-size: 13px;
             font-weight: 700;
         }
 
-        .price-card h3 { font-size: 22px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+        .price-card h3 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
 
         .price-amount {
             font-size: 48px;
             font-weight: 900;
-            color: var(--navy);
+            color: var(--text);
             margin: 16px 0;
             letter-spacing: -2px;
         }
 
-        .price-amount span { font-size: 18px; font-weight: 500; color: var(--gray); }
+        .price-amount span { font-size: 18px; font-weight: 500; color: var(--text-secondary); }
 
         .price-features { list-style: none; text-align: left; margin: 24px 0; }
-        .price-features li { padding: 10px 0; font-size: 15px; color: var(--text); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #F0F2F5; }
+        .price-features li { padding: 10px 0; font-size: 15px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
         .price-features li:last-child { border: none; }
-        .check { color: var(--green); font-weight: 700; font-size: 18px; }
+        .check { color: var(--green-light); font-weight: 700; font-size: 18px; }
 
         .price-btn {
             display: block;
@@ -570,25 +572,26 @@
             margin-top: 8px;
         }
 
-        .price-btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); }
-        .price-btn-outline:hover { background: var(--accent); color: var(--white); }
-        .price-btn-fill { background: linear-gradient(135deg, var(--accent), var(--accent-light)); color: var(--white); box-shadow: 0 4px 20px rgba(46,117,182,0.3); }
-        .price-btn-fill:hover { box-shadow: 0 8px 30px rgba(46,117,182,0.5); transform: translateY(-2px); }
+        .price-btn-outline { background: transparent; border: 2px solid var(--green); color: var(--green-light); }
+        .price-btn-outline:hover { background: var(--green); color: var(--text); }
+        .price-btn-fill { background: linear-gradient(135deg, var(--orange), #e8944f); color: #FFFFFF; box-shadow: 0 4px 20px rgba(224,122,58,0.3); }
+        .price-btn-fill:hover { box-shadow: 0 8px 30px rgba(224,122,58,0.5); transform: translateY(-2px); }
 
         /* ═══ BETA ═══ */
         .beta {
             padding: 120px 24px;
-            background: var(--white);
+            background: var(--bg-primary);
             text-align: center;
         }
 
         .beta-card {
             max-width: 700px;
             margin: 40px auto 0;
-            background: linear-gradient(135deg, var(--navy), var(--dark));
+            background: var(--bg-card);
+            border: 1px solid var(--border);
             border-radius: 28px;
             padding: 60px 40px;
-            color: var(--white);
+            color: var(--text);
             position: relative;
             overflow: hidden;
         }
@@ -600,17 +603,17 @@
             right: -30%;
             width: 300px;
             height: 300px;
-            background: radial-gradient(circle, rgba(91,184,255,0.2), transparent 70%);
+            background: radial-gradient(circle, rgba(45,106,79,0.15), transparent 70%);
             border-radius: 50%;
         }
 
         .beta-card h3 { font-size: 28px; font-weight: 800; margin-bottom: 12px; position: relative; }
-        .beta-card p { color: rgba(255,255,255,0.7); margin-bottom: 32px; font-size: 16px; position: relative; }
+        .beta-card p { color: var(--text-secondary); margin-bottom: 32px; font-size: 16px; position: relative; }
 
         .qr-placeholder {
             width: 200px;
             height: 200px;
-            background: var(--white);
+            background: #FFFFFF;
             border-radius: 16px;
             margin: 0 auto 24px;
             display: flex;
@@ -619,10 +622,33 @@
             position: relative;
         }
 
+        .beta-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 16px 40px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--orange), #e8944f);
+            color: #FFFFFF;
+            font-family: 'Outfit', sans-serif;
+            font-size: 17px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s;
+            position: relative;
+            margin-bottom: 32px;
+            box-shadow: 0 4px 20px rgba(224,122,58,0.3);
+        }
+
+        .beta-download:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 40px rgba(224,122,58,0.5);
+        }
+
         .beta-steps { display: flex; justify-content: center; gap: 40px; margin-top: 24px; position: relative; }
         .beta-step { text-align: center; }
-        .beta-step .num { width: 32px; height: 32px; background: var(--accent); border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; margin: 0 auto 8px; }
-        .beta-step span { font-size: 13px; color: rgba(255,255,255,0.7); }
+        .beta-step .num { width: 32px; height: 32px; background: var(--green); border-radius: 50%; color: var(--text); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; margin: 0 auto 8px; }
+        .beta-step span { font-size: 13px; color: var(--text-secondary); }
 
         /* ═══ WAITLIST ═══ */
         .waitlist {
@@ -639,13 +665,10 @@
             content: '';
             position: absolute;
             inset: 0;
-            background: linear-gradient(165deg, rgba(11,22,40,0.9) 0%, rgba(27,42,74,0.85) 100%);
+            background: linear-gradient(165deg, rgba(13,13,21,0.94) 0%, rgba(26,26,46,0.92) 100%);
         }
 
         .waitlist .section-inner { position: relative; z-index: 2; }
-        .waitlist .section-label { color: var(--glow); }
-        .waitlist .section-title { color: var(--white); }
-        .waitlist .section-sub { color: rgba(255,255,255,0.6); margin: 0 auto 40px; }
 
         .waitlist-form {
             max-width: 500px;
@@ -658,23 +681,23 @@
             flex: 1;
             padding: 16px 24px;
             border-radius: 14px;
-            border: 2px solid rgba(255,255,255,0.1);
-            background: rgba(255,255,255,0.05);
-            color: var(--white);
+            border: 2px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
             font-family: 'Outfit', sans-serif;
             font-size: 16px;
             outline: none;
             transition: border-color 0.3s;
         }
 
-        .waitlist-form input::placeholder { color: rgba(255,255,255,0.4); }
-        .waitlist-form input:focus { border-color: var(--accent); }
+        .waitlist-form input::placeholder { color: var(--text-muted); }
+        .waitlist-form input:focus { border-color: var(--green); }
 
         .waitlist-form button {
             padding: 16px 32px;
             border-radius: 14px;
-            background: linear-gradient(135deg, var(--accent), var(--accent-light));
-            color: var(--white);
+            background: linear-gradient(135deg, var(--green), var(--green-light));
+            color: var(--text);
             border: none;
             font-family: 'Outfit', sans-serif;
             font-size: 16px;
@@ -686,39 +709,40 @@
 
         .waitlist-form button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(91,184,255,0.4);
+            box-shadow: 0 8px 30px rgba(45,106,79,0.4);
         }
 
-        .waitlist-note { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 16px; }
+        .waitlist-note { font-size: 13px; color: var(--text-muted); margin-top: 16px; }
 
         .waitlist-success {
             display: none;
-            background: rgba(39,174,96,0.15);
-            border: 1px solid rgba(39,174,96,0.3);
+            background: rgba(39,174,96,0.12);
+            border: 1px solid rgba(39,174,96,0.25);
             border-radius: 14px;
             padding: 20px;
             max-width: 500px;
             margin: 20px auto 0;
-            color: var(--green);
+            color: var(--success);
             font-weight: 600;
         }
 
         /* ═══ FOOTER ═══ */
         footer {
             padding: 60px 24px 30px;
-            background: var(--dark);
+            background: #08080E;
             text-align: center;
+            border-top: 1px solid var(--border);
         }
 
         .footer-inner { max-width: 1200px; margin: 0 auto; }
-        .footer-logo { font-size: 28px; font-weight: 900; color: var(--white); margin-bottom: 16px; letter-spacing: -1px; }
-        .footer-logo span { color: var(--glow); }
-        .footer-tagline { color: rgba(255,255,255,0.4); font-size: 14px; margin-bottom: 32px; }
+        .footer-logo { font-size: 28px; font-weight: 900; color: var(--text); margin-bottom: 16px; letter-spacing: -1px; }
+        .footer-logo span { color: var(--green-light); }
+        .footer-tagline { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
 
         .footer-links { display: flex; justify-content: center; gap: 32px; margin-bottom: 32px; }
-        .footer-links a { color: rgba(255,255,255,0.5); text-decoration: none; font-size: 14px; transition: color 0.3s; }
-        .footer-links a:hover { color: var(--white); }
-        .footer-copy { color: rgba(255,255,255,0.25); font-size: 13px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.06); }
+        .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.3s; }
+        .footer-links a:hover { color: var(--text); }
+        .footer-copy { color: var(--text-muted); font-size: 13px; padding-top: 24px; border-top: 1px solid var(--border); }
 
         /* ═══ RESPONSIVE ═══ */
         @media (max-width: 900px) {
@@ -789,7 +813,7 @@
                 <div class="phone-screen">
                     <div class="screen-header">
                         <h3>Hallo! 👋</h3>
-                        <p>Samstag, 22. Februar</p>
+                        <p>Sonntag, 1. März</p>
                         <p>🔥 3 Tage in Folge</p>
                     </div>
                     <div class="screen-card">
@@ -844,14 +868,14 @@
                 <p>Streaks, Statistiken und Meilensteine. Sieh genau wie du dich verbesserst – Woche für Woche.</p>
             </div>
             <div class="feature-card reveal">
-                <div class="feature-icon fi-5">🔥</div>
-                <h3>20+ Workouts</h3>
-                <p>Ganzkörper, Oberkörper, Core, Cardio, Stretching – für jedes Ziel und jedes Level das Richtige.</p>
+                <div class="feature-icon fi-5">💪</div>
+                <h3>105 Übungen</h3>
+                <p>Ganzkörper, Oberkörper, Core, Cardio, Stretching – mit detaillierten Erklärungen, Korrektur-Tipps und Variationen.</p>
             </div>
             <div class="feature-card reveal">
-                <div class="feature-icon fi-6">🥗</div>
-                <h3>Ernährungs-Add-on</h3>
-                <p>KI-generierte Ernährungspläne und Rezepte – passend zu deinen Fitnesszielen. Kommt bald!</p>
+                <div class="feature-icon fi-6">❤️</div>
+                <h3>Health-Sync</h3>
+                <p>Verbinde die App mit Apple Health oder Google Health Connect. Deine Trainingsminuten und Kalorien werden automatisch synchronisiert.</p>
             </div>
         </div>
     </div>
@@ -898,7 +922,7 @@
 <!-- IMAGE DIVIDER 2 -->
 <div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1920&q=80');">
     <div class="img-divider-content">
-        <h2>Über 20 Workouts für jedes Level</h2>
+        <h2>105 Übungen für jedes Level</h2>
         <p>Von Anfänger bis Profi – ohne Equipment, überall machbar</p>
     </div>
 </div>
@@ -955,25 +979,26 @@
     <div class="section-inner">
         <div class="section-label reveal">Beta-Test</div>
         <h2 class="section-title reveal">Teste die App jetzt – kostenlos</h2>
-        <p class="section-sub reveal" style="margin: 0 auto 20px;">Scanne den QR-Code und starte dein erstes Workout in unter 3 Minuten.</p>
+        <p class="section-sub reveal" style="margin: 0 auto 20px;">Lade die Beta-App herunter und teste alle aktuellen Features auf deinem Android-Gerät.</p>
         <div class="beta-card reveal">
-            <h3>🧪 Projekt Fit Beta</h3>
-            <p>Scanne den Code mit deiner Handy-Kamera</p>
+            <h3>📱 Projekt Fit Beta</h3>
+            <p>Scanne den QR-Code oder klicke auf den Download-Button</p>
             <div class="qr-placeholder">
-                <img src="qr-code.PNG" alt="QR-Code zum Beta-Test" style="width:180px; height:180px; border-radius:8px;">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fexpo.dev%2Faccounts%2Fdirkbleckmanns-organization%2Fprojects%2Fprojekt-fit%2Fbuilds%2Ffe1ee3ae-6753-483b-a919-a4689d1a3c2d" alt="QR-Code zum Beta-Download" style="width:180px; height:180px; border-radius:8px;">
             </div>
+            <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/fe1ee3ae-6753-483b-a919-a4689d1a3c2d" target="_blank" rel="noopener" class="beta-download">⬇ Beta-App herunterladen</a>
             <div class="beta-steps">
                 <div class="beta-step">
                     <div class="num">1</div>
-                    <span>Expo Go installieren</span>
+                    <span>Beta-App herunterladen</span>
                 </div>
                 <div class="beta-step">
                     <div class="num">2</div>
-                    <span>QR-Code scannen</span>
+                    <span>Öffnen – Updates laden automatisch</span>
                 </div>
                 <div class="beta-step">
                     <div class="num">3</div>
-                    <span>Loslegen!</span>
+                    <span>Testen & Feedback geben</span>
                 </div>
             </div>
         </div>
@@ -985,7 +1010,7 @@
     <div class="section-inner">
         <div class="section-label">Warteliste</div>
         <h2 class="section-title">Sei dabei wenn wir starten</h2>
-        <p class="section-sub">Trag dich ein und erfahre als Erstes wenn neue Features und der offizielle Launch kommen.</p>
+        <p class="section-sub" style="margin: 0 auto 40px;">Trag dich ein und erfahre als Erstes wenn neue Features und der offizielle Launch kommen.</p>
         <form class="waitlist-form" onsubmit="handleWaitlist(event)">
             <input type="email" placeholder="Deine E-Mail-Adresse" required id="waitlist-email">
             <button type="submit">Eintragen →</button>
