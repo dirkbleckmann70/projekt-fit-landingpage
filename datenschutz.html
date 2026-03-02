@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Datenschutzerklärung – Projekt Fit</title>
+    <style>
+        :root {
+            --bg-primary: #0D0D15;
+            --bg-secondary: #151520;
+            --text-primary: #E8E8EC;
+            --text-secondary: #9999A8;
+            --accent-green: #40916C;
+            --accent-orange: #E07A3A;
+            --border-color: #2A2A3A;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent-green);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 32px;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover {
+            opacity: 0.8;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 48px;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        ul {
+            margin-bottom: 12px;
+            padding-left: 24px;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight-box {
+            background: var(--bg-secondary);
+            border-left: 3px solid var(--accent-green);
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+
+        .highlight-box p {
+            margin-bottom: 4px;
+        }
+
+        .footer {
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="https://projektfit.net" class="back-link">← Zurück zu Projekt Fit</a>
+
+        <h1>Datenschutzerklärung</h1>
+        <p class="subtitle">Stand: März 2026</p>
+
+        <h2>1. Verantwortlicher</h2>
+        <div class="highlight-box">
+            <p><strong>Dirk Bleckmann</strong></p>
+            <p>Kopernikusstraße 6</p>
+            <p>46147 Oberhausen</p>
+            <p>E-Mail: <a href="mailto:projektfit.app@web.de">projektfit.app@web.de</a></p>
+        </div>
+
+        <h2>2. Überblick</h2>
+        <p>Diese Datenschutzerklärung gilt für die mobile App <strong>„Projekt Fit"</strong> (iOS/Android) sowie die Website <strong>projektfit.net</strong>. Der Schutz deiner personenbezogenen Daten ist uns wichtig. Nachfolgend informieren wir dich darüber, welche Daten wir erheben, wie wir sie verwenden und welche Rechte dir zustehen.</p>
+
+        <h2>3. Lokale Datenspeicherung in der App</h2>
+        <p>Projekt Fit speichert deine Daten <strong>lokal auf deinem Gerät</strong> (AsyncStorage). Es gibt keinen Benutzer-Account, keine Registrierung und keine zentrale Datenbank. Folgende Daten werden ausschließlich auf deinem Gerät gespeichert:</p>
+        <ul>
+            <li>Onboarding-Daten (Fitnesslevel, Ziele, Zeitplan)</li>
+            <li>Trainingshistorie und Fortschrittsdaten</li>
+            <li>Chat-Verlauf mit dem KI-Coach (FitBot)</li>
+            <li>Einstellungen und Präferenzen</li>
+            <li>Abo-Status</li>
+        </ul>
+        <p>Diese Daten verlassen dein Gerät nicht und werden nicht an uns oder Dritte übertragen – mit Ausnahme der nachfolgend beschriebenen Dienste.</p>
+
+        <h2>4. KI-Coach (OpenAI API)</h2>
+        <p>Die App bietet einen KI-gestützten Fitness-Coach (FitBot). Wenn du den Chat nutzt, werden deine <strong>Chat-Nachrichten an die OpenAI API</strong> (OpenAI, Inc., San Francisco, USA) übermittelt, um eine Antwort zu generieren.</p>
+        <ul>
+            <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) bzw. Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)</li>
+            <li><strong>Übermittelte Daten:</strong> Deine Textnachrichten im Chat sowie Kontextinformationen (Fitnesslevel, Trainingsziele) zur Personalisierung der Antworten</li>
+            <li><strong>Drittlandtransfer:</strong> USA. OpenAI hat sich zur Einhaltung geeigneter Garantien gemäß Art. 46 DSGVO verpflichtet (Standardvertragsklauseln)</li>
+            <li><strong>Datenschutzrichtlinie von OpenAI:</strong> <a href="https://openai.com/privacy" target="_blank">openai.com/privacy</a></li>
+        </ul>
+
+        <h2>5. Abo-Verwaltung (RevenueCat)</h2>
+        <p>Für die Verwaltung von In-App-Abonnements nutzen wir <strong>RevenueCat</strong> (RevenueCat, Inc., USA). Bei Abschluss eines Abos werden folgende Daten verarbeitet:</p>
+        <ul>
+            <li>Anonyme App-User-ID</li>
+            <li>Kaufbelege und Abo-Status</li>
+            <li>Gerätetyp und Betriebssystem</li>
+        </ul>
+        <p>Die Zahlungsabwicklung erfolgt ausschließlich über Apple (App Store) bzw. Google (Play Store). Wir haben keinen Zugriff auf deine Zahlungsdaten (Kreditkarte etc.).</p>
+        <ul>
+            <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung)</li>
+            <li><strong>Drittlandtransfer:</strong> USA (Standardvertragsklauseln)</li>
+            <li><strong>Datenschutzrichtlinie von RevenueCat:</strong> <a href="https://www.revenuecat.com/privacy" target="_blank">revenuecat.com/privacy</a></li>
+        </ul>
+
+        <h2>6. Website (projektfit.net)</h2>
+        <p>Die Website projektfit.net wird über <strong>Vercel</strong> (Vercel Inc., USA) gehostet. Beim Besuch der Website werden automatisch folgende Daten erfasst (Server-Logfiles):</p>
+        <ul>
+            <li>IP-Adresse (anonymisiert)</li>
+            <li>Datum und Uhrzeit des Zugriffs</li>
+            <li>Browser-Typ und Betriebssystem</li>
+            <li>Referrer-URL</li>
+        </ul>
+        <ul>
+            <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der technischen Bereitstellung der Website)</li>
+            <li><strong>Datenschutzrichtlinie von Vercel:</strong> <a href="https://vercel.com/legal/privacy-policy" target="_blank">vercel.com/legal/privacy-policy</a></li>
+        </ul>
+
+        <h2>7. Keine Cookies, kein Tracking</h2>
+        <p>Wir setzen auf unserer Website und in der App <strong>keine Cookies, keine Analyse-Tools und kein Werbe-Tracking</strong> ein.</p>
+
+        <h2>8. Deine Rechte</h2>
+        <p>Du hast jederzeit folgende Rechte gemäß DSGVO:</p>
+        <ul>
+            <li><strong>Auskunft</strong> (Art. 15 DSGVO) – Welche Daten wir über dich haben</li>
+            <li><strong>Berichtigung</strong> (Art. 16 DSGVO) – Korrektur unrichtiger Daten</li>
+            <li><strong>Löschung</strong> (Art. 17 DSGVO) – Löschung deiner Daten</li>
+            <li><strong>Einschränkung</strong> (Art. 18 DSGVO) – Einschränkung der Verarbeitung</li>
+            <li><strong>Datenübertragbarkeit</strong> (Art. 20 DSGVO) – Herausgabe deiner Daten</li>
+            <li><strong>Widerspruch</strong> (Art. 21 DSGVO) – Widerspruch gegen die Verarbeitung</li>
+        </ul>
+        <p>Da deine Daten lokal auf deinem Gerät gespeichert werden, kannst du sie jederzeit selbst löschen, indem du die App deinstallierst oder die App-Daten in den Geräteeinstellungen löschst.</p>
+        <p>Für Anfragen wende dich an: <a href="mailto:projektfit.app@web.de">projektfit.app@web.de</a></p>
+
+        <h2>9. Beschwerderecht</h2>
+        <p>Du hast das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Zuständig ist:</p>
+        <div class="highlight-box">
+            <p><strong>Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen</strong></p>
+            <p>Postfach 20 04 44, 40102 Düsseldorf</p>
+            <p><a href="https://www.ldi.nrw.de" target="_blank">www.ldi.nrw.de</a></p>
+        </div>
+
+        <h2>10. Änderungen</h2>
+        <p>Wir behalten uns vor, diese Datenschutzerklärung anzupassen, um sie an geänderte Rechtslagen oder Änderungen der App anzupassen. Die aktuelle Version findest du stets unter <a href="https://projektfit.net/datenschutz">projektfit.net/datenschutz</a>.</p>
+
+        <div class="footer">
+            <p>© 2026 Dirk Bleckmann · <a href="https://projektfit.net">projektfit.net</a></p>
+        </div>
+    </div>
+</body>
+</html>
