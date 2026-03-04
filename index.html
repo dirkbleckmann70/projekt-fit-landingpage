@@ -13,11 +13,16 @@
             --bg-card: #161625;
             --bg-surface: #1A1A2E;
             --border: rgba(255,255,255,0.06);
+            --glass: rgba(22,22,37,0.85);
+            --glass-border: rgba(255,255,255,0.08);
             --green: #2D6A4F;
             --green-light: #40916C;
             --blue: #2E75B6;
             --blue-light: #5BB8FF;
             --orange: #E07A3A;
+            --gold: #D4A054;
+            --gold-light: #F0C97A;
+            --gold-dark: #8B6530;
             --text: #F0F0F5;
             --text-secondary: #8888A0;
             --text-muted: #55556A;
@@ -33,354 +38,173 @@
             overflow-x: hidden;
         }
 
-        /* ═══ PARALLAX BACKGROUND SECTIONS ═══ */
-        .bg-section {
-            position: relative;
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
-
-        .bg-section::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-        }
-
-        @media (max-width: 768px) {
-            .bg-section { background-attachment: scroll; }
-        }
-
         /* ═══ NAV ═══ */
         nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 100;
-            padding: 16px 24px;
-            transition: all 0.3s;
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            padding: 16px 24px; transition: all 0.3s;
         }
-
         nav.scrolled {
             background: rgba(13,13,21,0.95);
             backdrop-filter: blur(20px);
             box-shadow: 0 4px 30px rgba(0,0,0,0.4);
             border-bottom: 1px solid var(--border);
         }
-
-        .nav-inner {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            font-size: 24px;
-            font-weight: 900;
-            color: var(--text);
-            text-decoration: none;
-            letter-spacing: -1px;
-        }
-
+        .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: 900; color: var(--text); text-decoration: none; letter-spacing: -1px; }
         .logo span { color: var(--green-light); }
-
-        .nav-links {
-            display: flex;
-            gap: 32px;
-            align-items: center;
-        }
-
-        .nav-links a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 15px;
-            font-weight: 500;
-            transition: color 0.3s;
-        }
-
+        .nav-links { display: flex; gap: 32px; align-items: center; }
+        .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 500; transition: color 0.3s; }
         .nav-links a:hover { color: var(--text); }
-
-        .nav-cta {
-            background: var(--green) !important;
-            color: var(--text) !important;
-            padding: 10px 24px !important;
-            border-radius: 10px !important;
-            transition: all 0.3s !important;
-        }
-
+        .nav-cta { background: var(--green) !important; color: var(--text) !important; padding: 10px 24px !important; border-radius: 10px !important; transition: all 0.3s !important; }
         .nav-cta:hover { background: var(--green-light) !important; }
-
         .mobile-menu { display: none; background: none; border: none; cursor: pointer; }
 
         /* ═══ HERO ═══ */
         .hero {
-            position: relative;
-            min-height: 100vh;
-            background-image: url('https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=1920&q=80');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            display: flex;
-            align-items: center;
+            position: relative; min-height: 100vh;
+            background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            display: flex; align-items: center;
         }
-
         .hero::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(165deg, rgba(13,13,21,0.94) 0%, rgba(26,26,46,0.88) 40%, rgba(45,106,79,0.55) 100%);
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(165deg, rgba(13,13,21,0.88) 0%, rgba(13,13,21,0.65) 40%, rgba(13,13,21,0.45) 60%, rgba(13,13,21,0.85) 100%);
         }
-
         .hero-content {
-            position: relative;
-            z-index: 2;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 120px 24px 80px;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 60px;
-            align-items: center;
+            position: relative; z-index: 2; max-width: 1200px; margin: 0 auto;
+            padding: 120px 24px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
         }
-
         .hero-tag {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(45,106,79,0.15);
-            border: 1px solid rgba(45,106,79,0.3);
-            border-radius: 50px;
-            padding: 8px 20px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--green-light);
-            margin-bottom: 24px;
-            backdrop-filter: blur(10px);
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(45,106,79,0.15); border: 1px solid rgba(45,106,79,0.3);
+            border-radius: 50px; padding: 8px 20px; font-size: 14px; font-weight: 500;
+            color: var(--green-light); margin-bottom: 24px; backdrop-filter: blur(10px);
             animation: fadeInUp 0.8s ease;
         }
-
-        .hero-tag .dot {
-            width: 8px;
-            height: 8px;
-            background: var(--success);
-            border-radius: 50%;
-            animation: blink 2s ease infinite;
-        }
-
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
+        .hero-tag .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: blink 2s ease infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
         .hero h1 {
-            font-size: clamp(40px, 6vw, 72px);
-            font-weight: 900;
-            color: var(--text);
-            line-height: 1.05;
-            margin-bottom: 24px;
-            letter-spacing: -2px;
-            animation: fadeInUp 0.8s ease 0.1s both;
-            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            font-size: clamp(40px, 6vw, 72px); font-weight: 900; color: var(--text);
+            line-height: 1.05; margin-bottom: 24px; letter-spacing: -2px;
+            animation: fadeInUp 0.8s ease 0.1s both; text-shadow: 0 2px 20px rgba(0,0,0,0.3);
         }
-
         .hero h1 .gradient-text {
-            background: linear-gradient(135deg, var(--green-light), var(--blue-light), var(--green-light));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            background: linear-gradient(135deg, var(--gold-light), var(--orange), var(--gold));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
         }
-
         .hero-sub {
-            font-size: 20px;
-            color: var(--text-secondary);
-            line-height: 1.6;
-            margin-bottom: 40px;
-            max-width: 500px;
-            animation: fadeInUp 0.8s ease 0.2s both;
+            font-size: 20px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 40px;
+            max-width: 500px; animation: fadeInUp 0.8s ease 0.2s both;
         }
-
-        .hero-buttons {
-            display: flex;
-            gap: 16px;
-            animation: fadeInUp 0.8s ease 0.3s both;
-        }
+        .hero-buttons { display: flex; gap: 16px; animation: fadeInUp 0.8s ease 0.3s both; }
 
         .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 16px 32px;
-            border-radius: 14px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 16px;
-            font-weight: 600;
-            text-decoration: none;
-            cursor: pointer;
-            border: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px;
+            border-radius: 14px; font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600;
+            text-decoration: none; cursor: pointer; border: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
         .btn-primary {
             background: linear-gradient(135deg, var(--orange), #e8944f);
-            color: #FFFFFF;
-            box-shadow: 0 4px 30px rgba(224,122,58,0.3);
+            color: #FFFFFF; box-shadow: 0 4px 30px rgba(224,122,58,0.3);
         }
-
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 40px rgba(224,122,58,0.5);
-        }
-
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 40px rgba(224,122,58,0.5); }
         .btn-secondary {
-            background: rgba(255,255,255,0.05);
-            color: var(--text);
-            border: 1px solid rgba(255,255,255,0.12);
+            background: var(--glass); color: var(--text); border: 1px solid var(--glass-border);
             backdrop-filter: blur(10px);
         }
-
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.1);
-            transform: translateY(-3px);
-        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); transform: translateY(-3px); }
 
         /* Phone Mockup */
-        .phone-wrapper {
-            display: flex;
-            justify-content: center;
-            animation: fadeInUp 1s ease 0.4s both;
-        }
-
+        .phone-wrapper { display: flex; justify-content: center; animation: fadeInUp 1s ease 0.4s both; }
         .phone-mockup {
-            width: 280px;
-            height: 570px;
-            background: #000;
-            border-radius: 40px;
-            border: 3px solid rgba(255,255,255,0.12);
-            padding: 12px;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(45,106,79,0.15);
-            position: relative;
-            overflow: hidden;
+            width: 280px; height: 570px; background: #000; border-radius: 40px;
+            border: 3px solid rgba(255,255,255,0.12); padding: 8px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(212,160,84,0.1);
+            position: relative; overflow: hidden;
         }
-
-        .phone-screen {
-            width: 100%;
-            height: 100%;
-            background: var(--bg-primary);
-            border-radius: 30px;
-            padding: 40px 20px 20px;
-            overflow: hidden;
-        }
-
         .phone-notch {
-            position: absolute;
-            top: 12px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120px;
-            height: 28px;
-            background: #000;
-            border-radius: 20px;
-            z-index: 5;
+            position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 28px; background: #000; border-radius: 20px; z-index: 5;
         }
-
-        .screen-header { margin-top: 10px; margin-bottom: 16px; }
-        .screen-header h3 { font-size: 22px; font-weight: 800; color: var(--text); }
-        .screen-header p { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-
-        .screen-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 16px;
-            margin-bottom: 12px;
+        .phone-mockup img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 32px; display: block;
         }
-
-        .screen-card-title { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 6px; }
-        .screen-card h4 { font-size: 16px; font-weight: 700; color: var(--text); }
-        .screen-card .meta { font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
-        .screen-btn { display: block; background: var(--green); color: var(--text); text-align: center; padding: 10px; border-radius: 10px; font-size: 13px; font-weight: 700; margin-top: 10px; }
-
-        .screen-week { display: flex; justify-content: space-between; padding: 0 4px; }
-        .screen-day { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: var(--text-muted); background: var(--bg-surface); }
-        .screen-day.active { background: var(--green); color: var(--text); }
-        .screen-day.done { background: var(--green-light); color: var(--text); }
 
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
         }
 
-        /* ═══ FEATURES ═══ */
-        .features {
+        /* ═══ SCREENSHOTS SHOWCASE ═══ */
+        .screenshots {
             padding: 120px 24px;
             background: var(--bg-primary);
+            position: relative; overflow: hidden;
         }
-
-        .section-inner { max-width: 1200px; margin: 0 auto; }
-
+        .screenshots::before {
+            content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 600px; height: 600px; background: radial-gradient(circle, rgba(212,160,84,0.06), transparent 70%);
+            border-radius: 50%;
+        }
+        .section-inner { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; }
         .section-label {
-            display: inline-block;
-            font-family: 'Space Mono', monospace;
-            font-size: 13px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            color: var(--green-light);
-            margin-bottom: 16px;
+            display: inline-block; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 3px; color: var(--gold); margin-bottom: 16px;
         }
-
         .section-title {
-            font-size: clamp(32px, 4vw, 52px);
-            font-weight: 800;
-            color: var(--text);
-            line-height: 1.1;
-            letter-spacing: -1.5px;
-            margin-bottom: 20px;
+            font-size: clamp(32px, 4vw, 52px); font-weight: 800; color: var(--text);
+            line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 20px;
+        }
+        .section-sub { font-size: 18px; color: var(--text-secondary); max-width: 600px; line-height: 1.6; margin-bottom: 60px; }
+
+        .screenshots-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+            max-width: 1000px; margin: 0 auto;
+        }
+        .screenshot-item { text-align: center; }
+        .screenshot-phone {
+            background: #000; border-radius: 24px; border: 2px solid rgba(255,255,255,0.1);
+            padding: 6px; overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(212,160,84,0.05);
+            transition: transform 0.4s, box-shadow 0.4s;
+        }
+        .screenshot-phone:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 70px rgba(0,0,0,0.6), 0 0 40px rgba(212,160,84,0.1);
+        }
+        .screenshot-phone img { width: 100%; display: block; border-radius: 18px; }
+        .screenshot-label {
+            margin-top: 16px; font-size: 14px; font-weight: 600; color: var(--text-secondary);
         }
 
-        .section-sub {
-            font-size: 18px;
-            color: var(--text-secondary);
-            max-width: 600px;
-            line-height: 1.6;
-            margin-bottom: 60px;
-        }
-
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-        }
+        /* ═══ FEATURES ═══ */
+        .features { padding: 120px 24px; background: var(--bg-primary); }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 
         .feature-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 36px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 36px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden;
         }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            border-radius: 20px 20px 0 0; opacity: 0; transition: opacity 0.4s;
+        }
+        .feature-card:hover { transform: translateY(-8px); box-shadow: 0 20px 60px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.12); }
+        .feature-card:hover::before { opacity: 1; }
 
-        .feature-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            border-color: rgba(255,255,255,0.1);
-            background: var(--bg-surface);
-        }
+        .feature-card:nth-child(1)::before { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+        .feature-card:nth-child(2)::before { background: linear-gradient(90deg, var(--green), var(--green-light)); }
+        .feature-card:nth-child(3)::before { background: linear-gradient(90deg, var(--green), var(--green-light)); }
+        .feature-card:nth-child(4)::before { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+        .feature-card:nth-child(5)::before { background: linear-gradient(90deg, var(--orange), var(--gold)); }
+        .feature-card:nth-child(6)::before { background: linear-gradient(90deg, var(--green), var(--success)); }
 
         .feature-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            margin-bottom: 20px;
+            width: 56px; height: 56px; border-radius: 16px; display: flex;
+            align-items: center; justify-content: center; font-size: 28px; margin-bottom: 20px;
         }
-
         .feature-card h3 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
         .feature-card p { font-size: 15px; color: var(--text-secondary); line-height: 1.6; }
 
@@ -388,286 +212,127 @@
         .fi-2 { background: linear-gradient(135deg, rgba(45,106,79,0.25), rgba(64,145,108,0.1)); }
         .fi-3 { background: linear-gradient(135deg, rgba(45,106,79,0.3), rgba(64,145,108,0.15)); }
         .fi-4 { background: linear-gradient(135deg, rgba(91,184,255,0.15), rgba(46,117,182,0.1)); }
-        .fi-5 { background: linear-gradient(135deg, rgba(224,122,58,0.2), rgba(224,122,58,0.1)); }
+        .fi-5 { background: linear-gradient(135deg, rgba(224,122,58,0.2), rgba(212,160,84,0.1)); }
         .fi-6 { background: linear-gradient(135deg, rgba(39,174,96,0.2), rgba(45,106,79,0.15)); }
 
         /* ═══ IMAGE DIVIDER ═══ */
         .img-divider {
-            height: 400px;
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            height: 400px; background-size: cover; background-position: center; background-attachment: fixed;
+            position: relative; display: flex; align-items: center; justify-content: center;
         }
-
-        .img-divider::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: rgba(13,13,21,0.6);
-        }
-
-        .img-divider-content {
-            position: relative;
-            z-index: 2;
-            text-align: center;
-            padding: 0 24px;
-        }
-
+        .img-divider::before { content: ''; position: absolute; inset: 0; background: rgba(13,13,21,0.55); }
+        .img-divider-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; }
         .img-divider-content h2 {
-            font-size: clamp(28px, 4vw, 48px);
-            font-weight: 800;
-            color: var(--text);
-            margin-bottom: 12px;
-            text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+            font-size: clamp(28px, 4vw, 48px); font-weight: 800; color: var(--text);
+            margin-bottom: 12px; text-shadow: 0 2px 20px rgba(0,0,0,0.4);
         }
-
-        .img-divider-content p {
-            font-size: 20px;
-            color: var(--text-secondary);
-            text-shadow: 0 1px 10px rgba(0,0,0,0.3);
-        }
-
-        @media (max-width: 768px) {
-            .img-divider { background-attachment: scroll; height: 300px; }
-        }
+        .img-divider-content p { font-size: 20px; color: var(--text-secondary); text-shadow: 0 1px 10px rgba(0,0,0,0.3); }
+        @media (max-width: 768px) { .img-divider { background-attachment: scroll; height: 300px; } }
 
         /* ═══ HOW IT WORKS ═══ */
-        .how {
-            padding: 120px 24px;
-            background: var(--bg-primary);
-        }
-
-        .steps {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 32px;
-            margin-top: 60px;
-        }
-
+        .how { padding: 120px 24px; background: var(--bg-primary); }
+        .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-top: 60px; }
         .step { text-align: center; position: relative; }
-
-        .step::after {
-            content: '→';
-            position: absolute;
-            right: -20px;
-            top: 40px;
-            font-size: 24px;
-            color: var(--green-light);
-            font-weight: 700;
-        }
-
+        .step::after { content: '→'; position: absolute; right: -20px; top: 40px; font-size: 24px; color: var(--gold); font-weight: 700; }
         .step:last-child::after { display: none; }
-
         .step-num {
-            width: 72px;
-            height: 72px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--green), var(--green-light));
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            font-weight: 800;
-            margin: 0 auto 20px;
-            box-shadow: 0 8px 30px rgba(45,106,79,0.3);
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+            color: var(--text); display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: 800; margin: 0 auto 20px;
+            box-shadow: 0 8px 30px rgba(212,160,84,0.3);
         }
-
         .step h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
         .step p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
 
         /* ═══ PRICING ═══ */
         .pricing {
             padding: 120px 24px;
-            background-image: url('https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+            background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
             position: relative;
         }
-
-        .pricing::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: rgba(13,13,21,0.93);
-        }
-
+        .pricing::before { content: ''; position: absolute; inset: 0; background: rgba(13,13,21,0.92); }
         .pricing .section-inner { position: relative; z-index: 2; }
 
-        .pricing-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            max-width: 1000px;
-            margin: 60px auto 0;
-        }
+        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1000px; margin: 60px auto 0; }
 
         .price-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            padding: 40px 32px;
-            text-align: center;
-            transition: all 0.3s;
-            position: relative;
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 24px; padding: 40px 32px; text-align: center;
+            transition: all 0.3s; position: relative;
         }
-
-        .price-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            border-color: rgba(255,255,255,0.1);
-        }
+        .price-card:hover { transform: translateY(-5px); box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.12); }
 
         .price-card.popular {
             border-color: var(--orange);
-            background: linear-gradient(180deg, rgba(224,122,58,0.08) 0%, var(--bg-card) 30%);
+            background: linear-gradient(180deg, rgba(224,122,58,0.1) 0%, var(--glass) 30%);
         }
-
         .price-badge {
-            position: absolute;
-            top: -14px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, var(--orange), #e8944f);
-            color: #FFFFFF;
-            padding: 6px 24px;
-            border-radius: 50px;
-            font-size: 13px;
-            font-weight: 700;
+            position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--orange), var(--gold));
+            color: #FFFFFF; padding: 6px 24px; border-radius: 50px; font-size: 13px; font-weight: 700;
         }
-
         .price-card h3 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-
-        .price-amount {
-            font-size: 48px;
-            font-weight: 900;
-            color: var(--text);
-            margin: 16px 0;
-            letter-spacing: -2px;
-        }
-
+        .price-amount { font-size: 48px; font-weight: 900; color: var(--text); margin: 16px 0; letter-spacing: -2px; }
         .price-amount span { font-size: 18px; font-weight: 500; color: var(--text-secondary); }
 
         .price-features { list-style: none; text-align: left; margin: 24px 0; }
-        .price-features li { padding: 10px 0; font-size: 15px; color: var(--text-secondary); display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+        .price-features li {
+            padding: 10px 0; font-size: 15px; color: var(--text-secondary);
+            display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
+        }
         .price-features li:last-child { border: none; }
         .check { color: var(--green-light); font-weight: 700; font-size: 18px; }
 
         .price-btn {
-            display: block;
-            width: 100%;
-            padding: 14px;
-            border-radius: 12px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: none;
-            margin-top: 8px;
+            display: block; width: 100%; padding: 14px; border-radius: 12px;
+            font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: all 0.3s; border: none; margin-top: 8px;
         }
-
         .price-btn-outline { background: transparent; border: 2px solid var(--green); color: var(--green-light); }
         .price-btn-outline:hover { background: var(--green); color: var(--text); }
-        .price-btn-fill { background: linear-gradient(135deg, var(--orange), #e8944f); color: #FFFFFF; box-shadow: 0 4px 20px rgba(224,122,58,0.3); }
+        .price-btn-fill { background: linear-gradient(135deg, var(--orange), var(--gold)); color: #FFFFFF; box-shadow: 0 4px 20px rgba(224,122,58,0.3); }
         .price-btn-fill:hover { box-shadow: 0 8px 30px rgba(224,122,58,0.5); transform: translateY(-2px); }
 
         /* ═══ BETA ═══ */
-        .beta {
-            padding: 120px 24px;
-            background: var(--bg-primary);
-            text-align: center;
-        }
-
+        .beta { padding: 120px 24px; background: var(--bg-primary); text-align: center; }
         .beta-card {
-            max-width: 700px;
-            margin: 40px auto 0;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            padding: 60px 40px;
-            color: var(--text);
-            position: relative;
-            overflow: hidden;
+            max-width: 700px; margin: 40px auto 0;
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 28px; padding: 60px 40px; color: var(--text);
+            position: relative; overflow: hidden;
         }
-
         .beta-card::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            right: -30%;
-            width: 300px;
-            height: 300px;
-            background: radial-gradient(circle, rgba(45,106,79,0.15), transparent 70%);
+            content: ''; position: absolute; top: -50%; right: -30%;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(212,160,84,0.1), transparent 70%);
             border-radius: 50%;
         }
-
         .beta-card h3 { font-size: 28px; font-weight: 800; margin-bottom: 12px; position: relative; }
         .beta-card p { color: var(--text-secondary); margin-bottom: 32px; font-size: 16px; position: relative; }
 
         .qr-placeholder {
-            width: 200px;
-            height: 200px;
-            background: #FFFFFF;
-            border-radius: 16px;
-            margin: 0 auto 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
+            width: 200px; height: 200px; background: #FFFFFF; border-radius: 16px;
+            margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; position: relative;
         }
-
         .beta-download {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 16px 40px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--orange), #e8944f);
-            color: #FFFFFF;
-            font-family: 'Outfit', sans-serif;
-            font-size: 17px;
-            font-weight: 700;
-            text-decoration: none;
-            transition: all 0.3s;
-            position: relative;
-            margin-bottom: 32px;
+            display: inline-flex; align-items: center; gap: 10px; padding: 16px 40px;
+            border-radius: 14px; background: linear-gradient(135deg, var(--orange), var(--gold));
+            color: #FFFFFF; font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700;
+            text-decoration: none; transition: all 0.3s; position: relative; margin-bottom: 32px;
             box-shadow: 0 4px 20px rgba(224,122,58,0.3);
         }
-
-        .beta-download:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 40px rgba(224,122,58,0.5);
-        }
+        .beta-download:hover { transform: translateY(-3px); box-shadow: 0 8px 40px rgba(224,122,58,0.5); }
 
         .beta-steps { display: flex; justify-content: center; gap: 40px; margin-top: 24px; position: relative; }
         .beta-step { text-align: center; }
-        .beta-step .num { width: 32px; height: 32px; background: var(--green); border-radius: 50%; color: var(--text); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; margin: 0 auto 8px; }
+        .beta-step .num {
+            width: 32px; height: 32px; background: var(--green); border-radius: 50%;
+            color: var(--text); display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; margin: 0 auto 8px;
+        }
         .beta-step span { font-size: 13px; color: var(--text-secondary); }
-
-        .beta-ios-notice {
-            background: rgba(45,106,79,0.1);
-            border: 1px solid rgba(45,106,79,0.25);
-            border-radius: 16px;
-            padding: 32px;
-            margin-bottom: 32px;
-            position: relative;
-        }
-        .beta-ios-notice .ios-icon { font-size: 36px; margin-bottom: 12px; }
-        .beta-ios-notice h4 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-        .beta-ios-notice p { color: var(--text-secondary); font-size: 15px; line-height: 1.6; margin-bottom: 20px; }
-        .beta-ios-notice a {
-            display: inline-flex; align-items: center; gap: 8px;
-            background: linear-gradient(135deg, var(--green), var(--green-light));
-            color: var(--text); padding: 12px 28px; border-radius: 12px;
-            text-decoration: none; font-weight: 700; font-size: 15px; transition: all 0.3s;
-        }
-        .beta-ios-notice a:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(45,106,79,0.4); }
 
         .beta-platform-badge {
             display: inline-flex; align-items: center; gap: 6px;
@@ -676,98 +341,49 @@
         }
         .badge-android { background: var(--green); color: var(--text); }
         .badge-ios { background: var(--bg-surface); color: var(--text-secondary); }
-
         .beta-hidden { display: none; }
 
         /* ═══ WAITLIST ═══ */
         .waitlist {
             padding: 120px 24px;
-            background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            text-align: center;
-            position: relative;
+            background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            text-align: center; position: relative;
         }
-
-        .waitlist::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(165deg, rgba(13,13,21,0.94) 0%, rgba(26,26,46,0.92) 100%);
-        }
-
+        .waitlist::before { content: ''; position: absolute; inset: 0; background: linear-gradient(165deg, rgba(13,13,21,0.94) 0%, rgba(26,26,46,0.92) 100%); }
         .waitlist .section-inner { position: relative; z-index: 2; }
-
-        .waitlist-form {
-            max-width: 500px;
-            margin: 0 auto;
-            display: flex;
-            gap: 12px;
-        }
-
+        .waitlist-form { max-width: 500px; margin: 0 auto; display: flex; gap: 12px; }
         .waitlist-form input {
-            flex: 1;
-            padding: 16px 24px;
-            border-radius: 14px;
-            border: 2px solid rgba(255,255,255,0.08);
-            background: rgba(255,255,255,0.04);
-            color: var(--text);
-            font-family: 'Outfit', sans-serif;
-            font-size: 16px;
-            outline: none;
-            transition: border-color 0.3s;
+            flex: 1; padding: 16px 24px; border-radius: 14px;
+            border: 2px solid var(--glass-border); background: var(--glass);
+            color: var(--text); font-family: 'Outfit', sans-serif; font-size: 16px;
+            outline: none; transition: border-color 0.3s; backdrop-filter: blur(10px);
         }
-
         .waitlist-form input::placeholder { color: var(--text-muted); }
-        .waitlist-form input:focus { border-color: var(--green); }
-
+        .waitlist-form input:focus { border-color: var(--gold); }
         .waitlist-form button {
-            padding: 16px 32px;
-            border-radius: 14px;
-            background: linear-gradient(135deg, var(--green), var(--green-light));
-            color: var(--text);
-            border: none;
-            font-family: 'Outfit', sans-serif;
-            font-size: 16px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            white-space: nowrap;
+            padding: 16px 32px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--orange), var(--gold));
+            color: #FFFFFF; border: none; font-family: 'Outfit', sans-serif;
+            font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; white-space: nowrap;
         }
-
-        .waitlist-form button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(45,106,79,0.4);
-        }
-
+        .waitlist-form button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(212,160,84,0.4); }
         .waitlist-note { font-size: 13px; color: var(--text-muted); margin-top: 16px; }
-
         .waitlist-success {
-            display: none;
-            background: rgba(39,174,96,0.12);
-            border: 1px solid rgba(39,174,96,0.25);
-            border-radius: 14px;
-            padding: 20px;
-            max-width: 500px;
-            margin: 20px auto 0;
-            color: var(--success);
-            font-weight: 600;
+            display: none; background: rgba(39,174,96,0.12); border: 1px solid rgba(39,174,96,0.25);
+            border-radius: 14px; padding: 20px; max-width: 500px; margin: 20px auto 0;
+            color: var(--success); font-weight: 600;
         }
 
         /* ═══ FOOTER ═══ */
         footer {
-            padding: 60px 24px 30px;
-            background: #08080E;
-            text-align: center;
-            border-top: 1px solid var(--border);
+            padding: 60px 24px 30px; background: #08080E;
+            text-align: center; border-top: 1px solid var(--border);
         }
-
         .footer-inner { max-width: 1200px; margin: 0 auto; }
         .footer-logo { font-size: 28px; font-weight: 900; color: var(--text); margin-bottom: 16px; letter-spacing: -1px; }
         .footer-logo span { color: var(--green-light); }
         .footer-tagline { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
-
         .footer-links { display: flex; justify-content: center; gap: 32px; margin-bottom: 32px; }
         .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.3s; }
         .footer-links a:hover { color: var(--text); }
@@ -775,11 +391,13 @@
 
         /* ═══ RESPONSIVE ═══ */
         @media (max-width: 900px) {
+            .hero::before { background: linear-gradient(165deg, rgba(13,13,21,0.92) 0%, rgba(13,13,21,0.75) 50%, rgba(13,13,21,0.9) 100%); }
             .hero-content { grid-template-columns: 1fr; text-align: center; padding-top: 140px; }
             .hero-sub { margin: 0 auto 40px; }
             .hero-buttons { justify-content: center; flex-wrap: wrap; }
             .phone-wrapper { order: -1; }
             .phone-mockup { width: 220px; height: 450px; }
+            .screenshots-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
             .features-grid { grid-template-columns: 1fr; }
             .steps { grid-template-columns: repeat(2, 1fr); }
             .step::after { display: none; }
@@ -788,18 +406,14 @@
             .mobile-menu { display: block; }
             .waitlist-form { flex-direction: column; }
             .beta-steps { flex-direction: column; gap: 16px; }
+            .hero { background-attachment: scroll; }
+            .img-divider { background-attachment: scroll; height: 300px; }
+            .pricing { background-attachment: scroll; }
+            .waitlist { background-attachment: scroll; }
         }
 
-        .reveal {
-            opacity: 0;
-            transform: translateY(40px);
-            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .reveal.visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
     </style>
 </head>
 <body>
@@ -809,8 +423,8 @@
     <div class="nav-inner">
         <a href="#" class="logo">Projekt<span>Fit</span></a>
         <div class="nav-links">
+            <a href="#screenshots">App</a>
             <a href="#features">Features</a>
-            <a href="#how">So funktioniert's</a>
             <a href="#pricing">Preise</a>
             <a href="#beta">Beta testen</a>
             <a href="#waitlist" class="nav-cta">Warteliste</a>
@@ -830,7 +444,7 @@
                 Beta jetzt verfügbar
             </div>
             <h1>Dein <span class="gradient-text">KI-Trainer</span> – vom Smartphone in den Park</h1>
-            <p class="hero-sub">Personalisierte Trainingspläne per KI, Sprachsteuerung beim Workout und buchbares Outdoor-Personal-Training – alles in einer App.</p>
+            <p class="hero-sub">Personalisierte Trainingspläne per KI, Sprachsteuerung beim Workout, Apple Health Integration und buchbares Outdoor-Personal-Training – alles in einer App.</p>
             <div class="hero-buttons">
                 <a href="#beta" class="btn btn-primary">Beta testen</a>
                 <a href="#waitlist" class="btn btn-secondary">Auf die Warteliste →</a>
@@ -839,31 +453,42 @@
         <div class="phone-wrapper">
             <div class="phone-mockup">
                 <div class="phone-notch"></div>
-                <div class="phone-screen">
-                    <div class="screen-header">
-                        <h3>Hallo! 👋</h3>
-                        <p>Sonntag, 1. März</p>
-                        <p>🔥 3 Tage in Folge</p>
-                    </div>
-                    <div class="screen-card">
-                        <div class="screen-card-title">Dein Training heute</div>
-                        <h4>💪 Ganzkörper-Workout</h4>
-                        <div class="meta">25 Min · Mittel</div>
-                        <div class="screen-btn">Jetzt starten</div>
-                    </div>
-                    <div class="screen-card">
-                        <div class="screen-card-title">Diese Woche</div>
-                        <div class="screen-week">
-                            <div class="screen-day done">Mo</div>
-                            <div class="screen-day done">Di</div>
-                            <div class="screen-day">Mi</div>
-                            <div class="screen-day done">Do</div>
-                            <div class="screen-day">Fr</div>
-                            <div class="screen-day active">Sa</div>
-                            <div class="screen-day">So</div>
-                        </div>
-                    </div>
+                <img src="screenshots/screenshot-1-dashboard.png" alt="Projekt Fit Dashboard">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- APP SCREENSHOTS -->
+<section class="screenshots" id="screenshots">
+    <div class="section-inner">
+        <div class="section-label reveal">Die App</div>
+        <h2 class="section-title reveal">Dein komplettes Fitness-Studio in einer App</h2>
+        <p class="section-sub reveal">Dashboard mit Apple Health, KI-Trainingsplan, persönlicher Coach und detaillierte Statistiken.</p>
+        <div class="screenshots-grid">
+            <div class="screenshot-item reveal">
+                <div class="screenshot-phone">
+                    <img src="screenshots/screenshot-1-dashboard.png" alt="Dashboard mit Health-Daten">
                 </div>
+                <div class="screenshot-label">Dashboard</div>
+            </div>
+            <div class="screenshot-item reveal">
+                <div class="screenshot-phone">
+                    <img src="screenshots/screenshot-2-training.png" alt="Training-Übersicht">
+                </div>
+                <div class="screenshot-label">Training</div>
+            </div>
+            <div class="screenshot-item reveal">
+                <div class="screenshot-phone">
+                    <img src="screenshots/screenshot-3-coach.png" alt="KI-Coach Chat">
+                </div>
+                <div class="screenshot-label">KI-Coach</div>
+            </div>
+            <div class="screenshot-item reveal">
+                <div class="screenshot-phone">
+                    <img src="screenshots/screenshot-4-profil.png" alt="Profil mit Statistiken">
+                </div>
+                <div class="screenshot-label">Profil</div>
             </div>
         </div>
     </div>
@@ -893,8 +518,8 @@
             </div>
             <div class="feature-card reveal">
                 <div class="feature-icon fi-4">📊</div>
-                <h3>Fortschritts-Tracking</h3>
-                <p>Streaks, Statistiken und Meilensteine. Sieh genau wie du dich verbesserst – Woche für Woche.</p>
+                <h3>Apple Health Sync</h3>
+                <p>Schritte, Distanz und Kalorien direkt aus Apple Health oder Health Connect – alles im Dashboard auf einen Blick.</p>
             </div>
             <div class="feature-card reveal">
                 <div class="feature-icon fi-5">💪</div>
@@ -903,15 +528,15 @@
             </div>
             <div class="feature-card reveal">
                 <div class="feature-icon fi-6">❤️</div>
-                <h3>Health-Sync</h3>
-                <p>Verbinde die App mit Apple Health oder Google Health Connect. Deine Trainingsminuten und Kalorien werden automatisch synchronisiert.</p>
+                <h3>Fortschritts-Tracking</h3>
+                <p>Streaks, Wochen-Chart, Meilensteine und Trainingsminuten. Sieh genau wie du stärker wirst – Woche für Woche.</p>
             </div>
         </div>
     </div>
 </section>
 
 <!-- IMAGE DIVIDER 1 -->
-<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1920&q=80');">
+<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');">
     <div class="img-divider-content">
         <h2>Trainiere wo es am schönsten ist</h2>
         <p>Im Park, am See, auf der Wiese – dein Outdoor-Gym wartet</p>
@@ -949,7 +574,7 @@
 </section>
 
 <!-- IMAGE DIVIDER 2 -->
-<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=1920&q=80');">
+<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1920&q=80');">
     <div class="img-divider-content">
         <h2>105 Übungen für jedes Level</h2>
         <p>Von Anfänger bis Profi – ohne Equipment, überall machbar</p>
@@ -970,30 +595,31 @@
                     <li><span class="check">✓</span> 1 Workout pro Woche</li>
                     <li><span class="check">✓</span> KI-Trainingsplan</li>
                     <li><span class="check">✓</span> Sprachsteuerung</li>
-                    <li><span class="check">✓</span> Basis-Statistiken</li>
+                    <li><span class="check">✓</span> Apple Health Sync</li>
                 </ul>
                 <button class="price-btn price-btn-outline" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Kostenlos starten</button>
             </div>
             <div class="price-card popular reveal">
                 <div class="price-badge">Beliebteste Wahl</div>
                 <h3>Basic</h3>
-                <div class="price-amount">9,99€ <span>/Mon.</span></div>
+                <div class="price-amount">4,99€ <span>/Mon.</span></div>
                 <ul class="price-features">
                     <li><span class="check">✓</span> 3 Workouts pro Woche</li>
                     <li><span class="check">✓</span> KI-Trainingsplan</li>
                     <li><span class="check">✓</span> Sprachsteuerung</li>
+                    <li><span class="check">✓</span> Apple Health Sync</li>
                     <li><span class="check">✓</span> Alle Statistiken</li>
-                    <li><span class="check">✓</span> Community-Zugang</li>
                 </ul>
                 <button class="price-btn price-btn-fill" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Basic wählen</button>
             </div>
             <div class="price-card reveal">
                 <h3>Premium</h3>
-                <div class="price-amount">19,99€ <span>/Mon.</span></div>
+                <div class="price-amount">9,99€ <span>/Mon.</span></div>
                 <ul class="price-features">
                     <li><span class="check">✓</span> Unbegrenzte Workouts</li>
                     <li><span class="check">✓</span> KI-Trainingsplan</li>
                     <li><span class="check">✓</span> Sprachsteuerung</li>
+                    <li><span class="check">✓</span> Apple Health Sync</li>
                     <li><span class="check">✓</span> Erweiterte Analysen</li>
                     <li><span class="check">✓</span> Prio-Support</li>
                 </ul>
@@ -1017,18 +643,9 @@
                 <p>Klicke auf den Button, um die Beta-App herunterzuladen</p>
                 <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/fe1ee3ae-6753-483b-a919-a4689d1a3c2d" target="_blank" rel="noopener" class="beta-download">⬇ Beta-App herunterladen</a>
                 <div class="beta-steps">
-                    <div class="beta-step">
-                        <div class="num">1</div>
-                        <span>Beta-App herunterladen</span>
-                    </div>
-                    <div class="beta-step">
-                        <div class="num">2</div>
-                        <span>Öffnen – Updates laden automatisch</span>
-                    </div>
-                    <div class="beta-step">
-                        <div class="num">3</div>
-                        <span>Testen & Feedback geben</span>
-                    </div>
+                    <div class="beta-step"><div class="num">1</div><span>Beta-App herunterladen</span></div>
+                    <div class="beta-step"><div class="num">2</div><span>Öffnen – Updates laden automatisch</span></div>
+                    <div class="beta-step"><div class="num">3</div><span>Testen & Feedback geben</span></div>
                 </div>
             </div>
 
@@ -1037,18 +654,9 @@
                 <p>Klicke auf den Button, um die Beta-App für dein iPhone herunterzuladen</p>
                 <a href="https://testflight.apple.com/join/KpXvf213" target="_blank" rel="noopener" class="beta-download">⬇ Beta-App herunterladen (iOS)</a>
                 <div class="beta-steps">
-                    <div class="beta-step">
-                        <div class="num">1</div>
-                        <span>Beta-App herunterladen</span>
-                    </div>
-                    <div class="beta-step">
-                        <div class="num">2</div>
-                        <span>Öffnen – Updates laden automatisch</span>
-                    </div>
-                    <div class="beta-step">
-                        <div class="num">3</div>
-                        <span>Testen & Feedback geben</span>
-                    </div>
+                    <div class="beta-step"><div class="num">1</div><span>Beta-App herunterladen</span></div>
+                    <div class="beta-step"><div class="num">2</div><span>Öffnen – Updates laden automatisch</span></div>
+                    <div class="beta-step"><div class="num">3</div><span>Testen & Feedback geben</span></div>
                 </div>
             </div>
 
@@ -1067,18 +675,9 @@
                     <a href="https://testflight.apple.com/join/KpXvf213" target="_blank" rel="noopener" class="beta-download" style="margin-bottom:0;">⬇ iOS</a>
                 </div>
                 <div class="beta-steps">
-                    <div class="beta-step">
-                        <div class="num">1</div>
-                        <span>QR-Code scannen oder downloaden</span>
-                    </div>
-                    <div class="beta-step">
-                        <div class="num">2</div>
-                        <span>Öffnen – Updates laden automatisch</span>
-                    </div>
-                    <div class="beta-step">
-                        <div class="num">3</div>
-                        <span>Testen & Feedback geben</span>
-                    </div>
+                    <div class="beta-step"><div class="num">1</div><span>QR-Code scannen oder downloaden</span></div>
+                    <div class="beta-step"><div class="num">2</div><span>Öffnen – Updates laden automatisch</span></div>
+                    <div class="beta-step"><div class="num">3</div><span>Testen & Feedback geben</span></div>
                 </div>
             </div>
         </div>
