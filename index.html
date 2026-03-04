@@ -426,7 +426,7 @@
             <a href="#screenshots">App</a>
             <a href="#features">Features</a>
             <a href="#pricing">Preise</a>
-            <a href="#beta">Beta testen</a>
+            <a href="#beta">Download</a>
             <a href="#waitlist" class="nav-cta">Warteliste</a>
         </div>
         <button class="mobile-menu" onclick="document.querySelector('.nav-links').style.display=document.querySelector('.nav-links').style.display==='flex'?'none':'flex'">
@@ -441,12 +441,12 @@
         <div>
             <div class="hero-tag">
                 <span class="dot"></span>
-                Beta jetzt verfügbar
+                Jetzt verfügbar
             </div>
             <h1>Dein <span class="gradient-text">KI-Trainer</span> – vom Smartphone in den Park</h1>
             <p class="hero-sub">Personalisierte Trainingspläne per KI, Sprachsteuerung beim Workout, Apple Health Integration und buchbares Outdoor-Personal-Training – alles in einer App.</p>
             <div class="hero-buttons">
-                <a href="#beta" class="btn btn-primary">Beta testen</a>
+                <a href="#beta" class="btn btn-primary">App testen</a>
                 <a href="#waitlist" class="btn btn-secondary">Auf die Warteliste →</a>
             </div>
         </div>
@@ -632,18 +632,18 @@
 <!-- BETA -->
 <section class="beta" id="beta">
     <div class="section-inner">
-        <div class="section-label reveal">Beta-Test</div>
+        <div class="section-label reveal">Download</div>
         <h2 class="section-title reveal">Teste die App jetzt – kostenlos</h2>
-        <p class="section-sub reveal" style="margin: 0 auto 20px;" id="beta-subtitle">Lade die Beta-App herunter und teste alle aktuellen Features.</p>
+        <p class="section-sub reveal" style="margin: 0 auto 20px;" id="beta-subtitle">Lade die App herunter und teste alle aktuellen Features.</p>
         <div class="beta-card reveal">
-            <h3>📱 Projekt Fit Beta</h3>
+            <h3>📱 Projekt Fit</h3>
 
             <!-- Android: Download -->
             <div id="beta-android" class="beta-hidden">
-                <p>Klicke auf den Button, um die Beta-App herunterzuladen</p>
-                <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/fe1ee3ae-6753-483b-a919-a4689d1a3c2d" target="_blank" rel="noopener" class="beta-download">⬇ Beta-App herunterladen</a>
+                <p>Klicke auf den Button, um die App herunterzuladen</p>
+                <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/fe1ee3ae-6753-483b-a919-a4689d1a3c2d" target="_blank" rel="noopener" class="beta-download">⬇ App herunterladen</a>
                 <div class="beta-steps">
-                    <div class="beta-step"><div class="num">1</div><span>Beta-App herunterladen</span></div>
+                    <div class="beta-step"><div class="num">1</div><span>App herunterladen</span></div>
                     <div class="beta-step"><div class="num">2</div><span>Öffnen – Updates laden automatisch</span></div>
                     <div class="beta-step"><div class="num">3</div><span>Testen & Feedback geben</span></div>
                 </div>
@@ -651,10 +651,10 @@
 
             <!-- iOS: Download -->
             <div id="beta-ios" class="beta-hidden">
-                <p>Klicke auf den Button, um die Beta-App für dein iPhone herunterzuladen</p>
-                <a href="https://testflight.apple.com/join/KpXvf213" target="_blank" rel="noopener" class="beta-download">⬇ Beta-App herunterladen (iOS)</a>
+                <p>Klicke auf den Button, um die App für dein iPhone herunterzuladen</p>
+                <a href="https://testflight.apple.com/join/KpXvf213" target="_blank" rel="noopener" class="beta-download">⬇ App herunterladen (iOS)</a>
                 <div class="beta-steps">
-                    <div class="beta-step"><div class="num">1</div><span>Beta-App herunterladen</span></div>
+                    <div class="beta-step"><div class="num">1</div><span>App herunterladen</span></div>
                     <div class="beta-step"><div class="num">2</div><span>Öffnen – Updates laden automatisch</span></div>
                     <div class="beta-step"><div class="num">3</div><span>Testen & Feedback geben</span></div>
                 </div>
@@ -664,7 +664,7 @@
             <div id="beta-desktop" class="beta-hidden">
                 <p>Scanne den QR-Code mit deinem Handy – die richtige Version wird automatisch erkannt</p>
                 <div class="qr-placeholder">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fprojektfit.net%2Fbeta" alt="QR-Code zum Beta-Download" style="width:180px; height:180px; border-radius:8px;">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fprojektfit.net%2Fbeta" alt="QR-Code zum Download" style="width:180px; height:180px; border-radius:8px;">
                 </div>
                 <div style="display:flex; gap:10px; justify-content:center; margin-bottom:28px; flex-wrap:wrap;">
                     <span class="beta-platform-badge badge-android">✓ Android – verfügbar</span>
@@ -709,9 +709,9 @@
         <div class="footer-links">
             <a href="#features">Features</a>
             <a href="#pricing">Preise</a>
-            <a href="#beta">Beta</a>
+            <a href="#beta">Download</a>
             <a href="/datenschutz">Datenschutz</a>
-            <a href="#">AGB</a>
+            <a href="/agb">AGB</a>
             <a href="/impressum">Impressum</a>
         </div>
         <p class="footer-copy">© 2026 Projekt Fit. Alle Rechte vorbehalten.</p>
@@ -740,13 +740,13 @@
 
         if (isAndroid) {
             document.getElementById('beta-android').classList.remove('beta-hidden');
-            if (subtitle) subtitle.textContent = 'Lade die Beta-App herunter und teste alle aktuellen Features auf deinem Android-Gerät.';
+            if (subtitle) subtitle.textContent = 'Lade die App herunter und teste alle aktuellen Features auf deinem Android-Gerät.';
         } else if (isIOS) {
             document.getElementById('beta-ios').classList.remove('beta-hidden');
-            if (subtitle) subtitle.textContent = 'Lade die Beta-App herunter und teste alle aktuellen Features auf deinem iPhone.';
+            if (subtitle) subtitle.textContent = 'Lade die App herunter und teste alle aktuellen Features auf deinem iPhone.';
         } else {
             document.getElementById('beta-desktop').classList.remove('beta-hidden');
-            if (subtitle) subtitle.textContent = 'Scanne den QR-Code mit deinem Handy, um die Beta-App zu testen.';
+            if (subtitle) subtitle.textContent = 'Scanne den QR-Code mit deinem Handy, um die App zu testen.';
         }
     })();
 
