@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Projekt Fit – App herunterladen</title>
-    <meta name="description" content="Lade die Projekt Fit App herunter und teste den KI-Fitness-Trainer.">
+    <title>Projekt Fit – Beta testen</title>
+    <meta name="description" content="Teste die Projekt Fit App – KI-Fitness-Coach für Outdoor-Training. Jetzt als Beta-Tester anmelden.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
@@ -15,8 +15,6 @@
             --border: rgba(255,255,255,0.06);
             --green: #2D6A4F;
             --green-light: #40916C;
-            --blue: #2E75B6;
-            --blue-light: #5BB8FF;
             --orange: #E07A3A;
             --text: #F0F0F5;
             --text-secondary: #8888A0;
@@ -51,7 +49,9 @@
         .logo span { color: var(--green-light); }
 
         .card {
-            background: var(--bg-card);
+            background: rgba(22,22,37,0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid var(--border);
             border-radius: 24px;
             padding: 48px 32px;
@@ -67,6 +67,17 @@
             width: 200px;
             height: 200px;
             background: radial-gradient(circle, rgba(45,106,79,0.12), transparent 70%);
+            border-radius: 50%;
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            left: -15%;
+            width: 160px;
+            height: 160px;
+            background: radial-gradient(circle, rgba(224,122,58,0.08), transparent 70%);
             border-radius: 50%;
         }
 
@@ -87,7 +98,7 @@
             color: var(--text-secondary);
             font-size: 16px;
             line-height: 1.6;
-            margin-bottom: 32px;
+            margin-bottom: 24px;
             position: relative;
         }
 
@@ -167,21 +178,79 @@
         }
 
         .hidden { display: none; }
+
+        /* Android Waitlist Form */
+        .waitlist-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .waitlist-form input {
+            width: 100%;
+            padding: 16px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: var(--bg-surface);
+            color: var(--text);
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .waitlist-form input::placeholder { color: var(--text-muted); }
+        .waitlist-form input:focus { border-color: var(--orange); }
+
+        .waitlist-note {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 0;
+            position: relative;
+        }
+
+        .waitlist-success {
+            display: none;
+            background: rgba(45,106,79,0.15);
+            border: 1px solid rgba(64,145,108,0.3);
+            border-radius: 14px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .waitlist-success h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--green-light);
+        }
+
+        .waitlist-success p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            margin-bottom: 0;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(224,122,58,0.15);
+            border: 1px solid rgba(224,122,58,0.3);
+            color: var(--orange);
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 16px;
+            border-radius: 50px;
+            margin-bottom: 20px;
+            position: relative;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="logo">Projekt<span>Fit</span></div>
-
-    <!-- ANDROID -->
-    <div class="card hidden" id="android-card">
-        <div class="icon">📱</div>
-        <h1>App herunterladen</h1>
-        <p>Du wirst gleich zum Download der Projekt Fit App weitergeleitet.</p>
-        <a href="https://expo.dev/accounts/dirkbleckmanns-organization/projects/projekt-fit/builds/fe1ee3ae-6753-483b-a919-a4689d1a3c2d" class="btn btn-orange" id="android-btn">⬇ Jetzt herunterladen</a>
-        <p class="redirect-note"><span class="spinner"></span>Weiterleitung in <span id="countdown">3</span> Sekunden...</p>
-    </div>
 
     <!-- iOS -->
     <div class="card hidden" id="ios-card">
@@ -192,23 +261,39 @@
         <p class="redirect-note"><span class="spinner"></span>Weiterleitung in <span id="countdown-ios">3</span> Sekunden...</p>
     </div>
 
+    <!-- ANDROID -->
+    <div class="card hidden" id="android-card">
+        <div class="icon">🤖</div>
+        <div class="badge">Coming Soon</div>
+        <h1>Android Beta kommt bald!</h1>
+        <p>Wir arbeiten gerade am Google Play Release. Trag dich in die Warteliste ein und wir benachrichtigen dich, sobald die Android-Version verfügbar ist.</p>
+        <form class="waitlist-form" id="android-form" onsubmit="handleAndroidWaitlist(event)">
+            <input type="email" placeholder="Deine E-Mail-Adresse" required id="android-email">
+            <button type="submit" class="btn btn-orange" id="android-submit">🔔 Benachrichtigen</button>
+        </form>
+        <p class="waitlist-note">Kein Spam. Nur eine Nachricht, wenn die App bereit ist.</p>
+        <div class="waitlist-success" id="android-success">
+            <h2>✅ Du bist auf der Liste!</h2>
+            <p>Wir melden uns, sobald Projekt Fit für Android verfügbar ist.</p>
+        </div>
+    </div>
+
     <!-- DESKTOP / FALLBACK -->
     <div class="card hidden" id="desktop-card">
         <div class="icon">💻</div>
         <h1>Projekt Fit</h1>
-        <p>Scanne den QR-Code mit deinem Handy, um die App herunterzuladen. Verfügbar für Android und iOS!</p>
+        <p>Scanne den QR-Code mit deinem Handy, um die App herunterzuladen. Verfügbar für iOS – Android kommt bald!</p>
         <div style="background:#fff; border-radius:12px; padding:16px; display:inline-block; margin-bottom:24px;">
             <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fprojektfit.net%2Fbeta" alt="QR-Code" width="180" height="180" style="display:block; border-radius:4px;">
         </div>
         <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-bottom:24px;">
-            <span style="background:var(--green); color:var(--text); font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px;">✓ Android</span>
-            <span style="font-size:13px; color:var(--text-muted);">verfügbar</span>
-            <span style="margin:0 4px; color:var(--text-muted);">·</span>
             <span style="background:var(--green); color:var(--text); font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px;">✓ iOS</span>
             <span style="font-size:13px; color:var(--text-muted);">verfügbar</span>
+            <span style="margin:0 4px; color:var(--text-muted);">·</span>
+            <span style="background:var(--orange); color:#fff; font-size:12px; font-weight:700; padding:4px 12px; border-radius:50px;">⏳ Android</span>
+            <span style="font-size:13px; color:var(--text-muted);">bald</span>
         </div>
-        <a href="https://projektfit.net/#waitlist" class="btn btn-green">Auf die Warteliste →</a>
-        <a href="https://projektfit.net/" class="btn btn-outline">Zurück zur Startseite</a>
+        <a href="https://projektfit.net/" class="btn btn-green">Zur Startseite →</a>
     </div>
 </div>
 
@@ -217,26 +302,50 @@
     const isAndroid = /android/i.test(ua);
     const isIOS = /iphone|ipad|ipod/i.test(ua);
 
-    function startCountdown(cardId, btnId, countdownId) {
-        document.getElementById(cardId).classList.remove('hidden');
+    if (isAndroid) {
+        document.getElementById('android-card').classList.remove('hidden');
+    } else if (isIOS) {
+        document.getElementById('ios-card').classList.remove('hidden');
         let seconds = 3;
-        const countdownEl = document.getElementById(countdownId);
+        const countdownEl = document.getElementById('countdown-ios');
         const timer = setInterval(() => {
             seconds--;
             countdownEl.textContent = seconds;
             if (seconds <= 0) {
                 clearInterval(timer);
-                window.location.href = document.getElementById(btnId).href;
+                window.location.href = document.getElementById('ios-btn').href;
             }
         }, 1000);
-    }
-
-    if (isAndroid) {
-        startCountdown('android-card', 'android-btn', 'countdown');
-    } else if (isIOS) {
-        startCountdown('ios-card', 'ios-btn', 'countdown-ios');
     } else {
         document.getElementById('desktop-card').classList.remove('hidden');
+    }
+
+    async function handleAndroidWaitlist(e) {
+        e.preventDefault();
+        const email = document.getElementById('android-email').value;
+        const btn = document.getElementById('android-submit');
+        btn.textContent = 'Wird eingetragen...';
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            });
+            if (res.ok) {
+                document.getElementById('android-form').style.display = 'none';
+                document.querySelector('.waitlist-note').style.display = 'none';
+                document.getElementById('android-success').style.display = 'block';
+            } else {
+                btn.textContent = '🔔 Benachrichtigen';
+                btn.disabled = false;
+                alert('Fehler bei der Anmeldung. Bitte versuche es erneut.');
+            }
+        } catch (err) {
+            btn.textContent = '🔔 Benachrichtigen';
+            btn.disabled = false;
+            alert('Verbindungsfehler. Bitte versuche es erneut.');
+        }
     }
 </script>
 
