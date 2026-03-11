@@ -1,568 +1,201 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard – Trainer-Portal – Projekt Fit</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – Trainer-Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="dashboard">
-    <!-- ═══ HEADER ═══ -->
-    <header class="portal-header">
-        <div class="header-inner">
-            <div class="header-left">
-                <a href="https://projektfit.net" class="header-logo">Projekt<span>Fit</span></a>
-                <span class="header-badge">Trainer-Portal</span>
-            </div>
-            <div class="header-center">
-                <span class="header-name">Max Koch</span>
-                <span class="backup-badge" id="backup-badge" style="display:none;">Backup</span>
-            </div>
-            <div class="header-right">
-                <button class="notification-btn" title="Benachrichtigungen">
-                    <svg viewBox="0 0 24 24"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.89 2 2 2zm6-6v-5c0-3.07-1.64-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
-                    <span class="notification-badge">2</span>
-                </button>
-                <button class="logout-btn" onclick="window.location.href='index.html'">Abmelden</button>
-            </div>
-        </div>
-    </header>
+<header class="top-header" id="top-header"></header>
 
-    <!-- ═══ TAB NAV ═══ -->
-    <nav class="tab-nav">
-        <div class="tab-nav-inner">
-            <button class="tab-btn active" data-tab="anfragen"><span class="tab-icon">&#128172;</span><span class="tab-label">Anfragen</span> <span class="tab-badge">2</span></button>
-            <button class="tab-btn" data-tab="kalender"><span class="tab-icon">&#128197;</span><span class="tab-label">Kalender</span></button>
-            <button class="tab-btn" data-tab="verdienst"><span class="tab-icon">&#128176;</span><span class="tab-label">Verdienst</span></button>
-        </div>
-    </nav>
+<div class="content">
+  <h1 class="page-title" id="welcome">Willkommen!</h1>
 
-    <!-- ═══ TAB CONTENT ═══ -->
-    <main class="tab-content">
-        <div class="tab-content-inner">
-
-            <!-- ══ TAB 1: ANFRAGEN ══ -->
-            <div class="tab-panel active" id="tab-anfragen">
-
-                <!-- Neue Anfragen -->
-                <div class="section-header">
-                    <div class="section-accent accent-gold"></div>
-                    <h2>Neue Anfragen</h2>
-                </div>
-
-                <!-- Card 1: Dringend -->
-                <div class="request-card" id="request-1">
-                    <div class="request-content" id="request-1-content">
-                        <div class="request-badge badge-urgent">&#9889; Bitte bis 18:00 Uhr best&auml;tigen</div>
-                        <div class="request-info">
-                            <div class="info-row">
-                                <span class="icon">&#128100;</span>
-                                <span class="value">Lisa S.</span>
-                                <span class="label">&middot; Berlin</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="icon">&#128197;</span>
-                                <span class="value">Mo, 09.03.2026</span>
-                                <span class="label">&middot; 16:00&ndash;17:00 Uhr</span>
-                            </div>
-                        </div>
-                        <div class="map-placeholder">
-                            <span>&#128205;</span>
-                            <span>Volkspark Friedrichshain &middot; <strong>1,2 km entfernt</strong></span>
-                        </div>
-                        <div class="request-earning">Individuell <span>vereinbart</span></div>
-                        <div class="countdown" id="countdown-1">
-                            &#9202; Verbleibend: <span id="countdown-timer">--:--:--</span>
-                        </div>
-                        <textarea class="message-field" placeholder="Nachricht an Kunden (optional)" rows="1"></textarea>
-                        <div class="request-actions">
-                            <button class="btn-confirm" onclick="confirmRequest(1)">&#10004; Best&auml;tigen</button>
-                            <button class="btn-decline" onclick="openDeclineModal(1)">&#10006; Ablehnen</button>
-                        </div>
-                    </div>
-                    <div class="confirmed-message" id="request-1-confirmed">
-                        <div class="check-icon">&#10004;&#65039;</div>
-                        <h3>Best&auml;tigt!</h3>
-                        <p>Lisa S. wurde benachrichtigt.</p>
-                    </div>
-                </div>
-
-                <!-- Card 2: Normal -->
-                <div class="request-card" id="request-2">
-                    <div class="request-content" id="request-2-content">
-                        <div class="request-badge badge-new">&#128312; Neue Anfrage</div>
-                        <div class="request-info">
-                            <div class="info-row">
-                                <span class="icon">&#128100;</span>
-                                <span class="value">Thomas M.</span>
-                                <span class="label">&middot; Berlin</span>
-                            </div>
-                            <div class="info-row">
-                                <span class="icon">&#128197;</span>
-                                <span class="value">Di, 10.03.2026</span>
-                                <span class="label">&middot; 18:00&ndash;19:00 Uhr</span>
-                            </div>
-                        </div>
-                        <div class="map-placeholder">
-                            <span>&#128205;</span>
-                            <span>Tiergarten &middot; <strong>2,4 km entfernt</strong></span>
-                        </div>
-                        <div class="request-earning">Individuell <span>vereinbart</span></div>
-                        <textarea class="message-field" placeholder="Nachricht an Kunden (optional)" rows="1"></textarea>
-                        <div class="request-actions">
-                            <button class="btn-confirm" onclick="confirmRequest(2)">&#10004; Best&auml;tigen</button>
-                            <button class="btn-decline" onclick="openDeclineModal(2)">&#10006; Ablehnen</button>
-                        </div>
-                    </div>
-                    <div class="confirmed-message" id="request-2-confirmed">
-                        <div class="check-icon">&#10004;&#65039;</div>
-                        <h3>Best&auml;tigt!</h3>
-                        <p>Thomas M. wurde benachrichtigt.</p>
-                    </div>
-                </div>
-
-                <!-- Best&auml;tigte Termine -->
-                <div class="section-header section-gap">
-                    <div class="section-accent accent-green"></div>
-                    <h2>Best&auml;tigte Termine</h2>
-                </div>
-
-                <div class="booking-compact" id="booking-1">
-                    <div class="booking-info">
-                        <div class="booking-date">
-                            <div class="day">Fr</div>
-                            <div class="date">07</div>
-                        </div>
-                        <div class="booking-details">
-                            <div class="time">16:00 Uhr &middot; Volkspark Friedrichshain</div>
-                            <div class="client">Jana K.</div>
-                        </div>
-                    </div>
-                    <span class="booking-amount">Individuell</span>
-                    <button class="btn-cancel" onclick="cancelBooking(1)">Stornieren</button>
-                </div>
-
-                <div class="booking-compact" id="booking-2">
-                    <div class="booking-info">
-                        <div class="booking-date">
-                            <div class="day">Sa</div>
-                            <div class="date">08</div>
-                        </div>
-                        <div class="booking-details">
-                            <div class="time">10:00 Uhr &middot; Tiergarten</div>
-                            <div class="client">Michael B.</div>
-                        </div>
-                    </div>
-                    <span class="booking-amount">Individuell</span>
-                    <button class="btn-cancel" onclick="cancelBooking(2)">Stornieren</button>
-                </div>
-
-                <!-- Vergangene Termine -->
-                <div class="section-header section-gap">
-                    <div class="section-accent accent-gray"></div>
-                    <h2>Vergangene Termine</h2>
-                </div>
-
-                <div class="booking-past">
-                    <div class="booking-info">
-                        <div class="booking-date">
-                            <div class="day">Mo</div>
-                            <div class="date">03</div>
-                        </div>
-                        <div class="booking-details">
-                            <div class="time">Lisa S.</div>
-                            <div>
-                                <span class="rating">&#9733;&#9733;&#9733;&#9733;&#9733;</span>
-                                <div class="review">&bdquo;Super motivierend!&ldquo;</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="booking-past">
-                    <div class="booking-info">
-                        <div class="booking-date">
-                            <div class="day">Fr</div>
-                            <div class="date">28</div>
-                        </div>
-                        <div class="booking-details">
-                            <div class="time">Thomas M.</div>
-                            <div>
-                                <span class="rating">&#9733;&#9733;&#9733;&#9733;&#9734;</span>
-                                <div class="review">&bdquo;Sehr gut, danke!&ldquo;</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ══ TAB 2: KALENDER ══ -->
-            <div class="tab-panel" id="tab-kalender">
-                <div class="calendar-nav">
-                    <button class="cal-nav-btn" id="cal-prev" onclick="changeWeek(-1)">&#8592;</button>
-                    <h2 id="cal-week-title">Woche laden...</h2>
-                    <button class="cal-nav-btn" id="cal-next" onclick="changeWeek(1)">&#8594;</button>
-                    <button class="cal-today-btn" onclick="goToToday()">Heute</button>
-                </div>
-
-                <div class="calendar-week" id="calendar-grid">
-                    <!-- Dynamisch generiert -->
-                </div>
-
-                <!-- Backup Trainer Toggle -->
-                <div class="backup-toggle-card" id="backup-toggle-card">
-                    <div class="backup-toggle-info">
-                        <div class="backup-toggle-title">&#128260; Backup-Trainer Status</div>
-                        <p class="backup-toggle-desc">Wenn aktiv, wirst du als Ersatz-Trainer f&uuml;r stornierte Sessions angefragt.</p>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="backup-toggle" onchange="toggleBackupStatus()">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-
-                <div class="calendar-hint">
-                    <p>Verf&uuml;gbarkeit wird &uuml;ber Cal.com verwaltet</p>
-                    <a href="#" class="btn-calcom" onclick="showToast('Cal.com Integration folgt in Phase 2', 'warning'); return false;">&#128197; Cal.com &ouml;ffnen</a>
-                </div>
-            </div>
-
-            <!-- ══ TAB 3: VERDIENST ══ -->
-            <div class="tab-panel" id="tab-verdienst">
-                <div class="section-header">
-                    <div class="section-accent accent-green"></div>
-                    <h2>&Uuml;bersicht</h2>
-                </div>
-
-                <div class="earnings-grid">
-                    <div class="earning-card">
-                        <div class="amount">&ndash;</div>
-                        <div class="label">Dieser Monat</div>
-                        <div class="sessions">4 Sessions</div>
-                    </div>
-                    <div class="earning-card">
-                        <div class="amount">&ndash;</div>
-                        <div class="label">Letzter Monat</div>
-                        <div class="sessions">6 Sessions</div>
-                    </div>
-                    <div class="earning-card">
-                        <div class="amount">&ndash;</div>
-                        <div class="label">Gesamt</div>
-                        <div class="sessions">10 Sessions</div>
-                    </div>
-                </div>
-
-                <div class="section-header">
-                    <div class="section-accent accent-gold"></div>
-                    <h2>Letzte Auszahlungen</h2>
-                </div>
-
-                <table class="earnings-table">
-                    <thead>
-                        <tr>
-                            <th>Datum</th>
-                            <th>Kunde</th>
-                            <th>Betrag</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>03.03.2026</td>
-                            <td>Lisa S.</td>
-                            <td>Individuell</td>
-                            <td><span class="status-badge status-paid">&#10003; Ausgezahlt</span></td>
-                        </tr>
-                        <tr>
-                            <td>28.02.2026</td>
-                            <td>Thomas M.</td>
-                            <td>Individuell</td>
-                            <td><span class="status-badge status-paid">&#10003; Ausgezahlt</span></td>
-                        </tr>
-                        <tr>
-                            <td>25.02.2026</td>
-                            <td>Jana K.</td>
-                            <td>Individuell</td>
-                            <td><span class="status-badge status-paid">&#10003; Ausgezahlt</span></td>
-                        </tr>
-                        <tr>
-                            <td>21.02.2026</td>
-                            <td>Michael B.</td>
-                            <td>Individuell</td>
-                            <td><span class="status-badge status-paid">&#10003; Ausgezahlt</span></td>
-                        </tr>
-                        <tr>
-                            <td>07.03.2026</td>
-                            <td>Jana K.</td>
-                            <td>Individuell</td>
-                            <td><span class="status-badge status-pending">&#9711; Ausstehend</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <p class="earnings-hint">Auszahlung erfolgt automatisch via Stripe Connect nach jeder best&auml;tigten Session.</p>
-            </div>
-
-        </div>
-    </main>
-</div>
-
-<!-- ═══ DECLINE MODAL ═══ -->
-<div class="modal-overlay" id="decline-modal">
-    <div class="modal">
-        <h3>Buchung ablehnen</h3>
-        <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 14px;">Grund angeben (optional)</p>
-        <textarea id="decline-reason" placeholder="z.B. Zeitlich nicht m&ouml;glich, Krankheit, ..."></textarea>
-        <div class="modal-actions">
-            <button class="btn-modal-cancel" onclick="closeDeclineModal()">Abbrechen</button>
-            <button class="btn-modal-decline" onclick="confirmDecline()">Ablehnen best&auml;tigen</button>
-        </div>
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Nächste Buchung</div>
+      <div class="kpi-value" id="kpi-next" style="font-size:16px"><span class="spinner"></span></div>
     </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Buchungen (Monat)</div>
+      <div class="kpi-value" id="kpi-month"><span class="spinner"></span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Bewertung</div>
+      <div class="kpi-value text-accent" id="kpi-rating"><span class="spinner"></span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Verdienst (Monat)</div>
+      <div class="kpi-value text-success" id="kpi-earnings"><span class="spinner"></span></div>
+    </div>
+  </div>
+
+  <!-- Upcoming Bookings -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Nächste Termine</div>
+      <a href="/trainer-portal/bookings.html" class="btn btn-ghost btn-sm">Alle</a>
+    </div>
+    <div id="upcoming-list">
+      <div class="loading-center"><span class="spinner"></span> Laden...</div>
+    </div>
+  </div>
+
+  <!-- Pending Requests -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Neue Anfragen</div>
+    </div>
+    <div id="pending-list">
+      <div class="loading-center"><span class="spinner"></span> Laden...</div>
+    </div>
+  </div>
 </div>
 
-<!-- ═══ TOAST CONTAINER ═══ -->
-<div class="toast-container" id="toast-container"></div>
+<nav class="bottom-nav" id="bottom-nav"></nav>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-check.js"></script>
 <script>
-    // ═══ TAB SWITCHING ═══
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-        });
-    });
+  (async () => {
+    const trainer = await checkTrainerAuth();
+    if (!trainer) return;
 
-    // ═══ TOAST NOTIFICATIONS ═══
-    function showToast(message, type) {
-        type = type || 'success';
-        var container = document.getElementById('toast-container');
-        var toast = document.createElement('div');
-        toast.className = 'toast toast-' + type;
-        toast.textContent = message;
-        container.appendChild(toast);
-        setTimeout(function() {
-            if (toast.parentNode) toast.parentNode.removeChild(toast);
-        }, 3000);
+    document.getElementById('top-header').innerHTML = renderTopHeader();
+    document.getElementById('bottom-nav').innerHTML = renderNav('dashboard');
+    document.getElementById('welcome').textContent = `Willkommen, ${trainer.full_name || 'Trainer'}!`;
+
+    const sb = getSupabase();
+    const trainerId = trainer.id;
+
+    if (!trainerId) {
+      document.getElementById('kpi-next').textContent = '–';
+      document.getElementById('kpi-month').textContent = '–';
+      document.getElementById('kpi-rating').textContent = '–';
+      document.getElementById('kpi-earnings').textContent = '–';
+      document.getElementById('upcoming-list').innerHTML = '<div class="empty-state"><div class="empty-state-text">Trainer-Profil nicht verknüpft.</div></div>';
+      document.getElementById('pending-list').innerHTML = '';
+      return;
     }
 
-    // ═══ CONFIRM REQUEST ═══
-    function confirmRequest(id) {
-        var card = document.getElementById('request-' + id);
-        var content = document.getElementById('request-' + id + '-content');
-        var confirmed = document.getElementById('request-' + id + '-confirmed');
-        card.classList.add('confirmed-state');
-        content.style.display = 'none';
-        confirmed.style.display = 'block';
-        showToast('Buchung best\u00e4tigt. Kunde wurde benachrichtigt.', 'success');
-        updateBadge();
+    // ─── KPI: Rating ──────────────────────────────────────────────
+    document.getElementById('kpi-rating').textContent =
+      trainer.rating ? `${trainer.rating} ★` : '–';
+
+    // ─── KPI: Bookings this month + earnings ──────────────────────
+    const monthStart = new Date();
+    monthStart.setDate(1);
+    monthStart.setHours(0, 0, 0, 0);
+
+    try {
+      const { data: monthBookings } = await sb
+        .from('bookings')
+        .select('id, price_cents, status, session_date, session_time, customer_name, customer_id, location')
+        .eq('trainer_id', trainerId)
+        .gte('session_date', monthStart.toISOString().slice(0, 10));
+
+      const confirmed = (monthBookings || []).filter(b => b.status !== 'CANCELLED');
+      document.getElementById('kpi-month').textContent = confirmed.length;
+
+      const earnings = confirmed
+        .filter(b => b.status === 'COMPLETED' || b.status === 'CONFIRMED')
+        .reduce((sum, b) => sum + (trainer.payout_cents || b.price_cents || 0), 0);
+      document.getElementById('kpi-earnings').textContent = formatEuro(earnings);
+    } catch (err) {
+      console.error('Monats-KPIs:', err);
+      document.getElementById('kpi-month').textContent = '–';
+      document.getElementById('kpi-earnings').textContent = '–';
     }
 
-    // ═══ DECLINE MODAL ═══
-    var declineTargetId = null;
+    // ─── Upcoming Bookings ────────────────────────────────────────
+    const today = new Date().toISOString().slice(0, 10);
+    try {
+      const { data: upcoming } = await sb
+        .from('bookings')
+        .select('*')
+        .eq('trainer_id', trainerId)
+        .eq('status', 'CONFIRMED')
+        .gte('session_date', today)
+        .order('session_date', { ascending: true })
+        .limit(5);
 
-    function openDeclineModal(id) {
-        declineTargetId = id;
-        document.getElementById('decline-modal').classList.add('active');
-        document.getElementById('decline-reason').value = '';
-        document.getElementById('decline-reason').focus();
+      const list = document.getElementById('upcoming-list');
+      if (!upcoming || upcoming.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">Keine kommenden Termine</div></div>';
+        document.getElementById('kpi-next').textContent = 'Keine';
+      } else {
+        document.getElementById('kpi-next').textContent =
+          formatDate(upcoming[0].session_date) + ' ' + formatTime(upcoming[0].session_time);
+
+        list.innerHTML = upcoming.map(b => `
+          <div class="booking-item">
+            <div class="booking-top">
+              <div class="booking-customer">${b.customer_name || 'Kunde'}</div>
+              ${statusBadge(b.status)}
+            </div>
+            <div class="booking-meta">
+              📅 ${formatDate(b.session_date)} · ${formatTime(b.session_time)}<br>
+              📍 ${b.location || '–'}
+            </div>
+          </div>
+        `).join('');
+      }
+    } catch (err) {
+      console.error('Upcoming:', err);
+      document.getElementById('upcoming-list').innerHTML = '<div class="empty-state text-error">Fehler beim Laden</div>';
+      document.getElementById('kpi-next').textContent = '–';
     }
 
-    function closeDeclineModal() {
-        document.getElementById('decline-modal').classList.remove('active');
-        declineTargetId = null;
+    // ─── Pending Requests ─────────────────────────────────────────
+    try {
+      const { data: pending } = await sb
+        .from('bookings')
+        .select('*')
+        .eq('trainer_id', trainerId)
+        .eq('status', 'PENDING')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      const pList = document.getElementById('pending-list');
+      if (!pending || pending.length === 0) {
+        pList.innerHTML = '<div class="empty-state"><div class="empty-state-text text-muted">Keine offenen Anfragen</div></div>';
+      } else {
+        pList.innerHTML = pending.map(b => `
+          <div class="booking-item">
+            <div class="booking-top">
+              <div class="booking-customer">${b.customer_name || 'Kunde'}</div>
+              ${statusBadge('PENDING')}
+            </div>
+            <div class="booking-meta">
+              📅 ${formatDate(b.session_date)} · ${formatTime(b.session_time)}<br>
+              📍 ${b.location || '–'}
+            </div>
+            <div class="booking-actions">
+              <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', 'CONFIRMED')">Bestätigen</button>
+              <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', 'CANCELLED')">Ablehnen</button>
+            </div>
+          </div>
+        `).join('');
+      }
+    } catch (err) {
+      console.error('Pending:', err);
     }
+  })();
 
-    function confirmDecline() {
-        if (declineTargetId === null) return;
-        var card = document.getElementById('request-' + declineTargetId);
-        var content = document.getElementById('request-' + declineTargetId + '-content');
-        card.classList.add('declined-state');
-        var badge = content.querySelector('.request-badge');
-        badge.className = 'request-badge badge-declined';
-        badge.innerHTML = 'Abgelehnt';
-        var actions = content.querySelector('.request-actions');
-        actions.style.display = 'none';
-        var msgField = content.querySelector('.message-field');
-        if (msgField) msgField.style.display = 'none';
-        var countdown = content.querySelector('.countdown');
-        if (countdown) countdown.style.display = 'none';
-        closeDeclineModal();
-        showToast('Buchung abgelehnt.', 'error');
-        updateBadge();
+  async function updateBooking(bookingId, status) {
+    const sb = getSupabase();
+    const { error } = await sb.from('bookings').update({ status }).eq('id', bookingId);
+    if (error) {
+      alert('Fehler: ' + error.message);
+    } else {
+      window.location.reload();
     }
-
-    // Close modal on overlay click
-    document.getElementById('decline-modal').addEventListener('click', function(e) {
-        if (e.target === this) closeDeclineModal();
-    });
-
-    // ═══ UPDATE BADGE COUNT ═══
-    function updateBadge() {
-        var activeCards = document.querySelectorAll('.request-card:not(.confirmed-state):not(.declined-state)');
-        var count = 0;
-        activeCards.forEach(function(card) {
-            if (card.querySelector('.request-content') && card.querySelector('.request-content').style.display !== 'none') {
-                count++;
-            }
-        });
-        var badge = document.querySelector('.tab-btn[data-tab="anfragen"] .tab-badge');
-        var notifBadge = document.querySelector('.notification-badge');
-        if (badge) badge.textContent = count;
-        if (notifBadge) notifBadge.textContent = count;
-    }
-
-    // ═══ CANCEL BOOKING ═══
-    function cancelBooking(id) {
-        var result = confirm('Wirklich stornieren? Kunde wird automatisch benachrichtigt und erh\u00e4lt volle R\u00fcckerstattung.');
-        if (result) {
-            var booking = document.getElementById('booking-' + id);
-            booking.style.opacity = '0.3';
-            booking.querySelector('.btn-cancel').disabled = true;
-            booking.querySelector('.btn-cancel').textContent = 'Storniert';
-            showToast('Termin storniert. Kunde wurde benachrichtigt.', 'warning');
-        }
-    }
-
-    // ═══ COUNTDOWN TIMER ═══
-    function updateCountdown() {
-        var now = new Date();
-        var target = new Date();
-        target.setHours(18, 0, 0, 0);
-        if (now > target) {
-            target.setDate(target.getDate() + 1);
-        }
-        var diff = target - now;
-        var h = Math.floor(diff / 3600000);
-        var m = Math.floor((diff % 3600000) / 60000);
-        var s = Math.floor((diff % 60000) / 1000);
-        var timerEl = document.getElementById('countdown-timer');
-        if (timerEl) {
-            timerEl.textContent =
-                String(h).padStart(2, '0') + ':' +
-                String(m).padStart(2, '0') + ':' +
-                String(s).padStart(2, '0');
-        }
-    }
-    updateCountdown();
-    setInterval(updateCountdown, 1000);
-
-    // ═══ INTERACTIVE CALENDAR ═══
-    var DAY_NAMES = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-    var MONTH_NAMES = ['Januar', 'Februar', 'M\u00e4rz', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
-
-    // Demo bookings keyed by "YYYY-MM-DD"
-    var DEMO_BOOKINGS = {
-        '2026-03-05': [{ time: '07:00', client: 'Lisa S.', location: 'Tiergarten' }],
-        '2026-03-06': [{ time: '16:00', client: 'Jana K.', location: 'Volkspark' }],
-        '2026-03-07': [{ time: '09:00', client: 'Thomas M.', location: 'Tiergarten' }, { time: '11:00', client: 'Michael B.', location: 'Tempelhofer Feld' }],
-        '2026-03-09': [{ time: '07:00', client: 'Lisa S.', location: 'Tiergarten' }, { time: '09:00', client: 'Sarah P.', location: 'Volkspark' }],
-        '2026-03-10': [{ time: '07:00', client: 'Kevin R.', location: 'Tiergarten' }, { time: '10:00', client: 'Anna S.', location: 'Tempelhofer Feld' }],
-        '2026-03-11': [{ time: '08:00', client: 'Tobias F.', location: 'Volkspark' }],
-        '2026-03-12': [{ time: '09:00', client: 'Lena K.', location: 'Tiergarten' }],
-        '2026-03-13': [{ time: '07:00', client: 'Laura M.', location: 'Tiergarten' }, { time: '16:00', client: 'Thomas K.', location: 'Tempelhofer Feld' }],
-        '2026-03-14': [{ time: '09:00', client: 'Maria G.', location: 'Volkspark' }, { time: '11:00', client: 'Jana K.', location: 'Tiergarten' }],
-        '2026-03-16': [{ time: '07:00', client: 'Lisa S.', location: 'Tiergarten' }],
-        '2026-03-18': [{ time: '08:00', client: 'Michael B.', location: 'Volkspark' }],
-        '2026-03-20': [{ time: '07:00', client: 'Sarah P.', location: 'Tempelhofer Feld' }, { time: '16:00', client: 'Kevin R.', location: 'Tiergarten' }],
-    };
-
-    var currentWeekStart = getMonday(new Date());
-
-    function getMonday(d) {
-        var date = new Date(d);
-        var day = date.getDay();
-        var diff = date.getDate() - day + (day === 0 ? -6 : 1);
-        date.setDate(diff);
-        date.setHours(0, 0, 0, 0);
-        return date;
-    }
-
-    function formatDateKey(d) {
-        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-    }
-
-    function renderCalendar() {
-        var grid = document.getElementById('calendar-grid');
-        var title = document.getElementById('cal-week-title');
-        var today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        var weekEnd = new Date(currentWeekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-
-        var startMonth = MONTH_NAMES[currentWeekStart.getMonth()];
-        var endMonth = MONTH_NAMES[weekEnd.getMonth()];
-        var titleText = currentWeekStart.getDate() + '.';
-        if (startMonth !== endMonth) titleText += ' ' + startMonth;
-        titleText += ' \u2013 ' + weekEnd.getDate() + '. ' + endMonth + ' ' + weekEnd.getFullYear();
-        title.textContent = titleText;
-
-        var html = '';
-        for (var i = 0; i < 7; i++) {
-            var day = new Date(currentWeekStart);
-            day.setDate(day.getDate() + i);
-            var key = formatDateKey(day);
-            var isToday = day.getTime() === today.getTime();
-            var isPast = day < today;
-
-            html += '<div class="calendar-day' + (isToday ? ' today' : '') + (isPast ? ' past' : '') + '">';
-            html += '<div class="day-label">' + DAY_NAMES[day.getDay()] + '</div>';
-            html += '<div class="day-num">' + String(day.getDate()).padStart(2, '0') + '</div>';
-
-            var bookings = DEMO_BOOKINGS[key] || [];
-            if (bookings.length > 0) {
-                for (var b = 0; b < bookings.length; b++) {
-                    html += '<div class="calendar-slot slot-booked" title="' + bookings[b].location + '">';
-                    html += bookings[b].time + ' ' + bookings[b].client;
-                    html += '</div>';
-                }
-            } else {
-                html += '<div class="calendar-slot slot-free">Frei</div>';
-            }
-            html += '</div>';
-        }
-        grid.innerHTML = html;
-    }
-
-    function changeWeek(direction) {
-        currentWeekStart.setDate(currentWeekStart.getDate() + (direction * 7));
-        renderCalendar();
-    }
-
-    function goToToday() {
-        currentWeekStart = getMonday(new Date());
-        renderCalendar();
-    }
-
-    renderCalendar();
-
-    // ═══ BACKUP TRAINER TOGGLE ═══
-    function initBackupStatus() {
-        var stored = localStorage.getItem('pf_backup_trainer');
-        var isBackup = stored === 'true';
-        document.getElementById('backup-toggle').checked = isBackup;
-        updateBackupBadge(isBackup);
-    }
-
-    function toggleBackupStatus() {
-        var isBackup = document.getElementById('backup-toggle').checked;
-        localStorage.setItem('pf_backup_trainer', isBackup ? 'true' : 'false');
-        updateBackupBadge(isBackup);
-        showToast(isBackup ? 'Backup-Trainer Status aktiviert' : 'Backup-Trainer Status deaktiviert', isBackup ? 'success' : 'warning');
-    }
-
-    function updateBackupBadge(isBackup) {
-        var badge = document.getElementById('backup-badge');
-        if (badge) badge.style.display = isBackup ? 'inline-flex' : 'none';
-    }
-
-    initBackupStatus();
+  }
 </script>
 
 </body>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buchungen – Trainer-Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-header" id="top-header"></header>
+
+<div class="content">
+  <h1 class="page-title">Meine Buchungen</h1>
+
+  <div id="alert-box" class="alert"></div>
+
+  <div class="tab-bar" id="tab-bar">
+    <button class="tab-btn active" data-tab="pending">Neue Anfragen <span id="pending-count"></span></button>
+    <button class="tab-btn" data-tab="confirmed">Bestätigt</button>
+    <button class="tab-btn" data-tab="past">Vergangen</button>
+  </div>
+
+  <div id="bookings-list">
+    <div class="loading-center"><span class="spinner"></span> Buchungen laden...</div>
+  </div>
+</div>
+
+<nav class="bottom-nav" id="bottom-nav"></nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-check.js"></script>
+<script>
+  let allBookings = [];
+  let currentTab = 'pending';
+
+  (async () => {
+    const trainer = await checkTrainerAuth();
+    if (!trainer) return;
+
+    document.getElementById('top-header').innerHTML = renderTopHeader();
+    document.getElementById('bottom-nav').innerHTML = renderNav('bookings');
+
+    if (!trainer.id) {
+      document.getElementById('bookings-list').innerHTML = '<div class="empty-state"><div class="empty-state-text">Kein Trainer-Profil verknüpft.</div></div>';
+      return;
+    }
+
+    // Tab clicks
+    document.querySelectorAll('#tab-bar .tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('#tab-bar .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentTab = btn.dataset.tab;
+        renderBookings();
+      });
+    });
+
+    await loadBookings();
+
+    // ─── Realtime: Neue Buchungen ───────────────────────────────
+    const sb = getSupabase();
+    sb.channel('bookings-realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'bookings',
+        filter: `trainer_id=eq.${trainer.id}`,
+      }, (payload) => {
+        console.log('Realtime Buchungs-Update:', payload);
+        loadBookings(); // Reload
+      })
+      .subscribe();
+  })();
+
+  async function loadBookings() {
+    const sb = getSupabase();
+    const trainerId = window.currentTrainer.id;
+
+    try {
+      const { data, error } = await sb
+        .from('bookings')
+        .select('*')
+        .eq('trainer_id', trainerId)
+        .order('session_date', { ascending: false });
+
+      if (error) throw error;
+      allBookings = data || [];
+
+      // Update pending count
+      const pendingCount = allBookings.filter(b => b.status === 'PENDING').length;
+      document.getElementById('pending-count').textContent = pendingCount > 0 ? `(${pendingCount})` : '';
+
+      renderBookings();
+    } catch (err) {
+      document.getElementById('bookings-list').innerHTML =
+        `<div class="empty-state text-error">Fehler: ${err.message}</div>`;
+    }
+  }
+
+  function renderBookings() {
+    const today = new Date().toISOString().slice(0, 10);
+    let filtered;
+
+    switch (currentTab) {
+      case 'pending':
+        filtered = allBookings.filter(b => b.status === 'PENDING');
+        break;
+      case 'confirmed':
+        filtered = allBookings.filter(b => b.status === 'CONFIRMED' && b.session_date >= today);
+        break;
+      case 'past':
+        filtered = allBookings.filter(b =>
+          b.status === 'COMPLETED' || b.status === 'CANCELLED' ||
+          (b.status === 'CONFIRMED' && b.session_date < today)
+        );
+        break;
+      default:
+        filtered = allBookings;
+    }
+
+    const container = document.getElementById('bookings-list');
+
+    if (filtered.length === 0) {
+      const messages = {
+        pending: 'Keine neuen Anfragen',
+        confirmed: 'Keine bestätigten Termine',
+        past: 'Noch keine vergangenen Buchungen',
+      };
+      container.innerHTML = `<div class="empty-state">
+        <div class="empty-state-icon">📋</div>
+        <div class="empty-state-text">${messages[currentTab]}</div>
+      </div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(b => {
+      const isPending = b.status === 'PENDING';
+      const hasRating = b.rating && b.rating > 0;
+
+      return `
+        <div class="booking-item">
+          <div class="booking-top">
+            <div class="booking-customer">${b.customer_name || 'Kunde'}</div>
+            ${statusBadge(b.status)}
+          </div>
+          <div class="booking-meta">
+            📅 ${formatDate(b.session_date)} · ${formatTime(b.session_time)}<br>
+            📍 ${b.location || '–'}
+            ${b.price_cents ? '<br>💰 ' + formatEuro(b.price_cents) : ''}
+            ${hasRating ? '<br>⭐ ' + b.rating + '/5' + (b.review_comment ? ' – „' + b.review_comment + '"' : '') : ''}
+          </div>
+          ${isPending ? `
+            <div class="booking-actions">
+              <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', 'CONFIRMED')">Bestätigen</button>
+              <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', 'CANCELLED')">Ablehnen</button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function updateBooking(bookingId, status) {
+    const sb = getSupabase();
+    const { error } = await sb.from('bookings').update({ status }).eq('id', bookingId);
+    if (error) {
+      showAlert('alert-box', 'Fehler: ' + error.message, 'error');
+    } else {
+      showAlert('alert-box', status === 'CONFIRMED' ? 'Buchung bestätigt!' : 'Buchung abgelehnt.', 'success');
+      await loadBookings();
+    }
+  }
+</script>
+
+</body>
+</html>

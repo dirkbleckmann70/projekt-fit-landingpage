@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verfügbarkeit – Trainer-Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-header" id="top-header"></header>
+
+<div class="content">
+  <h1 class="page-title">Verfügbarkeit</h1>
+
+  <div id="alert-box" class="alert"></div>
+
+  <!-- Urlaubs-Toggle -->
+  <div class="card" style="display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:15px;font-weight:700" id="status-label">Status wird geladen...</div>
+      <div class="form-hint">Wenn deaktiviert, bist du für Kunden nicht sichtbar.</div>
+    </div>
+    <button class="btn btn-sm" id="toggle-btn" onclick="toggleAvailability()" disabled>
+      <span class="spinner"></span>
+    </button>
+  </div>
+
+  <!-- Wochenkalender -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Wöchentliche Verfügbarkeit</div>
+      <div class="form-hint">Tippe auf Zeitslots um sie zu aktivieren/deaktivieren</div>
+    </div>
+
+    <div id="avail-grid">
+      <div class="loading-center"><span class="spinner"></span> Laden...</div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary btn-block btn-lg" id="save-btn" onclick="saveAvailability()" disabled>
+    Verfügbarkeit speichern
+  </button>
+  <div style="height:20px"></div>
+</div>
+
+<nav class="bottom-nav" id="bottom-nav"></nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-check.js"></script>
+<script>
+  const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  const DAY_NAMES = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+  const HOURS = [];
+  for (let h = 6; h <= 21; h++) HOURS.push(h); // 6:00 - 21:00
+
+  // State: { "Mo": [8, 9, 10, 16, 17, 18, 19], "Di": [...], ... }
+  let availState = {};
+  DAYS.forEach(d => availState[d] = []);
+
+  let isMouseDown = false;
+  let paintMode = true; // true = activate, false = deactivate
+
+  (async () => {
+    const trainer = await checkTrainerAuth();
+    if (!trainer) return;
+
+    document.getElementById('top-header').innerHTML = renderTopHeader();
+    document.getElementById('bottom-nav').innerHTML = renderNav('availability');
+
+    if (!trainer.id) {
+      document.getElementById('avail-grid').innerHTML =
+        '<div class="empty-state"><div class="empty-state-text">Kein Trainer-Profil verknüpft.</div></div>';
+      return;
+    }
+
+    // ─── Status Toggle ────────────────────────────────────────────
+    updateStatusUI(trainer.is_active);
+    document.getElementById('toggle-btn').disabled = false;
+
+    // ─── Verfügbarkeit laden ──────────────────────────────────────
+    await loadAvailability();
+    renderGrid();
+    document.getElementById('save-btn').disabled = false;
+  })();
+
+  function updateStatusUI(isActive) {
+    const label = document.getElementById('status-label');
+    const btn = document.getElementById('toggle-btn');
+
+    if (isActive) {
+      label.textContent = 'Ich bin verfügbar';
+      label.style.color = 'var(--success)';
+      btn.className = 'btn btn-danger btn-sm';
+      btn.textContent = 'Deaktivieren';
+    } else {
+      label.textContent = 'Ich bin im Urlaub / Pause';
+      label.style.color = 'var(--error)';
+      btn.className = 'btn btn-success btn-sm';
+      btn.textContent = 'Aktivieren';
+    }
+  }
+
+  async function toggleAvailability() {
+    const sb = getSupabase();
+    const trainer = window.currentTrainer;
+    const newState = !trainer.is_active;
+
+    const btn = document.getElementById('toggle-btn');
+    btn.disabled = true;
+
+    try {
+      const { error } = await sb
+        .from('trainer_profiles')
+        .update({ is_active: newState })
+        .eq('id', trainer.id);
+
+      if (error) throw error;
+
+      trainer.is_active = newState;
+      updateStatusUI(newState);
+      showAlert('alert-box', newState ? 'Du bist jetzt verfügbar!' : 'Du bist jetzt auf Pause.', 'success');
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ─── Availability laden ─────────────────────────────────────────
+  async function loadAvailability() {
+    const sb = getSupabase();
+    try {
+      const { data, error } = await sb
+        .from('trainer_availability')
+        .select('*')
+        .eq('trainer_id', window.currentTrainer.id);
+
+      if (error) {
+        if (error.code === '42P01') return; // Tabelle existiert noch nicht
+        throw error;
+      }
+
+      // Parse availability data into state
+      (data || []).forEach(row => {
+        const dayIndex = row.day_of_week; // 0=Mo, 1=Di, ..., 6=So
+        if (dayIndex >= 0 && dayIndex < 7) {
+          const dayKey = DAYS[dayIndex];
+          const startHour = parseInt(row.start_time?.substring(0, 2));
+          const endHour = parseInt(row.end_time?.substring(0, 2));
+          if (!isNaN(startHour) && !isNaN(endHour)) {
+            for (let h = startHour; h < endHour; h++) {
+              if (!availState[dayKey].includes(h)) {
+                availState[dayKey].push(h);
+              }
+            }
+          }
+        }
+      });
+    } catch (err) {
+      console.error('Verfügbarkeit laden:', err);
+    }
+  }
+
+  // ─── Grid rendern ───────────────────────────────────────────────
+  function renderGrid() {
+    const grid = document.getElementById('avail-grid');
+
+    grid.innerHTML = DAYS.map((day, di) => `
+      <div class="avail-day-row">
+        <div class="avail-day-label">${day}</div>
+        <div class="avail-slots">
+          ${HOURS.map(h => {
+            const isActive = availState[day].includes(h);
+            return `<div class="avail-slot ${isActive ? 'active' : ''}"
+              data-day="${day}" data-hour="${h}"
+              onmousedown="startPaint(event, '${day}', ${h})"
+              onmouseenter="continuePaint(event, '${day}', ${h})"
+              ontouchstart="startPaint(event, '${day}', ${h})"
+              ontouchmove="handleTouchMove(event)"
+            >${h}</div>`;
+          }).join('')}
+        </div>
+      </div>
+    `).join('');
+
+    // Mouse up anywhere
+    document.addEventListener('mouseup', () => { isMouseDown = false; });
+    document.addEventListener('touchend', () => { isMouseDown = false; });
+  }
+
+  function startPaint(e, day, hour) {
+    e.preventDefault();
+    isMouseDown = true;
+    const isActive = availState[day].includes(hour);
+    paintMode = !isActive; // If active, we deactivate; if inactive, we activate
+    toggleSlot(day, hour);
+  }
+
+  function continuePaint(e, day, hour) {
+    if (!isMouseDown) return;
+    toggleSlot(day, hour);
+  }
+
+  function handleTouchMove(e) {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    if (el && el.classList.contains('avail-slot')) {
+      const day = el.dataset.day;
+      const hour = parseInt(el.dataset.hour);
+      toggleSlot(day, hour);
+    }
+  }
+
+  function toggleSlot(day, hour) {
+    const idx = availState[day].indexOf(hour);
+    if (paintMode && idx === -1) {
+      availState[day].push(hour);
+    } else if (!paintMode && idx !== -1) {
+      availState[day].splice(idx, 1);
+    }
+
+    // Update DOM
+    const el = document.querySelector(`[data-day="${day}"][data-hour="${hour}"]`);
+    if (el) {
+      el.classList.toggle('active', availState[day].includes(hour));
+    }
+  }
+
+  // ─── Speichern ──────────────────────────────────────────────────
+  async function saveAvailability() {
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Wird gespeichert...';
+
+    const sb = getSupabase();
+    const trainerId = window.currentTrainer.id;
+
+    try {
+      // Alte Einträge löschen
+      const { error: delError } = await sb
+        .from('trainer_availability')
+        .delete()
+        .eq('trainer_id', trainerId);
+
+      if (delError && delError.code !== '42P01') throw delError;
+
+      // Zeitblöcke aus State zusammenfassen
+      const rows = [];
+      DAYS.forEach((day, dayIndex) => {
+        const hours = availState[day].sort((a, b) => a - b);
+        if (hours.length === 0) return;
+
+        // Zusammenhängende Blöcke finden
+        let blockStart = hours[0];
+        let prev = hours[0];
+
+        for (let i = 1; i <= hours.length; i++) {
+          if (i === hours.length || hours[i] !== prev + 1) {
+            rows.push({
+              trainer_id: trainerId,
+              day_of_week: dayIndex,
+              start_time: String(blockStart).padStart(2, '0') + ':00',
+              end_time: String(prev + 1).padStart(2, '0') + ':00',
+            });
+            if (i < hours.length) blockStart = hours[i];
+          }
+          if (i < hours.length) prev = hours[i];
+        }
+      });
+
+      if (rows.length > 0) {
+        const { error: insError } = await sb
+          .from('trainer_availability')
+          .insert(rows);
+
+        if (insError) throw insError;
+      }
+
+      showAlert('alert-box', 'Verfügbarkeit gespeichert!', 'success');
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Verfügbarkeit speichern';
+    }
+  }
+</script>
+
+</body>
+</html>

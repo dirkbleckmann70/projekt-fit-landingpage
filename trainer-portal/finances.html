@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finanzen – Trainer-Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-header" id="top-header"></header>
+
+<div class="content">
+  <h1 class="page-title">Finanzen</h1>
+
+  <!-- Jahresübersicht KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Gesamtverdienst</div>
+      <div class="kpi-value text-success" id="kpi-total"><span class="spinner"></span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Sessions gesamt</div>
+      <div class="kpi-value" id="kpi-sessions"><span class="spinner"></span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Ø pro Session</div>
+      <div class="kpi-value" id="kpi-avg"><span class="spinner"></span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Diesen Monat</div>
+      <div class="kpi-value text-accent" id="kpi-month"><span class="spinner"></span></div>
+    </div>
+  </div>
+
+  <!-- Monatsübersicht -->
+  <div class="card">
+    <div class="card-title mb-2">Monatsübersicht</div>
+    <div id="monthly-chart">
+      <div class="loading-center"><span class="spinner"></span> Laden...</div>
+    </div>
+  </div>
+
+  <!-- Auszahlungen -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Auszahlungen</div>
+    </div>
+    <div id="payouts-list">
+      <div class="loading-center"><span class="spinner"></span> Laden...</div>
+    </div>
+  </div>
+
+  <!-- Gutschriften -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Gutschriften</div>
+    </div>
+    <div id="credits-list">
+      <div class="loading-center"><span class="spinner"></span> Laden...</div>
+    </div>
+  </div>
+</div>
+
+<nav class="bottom-nav" id="bottom-nav"></nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-check.js"></script>
+<script>
+  (async () => {
+    const trainer = await checkTrainerAuth();
+    if (!trainer) return;
+
+    document.getElementById('top-header').innerHTML = renderTopHeader();
+    document.getElementById('bottom-nav').innerHTML = renderNav('finances');
+
+    if (!trainer.id) {
+      ['kpi-total', 'kpi-sessions', 'kpi-avg', 'kpi-month'].forEach(id =>
+        document.getElementById(id).textContent = '–');
+      return;
+    }
+
+    const sb = getSupabase();
+    const payoutPerSession = trainer.payout_cents || 0;
+
+    // ─── Alle abgeschlossenen Buchungen laden ─────────────────────
+    try {
+      const { data: bookings, error } = await sb
+        .from('bookings')
+        .select('id, session_date, price_cents, status, customer_name')
+        .eq('trainer_id', trainer.id)
+        .in('status', ['COMPLETED', 'CONFIRMED'])
+        .order('session_date', { ascending: false });
+
+      if (error) throw error;
+      const all = bookings || [];
+
+      // KPIs
+      const totalEarnings = all.length * payoutPerSession;
+      const avgPerSession = all.length > 0 ? payoutPerSession : 0;
+
+      const monthStart = new Date();
+      monthStart.setDate(1);
+      monthStart.setHours(0, 0, 0, 0);
+      const thisMonth = all.filter(b => new Date(b.session_date) >= monthStart);
+      const monthEarnings = thisMonth.length * payoutPerSession;
+
+      document.getElementById('kpi-total').textContent = formatEuro(totalEarnings);
+      document.getElementById('kpi-sessions').textContent = all.length;
+      document.getElementById('kpi-avg').textContent = formatEuro(avgPerSession);
+      document.getElementById('kpi-month').textContent = formatEuro(monthEarnings);
+
+      // ─── Monatsübersicht (Balkendiagramm als CSS) ───────────────
+      const monthMap = {};
+      all.forEach(b => {
+        const key = b.session_date.substring(0, 7); // YYYY-MM
+        if (!monthMap[key]) monthMap[key] = 0;
+        monthMap[key]++;
+      });
+
+      const months = Object.keys(monthMap).sort().slice(-6); // Letzte 6 Monate
+      const maxCount = Math.max(...months.map(m => monthMap[m]), 1);
+
+      if (months.length === 0) {
+        document.getElementById('monthly-chart').innerHTML =
+          '<div class="empty-state"><div class="empty-state-text text-muted">Noch keine Daten</div></div>';
+      } else {
+        document.getElementById('monthly-chart').innerHTML = months.map(m => {
+          const count = monthMap[m];
+          const pct = Math.round((count / maxCount) * 100);
+          const [y, mo] = m.split('-');
+          const label = new Date(y, parseInt(mo) - 1).toLocaleDateString('de-DE', { month: 'short', year: '2-digit' });
+          const earnings = count * payoutPerSession;
+          return `
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+              <div style="width:60px;font-size:13px;color:var(--text-secondary);text-align:right">${label}</div>
+              <div style="flex:1;height:28px;background:#1a1a1a;border-radius:6px;overflow:hidden">
+                <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:12px;font-weight:600;color:#fff;min-width:fit-content">
+                  ${formatEuro(earnings)}
+                </div>
+              </div>
+              <div style="width:40px;font-size:12px;color:var(--text-muted)">${count}x</div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // ─── Auszahlungen (basierend auf Buchungen) ─────────────────
+      const payoutsList = document.getElementById('payouts-list');
+      if (all.length === 0) {
+        payoutsList.innerHTML = '<div class="empty-state"><div class="empty-state-text text-muted">Noch keine Auszahlungen</div></div>';
+      } else {
+        payoutsList.innerHTML = `
+          <table class="simple-table">
+            <thead><tr><th>Datum</th><th>Kunde</th><th>Betrag</th><th>Status</th></tr></thead>
+            <tbody>
+              ${all.slice(0, 20).map(b => `
+                <tr>
+                  <td>${formatDate(b.session_date)}</td>
+                  <td>${b.customer_name || '–'}</td>
+                  <td class="text-success">${formatEuro(payoutPerSession)}</td>
+                  <td><span class="badge badge-completed">${b.status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+    } catch (err) {
+      console.error('Finanzen laden:', err);
+      ['kpi-total', 'kpi-sessions', 'kpi-avg', 'kpi-month'].forEach(id =>
+        document.getElementById(id).textContent = '–');
+    }
+
+    // ─── Gutschriften ─────────────────────────────────────────────
+    try {
+      const { data: credits, error } = await sb
+        .from('gutschriften')
+        .select('*')
+        .eq('trainer_id', trainer.id)
+        .order('created_at', { ascending: false });
+
+      const creditsList = document.getElementById('credits-list');
+
+      if (error && error.code === '42P01') {
+        // Tabelle existiert noch nicht
+        creditsList.innerHTML = '<div class="empty-state"><div class="empty-state-text text-muted">Keine Gutschriften vorhanden</div></div>';
+      } else if (!credits || credits.length === 0) {
+        creditsList.innerHTML = '<div class="empty-state"><div class="empty-state-text text-muted">Keine Gutschriften vorhanden</div></div>';
+      } else {
+        creditsList.innerHTML = `
+          <table class="simple-table">
+            <thead><tr><th>Datum</th><th>Betrag</th><th>Grund</th><th></th></tr></thead>
+            <tbody>
+              ${credits.map(c => `
+                <tr>
+                  <td>${formatDate(c.created_at)}</td>
+                  <td class="text-accent">${formatEuro(c.amount_cents)}</td>
+                  <td>${c.reason || '–'}</td>
+                  <td><button class="btn btn-ghost btn-sm" disabled title="Kommt bald">PDF</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          <div class="form-hint mt-1 text-center">PDF-Download kommt bald.</div>
+        `;
+      }
+    } catch (err) {
+      document.getElementById('credits-list').innerHTML =
+        '<div class="empty-state"><div class="empty-state-text text-muted">Keine Gutschriften vorhanden</div></div>';
+    }
+  })();
+</script>
+
+</body>
+</html>

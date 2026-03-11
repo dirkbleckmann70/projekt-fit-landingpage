@@ -1,60 +1,235 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trainer-Portal – Projekt Fit</title>
-    <meta name="description" content="Projekt Fit Trainer-Portal: Verwalte deine Buchungsanfragen, Termine und Verdienste.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trainer Login – Projekt Fit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0a0a0a; color: #f0f0f5; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 20px;
+    }
+    .card {
+      background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 20px;
+      padding: 36px; max-width: 400px; width: 100%;
+    }
+    .logo { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 4px; }
+    .logo span { color: #e8930a; }
+    .subtitle { text-align: center; color: #8888a0; font-size: 14px; margin-bottom: 28px; }
+    h1 { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 24px; }
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; color: #aaa; margin-bottom: 6px; }
+    .field input {
+      width: 100%; padding: 12px 14px; background: #111; border: 1px solid #2a2a2a;
+      border-radius: 10px; color: #f0f0f5; font-size: 15px; font-family: inherit;
+      outline: none; transition: border-color 0.2s;
+    }
+    .field input:focus { border-color: #e8930a; }
+    .btn {
+      width: 100%; padding: 14px; background: #e8930a; color: #fff; font-size: 16px;
+      font-weight: 700; font-family: inherit; border: none; border-radius: 12px;
+      cursor: pointer; margin-top: 8px; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .error-msg {
+      background: rgba(231,76,60,0.12); color: #e74c3c; padding: 12px;
+      border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: none; text-align: center;
+    }
+    .error-msg.show { display: block; }
+    .links { text-align: center; margin-top: 20px; }
+    .links a { color: #8888a0; font-size: 13px; text-decoration: none; }
+    .links a:hover { color: #e8930a; }
+    .spinner {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+      border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .reset-form { display: none; }
+    .reset-form.show { display: block; }
+    .success-msg {
+      background: rgba(39,174,96,0.12); color: #27ae60; padding: 12px;
+      border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: none; text-align: center;
+    }
+    .success-msg.show { display: block; }
+  </style>
 </head>
 <body>
 
-<div class="login-wrapper">
-    <div class="login-card">
-        <div class="login-logo">
-            <a href="https://projektfit.net">Projekt<span>Fit</span></a>
-        </div>
-        <p class="login-subtitle">Trainer-Portal</p>
+<div class="card">
+  <div class="logo">Projekt <span>Fit</span></div>
+  <p class="subtitle">Trainer-Portal</p>
 
-        <form id="login-form" onsubmit="handleLogin(event)">
-            <div class="form-group">
-                <label for="email">E-Mail</label>
-                <input type="email" id="email" placeholder="trainer@beispiel.de" required autocomplete="email">
-            </div>
-            <div class="form-group">
-                <label for="password">Passwort</label>
-                <input type="password" id="password" placeholder="Passwort eingeben" required autocomplete="current-password">
-            </div>
-            <button type="submit" class="login-btn">Anmelden</button>
-            <div class="login-error" id="login-error">
-                E-Mail oder Passwort ist falsch. Bitte versuche es erneut.
-            </div>
-        </form>
+  <div class="error-msg" id="error-msg"></div>
+  <div class="success-msg" id="success-msg"></div>
 
-        <div class="login-footer">
-            <p>Noch kein Trainer? <a href="https://projektfit.net/trainer">Jetzt bewerben</a></p>
-        </div>
-
-        <p class="login-hint">Echte Authentifizierung folgt in Phase 2</p>
+  <!-- Login Form -->
+  <div id="login-view">
+    <h1>Anmelden</h1>
+    <form id="login-form" novalidate>
+      <div class="field">
+        <label for="email">E-Mail</label>
+        <input type="email" id="email" placeholder="deine@email.de" autocomplete="email" required>
+      </div>
+      <div class="field">
+        <label for="password">Passwort</label>
+        <input type="password" id="password" placeholder="Passwort" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn" id="submit-btn">Einloggen</button>
+    </form>
+    <div class="links">
+      <a href="#" id="forgot-link">Passwort vergessen?</a>
     </div>
+  </div>
+
+  <!-- Password Reset Form -->
+  <div id="reset-view" class="reset-form">
+    <h1>Passwort zurücksetzen</h1>
+    <form id="reset-form" novalidate>
+      <div class="field">
+        <label for="reset-email">E-Mail</label>
+        <input type="email" id="reset-email" placeholder="deine@email.de" autocomplete="email" required>
+      </div>
+      <button type="submit" class="btn" id="reset-btn">Link senden</button>
+    </form>
+    <div class="links">
+      <a href="#" id="back-link">Zurück zum Login</a>
+    </div>
+  </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
-    function handleLogin(e) {
-        e.preventDefault();
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const errorEl = document.getElementById('login-error');
+  const SUPABASE_URL = 'https://ahsjydgknmysircubjsk.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_8tZaFMrIrzJXjDbYAF2huw_ygDY9K2Q';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        if (email === 'trainer@projektfit.de' && password === 'demo123') {
-            errorEl.style.display = 'none';
-            window.location.href = 'dashboard.html';
-        } else {
-            errorEl.style.display = 'block';
-        }
+  const errorMsg = document.getElementById('error-msg');
+  const successMsg = document.getElementById('success-msg');
+
+  // Check if already logged in
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session && session.user.user_metadata?.role === 'trainer') {
+      window.location.href = '/trainer-portal/dashboard.html';
     }
+  })();
+
+  // URL error params
+  const urlError = new URLSearchParams(window.location.search).get('error');
+  if (urlError === 'no_trainer') {
+    errorMsg.textContent = 'Kein Trainer-Zugang. Bitte melde dich mit deinem Trainer-Account an.';
+    errorMsg.classList.add('show');
+  }
+
+  // ─── Login ──────────────────────────────────────────────────────
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.remove('show');
+    successMsg.classList.remove('show');
+
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!email || !password) {
+      errorMsg.textContent = 'Bitte E-Mail und Passwort eingeben.';
+      errorMsg.classList.add('show');
+      return;
+    }
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Wird geprüft...';
+
+    try {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errorMsg.textContent = 'Login fehlgeschlagen: ' + error.message;
+        errorMsg.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Einloggen';
+        return;
+      }
+
+      const role = data.user?.user_metadata?.role;
+      if (role !== 'trainer') {
+        await sb.auth.signOut();
+        errorMsg.textContent = 'Kein Trainer-Zugang. Nur Trainer-Accounts können sich hier einloggen.';
+        errorMsg.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Einloggen';
+        return;
+      }
+
+      window.location.href = '/trainer-portal/dashboard.html';
+    } catch (err) {
+      errorMsg.textContent = 'Verbindungsfehler: ' + err.message;
+      errorMsg.classList.add('show');
+      btn.disabled = false;
+      btn.textContent = 'Einloggen';
+    }
+  });
+
+  // ─── Forgot / Reset Toggle ─────────────────────────────────────
+  document.getElementById('forgot-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('reset-view').classList.add('show');
+    errorMsg.classList.remove('show');
+    successMsg.classList.remove('show');
+  });
+
+  document.getElementById('back-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('reset-view').classList.remove('show');
+    document.getElementById('login-view').style.display = 'block';
+    errorMsg.classList.remove('show');
+    successMsg.classList.remove('show');
+  });
+
+  // ─── Password Reset ────────────────────────────────────────────
+  document.getElementById('reset-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.remove('show');
+    successMsg.classList.remove('show');
+
+    const email = document.getElementById('reset-email').value.trim();
+    if (!email) {
+      errorMsg.textContent = 'Bitte E-Mail eingeben.';
+      errorMsg.classList.add('show');
+      return;
+    }
+
+    const btn = document.getElementById('reset-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Wird gesendet...';
+
+    try {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://projektfit.net/trainer-portal/set-password/',
+      });
+
+      if (error) {
+        errorMsg.textContent = 'Fehler: ' + error.message;
+        errorMsg.classList.add('show');
+      } else {
+        successMsg.textContent = 'Reset-Link wurde an ' + email + ' gesendet. Prüfe dein Postfach.';
+        successMsg.classList.add('show');
+      }
+    } catch (err) {
+      errorMsg.textContent = 'Verbindungsfehler: ' + err.message;
+      errorMsg.classList.add('show');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Link senden';
+    }
+  });
 </script>
 
 </body>

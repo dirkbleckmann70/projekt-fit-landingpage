@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mein Profil – Trainer-Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top-header" id="top-header"></header>
+
+<div class="content">
+  <h1 class="page-title">Mein Profil</h1>
+
+  <div id="alert-box" class="alert"></div>
+
+  <div id="profile-form-wrap">
+    <div class="loading-center"><span class="spinner"></span> Profil laden...</div>
+  </div>
+</div>
+
+<nav class="bottom-nav" id="bottom-nav"></nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-check.js"></script>
+<script>
+  (async () => {
+    const trainer = await checkTrainerAuth();
+    if (!trainer) return;
+
+    document.getElementById('top-header').innerHTML = renderTopHeader();
+    document.getElementById('bottom-nav').innerHTML = renderNav('profile');
+
+    if (!trainer.id || trainer._noProfile) {
+      document.getElementById('profile-form-wrap').innerHTML =
+        '<div class="empty-state"><div class="empty-state-text">Kein Trainer-Profil gefunden.</div></div>';
+      return;
+    }
+
+    renderProfileForm(trainer);
+  })();
+
+  function renderProfileForm(t) {
+    document.getElementById('profile-form-wrap').innerHTML = `
+      <!-- Avatar Platzhalter -->
+      <div class="card" style="text-align:center">
+        <div style="width:80px;height:80px;border-radius:50%;background:#2a2a2a;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#55556a">
+          ${(t.full_name || 'T').charAt(0).toUpperCase()}
+        </div>
+        <div style="font-size:18px;font-weight:700">${t.full_name || '–'}</div>
+        <div class="text-secondary" style="font-size:13px">${t.email || ''}</div>
+        ${t.rating ? `<div class="text-accent mt-1">${t.rating} ★ (${t.review_count || 0} Bewertungen)</div>` : ''}
+      </div>
+
+      <!-- Editierbare Felder -->
+      <div class="card">
+        <div class="card-title mb-2">Persönliche Daten</div>
+
+        <div class="form-group">
+          <label>Name</label>
+          <input class="form-control" id="f-name" value="${t.full_name || ''}">
+        </div>
+
+        <div class="form-group">
+          <label>Bio / Über mich</label>
+          <textarea class="form-control" id="f-bio" rows="4">${t.bio || ''}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Spezialisierungen</label>
+          <input class="form-control" id="f-spec" value="${t.specializations || ''}" placeholder="z.B. HIIT, Yoga, Krafttraining">
+          <div class="form-hint">Komma-getrennt</div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label>Telefon</label>
+            <input class="form-control" id="f-phone" value="${t.phone || ''}">
+          </div>
+          <div class="form-group">
+            <label>Stadt</label>
+            <input class="form-control" id="f-city" value="${t.city || ''}">
+          </div>
+        </div>
+      </div>
+
+      <!-- Adresse & Steuerdaten -->
+      <div class="card">
+        <div class="card-title mb-2">Adresse & Steuerdaten</div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label>Straße + Nr.</label>
+            <input class="form-control" id="f-street" value="${t.street_address || ''}">
+          </div>
+          <div class="form-group">
+            <label>PLZ</label>
+            <input class="form-control" id="f-postal" value="${t.postal_code || ''}">
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label>Steuernummer</label>
+            <input class="form-control" id="f-steuer" value="${t.steuernummer || ''}">
+          </div>
+          <div class="form-group">
+            <label>Kleinunternehmer</label>
+            <select class="form-control" id="f-klein">
+              <option value="false" ${!t.is_kleinunternehmer ? 'selected' : ''}>Nein</option>
+              <option value="true" ${t.is_kleinunternehmer ? 'selected' : ''}>Ja (§19 UStG)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nur-Lese Felder (Admin setzt diese) -->
+      <div class="card">
+        <div class="card-title mb-2">Vom Admin verwaltet</div>
+        <div class="form-hint mb-2">Diese Felder können nur vom Projekt Fit Team geändert werden.</div>
+
+        <div class="two-col">
+          <div class="form-group">
+            <label>Stundensatz</label>
+            <input class="form-control" value="${t.hourly_rate_cents ? formatEuro(t.hourly_rate_cents) : '–'}" disabled>
+          </div>
+          <div class="form-group">
+            <label>Auszahlung pro Session</label>
+            <input class="form-control" value="${t.payout_cents ? formatEuro(t.payout_cents) : '–'}" disabled>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Status</label>
+            <input class="form-control" value="${t.status || '–'}" disabled>
+          </div>
+          <div class="form-group">
+            <label>Mitglied seit</label>
+            <input class="form-control" value="${formatDate(t.created_at)}" disabled>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-block btn-lg" id="save-btn" onclick="saveProfile()">Profil speichern</button>
+      <div style="height:20px"></div>
+    `;
+  }
+
+  async function saveProfile() {
+    const btn = document.getElementById('save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Wird gespeichert...';
+
+    const sb = getSupabase();
+    const trainerId = window.currentTrainer.id;
+
+    const update = {
+      full_name: document.getElementById('f-name').value.trim(),
+      bio: document.getElementById('f-bio').value.trim() || null,
+      specializations: document.getElementById('f-spec').value.trim() || null,
+      phone: document.getElementById('f-phone').value.trim() || null,
+      city: document.getElementById('f-city').value.trim() || null,
+      street_address: document.getElementById('f-street').value.trim() || null,
+      postal_code: document.getElementById('f-postal').value.trim() || null,
+      steuernummer: document.getElementById('f-steuer').value.trim() || null,
+      is_kleinunternehmer: document.getElementById('f-klein').value === 'true',
+    };
+
+    try {
+      const { error } = await sb
+        .from('trainer_profiles')
+        .update(update)
+        .eq('id', trainerId);
+
+      if (error) throw error;
+
+      // Update local state
+      Object.assign(window.currentTrainer, update);
+      showAlert('alert-box', 'Profil gespeichert!', 'success');
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Profil speichern';
+    }
+  }
+</script>
+
+</body>
+</html>
