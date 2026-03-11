@@ -19,7 +19,11 @@ export default async function handler(req, res) {
 
   if (!supabaseUrl || !supabaseServiceKey) {
     console.error('SUPABASE_URL oder SUPABASE_SERVICE_ROLE_KEY nicht konfiguriert');
-    return res.status(500).json({ success: false, error: 'Server-Konfigurationsfehler' });
+    return res.status(500).json({
+      success: false,
+      error: 'Server-Konfigurationsfehler',
+      debug: 'SUPABASE_URL oder SUPABASE_SERVICE_ROLE_KEY fehlt'
+    });
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -51,42 +55,74 @@ export default async function handler(req, res) {
 
   // Check for duplicate email
   try {
-    const { data: existing } = await supabase
+    const { data: existing, error: selectError } = await supabase
       .from('trainer_profiles')
       .select('id')
       .eq('email', emailTrimmed)
       .limit(1);
 
+    if (selectError) {
+      console.error('Duplikat-Check SELECT error:', JSON.stringify(selectError));
+      console.error('  message:', selectError.message);
+      console.error('  details:', selectError.details);
+      console.error('  hint:', selectError.hint);
+      console.error('  code:', selectError.code);
+      // Don't block – continue with insert attempt
+    }
+
     if (existing && existing.length > 0) {
       return res.status(409).json({ success: false, error: 'Mit dieser E-Mail existiert bereits eine Bewerbung.' });
     }
   } catch (err) {
-    console.error('Duplikat-Check fehlgeschlagen:', err);
+    console.error('Duplikat-Check Exception:', err);
   }
 
+  // Build insert payload
+  const insertData = {
+    full_name: name.trim(),
+    email: emailTrimmed,
+    phone: phone ? phone.trim() : null,
+    city: city.trim(),
+    bio: message ? message.trim() : null,
+    specializations: qualification ? qualification.trim() : null,
+    status: 'pending',
+    is_kleinunternehmer: kleinunternehmer === true,
+    steuernummer: steuernummer ? steuernummer.trim() : null,
+    street_address: address ? address.trim() : null,
+    postal_code: postalCode ? postalCode.trim() : null,
+  };
+
+  console.log('INSERT payload:', JSON.stringify(insertData));
+
   try {
-    const { error } = await supabase.from('trainer_profiles').insert({
-      full_name: name.trim(),
-      email: emailTrimmed,
-      phone: phone ? phone.trim() : null,
-      city: city.trim(),
-      bio: message ? message.trim() : null,
-      specializations: qualification ? qualification.trim() : null,
-      status: 'pending',
-      is_kleinunternehmer: kleinunternehmer === true,
-      steuernummer: steuernummer ? steuernummer.trim() : null,
-      street_address: address ? address.trim() : null,
-      postal_code: postalCode ? postalCode.trim() : null,
-    });
+    const { data, error } = await supabase.from('trainer_profiles').insert(insertData).select();
 
     if (error) {
-      console.error('Supabase insert error:', error);
-      return res.status(500).json({ success: false, error: 'Bewerbung fehlgeschlagen' });
+      console.error('Supabase INSERT error:', JSON.stringify(error));
+      console.error('  message:', error.message);
+      console.error('  details:', error.details);
+      console.error('  hint:', error.hint);
+      console.error('  code:', error.code);
+      return res.status(500).json({
+        success: false,
+        error: 'Bewerbung fehlgeschlagen',
+        debug: {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        }
+      });
     }
 
+    console.log('INSERT success:', JSON.stringify(data));
     return res.status(200).json({ success: true, message: 'Bewerbung eingegangen' });
   } catch (error) {
-    console.error('Trainer application error:', error);
-    return res.status(500).json({ success: false, error: 'Bewerbung fehlgeschlagen' });
+    console.error('Trainer application Exception:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Bewerbung fehlgeschlagen',
+      debug: error.message || String(error)
+    });
   }
 }

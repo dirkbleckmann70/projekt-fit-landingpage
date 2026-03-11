@@ -771,7 +771,8 @@
         })
         .then(function(result) {
             if (!result.ok) {
-                throw new Error(result.data.error || 'Etwas ist schiefgelaufen.');
+                var debugInfo = result.data.debug ? ' [Debug: ' + JSON.stringify(result.data.debug) + ']' : '';
+                throw new Error((result.data.error || 'Etwas ist schiefgelaufen.') + debugInfo);
             }
             // Show success
             document.getElementById('form-card').style.display = 'none';
