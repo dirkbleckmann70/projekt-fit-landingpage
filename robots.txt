@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /trainer-portal/
+
+Sitemap: https://projektfit.net/sitemap.xml

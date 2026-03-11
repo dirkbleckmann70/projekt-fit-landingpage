@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trainer werden – Projekt Fit</title>
+    <meta name="description" content="Werde Projekt Fit Trainer: Outdoor Personal Training, faire Verg&uuml;tung, flexible Zeiten. Jetzt bewerben!">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0a;
+            --bg-card: #1a1a1a;
+            --bg-input: #111111;
+            --border: #2a2a2a;
+            --border-light: #333333;
+            --accent: #e8930a;
+            --accent-hover: #f5a623;
+            --accent-dim: rgba(232,147,10,0.12);
+            --green: #27ae60;
+            --green-dim: rgba(39,174,96,0.12);
+            --red: #e74c3c;
+            --text: #f0f0f0;
+            --text-secondary: #999999;
+            --text-muted: #666666;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* ═══ NAV ═══ */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            padding: 16px 24px;
+            background: rgba(10,10,10,0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-inner {
+            max-width: 1200px; margin: 0 auto;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo {
+            font-size: 24px; font-weight: 900; color: var(--text);
+            text-decoration: none; letter-spacing: -1px;
+        }
+        .logo span { color: var(--accent); }
+        .nav-links { display: flex; gap: 28px; align-items: center; }
+        .nav-links a {
+            color: var(--text-secondary); text-decoration: none;
+            font-size: 15px; font-weight: 500; transition: color 0.3s;
+        }
+        .nav-links a:hover { color: var(--text); }
+        .nav-cta {
+            background: var(--accent) !important; color: #000 !important;
+            padding: 10px 24px !important; border-radius: 10px !important;
+            font-weight: 700 !important; transition: all 0.3s !important;
+        }
+        .nav-cta:hover { background: var(--accent-hover) !important; }
+        .mobile-menu {
+            display: none; background: none; border: none; cursor: pointer;
+        }
+
+        /* ═══ HERO ═══ */
+        .hero {
+            padding: 160px 24px 100px;
+            text-align: center;
+            position: relative;
+        }
+        .hero::before {
+            content: '';
+            position: absolute; top: -10%; left: 50%; transform: translateX(-50%);
+            width: 700px; height: 700px;
+            background: radial-gradient(circle, rgba(232,147,10,0.06), transparent 70%);
+            border-radius: 50%;
+        }
+        .hero-inner { max-width: 800px; margin: 0 auto; position: relative; z-index: 2; }
+        .hero-badge {
+            display: inline-block;
+            font-size: 13px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 3px; color: var(--accent);
+            padding: 8px 20px; border-radius: 100px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(232,147,10,0.2);
+            margin-bottom: 28px;
+        }
+        .hero h1 {
+            font-size: clamp(36px, 5vw, 58px);
+            font-weight: 900; line-height: 1.1;
+            letter-spacing: -2px; margin-bottom: 24px;
+        }
+        .hero h1 .accent { color: var(--accent); }
+        .hero-sub {
+            font-size: 19px; color: var(--text-secondary);
+            max-width: 580px; margin: 0 auto 40px; line-height: 1.7;
+        }
+        .btn {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 18px 40px; border-radius: 14px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 17px; font-weight: 700;
+            text-decoration: none; cursor: pointer; border: none;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        .btn-primary {
+            background: var(--accent); color: #000;
+            box-shadow: 0 4px 30px rgba(232,147,10,0.25);
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 40px rgba(232,147,10,0.4);
+            background: var(--accent-hover);
+        }
+
+        /* ═══ SECTIONS ═══ */
+        .section { padding: 100px 24px; }
+        .section-inner { max-width: 1100px; margin: 0 auto; }
+        .section-label {
+            font-size: 13px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 3px; color: var(--accent); margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 800; line-height: 1.15;
+            letter-spacing: -1.5px; margin-bottom: 20px;
+        }
+        .section-sub {
+            font-size: 17px; color: var(--text-secondary);
+            max-width: 560px; line-height: 1.7; margin-bottom: 48px;
+        }
+        .section-center { text-align: center; }
+        .section-center .section-sub { margin-left: auto; margin-right: auto; }
+
+        /* ═══ BENEFITS GRID ═══ */
+        .benefits-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+        }
+        .benefit-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 18px; padding: 32px 28px;
+            transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+        }
+        .benefit-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--border-light);
+            box-shadow: 0 16px 50px rgba(0,0,0,0.4);
+        }
+        .benefit-icon {
+            width: 50px; height: 50px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; margin-bottom: 18px;
+            background: var(--accent-dim);
+        }
+        .benefit-card h3 {
+            font-size: 17px; font-weight: 700; margin-bottom: 8px;
+        }
+        .benefit-card p {
+            font-size: 14px; color: var(--text-secondary); line-height: 1.6;
+        }
+
+        /* ═══ REQUIREMENTS ═══ */
+        .req-list { display: flex; flex-direction: column; gap: 14px; max-width: 700px; }
+        .req-item {
+            display: flex; align-items: center; gap: 16px;
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 20px 24px;
+            transition: all 0.3s;
+        }
+        .req-item:hover {
+            border-color: var(--border-light);
+            transform: translateX(4px);
+        }
+        .req-check {
+            width: 32px; height: 32px; border-radius: 10px;
+            background: var(--green-dim); color: var(--green);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 16px; flex-shrink: 0;
+        }
+        .req-item span {
+            font-size: 15px; color: var(--text-secondary); line-height: 1.5;
+        }
+
+        /* ═══ FORM SECTION ═══ */
+        .form-section {
+            padding: 100px 24px; position: relative;
+        }
+        .form-section::before {
+            content: '';
+            position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(232,147,10,0.04), transparent 70%);
+            border-radius: 50%;
+        }
+        .form-wrapper {
+            max-width: 680px; margin: 0 auto; position: relative; z-index: 2;
+        }
+        .form-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 24px; padding: 48px 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            position: relative; overflow: hidden;
+        }
+        .form-card::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+        }
+        .form-card h2 {
+            font-size: 28px; font-weight: 800; margin-bottom: 8px;
+        }
+        .form-subtitle {
+            font-size: 15px; color: var(--text-secondary); margin-bottom: 36px;
+        }
+
+        .form-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+        }
+        .form-group { margin-bottom: 22px; }
+        .form-group label {
+            display: block; font-size: 14px; font-weight: 600;
+            color: var(--text-secondary); margin-bottom: 8px;
+        }
+        .form-group label .req { color: var(--accent); margin-left: 2px; }
+        .form-group label .opt {
+            color: var(--text-muted); font-weight: 400; font-size: 12px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%; padding: 14px 16px;
+            border-radius: 12px; border: 2px solid var(--border);
+            background: var(--bg-input); color: var(--text);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 15px; outline: none;
+            transition: border-color 0.3s;
+        }
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--text-muted);
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: var(--accent);
+        }
+        .form-group select {
+            cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+        }
+        .form-group select option { background: var(--bg-card); color: var(--text); }
+        .form-group textarea { resize: vertical; min-height: 90px; }
+        .field-hint {
+            font-size: 12px; color: var(--text-muted);
+            margin-top: 6px; font-style: italic;
+        }
+        .field-error {
+            display: none; font-size: 13px; color: var(--red); margin-top: 6px;
+        }
+        .form-group.has-error input,
+        .form-group.has-error select,
+        .form-group.has-error textarea { border-color: var(--red); }
+        .form-group.has-error .field-error { display: block; }
+
+        /* Checkboxes */
+        .cb-row {
+            display: flex; align-items: flex-start; gap: 12px;
+            padding: 14px 16px; border-radius: 12px;
+            background: var(--bg-input); border: 1px solid var(--border);
+            cursor: pointer; transition: all 0.3s;
+            margin-bottom: 14px; user-select: none;
+        }
+        .cb-row:hover { border-color: var(--border-light); }
+        .cb-row.checked { border-color: var(--accent); background: var(--accent-dim); }
+        .cb-row input[type="checkbox"] { display: none; }
+        .cb-box {
+            width: 22px; height: 22px; border-radius: 6px;
+            border: 2px solid var(--border-light);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.3s; flex-shrink: 0;
+            font-size: 13px; color: transparent; margin-top: 1px;
+        }
+        .cb-row.checked .cb-box {
+            background: var(--accent); border-color: var(--accent); color: #000;
+        }
+        .cb-label { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+        .cb-label a { color: var(--accent); text-decoration: none; }
+        .cb-label a:hover { text-decoration: underline; }
+
+        .cb-group { margin-bottom: 14px; }
+        .cb-group .field-error {
+            display: none; font-size: 13px; color: var(--red); margin-top: 6px;
+        }
+        .cb-group.has-error .field-error { display: block; }
+        .cb-group.has-error .cb-row { border-color: var(--red); }
+
+        /* Submit */
+        .submit-btn {
+            width: 100%; padding: 18px; border-radius: 14px; border: none;
+            background: var(--accent); color: #000;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 17px; font-weight: 700; cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 30px rgba(232,147,10,0.25);
+            margin-top: 8px;
+        }
+        .submit-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 40px rgba(232,147,10,0.4);
+            background: var(--accent-hover);
+        }
+        .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .submit-btn.loading {
+            pointer-events: none; position: relative; color: transparent;
+        }
+        .submit-btn.loading::after {
+            content: ''; position: absolute;
+            left: 50%; top: 50%; transform: translate(-50%,-50%);
+            width: 24px; height: 24px;
+            border: 3px solid rgba(0,0,0,0.2);
+            border-top-color: #000;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+        }
+        @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+        .form-note {
+            text-align: center; font-size: 13px;
+            color: var(--text-muted); margin-top: 20px;
+        }
+
+        /* Messages */
+        .msg {
+            padding: 14px 18px; border-radius: 12px;
+            font-size: 14px; font-weight: 600;
+            margin-top: 16px; display: none;
+        }
+        .msg-success {
+            background: var(--green-dim); border: 1px solid rgba(39,174,96,0.3);
+            color: var(--green);
+        }
+        .msg-error {
+            background: rgba(231,76,60,0.1); border: 1px solid rgba(231,76,60,0.3);
+            color: var(--red);
+        }
+
+        /* Success card */
+        .success-card {
+            display: none;
+            background: var(--bg-card); border: 1px solid rgba(39,174,96,0.25);
+            border-radius: 24px; padding: 60px 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .success-icon { font-size: 64px; margin-bottom: 20px; }
+        .success-card h2 {
+            font-size: 28px; font-weight: 800;
+            color: var(--green); margin-bottom: 16px;
+        }
+        .success-card p {
+            font-size: 16px; color: var(--text-secondary);
+            line-height: 1.6; margin-bottom: 8px;
+        }
+        .success-card .highlight { color: var(--text); font-weight: 600; }
+        .success-card .btn { margin-top: 32px; }
+
+        /* ═══ FOOTER ═══ */
+        footer {
+            padding: 60px 24px 30px; background: #050505;
+            text-align: center; border-top: 1px solid var(--border);
+        }
+        .footer-inner { max-width: 1200px; margin: 0 auto; }
+        .footer-logo {
+            font-size: 28px; font-weight: 900; color: var(--text);
+            margin-bottom: 16px; letter-spacing: -1px;
+        }
+        .footer-logo span { color: var(--accent); }
+        .footer-tagline { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+        .footer-links { display: flex; justify-content: center; gap: 32px; margin-bottom: 32px; }
+        .footer-links a {
+            color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.3s;
+        }
+        .footer-links a:hover { color: var(--text); }
+        .footer-copy {
+            color: var(--text-muted); font-size: 13px;
+            padding-top: 24px; border-top: 1px solid var(--border);
+        }
+
+        /* ═══ ANIMATIONS ═══ */
+        .fade-up {
+            opacity: 0; transform: translateY(30px);
+            transition: all 0.7s cubic-bezier(0.4,0,0.2,1);
+        }
+        .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+        /* ═══ RESPONSIVE ═══ */
+        @media (max-width: 900px) {
+            .benefits-grid { grid-template-columns: 1fr 1fr; }
+            .nav-links { display: none; }
+            .mobile-menu { display: block; }
+        }
+        @media (max-width: 600px) {
+            nav { padding: 12px 16px; }
+            .logo { font-size: 20px; }
+            .hero { padding: 130px 16px 60px; }
+            .section { padding: 60px 16px; }
+            .form-section { padding: 60px 16px; }
+            .form-card { padding: 32px 20px; }
+            .form-row { grid-template-columns: 1fr; }
+            .benefits-grid { grid-template-columns: 1fr; }
+            .success-card { padding: 40px 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+    <div class="nav-inner">
+        <a href="https://projektfit.net" class="logo">Projekt<span>Fit</span></a>
+        <div class="nav-links">
+            <a href="https://projektfit.net/#features">Features</a>
+            <a href="https://projektfit.net/#pricing">Preise</a>
+            <a href="#bewerbung">Jetzt bewerben</a>
+            <a href="https://projektfit.net/#beta" class="nav-cta">App testen</a>
+        </div>
+        <button class="mobile-menu" onclick="var nl=document.querySelector('.nav-links');nl.style.display=nl.style.display==='flex'?'none':'flex'">
+            <svg width="28" height="28" fill="white" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+    </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+    <div class="hero-inner">
+        <div class="hero-badge fade-up">Trainer gesucht</div>
+        <h1 class="fade-up">Werde <span class="accent">Projekt Fit</span> Trainer</h1>
+        <p class="hero-sub fade-up">
+            Trainiere outdoor im Park. Faire Verg&uuml;tung, flexible Zeiten und direkte Buchungen &uuml;ber unsere App.
+        </p>
+        <a href="#bewerbung" class="btn btn-primary fade-up">Jetzt bewerben &rarr;</a>
+    </div>
+</section>
+
+<!-- ═══ BENEFITS ═══ -->
+<section class="section section-center">
+    <div class="section-inner">
+        <div class="section-label fade-up">Vorteile</div>
+        <h2 class="section-title fade-up">Warum Projekt Fit?</h2>
+        <p class="section-sub fade-up">Alles was du brauchst, um erfolgreich als Outdoor-Trainer zu arbeiten.</p>
+        <div class="benefits-grid">
+            <div class="benefit-card fade-up">
+                <div class="benefit-icon">&#128176;</div>
+                <h3>Faire Verg&uuml;tung</h3>
+                <p>25&ndash;35 &euro;/Stunde, ausgezahlt via Stripe. Transparent und zuverl&auml;ssig.</p>
+            </div>
+            <div class="benefit-card fade-up">
+                <div class="benefit-icon">&#128197;</div>
+                <h3>Flexible Zeiten</h3>
+                <p>Du bestimmst wann und wo du trainierst. Kein fester Vertrag, keine Mindestzeiten.</p>
+            </div>
+            <div class="benefit-card fade-up">
+                <div class="benefit-icon">&#128241;</div>
+                <h3>Buchungen &uuml;ber die App</h3>
+                <p>Kunden buchen dich direkt &uuml;ber die Projekt Fit App. Du best&auml;tigst per Klick.</p>
+            </div>
+            <div class="benefit-card fade-up">
+                <div class="benefit-icon">&#127795;</div>
+                <h3>Outdoor-Training</h3>
+                <p>Trainiere im Park, am See oder auf der Wiese. Frische Luft statt Fitnessstudio.</p>
+            </div>
+            <div class="benefit-card fade-up">
+                <div class="benefit-icon">&#128640;</div>
+                <h3>Wachsendes Netzwerk</h3>
+                <p>Sei von Anfang an dabei. Neue Plattform mit KI-Coach und wachsender Community.</p>
+            </div>
+            <div class="benefit-card fade-up">
+                <div class="benefit-icon">&#11088;</div>
+                <h3>Kostenloser App-Zugang</h3>
+                <p>Premium-Zugang zur App f&uuml;r alle Trainer &ndash; komplett kostenlos.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ REQUIREMENTS ═══ -->
+<section class="section">
+    <div class="section-inner">
+        <div class="section-label fade-up">Anforderungen</div>
+        <h2 class="section-title fade-up">Was wir suchen</h2>
+        <p class="section-sub fade-up">Outdoor-Fitness ist dein Ding? Dann passt du zu uns.</p>
+        <div class="req-list">
+            <div class="req-item fade-up">
+                <div class="req-check">&#10003;</div>
+                <span>G&uuml;ltige Trainer-Lizenz oder Zertifikat (z.B. Fitnesstrainer B/A, Sportwissenschaft, DHFPG, IST)</span>
+            </div>
+            <div class="req-item fade-up">
+                <div class="req-check">&#10003;</div>
+                <span>Mindestens 1 Jahr Erfahrung im Personal- oder Gruppentraining</span>
+            </div>
+            <div class="req-item fade-up">
+                <div class="req-check">&#10003;</div>
+                <span>Smartphone (iPhone oder Android) f&uuml;r die Trainer-App</span>
+            </div>
+            <div class="req-item fade-up">
+                <div class="req-check">&#10003;</div>
+                <span>Gewerbeschein (Freelancer, Kleinunternehmer oder mit USt-ID)</span>
+            </div>
+            <div class="req-item fade-up">
+                <div class="req-check">&#10003;</div>
+                <span>Motivation f&uuml;r Outdoor-Training &ndash; Park, Natur, frische Luft</span>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ APPLICATION FORM ═══ -->
+<section class="form-section" id="bewerbung">
+    <div class="form-wrapper">
+        <!-- Form Card -->
+        <div class="form-card" id="form-card">
+            <h2>Jetzt bewerben</h2>
+            <p class="form-subtitle">Wir melden uns innerhalb von 48 Stunden. Felder mit * sind Pflicht.</p>
+
+            <form id="app-form" novalidate>
+                <!-- Name + Email -->
+                <div class="form-row">
+                    <div class="form-group" id="g-name">
+                        <label>Vollst&auml;ndiger Name <span class="req">*</span></label>
+                        <input type="text" id="f-name" placeholder="Max Mustermann" required>
+                        <div class="field-error">Bitte Name eingeben.</div>
+                    </div>
+                    <div class="form-group" id="g-email">
+                        <label>E-Mail <span class="req">*</span></label>
+                        <input type="email" id="f-email" placeholder="max@beispiel.de" required>
+                        <div class="field-error">Bitte g&uuml;ltige E-Mail eingeben.</div>
+                    </div>
+                </div>
+
+                <!-- Phone + City -->
+                <div class="form-row">
+                    <div class="form-group" id="g-phone">
+                        <label>Telefon <span class="opt">(optional)</span></label>
+                        <input type="tel" id="f-phone" placeholder="+49 170 1234567">
+                    </div>
+                    <div class="form-group" id="g-city">
+                        <label>Stadt <span class="req">*</span></label>
+                        <select id="f-city" required>
+                            <option value="" disabled selected>Stadt w&auml;hlen</option>
+                            <option value="Berlin">Berlin</option>
+                            <option value="M&uuml;nchen">M&uuml;nchen</option>
+                            <option value="Hamburg">Hamburg</option>
+                            <option value="K&ouml;ln">K&ouml;ln</option>
+                            <option value="Frankfurt">Frankfurt</option>
+                            <option value="D&uuml;sseldorf">D&uuml;sseldorf</option>
+                            <option value="Andere">Andere</option>
+                        </select>
+                        <div class="field-error">Bitte Stadt w&auml;hlen.</div>
+                    </div>
+                </div>
+
+                <!-- Qualification -->
+                <div class="form-group" id="g-qual">
+                    <label>Qualifikation / Zertifikat <span class="req">*</span></label>
+                    <textarea id="f-qual" placeholder="z.B. Fitnesstrainer B-Lizenz (BSA), Sportwissenschaft Studium..." maxlength="500" required></textarea>
+                    <div class="field-error">Bitte Qualifikation angeben.</div>
+                </div>
+
+                <!-- Message / Bio -->
+                <div class="form-group" id="g-msg">
+                    <label>&Uuml;ber dich <span class="opt">(optional)</span></label>
+                    <textarea id="f-msg" placeholder="Erz&auml;hle kurz von dir und deinem Trainingsansatz..." maxlength="500"></textarea>
+                </div>
+
+                <!-- Address + PLZ -->
+                <div class="form-row">
+                    <div class="form-group" id="g-address">
+                        <label>Stra&szlig;e + Nr. <span class="opt">(optional)</span></label>
+                        <input type="text" id="f-address" placeholder="Musterstra&szlig;e 1">
+                    </div>
+                    <div class="form-group" id="g-plz" style="max-width: 140px;">
+                        <label>PLZ <span class="opt">(optional)</span></label>
+                        <input type="text" id="f-plz" placeholder="50667" maxlength="5">
+                    </div>
+                </div>
+
+                <!-- Steuernummer -->
+                <div class="form-group" id="g-steuer">
+                    <label>Steuernummer <span class="opt">(optional)</span></label>
+                    <input type="text" id="f-steuer" placeholder="z.B. 123/456/78901">
+                    <div class="field-hint">Kannst du auch sp&auml;ter erg&auml;nzen.</div>
+                </div>
+
+                <!-- Kleinunternehmer -->
+                <label class="cb-row" id="cb-klein" onclick="toggleCb(this)">
+                    <input type="checkbox" id="f-klein">
+                    <div class="cb-box">&#10003;</div>
+                    <div class="cb-label">Ich bin Kleinunternehmer gem. &sect;19 UStG (&lt; 25.000 &euro;/Jahr)</div>
+                </label>
+
+                <!-- Privacy -->
+                <div class="cb-group" id="g-privacy">
+                    <label class="cb-row" id="cb-privacy" onclick="toggleCb(this)">
+                        <input type="checkbox" id="f-privacy" required>
+                        <div class="cb-box">&#10003;</div>
+                        <div class="cb-label">Ich habe die <a href="https://projektfit.net/datenschutz" target="_blank" onclick="event.stopPropagation()">Datenschutzerkl&auml;rung</a> gelesen und stimme zu. <span class="req">*</span></div>
+                    </label>
+                    <div class="field-error">Bitte Datenschutzerkl&auml;rung best&auml;tigen.</div>
+                </div>
+
+                <!-- Submit -->
+                <button type="submit" class="submit-btn" id="submit-btn" disabled>Jetzt bewerben</button>
+
+                <!-- Messages -->
+                <div class="msg msg-error" id="msg-error"></div>
+            </form>
+
+            <p class="form-note">Deine Daten werden vertraulich behandelt und nicht an Dritte weitergegeben.</p>
+        </div>
+
+        <!-- Success Card -->
+        <div class="success-card" id="success-card">
+            <div class="success-icon">&#10004;&#65039;</div>
+            <h2>Deine Bewerbung ist eingegangen!</h2>
+            <p>Wir melden uns innerhalb von <span class="highlight">48 Stunden</span> bei dir.</p>
+            <p>Wir freuen uns auf dich!</p>
+            <a href="https://projektfit.net" class="btn btn-primary">Zur&uuml;ck zur Startseite</a>
+        </div>
+    </div>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer>
+    <div class="footer-inner">
+        <div class="footer-logo">Projekt<span>Fit</span></div>
+        <p class="footer-tagline">Dein KI-Trainer &ndash; vom Smartphone in den Park</p>
+        <div class="footer-links">
+            <a href="https://projektfit.net/datenschutz">Datenschutz</a>
+            <a href="https://projektfit.net/impressum">Impressum</a>
+            <a href="https://projektfit.net/agb">AGB</a>
+        </div>
+        <p class="footer-copy">&copy; 2026 Projekt Fit. Alle Rechte vorbehalten.</p>
+    </div>
+</footer>
+
+<script>
+    // ═══ SCROLL ANIMATIONS ═══
+    var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+            if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.fade-up').forEach(function(el) { observer.observe(el); });
+
+    // ═══ CHECKBOX TOGGLE ═══
+    function toggleCb(el) {
+        var cb = el.querySelector('input[type="checkbox"]');
+        cb.checked = !cb.checked;
+        el.classList.toggle('checked', cb.checked);
+        validateForm();
+    }
+
+    // Prevent double-toggle
+    document.querySelectorAll('.cb-row input').forEach(function(input) {
+        input.addEventListener('click', function(e) { e.stopPropagation(); });
+    });
+
+    // ═══ FORM VALIDATION ═══
+    var reqFields = [
+        { id: 'f-name', group: 'g-name', type: 'text' },
+        { id: 'f-email', group: 'g-email', type: 'email' },
+        { id: 'f-city', group: 'g-city', type: 'select' },
+        { id: 'f-qual', group: 'g-qual', type: 'text' },
+    ];
+
+    reqFields.forEach(function(f) {
+        var el = document.getElementById(f.id);
+        el.addEventListener('input', validateForm);
+        el.addEventListener('change', validateForm);
+        el.addEventListener('blur', function() {
+            el.dataset.touched = 'true';
+            validateForm();
+        });
+    });
+
+    function validateForm() {
+        var valid = true;
+
+        reqFields.forEach(function(f) {
+            var el = document.getElementById(f.id);
+            var group = document.getElementById(f.group);
+            var val = el.value.trim();
+            var ok = true;
+
+            if (f.type === 'email') {
+                ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+            } else {
+                ok = val.length > 0;
+            }
+
+            if (group) {
+                group.classList.toggle('has-error', !ok && el.dataset.touched === 'true');
+            }
+            if (!ok) valid = false;
+        });
+
+        // Privacy
+        var privacy = document.getElementById('f-privacy').checked;
+        var privacyGroup = document.getElementById('g-privacy');
+        if (privacyGroup) {
+            privacyGroup.classList.toggle('has-error', !privacy && privacyGroup.dataset.touched === 'true');
+        }
+        if (!privacy) valid = false;
+
+        document.getElementById('submit-btn').disabled = !valid;
+        return valid;
+    }
+
+    // ═══ FORM SUBMIT ═══
+    document.getElementById('app-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        // Mark all touched
+        reqFields.forEach(function(f) {
+            document.getElementById(f.id).dataset.touched = 'true';
+        });
+        var privacyGroup = document.getElementById('g-privacy');
+        if (privacyGroup) privacyGroup.dataset.touched = 'true';
+
+        if (!validateForm()) return;
+
+        var btn = document.getElementById('submit-btn');
+        var msgError = document.getElementById('msg-error');
+        msgError.style.display = 'none';
+
+        btn.disabled = true;
+        btn.classList.add('loading');
+        btn.textContent = 'Wird gesendet...';
+
+        var payload = {
+            name: document.getElementById('f-name').value.trim(),
+            email: document.getElementById('f-email').value.trim(),
+            phone: document.getElementById('f-phone').value.trim(),
+            city: document.getElementById('f-city').value,
+            qualification: document.getElementById('f-qual').value.trim(),
+            message: document.getElementById('f-msg').value.trim(),
+            address: document.getElementById('f-address').value.trim(),
+            postalCode: document.getElementById('f-plz').value.trim(),
+            steuernummer: document.getElementById('f-steuer').value.trim(),
+            kleinunternehmer: document.getElementById('f-klein').checked
+        };
+
+        fetch('/api/trainer-application', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(res) {
+            return res.json().then(function(data) { return { ok: res.ok, data: data }; });
+        })
+        .then(function(result) {
+            if (!result.ok) {
+                throw new Error(result.data.error || 'Etwas ist schiefgelaufen.');
+            }
+            // Show success
+            document.getElementById('form-card').style.display = 'none';
+            document.getElementById('success-card').style.display = 'block';
+            document.getElementById('success-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        })
+        .catch(function(err) {
+            btn.disabled = false;
+            btn.classList.remove('loading');
+            btn.textContent = 'Jetzt bewerben';
+            msgError.textContent = err.message || 'Etwas ist schiefgelaufen. Bitte versuche es erneut.';
+            msgError.style.display = 'block';
+        });
+    });
+</script>
+
+</body>
+</html>

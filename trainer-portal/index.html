@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trainer-Portal – Projekt Fit</title>
+    <meta name="description" content="Projekt Fit Trainer-Portal: Verwalte deine Buchungsanfragen, Termine und Verdienste.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-logo">
+            <a href="https://projektfit.net">Projekt<span>Fit</span></a>
+        </div>
+        <p class="login-subtitle">Trainer-Portal</p>
+
+        <form id="login-form" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="email">E-Mail</label>
+                <input type="email" id="email" placeholder="trainer@beispiel.de" required autocomplete="email">
+            </div>
+            <div class="form-group">
+                <label for="password">Passwort</label>
+                <input type="password" id="password" placeholder="Passwort eingeben" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="login-btn">Anmelden</button>
+            <div class="login-error" id="login-error">
+                E-Mail oder Passwort ist falsch. Bitte versuche es erneut.
+            </div>
+        </form>
+
+        <div class="login-footer">
+            <p>Noch kein Trainer? <a href="https://projektfit.net/trainer">Jetzt bewerben</a></p>
+        </div>
+
+        <p class="login-hint">Echte Authentifizierung folgt in Phase 2</p>
+    </div>
+</div>
+
+<script>
+    function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const errorEl = document.getElementById('login-error');
+
+        if (email === 'trainer@projektfit.de' && password === 'demo123') {
+            errorEl.style.display = 'none';
+            window.location.href = 'dashboard.html';
+        } else {
+            errorEl.style.display = 'block';
+        }
+    }
+</script>
+
+</body>
+</html>
