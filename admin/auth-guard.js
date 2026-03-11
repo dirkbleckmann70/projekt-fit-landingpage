@@ -4,8 +4,8 @@
 // <script src="auth-guard.js"></script>
 // Prüft Session + role=admin, sonst Redirect zu /admin/
 
-const SUPABASE_URL = 'https://ymdlwbgmhdsfsqfmxyhi.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltZGx3YmdtaGRzZnNxZm14eWhpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDEzNTQ2OTcsImV4cCI6MjA1NjkzMDY5N30.Oj_U_aHNYVR1THn3Gz1a3bxYS9TKfTG2X9xYDbkW2WE';
+const SUPABASE_URL = 'https://ahsjydgknmysircubjsk.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_8tZaFMrIrzJXjDbYAF2huw_ygDY9K2Q';
 
 let _sb = null;
 let _adminUser = null;
