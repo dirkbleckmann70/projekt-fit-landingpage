@@ -603,20 +603,20 @@
                 </div>
 
                 <!-- Kleinunternehmer -->
-                <label class="cb-row" id="cb-klein" onclick="toggleCb(this)">
+                <div class="cb-row" id="cb-klein" onclick="toggleCb(this)">
                     <input type="checkbox" id="f-klein">
                     <div class="cb-box">&#10003;</div>
                     <div class="cb-label">Ich bin Kleinunternehmer gem. &sect;19 UStG (&lt; 25.000 &euro;/Jahr)</div>
-                </label>
+                </div>
 
                 <!-- Privacy -->
-                <div class="cb-group" id="g-privacy">
-                    <label class="cb-row" id="cb-privacy" onclick="toggleCb(this)">
-                        <input type="checkbox" id="f-privacy">
+                <div class="cb-group" id="g-datenschutz">
+                    <div class="cb-row" id="cb-datenschutz" onclick="toggleCb(this)">
+                        <input type="checkbox" id="datenschutz">
                         <div class="cb-box">&#10003;</div>
                         <div class="cb-label">Ich habe die <a href="https://projektfit.net/datenschutz" target="_blank" onclick="event.stopPropagation()">Datenschutzerkl&auml;rung</a> gelesen und stimme zu. <span class="req">*</span></div>
-                    </label>
-                    <div class="field-error">Bitte Datenschutzerkl&auml;rung best&auml;tigen.</div>
+                    </div>
+                    <div class="field-error">Bitte stimme der Datenschutzerkl&auml;rung zu.</div>
                 </div>
 
                 <!-- Submit -->
@@ -716,8 +716,8 @@
         });
 
         // Privacy
-        var privacy = document.getElementById('f-privacy').checked;
-        var privacyGroup = document.getElementById('g-privacy');
+        var privacy = document.getElementById('datenschutz').checked;
+        var privacyGroup = document.getElementById('g-datenschutz');
         if (privacyGroup) {
             privacyGroup.classList.toggle('has-error', !privacy && privacyGroup.dataset.touched === 'true');
         }
@@ -735,7 +735,7 @@
         reqFields.forEach(function(f) {
             document.getElementById(f.id).dataset.touched = 'true';
         });
-        var privacyGroup = document.getElementById('g-privacy');
+        var privacyGroup = document.getElementById('g-datenschutz');
         if (privacyGroup) privacyGroup.dataset.touched = 'true';
 
         if (!validateForm()) return;
