@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buchungen – Projekt Fit Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <div id="alert-box" class="alert"></div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Alle Buchungen</div>
+          <div class="table-actions">
+            <div class="filter-tabs" id="filter-tabs">
+              <button class="filter-tab active" data-filter="all">Alle</button>
+              <button class="filter-tab" data-filter="PENDING">Pending</button>
+              <button class="filter-tab" data-filter="CONFIRMED">Confirmed</button>
+              <button class="filter-tab" data-filter="COMPLETED">Completed</button>
+              <button class="filter-tab" data-filter="CANCELLED">Cancelled</button>
+            </div>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Kunde</th>
+              <th>Trainer</th>
+              <th>Datum</th>
+              <th>Uhrzeit</th>
+              <th>Ort</th>
+              <th>Status</th>
+              <th>Preis</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="bookings-body">
+            <tr><td colspan="8" class="loading-overlay"><span class="spinner"></span> Buchungen werden geladen...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── Booking Detail Modal ──────────────────────────────────────── -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Buchungs-Details</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Schließen</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveBookingStatus()">Status speichern</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  let allBookings = [];
+  let currentFilter = 'all';
+  let editingBookingId = null;
+
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderSidebar('bookings');
+    document.getElementById('header').innerHTML = renderHeader('Buchungen');
+
+    await loadBookings();
+
+    document.querySelectorAll('#filter-tabs .filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.dataset.filter;
+        renderBookings();
+      });
+    });
+  })();
+
+  async function loadBookings() {
+    try {
+      const res = await adminApi('/api/admin/data?type=all_bookings');
+      allBookings = res.data || [];
+      renderBookings();
+    } catch (err) {
+      document.getElementById('bookings-body').innerHTML =
+        `<tr><td colspan="8" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+    }
+  }
+
+  function renderBookings() {
+    let filtered = allBookings;
+    if (currentFilter !== 'all') {
+      filtered = filtered.filter(b => b.status === currentFilter);
+    }
+
+    const tbody = document.getElementById('bookings-body');
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(b => `
+      <tr>
+        <td>${b.customer_name || b.customer_id || '–'}</td>
+        <td>${b.trainer_name || '–'}</td>
+        <td>${formatDate(b.session_date)}</td>
+        <td>${b.session_time || '–'}</td>
+        <td>${b.location || '–'}</td>
+        <td>${statusBadge(b.status)}</td>
+        <td class="text-accent">${formatEuro(b.price_cents)}</td>
+        <td>
+          <button class="btn btn-secondary btn-sm" onclick="openDetail('${b.id}')">Details</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openDetail(id) {
+    const b = allBookings.find(x => x.id === id);
+    if (!b) return;
+    editingBookingId = id;
+
+    document.getElementById('modal-body').innerHTML = `
+      <div class="two-col">
+        <div class="form-group">
+          <label>Kunde</label>
+          <input class="form-control" value="${b.customer_name || b.customer_id || '–'}" disabled>
+        </div>
+        <div class="form-group">
+          <label>Trainer</label>
+          <input class="form-control" value="${b.trainer_name || '–'}" disabled>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Datum</label>
+          <input class="form-control" value="${formatDate(b.session_date)}" disabled>
+        </div>
+        <div class="form-group">
+          <label>Uhrzeit</label>
+          <input class="form-control" value="${b.session_time || '–'}" disabled>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Ort</label>
+          <input class="form-control" value="${b.location || '–'}" disabled>
+        </div>
+        <div class="form-group">
+          <label>Preis</label>
+          <input class="form-control" value="${formatEuro(b.price_cents)}" disabled>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Rabattcode</label>
+          <input class="form-control" value="${b.discount_code || '–'}" disabled>
+        </div>
+        <div class="form-group">
+          <label>Status ändern</label>
+          <select class="form-control" id="edit-booking-status">
+            <option value="PENDING" ${b.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+            <option value="CONFIRMED" ${b.status === 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
+            <option value="COMPLETED" ${b.status === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
+            <option value="CANCELLED" ${b.status === 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
+          </select>
+        </div>
+      </div>
+      ${b.notes ? `<div class="form-group"><label>Notizen</label><textarea class="form-control" disabled>${b.notes}</textarea></div>` : ''}
+      <p class="text-muted mt-1" style="font-size:12px">Erstellt: ${formatDateTime(b.created_at)} · ID: ${b.id}</p>
+    `;
+
+    document.getElementById('detail-modal').classList.add('open');
+  }
+
+  async function saveBookingStatus() {
+    if (!editingBookingId) return;
+    const newStatus = document.getElementById('edit-booking-status').value;
+    const btn = document.getElementById('modal-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      await adminApi('/api/admin/bookings', {
+        method: 'PUT',
+        body: JSON.stringify({ bookingId: editingBookingId, status: newStatus }),
+      });
+      closeModal();
+      showAlert('alert-box', 'Status aktualisiert!', 'success');
+      await loadBookings();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Status speichern';
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('detail-modal').classList.remove('open');
+    editingBookingId = null;
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) closeModal(); });
+  });
+</script>
+
+</body>
+</html>

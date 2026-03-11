@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trainer – Projekt Fit Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <div id="alert-box" class="alert"></div>
+
+      <!-- Trainer Table -->
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Trainer-Verwaltung</div>
+          <div class="table-actions">
+            <input type="text" class="search-input" id="search" placeholder="Name oder E-Mail suchen...">
+            <div class="filter-tabs" id="filter-tabs">
+              <button class="filter-tab active" data-filter="all">Alle</button>
+              <button class="filter-tab" data-filter="pending">Pending</button>
+              <button class="filter-tab" data-filter="active">Aktiv</button>
+              <button class="filter-tab" data-filter="gesperrt">Gesperrt</button>
+            </div>
+            <button class="btn btn-primary" onclick="openNewTrainerModal()">+ Neuer Trainer</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>E-Mail</th>
+              <th>Stadt</th>
+              <th>Status</th>
+              <th>Bewertung</th>
+              <th>Erstellt am</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="trainers-body">
+            <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Trainer werden geladen...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── Trainer Detail Modal ──────────────────────────────────────── -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Trainer-Details</div>
+      <button class="modal-close" onclick="closeModal('detail-modal')">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body">
+      <!-- Filled dynamically -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('detail-modal')">Abbrechen</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveTrainer()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── New Trainer Modal ─────────────────────────────────────────── -->
+<div class="modal-overlay" id="new-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Neuen Trainer anlegen</div>
+      <button class="modal-close" onclick="closeModal('new-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="new-trainer-form">
+        <div class="two-col">
+          <div class="form-group">
+            <label>Name *</label>
+            <input class="form-control" id="new-name" required>
+          </div>
+          <div class="form-group">
+            <label>E-Mail *</label>
+            <input class="form-control" type="email" id="new-email" required>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Telefon</label>
+            <input class="form-control" id="new-phone">
+          </div>
+          <div class="form-group">
+            <label>Stadt *</label>
+            <input class="form-control" id="new-city" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Qualifikation / Spezialisierung</label>
+          <input class="form-control" id="new-specializations">
+        </div>
+        <div class="form-group">
+          <label>Bio</label>
+          <textarea class="form-control" id="new-bio" rows="3"></textarea>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Stundensatz (Cent)</label>
+            <input class="form-control" type="number" id="new-hourly-rate" placeholder="7900">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select class="form-control" id="new-status">
+              <option value="pending">Pending</option>
+              <option value="active">Active</option>
+            </select>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('new-modal')">Abbrechen</button>
+      <button class="btn btn-primary" onclick="createTrainer()">Anlegen</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  let allTrainers = [];
+  let currentFilter = 'all';
+  let currentSearch = '';
+  let editingTrainerId = null;
+
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderSidebar('trainers');
+    document.getElementById('header').innerHTML = renderHeader('Trainer-Verwaltung');
+
+    await loadTrainers();
+
+    // Filter tabs
+    document.querySelectorAll('#filter-tabs .filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.dataset.filter;
+        renderTrainers();
+      });
+    });
+
+    // Search
+    document.getElementById('search').addEventListener('input', (e) => {
+      currentSearch = e.target.value.toLowerCase();
+      renderTrainers();
+    });
+  })();
+
+  async function loadTrainers() {
+    try {
+      const res = await adminApi('/api/admin/data?type=all_trainers');
+      allTrainers = res.data || [];
+      renderTrainers();
+    } catch (err) {
+      document.getElementById('trainers-body').innerHTML =
+        `<tr><td colspan="7" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+    }
+  }
+
+  function renderTrainers() {
+    let filtered = allTrainers;
+
+    if (currentFilter !== 'all') {
+      filtered = filtered.filter(t => t.status === currentFilter);
+    }
+    if (currentSearch) {
+      filtered = filtered.filter(t =>
+        (t.full_name || '').toLowerCase().includes(currentSearch) ||
+        (t.email || '').toLowerCase().includes(currentSearch)
+      );
+    }
+
+    const tbody = document.getElementById('trainers-body');
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Keine Trainer gefunden</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(t => {
+      const rating = t.rating ? `${t.rating} ★ (${t.review_count || 0})` : '–';
+      const canActivate = t.status === 'pending' && !t.auth_user_id;
+      return `
+        <tr>
+          <td><strong>${t.full_name || '–'}</strong></td>
+          <td class="text-secondary">${t.email || '–'}</td>
+          <td>${t.city || '–'}</td>
+          <td>${statusBadge(t.status)}</td>
+          <td class="text-accent">${rating}</td>
+          <td class="text-muted">${formatDate(t.created_at)}</td>
+          <td>
+            <div style="display:flex;gap:6px">
+              ${canActivate ? `<button class="btn btn-success btn-sm" onclick="activateTrainer('${t.id}')">Aktivieren</button>` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="openDetailModal('${t.id}')">Details</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ─── Activate Trainer ─────────────────────────────────────────────
+  async function activateTrainer(id) {
+    if (!confirm('Trainer aktivieren und Einladungs-E-Mail senden?')) return;
+    try {
+      const res = await adminApi('/api/admin/activate-trainer', {
+        method: 'POST',
+        body: JSON.stringify({ trainerId: id }),
+      });
+      showAlert('alert-box', res.message || 'Trainer aktiviert!', 'success');
+      await loadTrainers();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Detail Modal ─────────────────────────────────────────────────
+  function openDetailModal(id) {
+    const t = allTrainers.find(tr => tr.id === id);
+    if (!t) return;
+    editingTrainerId = id;
+
+    document.getElementById('modal-title').textContent = t.full_name || 'Trainer-Details';
+    document.getElementById('modal-body').innerHTML = `
+      <div class="two-col">
+        <div class="form-group">
+          <label>Name</label>
+          <input class="form-control" id="edit-name" value="${t.full_name || ''}">
+        </div>
+        <div class="form-group">
+          <label>E-Mail</label>
+          <input class="form-control" id="edit-email" type="email" value="${t.email || ''}">
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Telefon</label>
+          <input class="form-control" id="edit-phone" value="${t.phone || ''}">
+        </div>
+        <div class="form-group">
+          <label>Stadt</label>
+          <input class="form-control" id="edit-city" value="${t.city || ''}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Qualifikation / Spezialisierung</label>
+        <input class="form-control" id="edit-specializations" value="${t.specializations || ''}">
+      </div>
+      <div class="form-group">
+        <label>Bio</label>
+        <textarea class="form-control" id="edit-bio" rows="3">${t.bio || ''}</textarea>
+      </div>
+
+      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Steuerdaten & Adresse</h3>
+
+      <div class="two-col">
+        <div class="form-group">
+          <label>Steuernummer</label>
+          <input class="form-control" id="edit-steuernummer" value="${t.steuernummer || ''}">
+        </div>
+        <div class="form-group">
+          <label>Kleinunternehmer</label>
+          <select class="form-control" id="edit-kleinunternehmer">
+            <option value="false" ${!t.is_kleinunternehmer ? 'selected' : ''}>Nein</option>
+            <option value="true" ${t.is_kleinunternehmer ? 'selected' : ''}>Ja</option>
+          </select>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Straße</label>
+          <input class="form-control" id="edit-street" value="${t.street_address || ''}">
+        </div>
+        <div class="form-group">
+          <label>PLZ</label>
+          <input class="form-control" id="edit-postal" value="${t.postal_code || ''}">
+        </div>
+      </div>
+
+      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Status & Preise</h3>
+
+      <div class="two-col">
+        <div class="form-group">
+          <label>Status</label>
+          <select class="form-control" id="edit-status">
+            <option value="pending" ${t.status === 'pending' ? 'selected' : ''}>Pending</option>
+            <option value="active" ${t.status === 'active' ? 'selected' : ''}>Active</option>
+            <option value="pausiert" ${t.status === 'pausiert' ? 'selected' : ''}>Pausiert</option>
+            <option value="gesperrt" ${t.status === 'gesperrt' ? 'selected' : ''}>Gesperrt</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Aktiv (sichtbar für Kunden)</label>
+          <select class="form-control" id="edit-is-active">
+            <option value="false" ${!t.is_active ? 'selected' : ''}>Nein</option>
+            <option value="true" ${t.is_active ? 'selected' : ''}>Ja</option>
+          </select>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Stundensatz (Cent)</label>
+          <input class="form-control" type="number" id="edit-hourly-rate" value="${t.hourly_rate_cents || ''}">
+        </div>
+        <div class="form-group">
+          <label>Auszahlung (Cent)</label>
+          <input class="form-control" type="number" id="edit-payout" value="${t.payout_cents || ''}">
+        </div>
+      </div>
+
+      ${t.auth_user_id ? `<p class="text-muted mt-2" style="font-size:12px">Auth User ID: ${t.auth_user_id}</p>` : ''}
+    `;
+
+    document.getElementById('detail-modal').classList.add('open');
+  }
+
+  async function saveTrainer() {
+    if (!editingTrainerId) return;
+
+    const btn = document.getElementById('modal-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Speichern...';
+
+    const payload = {
+      trainerId: editingTrainerId,
+      full_name: document.getElementById('edit-name').value.trim(),
+      email: document.getElementById('edit-email').value.trim(),
+      phone: document.getElementById('edit-phone').value.trim() || null,
+      city: document.getElementById('edit-city').value.trim(),
+      specializations: document.getElementById('edit-specializations').value.trim() || null,
+      bio: document.getElementById('edit-bio').value.trim() || null,
+      steuernummer: document.getElementById('edit-steuernummer').value.trim() || null,
+      is_kleinunternehmer: document.getElementById('edit-kleinunternehmer').value === 'true',
+      street_address: document.getElementById('edit-street').value.trim() || null,
+      postal_code: document.getElementById('edit-postal').value.trim() || null,
+      status: document.getElementById('edit-status').value,
+      is_active: document.getElementById('edit-is-active').value === 'true',
+      hourly_rate_cents: parseInt(document.getElementById('edit-hourly-rate').value) || null,
+      payout_cents: parseInt(document.getElementById('edit-payout').value) || null,
+    };
+
+    try {
+      await adminApi('/api/admin/trainers', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      closeModal('detail-modal');
+      showAlert('alert-box', 'Trainer gespeichert!', 'success');
+      await loadTrainers();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Speichern';
+    }
+  }
+
+  // ─── New Trainer ──────────────────────────────────────────────────
+  function openNewTrainerModal() {
+    document.getElementById('new-trainer-form').reset();
+    document.getElementById('new-modal').classList.add('open');
+  }
+
+  async function createTrainer() {
+    const name = document.getElementById('new-name').value.trim();
+    const email = document.getElementById('new-email').value.trim();
+    const city = document.getElementById('new-city').value.trim();
+
+    if (!name || !email || !city) {
+      alert('Name, E-Mail und Stadt sind Pflichtfelder.');
+      return;
+    }
+
+    try {
+      await adminApi('/api/admin/trainers', {
+        method: 'POST',
+        body: JSON.stringify({
+          full_name: name,
+          email: email,
+          phone: document.getElementById('new-phone').value.trim() || null,
+          city: city,
+          specializations: document.getElementById('new-specializations').value.trim() || null,
+          bio: document.getElementById('new-bio').value.trim() || null,
+          hourly_rate_cents: parseInt(document.getElementById('new-hourly-rate').value) || null,
+          status: document.getElementById('new-status').value,
+        }),
+      });
+      closeModal('new-modal');
+      showAlert('alert-box', 'Trainer angelegt!', 'success');
+      await loadTrainers();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Modal Helpers ────────────────────────────────────────────────
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+    editingTrainerId = null;
+  }
+
+  // Close modal on overlay click
+  document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('open');
+    });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – Projekt Fit Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <!-- KPI Cards -->
+      <div class="kpi-grid" id="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Aktive Trainer</div>
+          <div class="kpi-value" id="kpi-trainers"><span class="spinner"></span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Offene Bewerbungen</div>
+          <div class="kpi-value" id="kpi-pending"><span class="spinner"></span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Buchungen diese Woche</div>
+          <div class="kpi-value" id="kpi-bookings"><span class="spinner"></span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Umsatz diesen Monat</div>
+          <div class="kpi-value" id="kpi-revenue"><span class="spinner"></span></div>
+        </div>
+      </div>
+
+      <!-- Recent Trainers -->
+      <div class="table-wrap mb-2">
+        <div class="table-header">
+          <div class="table-title">Neueste Bewerbungen</div>
+          <a href="/admin/trainers.html" class="btn btn-ghost btn-sm">Alle anzeigen</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>E-Mail</th>
+              <th>Stadt</th>
+              <th>Status</th>
+              <th>Datum</th>
+            </tr>
+          </thead>
+          <tbody id="recent-trainers">
+            <tr><td colspan="5" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Recent Bookings -->
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Letzte Buchungen</div>
+          <a href="/admin/bookings.html" class="btn btn-ghost btn-sm">Alle anzeigen</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Kunde</th>
+              <th>Trainer</th>
+              <th>Datum</th>
+              <th>Status</th>
+              <th>Preis</th>
+            </tr>
+          </thead>
+          <tbody id="recent-bookings">
+            <tr><td colspan="5" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderSidebar('dashboard');
+    document.getElementById('header').innerHTML = renderHeader('Dashboard');
+
+    const sb = getSupabase();
+
+    // ─── KPIs laden ───────────────────────────────────────────────
+    try {
+      const [trainersRes, pendingRes, bookingsRes, revenueRes] = await Promise.allSettled([
+        adminApi('/api/admin/data?type=kpi_trainers'),
+        adminApi('/api/admin/data?type=kpi_pending'),
+        adminApi('/api/admin/data?type=kpi_bookings_week'),
+        adminApi('/api/admin/data?type=kpi_revenue_month'),
+      ]);
+
+      document.getElementById('kpi-trainers').textContent =
+        trainersRes.status === 'fulfilled' ? trainersRes.value.count : '–';
+      document.getElementById('kpi-pending').textContent =
+        pendingRes.status === 'fulfilled' ? pendingRes.value.count : '–';
+      document.getElementById('kpi-bookings').textContent =
+        bookingsRes.status === 'fulfilled' ? bookingsRes.value.count : '–';
+      document.getElementById('kpi-revenue').textContent =
+        revenueRes.status === 'fulfilled' ? formatEuro(revenueRes.value.total_cents) : '–';
+    } catch (err) {
+      console.error('KPIs laden fehlgeschlagen:', err);
+    }
+
+    // ─── Neueste Bewerbungen ──────────────────────────────────────
+    try {
+      const res = await adminApi('/api/admin/data?type=recent_trainers&limit=5');
+      const tbody = document.getElementById('recent-trainers');
+      if (!res.data || res.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Bewerbungen vorhanden</td></tr>';
+      } else {
+        tbody.innerHTML = res.data.map(t => `
+          <tr>
+            <td><strong>${t.full_name || '–'}</strong></td>
+            <td class="text-secondary">${t.email || '–'}</td>
+            <td>${t.city || '–'}</td>
+            <td>${statusBadge(t.status)}</td>
+            <td class="text-muted">${formatDate(t.created_at)}</td>
+          </tr>
+        `).join('');
+      }
+    } catch (err) {
+      document.getElementById('recent-trainers').innerHTML =
+        `<tr><td colspan="5" class="text-error" style="padding:16px">Fehler: ${err.message}</td></tr>`;
+    }
+
+    // ─── Letzte Buchungen ─────────────────────────────────────────
+    try {
+      const res = await adminApi('/api/admin/data?type=recent_bookings&limit=5');
+      const tbody = document.getElementById('recent-bookings');
+      if (!res.data || res.data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Buchungen vorhanden</td></tr>';
+      } else {
+        tbody.innerHTML = res.data.map(b => `
+          <tr>
+            <td>${b.customer_name || b.customer_id || '–'}</td>
+            <td>${b.trainer_name || '–'}</td>
+            <td>${formatDate(b.session_date)}</td>
+            <td>${statusBadge(b.status)}</td>
+            <td class="text-accent">${formatEuro(b.price_cents)}</td>
+          </tr>
+        `).join('');
+      }
+    } catch (err) {
+      document.getElementById('recent-bookings').innerHTML =
+        `<tr><td colspan="5" class="text-error" style="padding:16px">Fehler: ${err.message}</td></tr>`;
+    }
+  })();
+</script>
+
+</body>
+</html>

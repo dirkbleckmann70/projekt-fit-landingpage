@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gruppentrainings – Projekt Fit Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <div id="alert-box" class="alert"></div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Gruppentrainings</div>
+          <div class="table-actions">
+            <button class="btn btn-primary" onclick="openNewModal()">+ Neues Gruppentraining</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Kursname</th>
+              <th>Trainer</th>
+              <th>Stadt / Ort</th>
+              <th>Wochentag</th>
+              <th>Uhrzeit</th>
+              <th>Teilnehmer</th>
+              <th>Preis/Person</th>
+              <th>Status</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="groups-body">
+            <tr><td colspan="9" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── New / Edit Group Modal ────────────────────────────────────── -->
+<div class="modal-overlay" id="group-modal">
+  <div class="modal" style="max-width:650px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Neues Gruppentraining</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="group-form">
+        <div class="two-col">
+          <div class="form-group">
+            <label>Kursname *</label>
+            <input class="form-control" id="f-name" required placeholder="z.B. Outdoor Bootcamp">
+          </div>
+          <div class="form-group">
+            <label>Trainer *</label>
+            <select class="form-control" id="f-trainer">
+              <option value="">Trainer wählen...</option>
+            </select>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Stadt *</label>
+            <input class="form-control" id="f-city" required>
+          </div>
+          <div class="form-group">
+            <label>Ort / Treffpunkt</label>
+            <input class="form-control" id="f-location" placeholder="z.B. Stadtpark Eingang Nord">
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Wochentag *</label>
+            <select class="form-control" id="f-weekday">
+              <option value="Montag">Montag</option>
+              <option value="Dienstag">Dienstag</option>
+              <option value="Mittwoch">Mittwoch</option>
+              <option value="Donnerstag">Donnerstag</option>
+              <option value="Freitag">Freitag</option>
+              <option value="Samstag">Samstag</option>
+              <option value="Sonntag">Sonntag</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Uhrzeit *</label>
+            <input class="form-control" type="time" id="f-time" required>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Max. Teilnehmer</label>
+            <input class="form-control" type="number" id="f-max" placeholder="12" min="1">
+          </div>
+          <div class="form-group">
+            <label>Preis pro Person (Cent)</label>
+            <input class="form-control" type="number" id="f-price" placeholder="1990">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Beschreibung</label>
+          <textarea class="form-control" id="f-desc" rows="3" placeholder="Was erwartet die Teilnehmer?"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveGroup()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Participants Modal ────────────────────────────────────────── -->
+<div class="modal-overlay" id="participants-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="participants-title">Teilnehmer</div>
+      <button class="modal-close" onclick="closeParticipants()">&times;</button>
+    </div>
+    <div class="modal-body" id="participants-body">
+      <div class="loading-overlay"><span class="spinner"></span> Laden...</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeParticipants()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  let allGroups = [];
+  let activeTrainers = [];
+  let editingGroupId = null;
+
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderSidebar('groups');
+    document.getElementById('header').innerHTML = renderHeader('Gruppentrainings');
+
+    // Load trainers for dropdown
+    try {
+      const res = await adminApi('/api/admin/data?type=active_trainers');
+      activeTrainers = res.data || [];
+      const sel = document.getElementById('f-trainer');
+      activeTrainers.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.full_name;
+        sel.appendChild(opt);
+      });
+    } catch (err) {
+      console.error('Trainer laden fehlgeschlagen:', err);
+    }
+
+    await loadGroups();
+  })();
+
+  async function loadGroups() {
+    try {
+      const res = await adminApi('/api/admin/data?type=all_groups');
+      allGroups = res.data || [];
+      renderGroups();
+    } catch (err) {
+      document.getElementById('groups-body').innerHTML =
+        `<tr><td colspan="9" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+    }
+  }
+
+  function renderGroups() {
+    const tbody = document.getElementById('groups-body');
+    if (allGroups.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings vorhanden</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = allGroups.map(g => {
+      const trainerName = activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '–';
+      const participants = g.current_participants || 0;
+      const max = g.max_participants || '–';
+      return `
+        <tr>
+          <td><strong>${g.name}</strong></td>
+          <td>${trainerName}</td>
+          <td>${g.city || '–'} ${g.location ? '· ' + g.location : ''}</td>
+          <td>${g.weekday || '–'}</td>
+          <td>${g.time || '–'}</td>
+          <td>${participants} / ${max}</td>
+          <td class="text-accent">${formatEuro(g.price_per_person_cents)}</td>
+          <td>${g.is_active ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
+          <td>
+            <div style="display:flex;gap:6px">
+              <button class="btn btn-secondary btn-sm" onclick="editGroup('${g.id}')">Bearbeiten</button>
+              <button class="btn btn-ghost btn-sm" onclick="showParticipants('${g.id}', '${g.name}')">Teilnehmer</button>
+              <button class="btn btn-sm ${g.is_active ? 'btn-danger' : 'btn-success'}"
+                onclick="toggleActive('${g.id}', ${!g.is_active})">
+                ${g.is_active ? 'Deaktivieren' : 'Aktivieren'}
+              </button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ─── Create / Edit ────────────────────────────────────────────────
+  function openNewModal() {
+    editingGroupId = null;
+    document.getElementById('modal-title').textContent = 'Neues Gruppentraining';
+    document.getElementById('group-form').reset();
+    document.getElementById('group-modal').classList.add('open');
+  }
+
+  function editGroup(id) {
+    const g = allGroups.find(x => x.id === id);
+    if (!g) return;
+    editingGroupId = id;
+    document.getElementById('modal-title').textContent = 'Gruppentraining bearbeiten';
+    document.getElementById('f-name').value = g.name || '';
+    document.getElementById('f-trainer').value = g.trainer_id || '';
+    document.getElementById('f-city').value = g.city || '';
+    document.getElementById('f-location').value = g.location || '';
+    document.getElementById('f-weekday').value = g.weekday || 'Montag';
+    document.getElementById('f-time').value = g.time || '';
+    document.getElementById('f-max').value = g.max_participants || '';
+    document.getElementById('f-price').value = g.price_per_person_cents || '';
+    document.getElementById('f-desc').value = g.description || '';
+    document.getElementById('group-modal').classList.add('open');
+  }
+
+  async function saveGroup() {
+    const name = document.getElementById('f-name').value.trim();
+    const trainerId = document.getElementById('f-trainer').value;
+    const city = document.getElementById('f-city').value.trim();
+    if (!name || !trainerId || !city) {
+      alert('Kursname, Trainer und Stadt sind Pflichtfelder.');
+      return;
+    }
+
+    const payload = {
+      name,
+      trainer_id: trainerId,
+      city,
+      location: document.getElementById('f-location').value.trim() || null,
+      weekday: document.getElementById('f-weekday').value,
+      time: document.getElementById('f-time').value || null,
+      max_participants: parseInt(document.getElementById('f-max').value) || null,
+      price_per_person_cents: parseInt(document.getElementById('f-price').value) || null,
+      description: document.getElementById('f-desc').value.trim() || null,
+    };
+
+    const btn = document.getElementById('modal-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      if (editingGroupId) {
+        payload.id = editingGroupId;
+        await adminApi('/api/admin/groups', { method: 'PUT', body: JSON.stringify(payload) });
+      } else {
+        await adminApi('/api/admin/groups', { method: 'POST', body: JSON.stringify(payload) });
+      }
+      closeModal();
+      showAlert('alert-box', editingGroupId ? 'Kurs aktualisiert!' : 'Kurs erstellt!', 'success');
+      await loadGroups();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Speichern';
+    }
+  }
+
+  async function toggleActive(id, newState) {
+    try {
+      await adminApi('/api/admin/groups', {
+        method: 'PUT',
+        body: JSON.stringify({ id, is_active: newState }),
+      });
+      await loadGroups();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Participants ─────────────────────────────────────────────────
+  async function showParticipants(groupId, groupName) {
+    document.getElementById('participants-title').textContent = `Teilnehmer: ${groupName}`;
+    document.getElementById('participants-body').innerHTML = '<div class="loading-overlay"><span class="spinner"></span> Laden...</div>';
+    document.getElementById('participants-modal').classList.add('open');
+
+    try {
+      const res = await adminApi(`/api/admin/data?type=group_participants&group_id=${groupId}`);
+      const participants = res.data || [];
+
+      if (participants.length === 0) {
+        document.getElementById('participants-body').innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Teilnehmer angemeldet.</p>';
+        return;
+      }
+
+      document.getElementById('participants-body').innerHTML = `
+        <table>
+          <thead><tr><th>Name</th><th>E-Mail</th><th>Angemeldet am</th></tr></thead>
+          <tbody>
+            ${participants.map(p => `
+              <tr>
+                <td>${p.name || '–'}</td>
+                <td class="text-secondary">${p.email || '–'}</td>
+                <td class="text-muted">${formatDate(p.created_at)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch (err) {
+      document.getElementById('participants-body').innerHTML =
+        `<p class="text-error" style="padding:16px">Fehler: ${err.message}</p>`;
+    }
+  }
+
+  // ─── Modal Helpers ────────────────────────────────────────────────
+  function closeModal() {
+    document.getElementById('group-modal').classList.remove('open');
+    editingGroupId = null;
+  }
+  function closeParticipants() {
+    document.getElementById('participants-modal').classList.remove('open');
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => {
+      if (e.target === o) { o.classList.remove('open'); editingGroupId = null; }
+    });
+  });
+</script>
+
+</body>
+</html>

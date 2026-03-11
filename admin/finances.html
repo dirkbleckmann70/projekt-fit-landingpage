@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finanzen – Projekt Fit Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <!-- KPI Finance -->
+      <div class="kpi-grid" id="finance-kpis">
+        <div class="kpi-card">
+          <div class="kpi-label">Gesamtumsatz</div>
+          <div class="kpi-value" id="kpi-total"><span class="spinner"></span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Trainer-Auszahlungen</div>
+          <div class="kpi-value" id="kpi-payouts"><span class="spinner"></span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Projekt Fit Marge</div>
+          <div class="kpi-value" id="kpi-margin"><span class="spinner"></span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Gutschriften</div>
+          <div class="kpi-value" id="kpi-credits"><span class="spinner"></span></div>
+        </div>
+      </div>
+
+      <!-- Revenue Table -->
+      <div class="table-wrap mb-2">
+        <div class="table-header">
+          <div class="table-title">Umsatz pro Buchung</div>
+          <div class="table-actions">
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV Export</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Kunde</th>
+              <th>Trainer</th>
+              <th>Preis (Kunde)</th>
+              <th>Trainer-Anteil</th>
+              <th>Marge</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="revenue-body">
+            <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Daten werden geladen...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Credits Table -->
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Gutschriften</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Datum</th>
+              <th>Trainer</th>
+              <th>Betrag</th>
+              <th>Grund</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="credits-body">
+            <tr><td colspan="5" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  let financeData = [];
+
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderSidebar('finances');
+    document.getElementById('header').innerHTML = renderHeader('Finanzen');
+
+    await Promise.all([loadFinances(), loadCredits()]);
+  })();
+
+  async function loadFinances() {
+    try {
+      const res = await adminApi('/api/admin/data?type=finances');
+      financeData = res.data || [];
+
+      // Calculate KPIs
+      let totalRevenue = 0;
+      let totalPayouts = 0;
+      financeData.forEach(b => {
+        if (b.status === 'COMPLETED' || b.status === 'CONFIRMED') {
+          totalRevenue += (b.price_cents || 0);
+          totalPayouts += (b.payout_cents || 0);
+        }
+      });
+      const margin = totalRevenue - totalPayouts;
+
+      document.getElementById('kpi-total').textContent = formatEuro(totalRevenue);
+      document.getElementById('kpi-payouts').textContent = formatEuro(totalPayouts);
+      document.getElementById('kpi-margin').textContent = formatEuro(margin);
+
+      // Render table
+      const tbody = document.getElementById('revenue-body');
+      if (financeData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Keine Buchungen vorhanden</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = financeData.map(b => {
+        const payout = b.payout_cents || 0;
+        const price = b.price_cents || 0;
+        const m = price - payout;
+        return `
+          <tr>
+            <td>${formatDate(b.session_date)}</td>
+            <td>${b.customer_name || '–'}</td>
+            <td>${b.trainer_name || '–'}</td>
+            <td class="text-accent">${formatEuro(price)}</td>
+            <td>${formatEuro(payout)}</td>
+            <td class="${m > 0 ? 'text-success' : ''}">${formatEuro(m)}</td>
+            <td>${statusBadge(b.status)}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      document.getElementById('revenue-body').innerHTML =
+        `<tr><td colspan="7" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+      document.getElementById('kpi-total').textContent = '–';
+      document.getElementById('kpi-payouts').textContent = '–';
+      document.getElementById('kpi-margin').textContent = '–';
+    }
+  }
+
+  async function loadCredits() {
+    try {
+      const res = await adminApi('/api/admin/data?type=credits');
+      const credits = res.data || [];
+
+      let totalCredits = 0;
+      credits.forEach(c => { totalCredits += (c.amount_cents || 0); });
+      document.getElementById('kpi-credits').textContent = formatEuro(totalCredits);
+
+      const tbody = document.getElementById('credits-body');
+      if (credits.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Gutschriften vorhanden</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = credits.map(c => `
+        <tr>
+          <td>${formatDate(c.created_at)}</td>
+          <td>${c.trainer_name || '–'}</td>
+          <td class="text-accent">${formatEuro(c.amount_cents)}</td>
+          <td>${c.reason || '–'}</td>
+          <td>${statusBadge(c.status || 'pending')}</td>
+        </tr>
+      `).join('');
+    } catch (err) {
+      document.getElementById('credits-body').innerHTML =
+        `<tr><td colspan="5" class="text-error" style="padding:16px">Fehler: ${err.message}</td></tr>`;
+      document.getElementById('kpi-credits').textContent = '–';
+    }
+  }
+
+  function exportCSV() {
+    if (financeData.length === 0) { alert('Keine Daten zum Exportieren.'); return; }
+
+    const headers = ['Datum', 'Kunde', 'Trainer', 'Preis (Cent)', 'Trainer-Anteil (Cent)', 'Marge (Cent)', 'Status'];
+    const rows = financeData.map(b => [
+      b.session_date || '',
+      b.customer_name || '',
+      b.trainer_name || '',
+      b.price_cents || 0,
+      b.payout_cents || 0,
+      (b.price_cents || 0) - (b.payout_cents || 0),
+      b.status || '',
+    ]);
+
+    let csv = '\uFEFF'; // BOM for Excel
+    csv += headers.join(';') + '\n';
+    rows.forEach(r => { csv += r.map(v => `"${v}"`).join(';') + '\n'; });
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `projektfit-finanzen-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+
+</body>
+</html>
