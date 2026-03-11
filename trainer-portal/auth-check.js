@@ -33,7 +33,7 @@ async function checkTrainerAuth() {
   const user = session.user;
   const role = user.user_metadata?.role;
 
-  if (role !== 'trainer') {
+  if (!role || !role.includes('trainer')) {
     await sb.auth.signOut();
     window.location.href = '/trainer-portal/?error=no_trainer';
     return null;

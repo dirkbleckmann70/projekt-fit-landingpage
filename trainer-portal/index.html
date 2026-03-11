@@ -115,7 +115,7 @@
   // Check if already logged in
   (async () => {
     const { data: { session } } = await sb.auth.getSession();
-    if (session && session.user.user_metadata?.role === 'trainer') {
+    if (session && session.user.user_metadata?.role?.includes('trainer')) {
       window.location.href = '/trainer-portal/dashboard.html';
     }
   })();
@@ -157,8 +157,8 @@
         return;
       }
 
-      const role = data.user?.user_metadata?.role;
-      if (role !== 'trainer') {
+      const role = data.user?.user_metadata?.role || '';
+      if (!role.includes('trainer')) {
         await sb.auth.signOut();
         errorMsg.textContent = 'Kein Trainer-Zugang. Nur Trainer-Accounts können sich hier einloggen.';
         errorMsg.classList.add('show');
