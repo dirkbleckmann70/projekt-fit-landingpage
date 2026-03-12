@@ -240,7 +240,10 @@
                 onclick="toggleActive('${g.id}', ${!g.is_active})">
                 ${g.is_active ? 'Deaktivieren' : 'Aktivieren'}
               </button>
-              <button class="btn btn-danger btn-sm" onclick="deleteGroup('${g.id}', '${g.name.replace(/'/g, "\\'")}')">Löschen</button>
+              ${g.is_active
+                ? '<button class="btn btn-ghost btn-sm" disabled title="Kurs muss zuerst deaktiviert werden">Löschen</button>'
+                : `<button class="btn btn-danger btn-sm" onclick="deleteGroup('${g.id}', '${g.name.replace(/'/g, "\\'")}')">Löschen</button>`
+              }
             </div>
           </td>
         </tr>

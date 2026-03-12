@@ -84,6 +84,18 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'id ist erforderlich' });
       }
 
+      // Prüfen ob Kurs deaktiviert ist
+      const { data: group, error: fetchErr } = await supabase
+        .from('group_classes')
+        .select('is_active')
+        .eq('id', id)
+        .single();
+
+      if (fetchErr) throw fetchErr;
+      if (group?.is_active) {
+        return res.status(400).json({ error: 'Kurs muss zuerst deaktiviert werden' });
+      }
+
       // Zuerst Teilnehmer löschen
       const { error: partError } = await supabase
         .from('group_participants')

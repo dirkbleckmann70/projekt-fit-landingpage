@@ -18,10 +18,10 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
       // ── Neuen Trainer anlegen ──
-      const { full_name, email, phone, city, specializations, bio, hourly_rate_cents, status } = req.body;
+      const { full_name, email, phone, city, street_address, postal_code, wohnort, specializations, bio, steuernummer, is_kleinunternehmer, hourly_rate_cents, payout_cents, status } = req.body;
 
       if (!full_name || !email || !city) {
-        return res.status(400).json({ error: 'Name, E-Mail und Stadt sind Pflichtfelder' });
+        return res.status(400).json({ error: 'Name, E-Mail und Einsatzort sind Pflichtfelder' });
       }
 
       const { data, error } = await supabase.from('trainer_profiles').insert({
@@ -29,9 +29,15 @@ export default async function handler(req, res) {
         email: email.trim().toLowerCase(),
         phone: phone || null,
         city,
+        street_address: street_address || null,
+        postal_code: postal_code || null,
+        wohnort: wohnort || null,
         specializations: specializations || null,
         bio: bio || null,
+        steuernummer: steuernummer || null,
+        is_kleinunternehmer: is_kleinunternehmer || false,
         hourly_rate_cents: hourly_rate_cents || null,
+        payout_cents: payout_cents || null,
         status: status || 'pending',
         is_active: false,
       }).select();
@@ -51,7 +57,7 @@ export default async function handler(req, res) {
       // Filter nur erlaubte Felder
       const allowed = [
         'full_name', 'email', 'phone', 'city', 'specializations', 'bio',
-        'steuernummer', 'is_kleinunternehmer', 'street_address', 'postal_code',
+        'steuernummer', 'is_kleinunternehmer', 'street_address', 'postal_code', 'wohnort',
         'status', 'is_active', 'hourly_rate_cents', 'payout_cents',
       ];
 
