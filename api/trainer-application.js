@@ -118,7 +118,7 @@ export default async function handler(req, res) {
     }
 
     console.log('INSERT success:', JSON.stringify(data));
-    return res.status(200).json({ success: true, message: 'Bewerbung eingegangen' });
+    return res.status(200).json({ success: true, message: 'Bewerbung eingegangen', trainerId: data?.[0]?.id });
   } catch (error) {
     console.error('Trainer application Exception:', error);
     return res.status(500).json({

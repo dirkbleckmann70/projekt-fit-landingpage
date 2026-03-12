@@ -313,6 +313,64 @@
         .cb-group.has-error .field-error { display: block; }
         .cb-group.has-error .cb-row { border-color: var(--red); }
 
+        /* File Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 28px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--bg-input);
+            margin-bottom: 6px;
+        }
+        .upload-zone:hover, .upload-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+        .upload-zone-icon {
+            font-size: 32px; margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+        .upload-zone-text {
+            font-size: 14px; color: var(--text-secondary);
+        }
+        .upload-zone-text strong {
+            color: var(--accent); cursor: pointer;
+        }
+        .upload-zone-hint {
+            font-size: 12px; color: var(--text-muted); margin-top: 6px;
+        }
+        .file-list {
+            display: flex; flex-direction: column; gap: 8px;
+            margin-top: 10px;
+        }
+        .file-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; border-radius: 10px;
+            background: var(--bg-input); border: 1px solid var(--border);
+            font-size: 13px;
+        }
+        .file-item-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            background: var(--accent-dim); color: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 700; flex-shrink: 0;
+        }
+        .file-item-name {
+            flex: 1; color: var(--text);
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .file-item-size { color: var(--text-muted); font-size: 12px; flex-shrink: 0; }
+        .file-item-remove {
+            width: 24px; height: 24px; border-radius: 6px;
+            background: rgba(231,76,60,0.1); color: var(--red);
+            border: none; cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; flex-shrink: 0;
+        }
+        .file-item-remove:hover { background: rgba(231,76,60,0.25); }
+
         /* Submit */
         .submit-btn {
             width: 100%; padding: 18px; border-radius: 14px; border: none;
@@ -606,6 +664,18 @@
                     <div class="field-error">Bitte Qualifikation angeben.</div>
                 </div>
 
+                <!-- Lizenz-Upload -->
+                <div class="form-group" id="g-files">
+                    <label>Lizenzen / Zertifikate hochladen <span class="opt">(optional)</span></label>
+                    <div class="upload-zone" id="upload-zone">
+                        <div class="upload-zone-icon">&#128206;</div>
+                        <div class="upload-zone-text">Dateien hierher ziehen oder <strong>ausw&auml;hlen</strong></div>
+                        <div class="upload-zone-hint">PDF, JPG oder PNG &ndash; max. 10 MB pro Datei, bis zu 5 Dateien</div>
+                    </div>
+                    <input type="file" id="f-files" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none">
+                    <div class="file-list" id="file-list"></div>
+                </div>
+
                 <div class="form-group" id="g-msg">
                     <label>Bio / &Uuml;ber dich <span class="opt">(optional)</span></label>
                     <textarea id="f-msg" placeholder="Erz&auml;hle kurz von dir und deinem Trainingsansatz..." maxlength="500"></textarea>
@@ -653,6 +723,7 @@
             <h2>Deine Bewerbung ist eingegangen!</h2>
             <p>Wir melden uns innerhalb von <span class="highlight">48 Stunden</span> bei dir.</p>
             <p>Wir freuen uns auf dich!</p>
+            <p id="upload-warning" style="display:none;color:var(--accent);font-size:14px;margin-top:12px;font-weight:600"></p>
             <a href="https://projektfit.net" class="btn btn-primary">Zur&uuml;ck zur Startseite</a>
         </div>
     </div>
@@ -693,6 +764,71 @@
     document.querySelectorAll('.cb-row input').forEach(function(input) {
         input.addEventListener('click', function(e) { e.stopPropagation(); });
     });
+
+    // ═══ FILE UPLOAD ═══
+    var selectedFiles = [];
+    var uploadZone = document.getElementById('upload-zone');
+    var fileInput = document.getElementById('f-files');
+    var fileListEl = document.getElementById('file-list');
+    var MAX_FILES = 5;
+    var MAX_SIZE = 10 * 1024 * 1024;
+    var ALLOWED_EXT = ['pdf', 'jpg', 'jpeg', 'png'];
+
+    uploadZone.addEventListener('click', function() { fileInput.click(); });
+    uploadZone.addEventListener('dragover', function(e) { e.preventDefault(); uploadZone.classList.add('dragover'); });
+    uploadZone.addEventListener('dragleave', function() { uploadZone.classList.remove('dragover'); });
+    uploadZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        uploadZone.classList.remove('dragover');
+        addFiles(e.dataTransfer.files);
+    });
+    fileInput.addEventListener('change', function() {
+        addFiles(fileInput.files);
+        fileInput.value = '';
+    });
+
+    function addFiles(fileListObj) {
+        for (var i = 0; i < fileListObj.length; i++) {
+            if (selectedFiles.length >= MAX_FILES) break;
+            var f = fileListObj[i];
+            var ext = f.name.split('.').pop().toLowerCase();
+            if (!ALLOWED_EXT.includes(ext)) continue;
+            if (f.size > MAX_SIZE) continue;
+            if (selectedFiles.some(function(s) { return s.name === f.name && s.size === f.size; })) continue;
+            selectedFiles.push(f);
+        }
+        renderFileList();
+    }
+
+    function removeFile(index) {
+        selectedFiles.splice(index, 1);
+        renderFileList();
+    }
+
+    function formatBytes(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function fileIcon(name) {
+        return name.toLowerCase().endsWith('.pdf') ? 'PDF' : 'IMG';
+    }
+
+    function renderFileList() {
+        if (selectedFiles.length === 0) {
+            fileListEl.innerHTML = '';
+            return;
+        }
+        fileListEl.innerHTML = selectedFiles.map(function(f, i) {
+            return '<div class="file-item">' +
+                '<div class="file-item-icon">' + fileIcon(f.name) + '</div>' +
+                '<div class="file-item-name">' + f.name + '</div>' +
+                '<div class="file-item-size">' + formatBytes(f.size) + '</div>' +
+                '<button type="button" class="file-item-remove" onclick="removeFile(' + i + ')">&times;</button>' +
+            '</div>';
+        }).join('');
+    }
 
     // ═══ FORM VALIDATION ═══
     var reqFields = [
@@ -782,6 +918,7 @@
             kleinunternehmer: document.getElementById('f-klein').checked
         };
 
+        // Schritt 1: Bewerbung absenden
         fetch('/api/trainer-application', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -795,10 +932,40 @@
                 var debugInfo = result.data.debug ? ' [Debug: ' + JSON.stringify(result.data.debug) + ']' : '';
                 throw new Error((result.data.error || 'Etwas ist schiefgelaufen.') + debugInfo);
             }
-            // Show success
-            document.getElementById('form-card').style.display = 'none';
-            document.getElementById('success-card').style.display = 'block';
-            document.getElementById('success-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            var trainerId = result.data.trainerId;
+
+            // Schritt 2: Dateien hochladen (falls vorhanden)
+            if (selectedFiles.length > 0 && trainerId) {
+                btn.textContent = 'Dateien werden hochgeladen...';
+
+                var formData = new FormData();
+                formData.append('trainerId', trainerId);
+                selectedFiles.forEach(function(f) {
+                    formData.append('files', f);
+                });
+
+                return fetch('/api/upload-license', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(function(uploadRes) {
+                    return uploadRes.json().then(function(d) { return { ok: uploadRes.ok, data: d }; });
+                })
+                .then(function(uploadResult) {
+                    if (!uploadResult.ok) {
+                        // Bewerbung war erfolgreich, aber Upload fehlgeschlagen
+                        showSuccess('Bewerbung eingegangen, aber Datei-Upload fehlgeschlagen. Bitte Lizenzen per E-Mail an info@projektfit.net senden.');
+                    } else {
+                        showSuccess();
+                    }
+                })
+                .catch(function() {
+                    showSuccess('Bewerbung eingegangen, aber Datei-Upload fehlgeschlagen. Bitte Lizenzen per E-Mail an info@projektfit.net senden.');
+                });
+            } else {
+                showSuccess();
+            }
         })
         .catch(function(err) {
             btn.disabled = false;
@@ -808,6 +975,20 @@
             msgError.style.display = 'block';
         });
     });
+
+    function showSuccess(warningMsg) {
+        document.getElementById('form-card').style.display = 'none';
+        var successCard = document.getElementById('success-card');
+        if (warningMsg) {
+            var warningEl = document.getElementById('upload-warning');
+            if (warningEl) {
+                warningEl.textContent = warningMsg;
+                warningEl.style.display = 'block';
+            }
+        }
+        successCard.style.display = 'block';
+        successCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 </script>
 
 </body>

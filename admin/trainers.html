@@ -40,13 +40,14 @@
               <th>E-Mail</th>
               <th>Stadt</th>
               <th>Status</th>
+              <th>Lizenzen</th>
               <th>Bewertung</th>
               <th>Erstellt am</th>
               <th>Aktionen</th>
             </tr>
           </thead>
           <tbody id="trainers-body">
-            <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Trainer werden geladen...</td></tr>
+            <tr><td colspan="8" class="loading-overlay"><span class="spinner"></span> Trainer werden geladen...</td></tr>
           </tbody>
         </table>
       </div>
@@ -235,7 +236,7 @@
       renderTrainers();
     } catch (err) {
       document.getElementById('trainers-body').innerHTML =
-        `<tr><td colspan="7" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="8" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -255,7 +256,7 @@
     const tbody = document.getElementById('trainers-body');
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Keine Trainer gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Trainer gefunden</td></tr>';
       return;
     }
 
@@ -263,12 +264,17 @@
       const rating = t.rating ? `${t.rating} ★ (${t.review_count || 0})` : '–';
       const canActivate = t.status === 'pending' || t.status === 'gesperrt';
       const canDeactivate = t.status === 'active' && t.is_active;
+      const licenseCount = (t.license_files || []).length;
+      const licenseBadge = licenseCount > 0
+        ? `<span class="badge badge-active">${licenseCount} Datei${licenseCount > 1 ? 'en' : ''}</span>`
+        : '<span class="badge" style="background:rgba(232,147,10,0.12);color:#e8930a">Keine</span>';
       return `
         <tr>
           <td><strong>${t.full_name || '–'}</strong></td>
           <td class="text-secondary">${t.email || '–'}</td>
           <td>${t.city || '–'}</td>
           <td>${statusBadge(t.status)}</td>
+          <td>${licenseBadge}</td>
           <td class="text-accent">${rating}</td>
           <td class="text-muted">${formatDate(t.created_at)}</td>
           <td>
@@ -431,9 +437,119 @@
       </div>
 
       ${t.auth_user_id ? `<p class="text-muted mt-2" style="font-size:12px">Auth User ID: ${t.auth_user_id}</p>` : ''}
+
+      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Lizenzen & Zertifikate</h3>
+
+      <div id="license-list">
+        ${renderLicenseList(t.license_files || [], id)}
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <input type="file" id="admin-file-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+            onchange="adminUploadFiles('${id}')">
+          + Neue Lizenz hochladen
+        </label>
+        <span id="admin-upload-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
+      </div>
     `;
 
     document.getElementById('detail-modal').classList.add('open');
+  }
+
+  function renderLicenseList(files, trainerId) {
+    if (!files || files.length === 0) {
+      return '<p style="color:#8888A0;font-size:13px">Keine Lizenzen hochgeladen.</p>';
+    }
+    return files.map(f => {
+      const date = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('de-DE') : '–';
+      const size = f.size_bytes ? formatFileSize(f.size_bytes) : '–';
+      const icon = (f.content_type === 'application/pdf' || f.filename.endsWith('.pdf')) ? 'PDF' : 'IMG';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(232,147,10,0.12);color:#e8930a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.filename}</div>
+            <div style="font-size:11px;color:#8888A0">${date} &middot; ${size}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewLicense('${f.path}')">Anzeigen</button>
+          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteLicense('${trainerId}','${f.path}')">L&ouml;schen</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  async function viewLicense(path) {
+    try {
+      const res = await adminApi('/api/admin/license?path=' + encodeURIComponent(path));
+      if (res.url) window.open(res.url, '_blank');
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  async function deleteLicense(trainerId, path) {
+    if (!confirm('Lizenz-Datei wirklich löschen?')) return;
+    try {
+      await adminApi('/api/admin/license', {
+        method: 'DELETE',
+        body: JSON.stringify({ trainerId, path }),
+      });
+      showAlert('alert-box', 'Lizenz gelöscht!', 'success');
+      await loadTrainers();
+      // Modal aktualisieren
+      const t = allTrainers.find(tr => tr.id === trainerId);
+      if (t) {
+        document.getElementById('license-list').innerHTML = renderLicenseList(t.license_files || [], trainerId);
+      }
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  async function adminUploadFiles(trainerId) {
+    const input = document.getElementById('admin-file-upload');
+    const status = document.getElementById('admin-upload-status');
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
+    status.textContent = 'Hochladen...';
+
+    const formData = new FormData();
+    formData.append('trainerId', trainerId);
+    for (let i = 0; i < files.length; i++) {
+      formData.append('files', files[i]);
+    }
+
+    try {
+      const token = localStorage.getItem('admin_token');
+      const resp = await fetch('/api/upload-license', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || 'Upload fehlgeschlagen');
+
+      status.textContent = '';
+      showAlert('alert-box', `${result.files.length} Datei(en) hochgeladen!`, 'success');
+      await loadTrainers();
+      const t = allTrainers.find(tr => tr.id === trainerId);
+      if (t) {
+        document.getElementById('license-list').innerHTML = renderLicenseList(t.license_files || [], trainerId);
+      }
+    } catch (err) {
+      status.textContent = '';
+      showAlert('alert-box', 'Upload-Fehler: ' + err.message, 'error');
+    }
+
+    input.value = '';
   }
 
   async function saveTrainer() {
