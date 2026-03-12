@@ -22,7 +22,6 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: 'Server-Konfigurationsfehler',
-      debug: 'SUPABASE_URL oder SUPABASE_SERVICE_ROLE_KEY fehlt'
     });
   }
 
@@ -106,12 +105,6 @@ export default async function handler(req, res) {
       return res.status(500).json({
         success: false,
         error: 'Bewerbung fehlgeschlagen',
-        debug: {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code,
-        }
       });
     }
 
@@ -122,7 +115,6 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: 'Bewerbung fehlgeschlagen',
-      debug: error.message || String(error)
     });
   }
 }

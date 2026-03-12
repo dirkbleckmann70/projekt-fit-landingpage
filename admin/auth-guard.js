@@ -29,7 +29,7 @@ async function checkAdminAuth() {
   const user = session.user;
   const role = user.user_metadata?.role;
 
-  if (role !== 'admin') {
+  if (!role || !role.includes('admin')) {
     await sb.auth.signOut();
     window.location.href = '/admin/?error=no_admin';
     return null;
