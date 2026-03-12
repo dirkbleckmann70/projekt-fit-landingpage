@@ -98,7 +98,9 @@
           </div>
           <div class="form-group">
             <label>Stadt *</label>
-            <input class="form-control" id="new-city" required>
+            <select class="form-control" id="new-city" required>
+              <option value="">Stadt wählen...</option>
+            </select>
           </div>
         </div>
         <div class="form-group">
@@ -111,8 +113,8 @@
         </div>
         <div class="two-col">
           <div class="form-group">
-            <label>Stundensatz (Cent)</label>
-            <input class="form-control" type="number" id="new-hourly-rate" placeholder="7900">
+            <label>Stundensatz (EUR)</label>
+            <input class="form-control" type="number" id="new-hourly-rate" placeholder="79.00" step="0.01" min="0">
           </div>
           <div class="form-group">
             <label>Status</label>
@@ -135,6 +137,7 @@
 <script src="auth-guard.js"></script>
 <script>
   let allTrainers = [];
+  let serviceLocations = [];
   let currentFilter = 'all';
   let currentSearch = '';
   let editingTrainerId = null;
@@ -145,6 +148,21 @@
 
     document.getElementById('sidebar').innerHTML = renderSidebar('trainers');
     document.getElementById('header').innerHTML = renderHeader('Trainer-Verwaltung');
+
+    // Load service locations for city dropdowns
+    try {
+      const res = await adminApi('/api/admin/data?type=service_locations');
+      serviceLocations = res.data || [];
+      const citySel = document.getElementById('new-city');
+      serviceLocations.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.city;
+        opt.textContent = l.city;
+        citySel.appendChild(opt);
+      });
+    } catch (err) {
+      console.error('Einsatzorte laden fehlgeschlagen:', err);
+    }
 
     await loadTrainers();
 
@@ -198,7 +216,8 @@
 
     tbody.innerHTML = filtered.map(t => {
       const rating = t.rating ? `${t.rating} ★ (${t.review_count || 0})` : '–';
-      const canActivate = t.status === 'pending' && !t.auth_user_id;
+      const canActivate = t.status === 'pending' || t.status === 'gesperrt';
+      const canDeactivate = t.status === 'active' && t.is_active;
       return `
         <tr>
           <td><strong>${t.full_name || '–'}</strong></td>
@@ -210,6 +229,7 @@
           <td>
             <div style="display:flex;gap:6px">
               ${canActivate ? `<button class="btn btn-success btn-sm" onclick="activateTrainer('${t.id}')">Aktivieren</button>` : ''}
+              ${canDeactivate ? `<button class="btn btn-danger btn-sm" onclick="deactivateTrainer('${t.id}')">Deaktivieren</button>` : ''}
               <button class="btn btn-secondary btn-sm" onclick="openDetailModal('${t.id}')">Details</button>
             </div>
           </td>
@@ -227,6 +247,21 @@
         body: JSON.stringify({ trainerId: id }),
       });
       showAlert('alert-box', res.message || 'Trainer aktiviert!', 'success');
+      await loadTrainers();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Deactivate Trainer ──────────────────────────────────────
+  async function deactivateTrainer(id) {
+    if (!confirm('Trainer wirklich deaktivieren? Er wird für Kunden nicht mehr sichtbar sein.')) return;
+    try {
+      const res = await adminApi('/api/admin/deactivate-trainer', {
+        method: 'POST',
+        body: JSON.stringify({ trainerId: id }),
+      });
+      showAlert('alert-box', res.message || 'Trainer deaktiviert!', 'success');
       await loadTrainers();
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
@@ -258,7 +293,10 @@
         </div>
         <div class="form-group">
           <label>Stadt</label>
-          <input class="form-control" id="edit-city" value="${t.city || ''}">
+          <select class="form-control" id="edit-city">
+            <option value="">Stadt wählen...</option>
+            ${serviceLocations.map(l => `<option value="${l.city}" ${t.city === l.city ? 'selected' : ''}>${l.city}</option>`).join('')}
+          </select>
         </div>
       </div>
       <div class="form-group">
@@ -320,12 +358,12 @@
       </div>
       <div class="two-col">
         <div class="form-group">
-          <label>Stundensatz (Cent)</label>
-          <input class="form-control" type="number" id="edit-hourly-rate" value="${t.hourly_rate_cents || ''}">
+          <label>Stundensatz (EUR)</label>
+          <input class="form-control" type="number" id="edit-hourly-rate" step="0.01" min="0" value="${t.hourly_rate_cents ? (t.hourly_rate_cents / 100).toFixed(2) : ''}">
         </div>
         <div class="form-group">
-          <label>Auszahlung (Cent)</label>
-          <input class="form-control" type="number" id="edit-payout" value="${t.payout_cents || ''}">
+          <label>Auszahlung (EUR)</label>
+          <input class="form-control" type="number" id="edit-payout" step="0.01" min="0" value="${t.payout_cents ? (t.payout_cents / 100).toFixed(2) : ''}">
         </div>
       </div>
 
@@ -356,8 +394,8 @@
       postal_code: document.getElementById('edit-postal').value.trim() || null,
       status: document.getElementById('edit-status').value,
       is_active: document.getElementById('edit-is-active').value === 'true',
-      hourly_rate_cents: parseInt(document.getElementById('edit-hourly-rate').value) || null,
-      payout_cents: parseInt(document.getElementById('edit-payout').value) || null,
+      hourly_rate_cents: document.getElementById('edit-hourly-rate').value ? Math.round(parseFloat(document.getElementById('edit-hourly-rate').value) * 100) : null,
+      payout_cents: document.getElementById('edit-payout').value ? Math.round(parseFloat(document.getElementById('edit-payout').value) * 100) : null,
     };
 
     try {
@@ -402,7 +440,7 @@
           city: city,
           specializations: document.getElementById('new-specializations').value.trim() || null,
           bio: document.getElementById('new-bio').value.trim() || null,
-          hourly_rate_cents: parseInt(document.getElementById('new-hourly-rate').value) || null,
+          hourly_rate_cents: document.getElementById('new-hourly-rate').value ? Math.round(parseFloat(document.getElementById('new-hourly-rate').value) * 100) : null,
           status: document.getElementById('new-status').value,
         }),
       });

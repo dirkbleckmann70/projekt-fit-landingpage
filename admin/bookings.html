@@ -123,8 +123,8 @@
       <tr>
         <td>${b.customer_name || b.customer_id || '–'}</td>
         <td>${b.trainer_name || '–'}</td>
-        <td>${formatDate(b.session_date)}</td>
-        <td>${b.session_time || '–'}</td>
+        <td>${formatDate(b.scheduled_date)}</td>
+        <td>${b.scheduled_time || '–'}</td>
         <td>${b.location || '–'}</td>
         <td>${statusBadge(b.status)}</td>
         <td class="text-accent">${formatEuro(b.price_cents)}</td>
@@ -154,11 +154,11 @@
       <div class="two-col">
         <div class="form-group">
           <label>Datum</label>
-          <input class="form-control" value="${formatDate(b.session_date)}" disabled>
+          <input class="form-control" value="${formatDate(b.scheduled_date)}" disabled>
         </div>
         <div class="form-group">
           <label>Uhrzeit</label>
-          <input class="form-control" value="${b.session_time || '–'}" disabled>
+          <input class="form-control" value="${b.scheduled_time || '–'}" disabled>
         </div>
       </div>
       <div class="two-col">

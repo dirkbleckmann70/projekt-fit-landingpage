@@ -105,7 +105,7 @@ export default async function handler(req, res) {
         const { data, error } = await supabase
           .from('bookings')
           .select('*')
-          .order('session_date', { ascending: false });
+          .order('scheduled_date', { ascending: false });
         if (error) throw error;
 
         // Enrich with trainer names
@@ -130,7 +130,7 @@ export default async function handler(req, res) {
         const { data, error } = await supabase
           .from('bookings')
           .select('*')
-          .order('session_date', { ascending: false });
+          .order('scheduled_date', { ascending: false });
         if (error) throw error;
         const enriched = await enrichBookings(supabase, data || []);
         return res.json({ data: enriched });
@@ -143,6 +143,19 @@ export default async function handler(req, res) {
           .order('created_at', { ascending: false });
         if (error) {
           // Table might not exist yet
+          if (error.code === '42P01') return res.json({ data: [] });
+          throw error;
+        }
+        return res.json({ data: data || [] });
+      }
+
+      // ─── Service Locations ───────────────────────────────────────
+      case 'service_locations': {
+        const { data, error } = await supabase
+          .from('service_locations')
+          .select('*')
+          .order('city');
+        if (error) {
           if (error.code === '42P01') return res.json({ data: [] });
           throw error;
         }

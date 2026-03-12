@@ -58,36 +58,43 @@ export default async function handler(req, res) {
       return res.status(404).json({ success: false, error: 'Trainer nicht gefunden' });
     }
 
-    if (trainer.auth_user_id) {
-      return res.status(409).json({
-        success: false,
-        error: 'Trainer hat bereits einen Auth-Account',
-        authUserId: trainer.auth_user_id,
+    let authUserId = trainer.auth_user_id;
+
+    if (authUserId) {
+      // Auth-Account existiert bereits → nur re-aktivieren
+      console.log(`Auth User ${authUserId} existiert bereits für Trainer ${trainerId}, re-aktiviere...`);
+    } else {
+      // 2. Supabase Auth User erstellen
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email: trainer.email,
+        email_confirm: true,
+        user_metadata: {
+          full_name: trainer.full_name,
+          role: 'trainer',
+          trainer_profile_id: trainer.id,
+        },
       });
+
+      if (authError) {
+        // Falls E-Mail schon als Auth-User existiert, ID per listUsers suchen
+        if (authError.message?.includes('already been registered') || authError.status === 422) {
+          const { data: { users } } = await supabase.auth.admin.listUsers();
+          const existing = users?.find(u => u.email === trainer.email);
+          if (existing) {
+            authUserId = existing.id;
+            console.log(`Auth User gefunden per E-Mail: ${authUserId}`);
+          } else {
+            return res.status(500).json({ success: false, error: 'Auth-Account existiert, konnte aber nicht gefunden werden' });
+          }
+        } else {
+          console.error('Auth User erstellen fehlgeschlagen:', authError.message);
+          return res.status(500).json({ success: false, error: 'Auth-Account erstellen fehlgeschlagen' });
+        }
+      } else {
+        authUserId = authData.user.id;
+        console.log(`Auth User erstellt: ${authUserId} für Trainer ${trainerId}`);
+      }
     }
-
-    // 2. Supabase Auth User erstellen
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: trainer.email,
-      email_confirm: true, // E-Mail direkt als bestätigt markieren
-      user_metadata: {
-        full_name: trainer.full_name,
-        role: 'trainer',
-        trainer_profile_id: trainer.id,
-      },
-    });
-
-    if (authError) {
-      console.error('Auth User erstellen fehlgeschlagen:', authError.message);
-      return res.status(500).json({
-        success: false,
-        error: 'Auth-Account erstellen fehlgeschlagen',
-        debug: authError.message,
-      });
-    }
-
-    const authUserId = authData.user.id;
-    console.log(`Auth User erstellt: ${authUserId} für Trainer ${trainerId}`);
 
     // 3. trainer_profiles aktualisieren
     const { error: updateError } = await supabase
@@ -106,7 +113,6 @@ export default async function handler(req, res) {
         success: false,
         error: 'Profil-Update fehlgeschlagen (Auth-User wurde erstellt)',
         authUserId,
-        debug: updateError.message,
       });
     }
 
@@ -126,7 +132,6 @@ export default async function handler(req, res) {
         warning: 'Trainer aktiviert, aber Einladungs-E-Mail fehlgeschlagen',
         authUserId,
         trainerId,
-        debug: inviteError.message,
       });
     }
 
@@ -143,7 +148,7 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: 'Interner Serverfehler',
-      debug: error.message || String(error),
+      // debug removed for security
     });
   }
 }

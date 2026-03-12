@@ -135,7 +135,7 @@
         const m = price - payout;
         return `
           <tr>
-            <td>${formatDate(b.session_date)}</td>
+            <td>${formatDate(b.scheduled_date)}</td>
             <td>${b.customer_name || '–'}</td>
             <td>${b.trainer_name || '–'}</td>
             <td class="text-accent">${formatEuro(price)}</td>
@@ -190,7 +190,7 @@
 
     const headers = ['Datum', 'Kunde', 'Trainer', 'Preis (Cent)', 'Trainer-Anteil (Cent)', 'Marge (Cent)', 'Status'];
     const rows = financeData.map(b => [
-      b.session_date || '',
+      b.scheduled_date || '',
       b.customer_name || '',
       b.trainer_name || '',
       b.price_cents || 0,

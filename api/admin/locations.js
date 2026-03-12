@@ -1,4 +1,4 @@
-// Admin Groups API – POST (erstellen) + PUT (aktualisieren)
+// Admin Locations API – POST (erstellen) + PUT (aktualisieren)
 
 import { createClient } from '@supabase/supabase-js';
 
@@ -16,23 +16,15 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      const { name, trainer_id, city, location_name, location_address, day_of_week, start_time, duration_minutes, max_participants, price_per_person_cents, is_active } = req.body;
+      const { city, region, is_active } = req.body;
 
-      if (!name || !trainer_id || !city) {
-        return res.status(400).json({ error: 'Kursname, Trainer und Stadt sind Pflichtfelder' });
+      if (!city) {
+        return res.status(400).json({ error: 'Stadt ist ein Pflichtfeld' });
       }
 
-      const { data, error } = await supabase.from('group_classes').insert({
-        name,
-        trainer_id,
+      const { data, error } = await supabase.from('service_locations').insert({
         city,
-        location_name: location_name || null,
-        location_address: location_address || null,
-        day_of_week: day_of_week || null,
-        start_time: start_time || null,
-        duration_minutes: duration_minutes || 60,
-        max_participants: max_participants || 12,
-        price_per_person_cents: price_per_person_cents || null,
+        region: region || null,
         is_active: is_active !== false,
       }).select();
 
@@ -47,12 +39,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'id ist erforderlich' });
       }
 
-      const allowed = [
-        'name', 'trainer_id', 'city', 'location_name', 'location_address',
-        'day_of_week', 'start_time', 'duration_minutes',
-        'max_participants', 'price_per_person_cents', 'is_active',
-      ];
-
+      const allowed = ['city', 'region', 'is_active'];
       const update = {};
       for (const key of allowed) {
         if (key in fields) update[key] = fields[key];
@@ -63,7 +50,7 @@ export default async function handler(req, res) {
       }
 
       const { error } = await supabase
-        .from('group_classes')
+        .from('service_locations')
         .update(update)
         .eq('id', id);
 
@@ -73,7 +60,7 @@ export default async function handler(req, res) {
 
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
-    console.error('Admin Groups API Error:', err);
+    console.error('Admin Locations API Error:', err);
     return res.status(500).json({ error: err.message || 'Interner Fehler' });
   }
 }

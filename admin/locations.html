@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Einsatzorte – Projekt Fit Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <div id="alert-box" class="alert"></div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Einsatzorte</div>
+          <div class="table-actions">
+            <button class="btn btn-primary" onclick="openNewModal()">+ Neuer Einsatzort</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Stadt</th>
+              <th>Region</th>
+              <th>Status</th>
+              <th>Erstellt am</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody id="locations-body">
+            <tr><td colspan="5" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ─── New / Edit Location Modal ──────────────────────────────── -->
+<div class="modal-overlay" id="location-modal">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Neuer Einsatzort</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="location-form">
+        <div class="form-group">
+          <label>Stadt *</label>
+          <input class="form-control" id="f-city" required placeholder="z.B. Köln">
+        </div>
+        <div class="form-group">
+          <label>Region</label>
+          <input class="form-control" id="f-region" placeholder="z.B. NRW">
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:8px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="f-active" checked> Aktiv
+          </label>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveLocation()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  let allLocations = [];
+  let editingLocationId = null;
+
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderSidebar('locations');
+    document.getElementById('header').innerHTML = renderHeader('Einsatzorte');
+
+    await loadLocations();
+  })();
+
+  async function loadLocations() {
+    try {
+      const res = await adminApi('/api/admin/data?type=service_locations');
+      allLocations = res.data || [];
+      renderLocations();
+    } catch (err) {
+      document.getElementById('locations-body').innerHTML =
+        `<tr><td colspan="5" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+    }
+  }
+
+  function renderLocations() {
+    const tbody = document.getElementById('locations-body');
+    if (allLocations.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Einsatzorte vorhanden</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = allLocations.map(l => `
+      <tr>
+        <td><strong>${l.city}</strong></td>
+        <td>${l.region || '–'}</td>
+        <td>${l.is_active !== false ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
+        <td class="text-muted">${formatDate(l.created_at)}</td>
+        <td>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-secondary btn-sm" onclick="editLocation('${l.id}')">Bearbeiten</button>
+            <button class="btn btn-sm ${l.is_active !== false ? 'btn-danger' : 'btn-success'}"
+              onclick="toggleActive('${l.id}', ${l.is_active === false})">
+              ${l.is_active !== false ? 'Deaktivieren' : 'Aktivieren'}
+            </button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function openNewModal() {
+    editingLocationId = null;
+    document.getElementById('modal-title').textContent = 'Neuer Einsatzort';
+    document.getElementById('location-form').reset();
+    document.getElementById('f-active').checked = true;
+    document.getElementById('location-modal').classList.add('open');
+  }
+
+  function editLocation(id) {
+    const l = allLocations.find(x => x.id === id);
+    if (!l) return;
+    editingLocationId = id;
+    document.getElementById('modal-title').textContent = 'Einsatzort bearbeiten';
+    document.getElementById('f-city').value = l.city || '';
+    document.getElementById('f-region').value = l.region || '';
+    document.getElementById('f-active').checked = l.is_active !== false;
+    document.getElementById('location-modal').classList.add('open');
+  }
+
+  async function saveLocation() {
+    const city = document.getElementById('f-city').value.trim();
+    if (!city) { alert('Stadt ist ein Pflichtfeld.'); return; }
+
+    const payload = {
+      city,
+      region: document.getElementById('f-region').value.trim() || null,
+      is_active: document.getElementById('f-active').checked,
+    };
+
+    const btn = document.getElementById('modal-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      if (editingLocationId) {
+        payload.id = editingLocationId;
+        await adminApi('/api/admin/locations', { method: 'PUT', body: JSON.stringify(payload) });
+      } else {
+        await adminApi('/api/admin/locations', { method: 'POST', body: JSON.stringify(payload) });
+      }
+      closeModal();
+      showAlert('alert-box', editingLocationId ? 'Einsatzort aktualisiert!' : 'Einsatzort erstellt!', 'success');
+      await loadLocations();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Speichern';
+    }
+  }
+
+  async function toggleActive(id, newState) {
+    try {
+      await adminApi('/api/admin/locations', {
+        method: 'PUT',
+        body: JSON.stringify({ id, is_active: newState }),
+      });
+      await loadLocations();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  function closeModal() {
+    document.getElementById('location-modal').classList.remove('open');
+    editingLocationId = null;
+  }
+
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => {
+      if (e.target === o) { o.classList.remove('open'); editingLocationId = null; }
+    });
+  });
+</script>
+
+</body>
+</html>
