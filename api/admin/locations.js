@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      const { city, region, is_active } = req.body;
+      const { city, is_active } = req.body;
 
       if (!city) {
         return res.status(400).json({ error: 'Stadt ist ein Pflichtfeld' });
@@ -24,7 +24,6 @@ export default async function handler(req, res) {
 
       const { data, error } = await supabase.from('service_locations').insert({
         city,
-        region: region || null,
         is_active: is_active !== false,
       }).select();
 
@@ -39,7 +38,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'id ist erforderlich' });
       }
 
-      const allowed = ['city', 'region', 'is_active'];
+      const allowed = ['city', 'is_active'];
       const update = {};
       for (const key of allowed) {
         if (key in fields) update[key] = fields[key];

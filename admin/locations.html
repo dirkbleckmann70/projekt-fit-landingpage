@@ -29,14 +29,13 @@
           <thead>
             <tr>
               <th>Stadt</th>
-              <th>Region</th>
               <th>Status</th>
               <th>Erstellt am</th>
               <th>Aktionen</th>
             </tr>
           </thead>
           <tbody id="locations-body">
-            <tr><td colspan="5" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+            <tr><td colspan="4" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
           </tbody>
         </table>
       </div>
@@ -57,10 +56,6 @@
         <div class="form-group">
           <label>Stadt *</label>
           <input class="form-control" id="f-city" required placeholder="z.B. Köln">
-        </div>
-        <div class="form-group">
-          <label>Region</label>
-          <input class="form-control" id="f-region" placeholder="z.B. NRW">
         </div>
         <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:8px">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -99,21 +94,20 @@
       renderLocations();
     } catch (err) {
       document.getElementById('locations-body').innerHTML =
-        `<tr><td colspan="5" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="4" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
   function renderLocations() {
     const tbody = document.getElementById('locations-body');
     if (allLocations.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Einsatzorte vorhanden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:24px">Keine Einsatzorte vorhanden</td></tr>';
       return;
     }
 
     tbody.innerHTML = allLocations.map(l => `
       <tr>
         <td><strong>${l.city}</strong></td>
-        <td>${l.region || '–'}</td>
         <td>${l.is_active !== false ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
         <td class="text-muted">${formatDate(l.created_at)}</td>
         <td>
@@ -143,7 +137,6 @@
     editingLocationId = id;
     document.getElementById('modal-title').textContent = 'Einsatzort bearbeiten';
     document.getElementById('f-city').value = l.city || '';
-    document.getElementById('f-region').value = l.region || '';
     document.getElementById('f-active').checked = l.is_active !== false;
     document.getElementById('location-modal').classList.add('open');
   }
@@ -154,7 +147,6 @@
 
     const payload = {
       city,
-      region: document.getElementById('f-region').value.trim() || null,
       is_active: document.getElementById('f-active').checked,
     };
 
