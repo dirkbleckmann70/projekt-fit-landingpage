@@ -282,6 +282,7 @@
               ${canActivate ? `<button class="btn btn-success btn-sm" onclick="activateTrainer('${t.id}')">Aktivieren</button>` : ''}
               ${canDeactivate ? `<button class="btn btn-danger btn-sm" onclick="deactivateTrainer('${t.id}')">Deaktivieren</button>` : ''}
               <button class="btn btn-secondary btn-sm" onclick="openDetailModal('${t.id}')">Details</button>
+              ${t.status !== 'active' ? `<button class="btn btn-sm" style="background:rgba(231,76,60,0.15);color:#E74C3C;font-size:11px;padding:4px 8px" onclick="deleteTrainer('${t.id}','${(t.full_name||'').replace(/'/g,"\\'")}')" title="Trainer löschen">&#x1F5D1;</button>` : `<button class="btn btn-sm" style="background:rgba(255,255,255,0.04);color:#55556A;font-size:11px;padding:4px 8px;cursor:not-allowed" disabled title="Trainer muss zuerst deaktiviert werden">&#x1F5D1;</button>`}
             </div>
           </td>
         </tr>
@@ -633,6 +634,23 @@
       });
       closeModal('new-modal');
       showAlert('alert-box', 'Trainer angelegt!', 'success');
+      await loadTrainers();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Delete Trainer ──────────────────────────────────────────────
+  async function deleteTrainer(id, name) {
+    if (!confirm(`Diesen Trainer wirklich löschen?\n\n"${name}"\n\nAlle zugehörigen Daten werden entfernt.`)) return;
+
+    try {
+      const res = await adminApi('/api/admin/delete-trainer', {
+        method: 'DELETE',
+        body: JSON.stringify({ trainerId: id }),
+      });
+      closeModal('detail-modal');
+      showAlert('alert-box', res.message || 'Trainer gelöscht!', 'success');
       await loadTrainers();
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
