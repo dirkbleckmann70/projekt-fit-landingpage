@@ -93,7 +93,7 @@
   // Check if already logged in as admin
   (async () => {
     const { data: { session } } = await sb.auth.getSession();
-    if (session && session.user.user_metadata?.role === 'admin') {
+    if (session && session.user.user_metadata?.role?.includes('admin')) {
       window.location.href = '/admin/dashboard.html';
     }
   })();
@@ -134,7 +134,7 @@
 
       // Check admin role
       const role = data.user?.user_metadata?.role;
-      if (role !== 'admin') {
+      if (!role || !role.includes('admin')) {
         await sb.auth.signOut();
         errorMsg.textContent = 'Kein Admin-Zugang. Nur Administratoren dürfen sich hier einloggen.';
         errorMsg.classList.add('show');
