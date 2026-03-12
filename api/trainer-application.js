@@ -101,6 +101,7 @@ export default async function handler(req, res) {
   };
 
   console.log('INSERT payload:', JSON.stringify(insertData));
+  console.log('INSERT fields:', Object.keys(insertData).join(', '));
 
   try {
     const { data, error } = await supabase.from('trainer_profiles').insert(insertData).select();
@@ -114,6 +115,12 @@ export default async function handler(req, res) {
       return res.status(500).json({
         success: false,
         error: 'Bewerbung fehlgeschlagen',
+        debug: {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code,
+        },
       });
     }
 
@@ -124,6 +131,7 @@ export default async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: 'Bewerbung fehlgeschlagen',
+      debug: { exception: error.message || String(error) },
     });
   }
 }
