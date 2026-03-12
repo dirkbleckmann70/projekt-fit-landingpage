@@ -163,6 +163,22 @@
             <input class="form-control" type="number" id="new-payout" placeholder="35.00" step="0.01" min="0">
           </div>
         </div>
+        <hr style="border-color:#2a2a2a;margin:20px 0">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Lizenzen & Zertifikate</h3>
+
+        <div class="form-group">
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+            <input type="file" id="new-license-files" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+              onchange="updateNewFilePreview()">
+            + Lizenzen hochladen
+          </label>
+          <span style="font-size:12px;color:var(--text-muted);margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
+        </div>
+        <div id="new-file-preview"></div>
+        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">Optional – Lizenzen können auch später im Trainer-Detail hochgeladen werden</p>
+
+        <hr style="border-color:#2a2a2a;margin:20px 0">
+
         <div class="form-group">
           <label>Status</label>
           <select class="form-control" id="new-status">
@@ -598,9 +614,46 @@
   }
 
   // ─── New Trainer ──────────────────────────────────────────────────
+  let newTrainerFiles = []; // Ausgewählte Dateien für neuen Trainer
+
   function openNewTrainerModal() {
     document.getElementById('new-trainer-form').reset();
+    newTrainerFiles = [];
+    document.getElementById('new-file-preview').innerHTML = '';
     document.getElementById('new-modal').classList.add('open');
+  }
+
+  function updateNewFilePreview() {
+    const input = document.getElementById('new-license-files');
+    const added = Array.from(input.files || []);
+    added.forEach(f => {
+      if (f.size > 10 * 1024 * 1024) {
+        alert(`${f.name} ist zu groß (max 10 MB)`);
+        return;
+      }
+      if (!newTrainerFiles.some(ef => ef.name === f.name && ef.size === f.size)) {
+        newTrainerFiles.push(f);
+      }
+    });
+    input.value = '';
+    renderNewFilePreview();
+  }
+
+  function removeNewFile(idx) {
+    newTrainerFiles.splice(idx, 1);
+    renderNewFilePreview();
+  }
+
+  function renderNewFilePreview() {
+    const container = document.getElementById('new-file-preview');
+    if (newTrainerFiles.length === 0) { container.innerHTML = ''; return; }
+    container.innerHTML = newTrainerFiles.map((f, i) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:6px;font-size:13px">
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
+        <span style="color:var(--text-muted);font-size:11px;flex-shrink:0">${formatFileSize(f.size)}</span>
+        <button type="button" class="btn btn-icon btn-icon-delete" style="font-size:12px;padding:2px 6px;min-width:auto" onclick="removeNewFile(${i})">&times;</button>
+      </div>
+    `).join('');
   }
 
   async function createTrainer() {
@@ -615,7 +668,7 @@
     }
 
     try {
-      await adminApi('/api/admin/trainers', {
+      const res = await adminApi('/api/admin/trainers', {
         method: 'POST',
         body: JSON.stringify({
           full_name: firstname + ' ' + lastname,
@@ -634,8 +687,41 @@
           status: document.getElementById('new-status').value,
         }),
       });
+
+      const trainerId = res.data?.id;
+
+      // Dateien hochladen falls vorhanden
+      if (newTrainerFiles.length > 0 && trainerId) {
+        try {
+          const formData = new FormData();
+          formData.append('trainerId', trainerId);
+          newTrainerFiles.forEach(f => formData.append('files', f));
+
+          const token = (await getSupabase().auth.getSession()).data.session?.access_token;
+          const uploadRes = await fetch('/api/upload-license', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            body: formData,
+          });
+          const uploadResult = await uploadRes.json();
+
+          if (!uploadRes.ok) {
+            closeModal('new-modal');
+            showAlert('alert-box', `Trainer angelegt, aber Datei-Upload fehlgeschlagen: ${uploadResult.error || 'Unbekannter Fehler'}`, 'error');
+            await loadTrainers();
+            return;
+          }
+        } catch (uploadErr) {
+          closeModal('new-modal');
+          showAlert('alert-box', `Trainer angelegt, aber Datei-Upload fehlgeschlagen: ${uploadErr.message}`, 'error');
+          await loadTrainers();
+          return;
+        }
+      }
+
       closeModal('new-modal');
-      showAlert('alert-box', 'Trainer angelegt!', 'success');
+      showAlert('alert-box', newTrainerFiles.length > 0 ? 'Trainer angelegt mit Lizenzen!' : 'Trainer angelegt!', 'success');
+      newTrainerFiles = [];
       await loadTrainers();
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
