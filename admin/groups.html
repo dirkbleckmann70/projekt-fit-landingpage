@@ -240,6 +240,7 @@
                 onclick="toggleActive('${g.id}', ${!g.is_active})">
                 ${g.is_active ? 'Deaktivieren' : 'Aktivieren'}
               </button>
+              <button class="btn btn-danger btn-sm" onclick="deleteGroup('${g.id}', '${g.name.replace(/'/g, "\\'")}')">Löschen</button>
             </div>
           </td>
         </tr>
@@ -317,6 +318,20 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Speichern';
+    }
+  }
+
+  async function deleteGroup(id, name) {
+    if (!confirm(`Kurs "${name}" wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) return;
+    try {
+      await adminApi('/api/admin/groups', {
+        method: 'DELETE',
+        body: JSON.stringify({ id }),
+      });
+      showAlert('alert-box', 'Kurs gelöscht!', 'success');
+      await loadGroups();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     }
   }
 

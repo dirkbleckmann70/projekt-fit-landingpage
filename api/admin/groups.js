@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -71,6 +71,33 @@ export default async function handler(req, res) {
       const { error } = await supabase
         .from('group_classes')
         .update(update)
+        .eq('id', id);
+
+      if (error) throw error;
+      return res.json({ success: true });
+    }
+
+    if (req.method === 'DELETE') {
+      const { id } = req.body;
+
+      if (!id) {
+        return res.status(400).json({ error: 'id ist erforderlich' });
+      }
+
+      // Zuerst Teilnehmer löschen
+      const { error: partError } = await supabase
+        .from('group_participants')
+        .delete()
+        .eq('group_class_id', id);
+
+      if (partError && partError.code !== '42P01') {
+        console.error('group_participants DELETE error:', partError.message);
+      }
+
+      // Dann den Kurs löschen
+      const { error } = await supabase
+        .from('group_classes')
+        .delete()
         .eq('id', id);
 
       if (error) throw error;
