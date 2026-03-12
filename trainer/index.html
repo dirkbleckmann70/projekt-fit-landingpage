@@ -261,6 +261,14 @@
         }
         .form-group select option { background: var(--bg-card); color: var(--text); }
         .form-group textarea { resize: vertical; min-height: 90px; }
+        .form-divider {
+            border: none; border-top: 1px solid var(--border);
+            margin: 28px 0 8px;
+        }
+        .form-section-label {
+            font-size: 15px; font-weight: 700; color: var(--text);
+            margin-bottom: 18px;
+        }
         .field-hint {
             font-size: 12px; color: var(--text-muted);
             margin-top: 6px; font-style: italic;
@@ -534,75 +542,85 @@
             <p class="form-subtitle">Wir melden uns innerhalb von 48 Stunden. Felder mit * sind Pflicht.</p>
 
             <form id="app-form" novalidate>
-                <!-- Name + Email -->
+                <!-- Vorname + Nachname -->
                 <div class="form-row">
-                    <div class="form-group" id="g-name">
-                        <label>Vollst&auml;ndiger Name <span class="req">*</span></label>
-                        <input type="text" id="f-name" placeholder="Max Mustermann" required>
-                        <div class="field-error">Bitte Name eingeben.</div>
+                    <div class="form-group" id="g-firstname">
+                        <label>Vorname <span class="req">*</span></label>
+                        <input type="text" id="f-firstname" placeholder="Max" required>
+                        <div class="field-error">Bitte Vorname eingeben.</div>
                     </div>
+                    <div class="form-group" id="g-lastname">
+                        <label>Nachname <span class="req">*</span></label>
+                        <input type="text" id="f-lastname" placeholder="Mustermann" required>
+                        <div class="field-error">Bitte Nachname eingeben.</div>
+                    </div>
+                </div>
+
+                <!-- Email + Telefon -->
+                <div class="form-row">
                     <div class="form-group" id="g-email">
                         <label>E-Mail <span class="req">*</span></label>
                         <input type="email" id="f-email" placeholder="max@beispiel.de" required>
                         <div class="field-error">Bitte g&uuml;ltige E-Mail eingeben.</div>
                     </div>
-                </div>
-
-                <!-- Phone + City -->
-                <div class="form-row">
                     <div class="form-group" id="g-phone">
                         <label>Telefon <span class="opt">(optional)</span></label>
                         <input type="tel" id="f-phone" placeholder="+49 170 1234567">
                     </div>
-                    <div class="form-group" id="g-city">
-                        <label>Stadt <span class="req">*</span></label>
-                        <select id="f-city" required>
-                            <option value="" disabled selected>Stadt w&auml;hlen</option>
-                            <option value="Berlin">Berlin</option>
-                            <option value="M&uuml;nchen">M&uuml;nchen</option>
-                            <option value="Hamburg">Hamburg</option>
-                            <option value="K&ouml;ln">K&ouml;ln</option>
-                            <option value="Frankfurt">Frankfurt</option>
-                            <option value="D&uuml;sseldorf">D&uuml;sseldorf</option>
-                            <option value="Andere">Andere</option>
-                        </select>
-                        <div class="field-error">Bitte Stadt w&auml;hlen.</div>
+                </div>
+
+                <!-- ── Adresse ── -->
+                <div class="form-divider"></div>
+                <div class="form-section-label">Adresse</div>
+
+                <div class="form-group" id="g-address">
+                    <label>Stra&szlig;e und Hausnummer <span class="opt">(optional)</span></label>
+                    <input type="text" id="f-address" placeholder="Musterstra&szlig;e 1">
+                </div>
+                <div class="form-row">
+                    <div class="form-group" id="g-plz" style="max-width: 140px;">
+                        <label>PLZ <span class="opt">(optional)</span></label>
+                        <input type="text" id="f-plz" placeholder="50667" maxlength="5">
+                    </div>
+                    <div class="form-group" id="g-wohnort">
+                        <label>Ort (Wohnort) <span class="opt">(optional)</span></label>
+                        <input type="text" id="f-wohnort" placeholder="z.B. K&ouml;ln">
                     </div>
                 </div>
 
-                <!-- Qualification -->
+                <!-- Einsatzort -->
+                <div class="form-group" id="g-city">
+                    <label>Gew&uuml;nschter Einsatzort <span class="req">*</span></label>
+                    <input type="text" id="f-city" placeholder="z.B. K&ouml;ln, D&uuml;sseldorf, Bonn..." required>
+                    <div class="field-hint">Stadt oder Region, in der du trainieren m&ouml;chtest.</div>
+                    <div class="field-error">Bitte Einsatzort angeben.</div>
+                </div>
+
+                <!-- ── Profil ── -->
+                <div class="form-divider"></div>
+                <div class="form-section-label">Profil</div>
+
                 <div class="form-group" id="g-qual">
                     <label>Qualifikation / Zertifikat <span class="req">*</span></label>
                     <textarea id="f-qual" placeholder="z.B. Fitnesstrainer B-Lizenz (BSA), Sportwissenschaft Studium..." maxlength="500" required></textarea>
                     <div class="field-error">Bitte Qualifikation angeben.</div>
                 </div>
 
-                <!-- Message / Bio -->
                 <div class="form-group" id="g-msg">
-                    <label>&Uuml;ber dich <span class="opt">(optional)</span></label>
+                    <label>Bio / &Uuml;ber dich <span class="opt">(optional)</span></label>
                     <textarea id="f-msg" placeholder="Erz&auml;hle kurz von dir und deinem Trainingsansatz..." maxlength="500"></textarea>
                 </div>
 
-                <!-- Address + PLZ -->
-                <div class="form-row">
-                    <div class="form-group" id="g-address">
-                        <label>Stra&szlig;e + Nr. <span class="opt">(optional)</span></label>
-                        <input type="text" id="f-address" placeholder="Musterstra&szlig;e 1">
-                    </div>
-                    <div class="form-group" id="g-plz" style="max-width: 140px;">
-                        <label>PLZ <span class="opt">(optional)</span></label>
-                        <input type="text" id="f-plz" placeholder="50667" maxlength="5">
-                    </div>
-                </div>
+                <!-- ── Steuerdaten ── -->
+                <div class="form-divider"></div>
+                <div class="form-section-label">Steuerdaten</div>
 
-                <!-- Steuernummer -->
                 <div class="form-group" id="g-steuer">
                     <label>Steuernummer <span class="opt">(optional)</span></label>
                     <input type="text" id="f-steuer" placeholder="z.B. 123/456/78901">
                     <div class="field-hint">Kannst du auch sp&auml;ter erg&auml;nzen.</div>
                 </div>
 
-                <!-- Kleinunternehmer -->
                 <div class="cb-row" id="cb-klein" onclick="toggleCb(this)">
                     <input type="checkbox" id="f-klein">
                     <div class="cb-box">&#10003;</div>
@@ -678,9 +696,10 @@
 
     // ═══ FORM VALIDATION ═══
     var reqFields = [
-        { id: 'f-name', group: 'g-name', type: 'text' },
+        { id: 'f-firstname', group: 'g-firstname', type: 'text' },
+        { id: 'f-lastname', group: 'g-lastname', type: 'text' },
         { id: 'f-email', group: 'g-email', type: 'email' },
-        { id: 'f-city', group: 'g-city', type: 'select' },
+        { id: 'f-city', group: 'g-city', type: 'text' },
         { id: 'f-qual', group: 'g-qual', type: 'text' },
     ];
 
@@ -749,14 +768,16 @@
         btn.textContent = 'Wird gesendet...';
 
         var payload = {
-            name: document.getElementById('f-name').value.trim(),
+            firstName: document.getElementById('f-firstname').value.trim(),
+            lastName: document.getElementById('f-lastname').value.trim(),
             email: document.getElementById('f-email').value.trim(),
             phone: document.getElementById('f-phone').value.trim(),
-            city: document.getElementById('f-city').value,
+            city: document.getElementById('f-city').value.trim(),
             qualification: document.getElementById('f-qual').value.trim(),
             message: document.getElementById('f-msg').value.trim(),
             address: document.getElementById('f-address').value.trim(),
             postalCode: document.getElementById('f-plz').value.trim(),
+            wohnort: document.getElementById('f-wohnort').value.trim(),
             steuernummer: document.getElementById('f-steuer').value.trim(),
             kleinunternehmer: document.getElementById('f-klein').checked
         };

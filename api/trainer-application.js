@@ -28,6 +28,8 @@ export default async function handler(req, res) {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   const {
+    firstName,
+    lastName,
     name,
     email,
     phone,
@@ -38,11 +40,17 @@ export default async function handler(req, res) {
     kleinunternehmer,
     address,
     postalCode,
+    wohnort,
   } = req.body;
 
+  // Support both old (name) and new (firstName + lastName) format
+  const fullName = (firstName && lastName)
+    ? (firstName.trim() + ' ' + lastName.trim())
+    : (name ? name.trim() : '');
+
   // Validate required fields
-  if (!name || !email || !city || !qualification) {
-    return res.status(400).json({ success: false, error: 'Pflichtfelder fehlen (Name, E-Mail, Stadt, Qualifikation)' });
+  if (!fullName || !email || !city || !qualification) {
+    return res.status(400).json({ success: false, error: 'Pflichtfelder fehlen (Vorname, Nachname, E-Mail, Einsatzort, Qualifikation)' });
   }
 
   const emailTrimmed = email.trim().toLowerCase();
@@ -78,7 +86,7 @@ export default async function handler(req, res) {
 
   // Build insert payload
   const insertData = {
-    full_name: name.trim(),
+    full_name: fullName,
     email: emailTrimmed,
     phone: phone ? phone.trim() : null,
     city: city.trim(),
@@ -89,6 +97,7 @@ export default async function handler(req, res) {
     steuernummer: steuernummer ? steuernummer.trim() : null,
     street_address: address ? address.trim() : null,
     postal_code: postalCode ? postalCode.trim() : null,
+    wohnort: wohnort ? wohnort.trim() : null,
   };
 
   console.log('INSERT payload:', JSON.stringify(insertData));
