@@ -80,7 +80,8 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
     console.error('Admin Groups API Error:', err);
-    return res.status(500).json({ error: err.message || 'Interner Fehler' });
+    const detail = err.details || err.hint || '';
+    return res.status(500).json({ error: `${err.message || 'Interner Fehler'}${detail ? ' – ' + detail : ''}` });
   }
 }
 

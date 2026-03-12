@@ -90,13 +90,13 @@
           <div class="form-group">
             <label>Wochentag *</label>
             <select class="form-control" id="f-weekday">
-              <option value="Montag">Montag</option>
-              <option value="Dienstag">Dienstag</option>
-              <option value="Mittwoch">Mittwoch</option>
-              <option value="Donnerstag">Donnerstag</option>
-              <option value="Freitag">Freitag</option>
-              <option value="Samstag">Samstag</option>
-              <option value="Sonntag">Sonntag</option>
+              <option value="1">Montag</option>
+              <option value="2">Dienstag</option>
+              <option value="3">Mittwoch</option>
+              <option value="4">Donnerstag</option>
+              <option value="5">Freitag</option>
+              <option value="6">Samstag</option>
+              <option value="0">Sonntag</option>
             </select>
           </div>
           <div class="form-group">
@@ -215,16 +215,19 @@
       return;
     }
 
+    const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+
     tbody.innerHTML = allGroups.map(g => {
       const trainerName = activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '–';
       const participants = g.current_participants || 0;
       const max = g.max_participants || '–';
+      const dayLabel = g.day_of_week != null ? (dayNames[g.day_of_week] || g.day_of_week) : '–';
       return `
         <tr>
           <td><strong>${g.name}</strong></td>
           <td>${trainerName}</td>
           <td>${g.city || '–'} ${g.location_name ? '· ' + g.location_name : ''}</td>
-          <td>${g.day_of_week || '–'}</td>
+          <td>${dayLabel}</td>
           <td>${g.start_time ? g.start_time.slice(0,5) : '–'}</td>
           <td>${participants} / ${max}</td>
           <td class="text-accent">${formatEuro(g.price_per_person_cents)}</td>
@@ -262,7 +265,7 @@
     document.getElementById('f-city').value = g.city || '';
     document.getElementById('f-location-name').value = g.location_name || '';
     document.getElementById('f-location-address').value = g.location_address || '';
-    document.getElementById('f-weekday').value = g.day_of_week || 'Montag';
+    document.getElementById('f-weekday').value = g.day_of_week != null ? g.day_of_week : 1;
     document.getElementById('f-time').value = g.start_time ? g.start_time.slice(0,5) : '';
     document.getElementById('f-duration').value = g.duration_minutes || 60;
     document.getElementById('f-max').value = g.max_participants || 12;
@@ -287,8 +290,8 @@
       city,
       location_name: document.getElementById('f-location-name').value.trim() || null,
       location_address: document.getElementById('f-location-address').value.trim() || null,
-      day_of_week: document.getElementById('f-weekday').value,
-      start_time: document.getElementById('f-time').value || null,
+      day_of_week: parseInt(document.getElementById('f-weekday').value),
+      start_time: document.getElementById('f-time').value ? document.getElementById('f-time').value + ':00' : null,
       duration_minutes: parseInt(document.getElementById('f-duration').value) || 60,
       max_participants: parseInt(document.getElementById('f-max').value) || 12,
       price_per_person_cents: priceEur ? Math.round(priceEur * 100) : null,
