@@ -233,7 +233,7 @@
           <td class="text-accent">${formatEuro(g.price_per_person_cents)}</td>
           <td>${g.is_active ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
           <td>
-            <div style="display:flex;gap:6px">
+            <div class="action-cell">
               <button class="btn btn-secondary btn-sm" onclick="editGroup('${g.id}')">Bearbeiten</button>
               <button class="btn btn-ghost btn-sm" onclick="showParticipants('${g.id}', '${g.name}')">Teilnehmer</button>
               <button class="btn btn-sm ${g.is_active ? 'btn-danger' : 'btn-success'}"
@@ -241,8 +241,8 @@
                 ${g.is_active ? 'Deaktivieren' : 'Aktivieren'}
               </button>
               ${g.is_active
-                ? '<button class="btn btn-ghost btn-sm" disabled title="Kurs muss zuerst deaktiviert werden">Löschen</button>'
-                : `<button class="btn btn-danger btn-sm" onclick="deleteGroup('${g.id}', '${g.name.replace(/'/g, "\\'")}')">Löschen</button>`
+                ? '<button class="btn btn-icon btn-icon-delete" disabled title="Kurs muss zuerst deaktiviert werden">&#x1F5D1;</button>'
+                : `<button class="btn btn-icon btn-icon-delete" onclick="deleteGroup('${g.id}', '${g.name.replace(/'/g, "\\'")}')" title="Kurs löschen">&#x1F5D1;</button>`
               }
             </div>
           </td>

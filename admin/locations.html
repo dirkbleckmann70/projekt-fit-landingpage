@@ -111,7 +111,7 @@
         <td>${l.is_active !== false ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
         <td class="text-muted">${formatDate(l.created_at)}</td>
         <td>
-          <div style="display:flex;gap:6px">
+          <div class="action-cell">
             <button class="btn btn-secondary btn-sm" onclick="editLocation('${l.id}')">Bearbeiten</button>
             <button class="btn btn-sm ${l.is_active !== false ? 'btn-danger' : 'btn-success'}"
               onclick="toggleActive('${l.id}', ${l.is_active === false})">
