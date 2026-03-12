@@ -97,7 +97,7 @@
 
   async function loadBookings() {
     try {
-      const res = await adminApi('/api/admin/data?type=all_bookings');
+      const res = await adminApi('/api/admin?action=data&type=all_bookings');
       allBookings = res.data || [];
       renderBookings();
     } catch (err) {
@@ -201,7 +201,7 @@
     btn.innerHTML = '<span class="spinner"></span>';
 
     try {
-      await adminApi('/api/admin/bookings', {
+      await adminApi('/api/admin?action=bookings', {
         method: 'PUT',
         body: JSON.stringify({ bookingId: editingBookingId, status: newStatus }),
       });

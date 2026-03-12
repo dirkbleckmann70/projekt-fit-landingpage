@@ -213,7 +213,7 @@
 
     // Load service locations for city dropdowns
     try {
-      const res = await adminApi('/api/admin/data?type=active_locations');
+      const res = await adminApi('/api/admin?action=data&type=active_locations');
       serviceLocations = res.data || [];
       const citySel = document.getElementById('new-city');
       serviceLocations.forEach(l => {
@@ -247,7 +247,7 @@
 
   async function loadTrainers() {
     try {
-      const res = await adminApi('/api/admin/data?type=all_trainers');
+      const res = await adminApi('/api/admin?action=data&type=all_trainers');
       allTrainers = res.data || [];
       renderTrainers();
     } catch (err) {
@@ -312,7 +312,7 @@
   async function activateTrainer(id) {
     if (!confirm('Trainer aktivieren und Einladungs-E-Mail senden?')) return;
     try {
-      const res = await adminApi('/api/admin/activate-trainer', {
+      const res = await adminApi('/api/admin?action=activate-trainer', {
         method: 'POST',
         body: JSON.stringify({ trainerId: id }),
       });
@@ -327,7 +327,7 @@
   async function deactivateTrainer(id) {
     if (!confirm('Trainer wirklich deaktivieren? Er wird für Kunden nicht mehr sichtbar sein.')) return;
     try {
-      const res = await adminApi('/api/admin/deactivate-trainer', {
+      const res = await adminApi('/api/admin?action=deactivate-trainer', {
         method: 'POST',
         body: JSON.stringify({ trainerId: id }),
       });
@@ -507,7 +507,7 @@
 
   async function viewLicense(path) {
     try {
-      const res = await adminApi('/api/admin/license?path=' + encodeURIComponent(path));
+      const res = await adminApi('/api/admin?action=license?path=' + encodeURIComponent(path));
       if (res.url) window.open(res.url, '_blank');
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
@@ -517,7 +517,7 @@
   async function deleteLicense(trainerId, path) {
     if (!confirm('Lizenz-Datei wirklich löschen?')) return;
     try {
-      await adminApi('/api/admin/license', {
+      await adminApi('/api/admin?action=license', {
         method: 'DELETE',
         body: JSON.stringify({ trainerId, path }),
       });
@@ -598,7 +598,7 @@
     };
 
     try {
-      await adminApi('/api/admin/trainers', {
+      await adminApi('/api/admin?action=trainers', {
         method: 'PUT',
         body: JSON.stringify(payload),
       });
@@ -668,7 +668,7 @@
     }
 
     try {
-      const res = await adminApi('/api/admin/trainers', {
+      const res = await adminApi('/api/admin?action=trainers', {
         method: 'POST',
         body: JSON.stringify({
           full_name: firstname + ' ' + lastname,
@@ -733,7 +733,7 @@
     if (!confirm(`Diesen Trainer wirklich löschen?\n\n"${name}"\n\nAlle zugehörigen Daten werden entfernt.`)) return;
 
     try {
-      const res = await adminApi('/api/admin/delete-trainer', {
+      const res = await adminApi('/api/admin?action=delete-trainer', {
         method: 'DELETE',
         body: JSON.stringify({ trainerId: id }),
       });

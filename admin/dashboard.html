@@ -99,10 +99,10 @@
     // ─── KPIs laden ───────────────────────────────────────────────
     try {
       const [trainersRes, pendingRes, bookingsRes, revenueRes] = await Promise.allSettled([
-        adminApi('/api/admin/data?type=kpi_trainers'),
-        adminApi('/api/admin/data?type=kpi_pending'),
-        adminApi('/api/admin/data?type=kpi_bookings_week'),
-        adminApi('/api/admin/data?type=kpi_revenue_month'),
+        adminApi('/api/admin?action=data&type=kpi_trainers'),
+        adminApi('/api/admin?action=data&type=kpi_pending'),
+        adminApi('/api/admin?action=data&type=kpi_bookings_week'),
+        adminApi('/api/admin?action=data&type=kpi_revenue_month'),
       ]);
 
       document.getElementById('kpi-trainers').textContent =
@@ -119,7 +119,7 @@
 
     // ─── Neueste Bewerbungen ──────────────────────────────────────
     try {
-      const res = await adminApi('/api/admin/data?type=recent_trainers&limit=5');
+      const res = await adminApi('/api/admin?action=data&type=recent_trainers&limit=5');
       const tbody = document.getElementById('recent-trainers');
       if (!res.data || res.data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Bewerbungen vorhanden</td></tr>';
@@ -141,7 +141,7 @@
 
     // ─── Letzte Buchungen ─────────────────────────────────────────
     try {
-      const res = await adminApi('/api/admin/data?type=recent_bookings&limit=5');
+      const res = await adminApi('/api/admin?action=data&type=recent_bookings&limit=5');
       const tbody = document.getElementById('recent-bookings');
       if (!res.data || res.data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Buchungen vorhanden</td></tr>';

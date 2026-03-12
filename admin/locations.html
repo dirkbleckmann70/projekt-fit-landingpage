@@ -89,7 +89,7 @@
 
   async function loadLocations() {
     try {
-      const res = await adminApi('/api/admin/data?type=service_locations');
+      const res = await adminApi('/api/admin?action=data&type=service_locations');
       allLocations = res.data || [];
       renderLocations();
     } catch (err) {
@@ -157,9 +157,9 @@
     try {
       if (editingLocationId) {
         payload.id = editingLocationId;
-        await adminApi('/api/admin/locations', { method: 'PUT', body: JSON.stringify(payload) });
+        await adminApi('/api/admin?action=locations', { method: 'PUT', body: JSON.stringify(payload) });
       } else {
-        await adminApi('/api/admin/locations', { method: 'POST', body: JSON.stringify(payload) });
+        await adminApi('/api/admin?action=locations', { method: 'POST', body: JSON.stringify(payload) });
       }
       closeModal();
       showAlert('alert-box', editingLocationId ? 'Einsatzort aktualisiert!' : 'Einsatzort erstellt!', 'success');
@@ -174,7 +174,7 @@
 
   async function toggleActive(id, newState) {
     try {
-      await adminApi('/api/admin/locations', {
+      await adminApi('/api/admin?action=locations', {
         method: 'PUT',
         body: JSON.stringify({ id, is_active: newState }),
       });

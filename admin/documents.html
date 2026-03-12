@@ -145,7 +145,7 @@
 
   async function loadDocuments() {
     try {
-      const res = await adminApi('/api/admin/documents');
+      const res = await adminApi('/api/admin?action=documents');
       allDocuments = res.data || [];
       renderFolders();
     } catch (err) {
@@ -234,7 +234,7 @@
 
   async function viewDocument(path) {
     try {
-      const res = await adminApi('/api/admin/get-file-url', {
+      const res = await adminApi('/api/admin?action=get-file-url', {
         method: 'POST',
         body: JSON.stringify({ path, bucket: 'admin-documents' }),
       });
@@ -249,7 +249,7 @@
     try {
       // DELETE mit JSON body – adminApi setzt Content-Type
       const token = (await getSupabase().auth.getSession()).data.session?.access_token;
-      const resp = await fetch('/api/admin/documents', {
+      const resp = await fetch('/api/admin?action=documents', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -282,7 +282,7 @@
 
     try {
       const token = (await getSupabase().auth.getSession()).data.session?.access_token;
-      const resp = await fetch('/api/admin/documents', {
+      const resp = await fetch('/api/admin?action=documents', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` },
         body: formData,

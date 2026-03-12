@@ -107,7 +107,7 @@
 
   async function loadFinances() {
     try {
-      const res = await adminApi('/api/admin/data?type=finances');
+      const res = await adminApi('/api/admin?action=data&type=finances');
       financeData = res.data || [];
 
       // Calculate KPIs
@@ -159,7 +159,7 @@
 
   async function loadCredits() {
     try {
-      const res = await adminApi('/api/admin/data?type=credits');
+      const res = await adminApi('/api/admin?action=data&type=credits');
       const credits = res.data || [];
 
       let totalCredits = 0;

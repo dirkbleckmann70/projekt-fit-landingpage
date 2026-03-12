@@ -166,7 +166,7 @@
 
     // Load trainers for dropdown
     try {
-      const res = await adminApi('/api/admin/data?type=active_trainers');
+      const res = await adminApi('/api/admin?action=data&type=active_trainers');
       activeTrainers = res.data || [];
       const sel = document.getElementById('f-trainer');
       activeTrainers.forEach(t => {
@@ -181,7 +181,7 @@
 
     // Load cities for dropdown
     try {
-      const res = await adminApi('/api/admin/data?type=active_locations');
+      const res = await adminApi('/api/admin?action=data&type=active_locations');
       const locations = res.data || [];
       const citySel = document.getElementById('f-city');
       locations.forEach(l => {
@@ -199,7 +199,7 @@
 
   async function loadGroups() {
     try {
-      const res = await adminApi('/api/admin/data?type=all_groups');
+      const res = await adminApi('/api/admin?action=data&type=all_groups');
       allGroups = res.data || [];
       renderGroups();
     } catch (err) {
@@ -309,9 +309,9 @@
     try {
       if (editingGroupId) {
         payload.id = editingGroupId;
-        await adminApi('/api/admin/groups', { method: 'PUT', body: JSON.stringify(payload) });
+        await adminApi('/api/admin?action=groups', { method: 'PUT', body: JSON.stringify(payload) });
       } else {
-        await adminApi('/api/admin/groups', { method: 'POST', body: JSON.stringify(payload) });
+        await adminApi('/api/admin?action=groups', { method: 'POST', body: JSON.stringify(payload) });
       }
       closeModal();
       showAlert('alert-box', editingGroupId ? 'Kurs aktualisiert!' : 'Kurs erstellt!', 'success');
@@ -327,7 +327,7 @@
   async function deleteGroup(id, name) {
     if (!confirm(`Kurs "${name}" wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) return;
     try {
-      await adminApi('/api/admin/groups', {
+      await adminApi('/api/admin?action=groups', {
         method: 'DELETE',
         body: JSON.stringify({ id }),
       });
@@ -340,7 +340,7 @@
 
   async function toggleActive(id, newState) {
     try {
-      await adminApi('/api/admin/groups', {
+      await adminApi('/api/admin?action=groups', {
         method: 'PUT',
         body: JSON.stringify({ id, is_active: newState }),
       });
@@ -357,7 +357,7 @@
     document.getElementById('participants-modal').classList.add('open');
 
     try {
-      const res = await adminApi(`/api/admin/data?type=group_participants&group_id=${groupId}`);
+      const res = await adminApi(`/api/admin?action=data&type=group_participants&group_id=${groupId}`);
       const participants = res.data || [];
 
       if (participants.length === 0) {
