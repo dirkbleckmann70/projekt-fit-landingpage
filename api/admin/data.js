@@ -208,7 +208,7 @@ async function verifyAdmin(req) {
 
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) return 'Ungültiger Token';
-  if (user.user_metadata?.role !== 'admin') return 'Kein Admin-Zugang';
+  if (!user.user_metadata?.role?.includes('admin')) return 'Kein Admin-Zugang';
 
   return null; // OK
 }
