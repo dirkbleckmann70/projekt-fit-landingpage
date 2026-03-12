@@ -22,6 +22,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Kursname, Trainer und Stadt sind Pflichtfelder' });
       }
 
+      console.log('Creating group_class:', { name, trainer_id, city, location_name, day_of_week, start_time, price_per_person_cents });
+
       const { data, error } = await supabase.from('group_classes').insert({
         name,
         trainer_id,
@@ -36,7 +38,11 @@ export default async function handler(req, res) {
         is_active: is_active !== false,
       }).select();
 
-      if (error) throw error;
+      if (error) {
+        console.error('group_classes INSERT error:', error.message, error.code, error.details);
+        throw error;
+      }
+      console.log('Group created:', data?.[0]?.id);
       return res.json({ success: true, data: data?.[0] });
     }
 

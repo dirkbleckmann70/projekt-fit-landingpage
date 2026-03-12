@@ -70,15 +70,18 @@
         <table>
           <thead>
             <tr>
+              <th>GS-Nr.</th>
               <th>Datum</th>
               <th>Trainer</th>
-              <th>Betrag</th>
-              <th>Grund</th>
+              <th>Netto</th>
+              <th>MwSt</th>
+              <th>Brutto</th>
+              <th>Leistung</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody id="credits-body">
-            <tr><td colspan="5" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+            <tr><td colspan="8" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
           </tbody>
         </table>
       </div>
@@ -160,27 +163,30 @@
       const credits = res.data || [];
 
       let totalCredits = 0;
-      credits.forEach(c => { totalCredits += (c.amount_cents || 0); });
+      credits.forEach(c => { totalCredits += (c.bruttobetrag_cent || 0); });
       document.getElementById('kpi-credits').textContent = formatEuro(totalCredits);
 
       const tbody = document.getElementById('credits-body');
       if (credits.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Gutschriften vorhanden</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Gutschriften vorhanden</td></tr>';
         return;
       }
 
       tbody.innerHTML = credits.map(c => `
         <tr>
-          <td>${formatDate(c.created_at)}</td>
+          <td><strong>${c.gs_nummer || '–'}</strong></td>
+          <td>${formatDate(c.ausgestellt_am)}</td>
           <td>${c.trainer_name || '–'}</td>
-          <td class="text-accent">${formatEuro(c.amount_cents)}</td>
-          <td>${c.reason || '–'}</td>
+          <td>${formatEuro(c.nettobetrag_cent)}</td>
+          <td>${formatEuro(c.mwst_betrag_cent)}</td>
+          <td class="text-accent">${formatEuro(c.bruttobetrag_cent)}</td>
+          <td>${c.leistungsbeschreibung || '–'}</td>
           <td>${statusBadge(c.status || 'pending')}</td>
         </tr>
       `).join('');
     } catch (err) {
       document.getElementById('credits-body').innerHTML =
-        `<tr><td colspan="5" class="text-error" style="padding:16px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="8" class="text-error" style="padding:16px">Fehler: ${err.message}</td></tr>`;
       document.getElementById('kpi-credits').textContent = '–';
     }
   }

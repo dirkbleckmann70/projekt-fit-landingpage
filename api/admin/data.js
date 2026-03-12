@@ -140,7 +140,7 @@ export default async function handler(req, res) {
         const { data, error } = await supabase
           .from('gutschriften')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('ausgestellt_am', { ascending: false });
         if (error) {
           // Table might not exist yet
           if (error.code === '42P01') return res.json({ data: [] });
