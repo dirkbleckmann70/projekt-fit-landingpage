@@ -181,7 +181,7 @@
 
     // Load cities for dropdown
     try {
-      const res = await adminApi('/api/admin/data?type=service_locations');
+      const res = await adminApi('/api/admin/data?type=active_locations');
       const locations = res.data || [];
       const citySel = document.getElementById('f-city');
       locations.forEach(l => {

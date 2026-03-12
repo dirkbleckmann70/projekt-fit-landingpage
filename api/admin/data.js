@@ -150,6 +150,19 @@ export default async function handler(req, res) {
       }
 
       // ─── Service Locations ───────────────────────────────────────
+      case 'active_locations': {
+        const { data, error } = await supabase
+          .from('service_locations')
+          .select('*')
+          .eq('is_active', true)
+          .order('city');
+        if (error) {
+          if (error.code === '42P01') return res.json({ data: [] });
+          throw error;
+        }
+        return res.json({ data: data || [] });
+      }
+
       case 'service_locations': {
         const { data, error } = await supabase
           .from('service_locations')

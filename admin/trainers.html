@@ -151,7 +151,7 @@
 
     // Load service locations for city dropdowns
     try {
-      const res = await adminApi('/api/admin/data?type=service_locations');
+      const res = await adminApi('/api/admin/data?type=active_locations');
       serviceLocations = res.data || [];
       const citySel = document.getElementById('new-city');
       serviceLocations.forEach(l => {
