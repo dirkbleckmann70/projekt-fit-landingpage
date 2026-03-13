@@ -148,9 +148,9 @@
         const dayIndex = row.day_of_week; // 0=Mo, 1=Di, ..., 6=So
         if (dayIndex >= 0 && dayIndex < 7) {
           const dayKey = DAYS[dayIndex];
-          const startHour = parseInt(row.start_time?.substring(0, 2));
-          const endHour = parseInt(row.end_time?.substring(0, 2));
-          if (!isNaN(startHour) && !isNaN(endHour)) {
+          const startHour = row.start_hour;
+          const endHour = row.end_hour;
+          if (startHour != null && endHour != null) {
             for (let h = startHour; h < endHour; h++) {
               if (!availState[dayKey].includes(h)) {
                 availState[dayKey].push(h);
@@ -269,9 +269,9 @@
             rows.push({
               trainer_id: trainerId,
               day_of_week: dayIndex,
-              start_time: String(blockStart).padStart(2, '0') + ':00:00',
-              end_time: String(prev + 1).padStart(2, '0') + ':00:00',
-              is_active: true,
+              start_hour: blockStart,
+              end_hour: prev + 1,
+              is_activ: true,
             });
             if (i < hours.length) blockStart = hours[i];
           }
