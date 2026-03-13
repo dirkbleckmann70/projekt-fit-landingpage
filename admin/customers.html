@@ -37,13 +37,16 @@
                 <th>E-Mail</th>
                 <th>Telefon</th>
                 <th>Stadt</th>
+                <th>Geb.datum</th>
+                <th>AGB</th>
                 <th>Vertrag</th>
+                <th>Gesundheit</th>
                 <th>Registriert am</th>
                 <th>Aktionen</th>
               </tr>
             </thead>
             <tbody id="customers-body">
-              <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Kunden werden geladen...</td></tr>
+              <tr><td colspan="10" class="loading-overlay"><span class="spinner"></span> Kunden werden geladen...</td></tr>
             </tbody>
           </table>
         </div>
@@ -97,6 +100,10 @@
           </div>
         </div>
         <div class="form-group">
+          <label>Geburtsdatum</label>
+          <input class="form-control" type="date" id="new-dob">
+        </div>
+        <div class="form-group">
           <label>Notizen</label>
           <textarea class="form-control" id="new-notes" rows="3"></textarea>
         </div>
@@ -130,6 +137,13 @@
   let allCustomers = [];
   let tableFilter;
 
+  function formatDateDE(dateStr) {
+    if (!dateStr) return '–';
+    const parts = dateStr.split('-');
+    if (parts.length === 3) return parts[2] + '.' + parts[1] + '.' + parts[0];
+    return dateStr;
+  }
+
   (async () => {
     const user = await checkAdminAuth();
     if (!user) return;
@@ -146,7 +160,10 @@
         { key: 'email', type: 'select', getValue: c => c.email || '\u2013' },
         { key: 'phone', type: 'select', getValue: c => c.phone || '\u2013' },
         { key: 'city', type: 'select', getValue: c => c.city || '\u2013' },
-        { key: 'contract', type: 'select', getValue: c => c.contract_accepted ? 'Vertrag akzeptiert' : 'Kein Vertrag' },
+        null,
+        { key: 'terms', type: 'select', getValue: c => c.terms_accepted ? 'Akzeptiert' : 'Offen' },
+        { key: 'contract', type: 'select', getValue: c => c.service_contract_accepted ? 'Akzeptiert' : 'Offen' },
+        { key: 'health', type: 'select', getValue: c => c.health_declaration_accepted ? 'Akzeptiert' : 'Offen' },
         { key: 'created_at', type: 'date', getValue: c => c.created_at ? c.created_at.slice(0, 10) : '' },
         null,
       ],
@@ -172,21 +189,31 @@
     const tbody = document.getElementById('customers-body');
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Keine Kunden gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:24px">Keine Kunden gefunden</td></tr>';
       return;
     }
 
     tbody.innerHTML = filtered.map(c => {
-      const contractBadge = c.contract_accepted
-        ? '<span class="badge badge-active">Vertrag akzeptiert</span>'
-        : '<span class="badge badge-red">Kein Vertrag</span>';
+      const dobFormatted = c.date_of_birth ? formatDateDE(c.date_of_birth) : '–';
+      const termsBadge = c.terms_accepted
+        ? '<span class="badge badge-active">Ja</span>'
+        : '<span class="badge badge-red">Nein</span>';
+      const contractBadge = c.service_contract_accepted
+        ? '<span class="badge badge-active">Ja</span>'
+        : '<span class="badge badge-red">Nein</span>';
+      const healthBadge = c.health_declaration_accepted
+        ? '<span class="badge badge-active">Ja</span>'
+        : '<span class="badge badge-red">Nein</span>';
       return `
         <tr>
           <td><strong>${c.full_name || (c.first_name + ' ' + c.last_name) || '–'}</strong></td>
           <td class="text-secondary">${c.email || '–'}</td>
           <td>${c.phone || '–'}</td>
           <td>${c.city || '–'}</td>
+          <td class="text-muted">${dobFormatted}</td>
+          <td>${termsBadge}</td>
           <td>${contractBadge}</td>
+          <td>${healthBadge}</td>
           <td class="text-muted">${formatDate(c.created_at)}</td>
           <td>
             <button class="btn btn-secondary btn-sm" onclick="showDetail('${c.id}')">Details</button>
@@ -230,6 +257,7 @@
           street_address: document.getElementById('new-street').value.trim() || null,
           postal_code: document.getElementById('new-postal').value.trim() || null,
           city: document.getElementById('new-city').value.trim() || null,
+          date_of_birth: document.getElementById('new-dob').value || null,
           notes: document.getElementById('new-notes').value.trim() || null,
         }),
       });
@@ -251,10 +279,47 @@
 
     document.getElementById('detail-title').textContent = c.full_name || 'Kunden-Details';
 
-    const contractBadge = c.contract_accepted
-      ? '<span class="badge badge-active">Vertrag akzeptiert</span>'
-      : '<span class="badge badge-red">Kein Vertrag</span>';
-    const contractDate = c.contract_accepted_at ? formatDateTime(c.contract_accepted_at) : '–';
+    const dobFormatted = c.date_of_birth ? formatDateDE(c.date_of_birth) : '–';
+
+    // Vertragsstatus Badges
+    const termsBadge = c.terms_accepted
+      ? '<span class="badge badge-active">Akzeptiert</span>'
+      : '<span class="badge badge-red">Nicht akzeptiert</span>';
+    const termsDate = c.terms_accepted_at ? formatDateTime(c.terms_accepted_at) : '–';
+
+    const serviceContractBadge = c.service_contract_accepted
+      ? '<span class="badge badge-active">Akzeptiert</span>'
+      : '<span class="badge badge-red">Nicht akzeptiert</span>';
+    const serviceContractDate = c.service_contract_accepted_at ? formatDateTime(c.service_contract_accepted_at) : '–';
+
+    const healthBadge = c.health_declaration_accepted
+      ? '<span class="badge badge-active">Akzeptiert</span>'
+      : '<span class="badge badge-red">Nicht ausgefüllt</span>';
+    const healthDate = c.health_declaration_accepted_at ? formatDateTime(c.health_declaration_accepted_at) : '–';
+
+    // Gesundheitserklärung Details
+    const healthLabels = {
+      heart_disease: 'Herz-Kreislauf-Erkrankungen',
+      joint_problems: 'Gelenkprobleme',
+      respiratory: 'Atemwegserkrankungen',
+      medical_treatment: 'Aktuell in ärztl. Behandlung',
+      medication: 'Medikamenteneinnahme',
+      recent_surgery: 'Kürzliche Operation',
+      pregnant: 'Schwangerschaft',
+      other_conditions: 'Sonstige Erkrankungen',
+    };
+    let healthHtml = '';
+    const hd = c.health_declaration;
+    if (hd && typeof hd === 'object') {
+      healthHtml = Object.entries(healthLabels).map(([key, label]) => {
+        const val = hd[key];
+        const badge = val ? '<span style="color:#E74C3C;font-weight:700">Ja</span>' : '<span style="color:#27AE60;font-weight:700">Nein</span>';
+        return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)"><span style="font-size:13px;color:var(--text-secondary)">${label}</span>${badge}</div>`;
+      }).join('');
+      if (hd.additional_notes) {
+        healthHtml += `<div style="margin-top:8px"><span style="font-size:12px;color:var(--text-muted)">Anmerkungen:</span><p style="font-size:13px;margin-top:4px">${hd.additional_notes}</p></div>`;
+      }
+    }
 
     let html = `
       <div class="two-col">
@@ -277,22 +342,41 @@
           <input class="form-control" value="${c.phone || '–'}" disabled>
         </div>
       </div>
-      <div class="form-group">
-        <label>Adresse</label>
-        <input class="form-control" value="${[c.street_address, c.postal_code, c.city].filter(Boolean).join(', ') || '–'}" disabled>
-      </div>
       <div class="two-col">
         <div class="form-group">
-          <label>Vertrag</label>
-          <div style="padding:8px 0">${contractBadge}</div>
+          <label>Adresse</label>
+          <input class="form-control" value="${[c.street_address, c.postal_code, c.city].filter(Boolean).join(', ') || '–'}" disabled>
         </div>
         <div class="form-group">
-          <label>Vertrag akzeptiert am</label>
-          <input class="form-control" value="${contractDate}" disabled>
+          <label>Geburtsdatum</label>
+          <input class="form-control" value="${dobFormatted}" disabled>
         </div>
       </div>
       ${c.notes ? `<div class="form-group"><label>Notizen</label><textarea class="form-control" disabled>${c.notes}</textarea></div>` : ''}
       <p class="text-muted" style="font-size:12px">Registriert: ${formatDateTime(c.created_at)} · ID: ${c.id}</p>
+
+      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Vertragsstatus</h3>
+      <div class="two-col">
+        <div class="form-group">
+          <label>AGB</label>
+          <div style="padding:4px 0">${termsBadge}</div>
+          <span class="text-muted" style="font-size:11px">${termsDate}</span>
+        </div>
+        <div class="form-group">
+          <label>Dienstleistungsvertrag</label>
+          <div style="padding:4px 0">${serviceContractBadge}</div>
+          <span class="text-muted" style="font-size:11px">${serviceContractDate}</span>
+        </div>
+      </div>
+
+      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Gesundheitserklärung ${healthBadge}</h3>
+      ${healthHtml
+        ? `<div style="background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 16px">${healthHtml}</div>
+           <span class="text-muted" style="font-size:11px;display:block;margin-top:6px">Akzeptiert am: ${healthDate}</span>`
+        : '<p class="text-muted" style="font-size:13px">Noch nicht ausgefüllt.</p>'
+      }
 
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Dokumente & Verträge</h3>

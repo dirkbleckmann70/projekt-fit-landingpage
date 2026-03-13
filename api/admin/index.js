@@ -1000,7 +1000,7 @@ async function handleDocuments(req, res, supabase) {
 async function handleCustomers(req, res, supabase) {
   if (req.method === 'POST') {
     const body = await getBody(req);
-    const { first_name, last_name, email, phone, street_address, postal_code, city, notes } = body;
+    const { first_name, last_name, email, phone, street_address, postal_code, city, date_of_birth, notes } = body;
 
     if (!first_name || !last_name || !email) {
       return res.status(400).json({ error: 'Vorname, Nachname und E-Mail sind Pflichtfelder' });
@@ -1014,6 +1014,7 @@ async function handleCustomers(req, res, supabase) {
       street_address: street_address || null,
       postal_code: postal_code || null,
       city: city || null,
+      date_of_birth: date_of_birth || null,
       notes: notes || null,
     }).select();
 
@@ -1026,7 +1027,7 @@ async function handleCustomers(req, res, supabase) {
     const { id, ...fields } = body;
     if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
 
-    const allowed = ['first_name', 'last_name', 'email', 'phone', 'street_address', 'postal_code', 'city', 'notes', 'contract_accepted', 'contract_accepted_at', 'terms_accepted', 'terms_accepted_at', 'document_files'];
+    const allowed = ['first_name', 'last_name', 'email', 'phone', 'street_address', 'postal_code', 'city', 'date_of_birth', 'notes', 'contract_accepted', 'contract_accepted_at', 'terms_accepted', 'terms_accepted_at', 'service_contract_accepted', 'service_contract_accepted_at', 'health_declaration', 'health_declaration_accepted', 'health_declaration_accepted_at', 'document_files'];
     const update = {};
     for (const key of allowed) { if (key in fields) update[key] = fields[key]; }
 
