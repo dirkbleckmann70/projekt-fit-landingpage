@@ -467,10 +467,26 @@
       <div style="margin-top:12px">
         <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
           <input type="file" id="admin-file-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
-            onchange="adminUploadFiles('${id}')">
+            onchange="adminUploadFiles('${id}', 'license')">
           + Neue Lizenz hochladen
         </label>
         <span id="admin-upload-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
+      </div>
+
+      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Vertrag</h3>
+
+      <div id="contract-list">
+        ${renderContractList(t.contract_files || [], id)}
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <input type="file" id="admin-contract-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+            onchange="adminUploadFiles('${id}', 'contract')">
+          + Vertrag hochladen
+        </label>
+        <span id="admin-contract-upload-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
       </div>
     `;
 
@@ -494,6 +510,28 @@
           </div>
           <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewLicense('${f.path}')">Anzeigen</button>
           <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteLicense('${trainerId}','${f.path}')">L&ouml;schen</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function renderContractList(files, trainerId) {
+    if (!files || files.length === 0) {
+      return '<p style="color:#8888A0;font-size:13px">Kein Vertrag hochgeladen.</p>';
+    }
+    return files.map(f => {
+      const date = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('de-DE') : '–';
+      const size = f.size_bytes ? formatFileSize(f.size_bytes) : '–';
+      const icon = (f.content_type === 'application/pdf' || f.filename.endsWith('.pdf')) ? 'PDF' : 'IMG';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(46,117,182,0.12);color:#2E75B6;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.filename}</div>
+            <div style="font-size:11px;color:#8888A0">${date} &middot; ${size}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewLicense('${f.path}')">Anzeigen</button>
+          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteContract('${trainerId}','${f.path}')">L&ouml;schen</button>
         </div>
       `;
     }).join('');
@@ -533,9 +571,10 @@
     }
   }
 
-  async function adminUploadFiles(trainerId) {
-    const input = document.getElementById('admin-file-upload');
-    const status = document.getElementById('admin-upload-status');
+  async function adminUploadFiles(trainerId, type = 'license') {
+    const isContract = type === 'contract';
+    const input = document.getElementById(isContract ? 'admin-contract-upload' : 'admin-file-upload');
+    const status = document.getElementById(isContract ? 'admin-contract-upload-status' : 'admin-upload-status');
     const files = input.files;
     if (!files || files.length === 0) return;
 
@@ -543,12 +582,12 @@
 
     const formData = new FormData();
     formData.append('trainerId', trainerId);
+    if (isContract) formData.append('subfolder', 'contracts');
     for (let i = 0; i < files.length; i++) {
       formData.append('files', files[i]);
     }
 
     try {
-      const token = localStorage.getItem('admin_token');
       const resp = await fetch('/api/upload-license', {
         method: 'POST',
         body: formData,
@@ -556,12 +595,31 @@
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error || 'Upload fehlgeschlagen');
 
+      // For contracts, update contract_files field
+      if (isContract) {
+        const t = allTrainers.find(tr => tr.id === trainerId);
+        const existingContracts = t?.contract_files || [];
+        const newContracts = [...existingContracts, ...result.files.map(f => ({
+          filename: f.filename,
+          path: f.path,
+          size_bytes: f.size_bytes,
+          content_type: f.content_type,
+          uploaded_at: new Date().toISOString(),
+        }))];
+        await adminApi('/api/admin?action=trainers', {
+          method: 'PUT',
+          body: JSON.stringify({ trainerId, contract_files: newContracts }),
+        });
+      }
+
       status.textContent = '';
       showAlert('alert-box', `${result.files.length} Datei(en) hochgeladen!`, 'success');
       await loadTrainers();
       const t = allTrainers.find(tr => tr.id === trainerId);
       if (t) {
         document.getElementById('license-list').innerHTML = renderLicenseList(t.license_files || [], trainerId);
+        const contractListEl = document.getElementById('contract-list');
+        if (contractListEl) contractListEl.innerHTML = renderContractList(t.contract_files || [], trainerId);
       }
     } catch (err) {
       status.textContent = '';
@@ -569,6 +627,36 @@
     }
 
     input.value = '';
+  }
+
+  async function deleteContract(trainerId, path) {
+    if (!confirm('Vertragsdatei wirklich löschen?')) return;
+    try {
+      // Delete from storage
+      await adminApi('/api/admin?action=license', {
+        method: 'DELETE',
+        body: JSON.stringify({ trainerId, path }),
+      });
+      // Update contract_files in trainer profile
+      const t = allTrainers.find(tr => tr.id === trainerId);
+      if (t) {
+        const updatedContracts = (t.contract_files || []).filter(f => f.path !== path);
+        await adminApi('/api/admin?action=trainers', {
+          method: 'PUT',
+          body: JSON.stringify({ trainerId, contract_files: updatedContracts }),
+        });
+      }
+      showAlert('alert-box', 'Vertrag gelöscht!', 'success');
+      await loadTrainers();
+      const updated = allTrainers.find(tr => tr.id === trainerId);
+      if (updated) {
+        document.getElementById('license-list').innerHTML = renderLicenseList(updated.license_files || [], trainerId);
+        const contractListEl = document.getElementById('contract-list');
+        if (contractListEl) contractListEl.innerHTML = renderContractList(updated.contract_files || [], trainerId);
+      }
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
   }
 
   async function saveTrainer() {

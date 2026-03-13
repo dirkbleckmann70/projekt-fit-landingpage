@@ -25,31 +25,35 @@
             <button class="btn btn-primary" onclick="openNewModal()">+ Neues Gruppentraining</button>
           </div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Kursname</th>
-              <th>Trainer</th>
-              <th>Stadt / Ort</th>
-              <th>Wochentag</th>
-              <th>Uhrzeit</th>
-              <th>Teilnehmer</th>
-              <th>Preis/Person</th>
-              <th>Status</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="groups-body">
-            <tr><td colspan="9" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
-          </tbody>
-        </table>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th>Wochentag</th>
+                <th>Uhrzeit</th>
+                <th>Stadt</th>
+                <th>Kursname</th>
+                <th>Trainer</th>
+                <th>Teilnehmer</th>
+                <th>Preis/Person</th>
+                <th>Summe EUR</th>
+                <th>Status</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="groups-body">
+              <tr><td colspan="11" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- ─── New / Edit Group Modal ────────────────────────────────────── -->
+<!-- New / Edit Group Modal -->
 <div class="modal-overlay" id="group-modal">
   <div class="modal" style="max-width:650px">
     <div class="modal-header">
@@ -58,6 +62,16 @@
     </div>
     <div class="modal-body">
       <form id="group-form">
+        <div class="two-col">
+          <div class="form-group">
+            <label>Datum *</label>
+            <input class="form-control" type="date" id="f-date" required>
+          </div>
+          <div class="form-group">
+            <label>Uhrzeit *</label>
+            <input class="form-control" type="time" id="f-time" required>
+          </div>
+        </div>
         <div class="two-col">
           <div class="form-group">
             <label>Kursname *</label>
@@ -85,24 +99,6 @@
         <div class="form-group">
           <label>Adresse</label>
           <input class="form-control" id="f-location-address" placeholder="z.B. Musterstraße 1, 50667 Köln">
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Wochentag *</label>
-            <select class="form-control" id="f-weekday">
-              <option value="1">Montag</option>
-              <option value="2">Dienstag</option>
-              <option value="3">Mittwoch</option>
-              <option value="4">Donnerstag</option>
-              <option value="5">Freitag</option>
-              <option value="6">Samstag</option>
-              <option value="0">Sonntag</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Uhrzeit *</label>
-            <input class="form-control" type="time" id="f-time" required>
-          </div>
         </div>
         <div class="two-col">
           <div class="form-group">
@@ -134,9 +130,9 @@
   </div>
 </div>
 
-<!-- ─── Participants Modal ────────────────────────────────────────── -->
+<!-- Participants Modal -->
 <div class="modal-overlay" id="participants-modal">
-  <div class="modal">
+  <div class="modal" style="max-width:800px">
     <div class="modal-header">
       <div class="modal-title" id="participants-title">Teilnehmer</div>
       <button class="modal-close" onclick="closeParticipants()">&times;</button>
@@ -156,6 +152,7 @@
   let allGroups = [];
   let activeTrainers = [];
   let editingGroupId = null;
+  const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
   (async () => {
     const user = await checkAdminAuth();
@@ -164,7 +161,7 @@
     document.getElementById('sidebar').innerHTML = renderSidebar('groups');
     document.getElementById('header').innerHTML = renderHeader('Gruppentrainings');
 
-    // Load trainers for dropdown
+    // Load trainers
     try {
       const res = await adminApi('/api/admin?action=data&type=active_trainers');
       activeTrainers = res.data || [];
@@ -175,11 +172,9 @@
         opt.textContent = t.full_name;
         sel.appendChild(opt);
       });
-    } catch (err) {
-      console.error('Trainer laden fehlgeschlagen:', err);
-    }
+    } catch (err) { console.error('Trainer laden fehlgeschlagen:', err); }
 
-    // Load cities for dropdown
+    // Load cities
     try {
       const res = await adminApi('/api/admin?action=data&type=active_locations');
       const locations = res.data || [];
@@ -190,9 +185,7 @@
         opt.textContent = l.city;
         citySel.appendChild(opt);
       });
-    } catch (err) {
-      console.error('Einsatzorte laden fehlgeschlagen:', err);
-    }
+    } catch (err) { console.error('Einsatzorte laden fehlgeschlagen:', err); }
 
     await loadGroups();
   })();
@@ -204,45 +197,60 @@
       renderGroups();
     } catch (err) {
       document.getElementById('groups-body').innerHTML =
-        `<tr><td colspan="9" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="11" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
+  }
+
+  function getDayName(group) {
+    if (group.scheduled_date) {
+      const d = new Date(group.scheduled_date + 'T00:00:00');
+      return dayNames[d.getDay()] || '–';
+    }
+    if (group.day_of_week != null) return dayNames[group.day_of_week] || '–';
+    return '–';
+  }
+
+  function getTime(group) {
+    const t = group.scheduled_time || group.start_time;
+    return t ? t.slice(0, 5) : '–';
   }
 
   function renderGroups() {
     const tbody = document.getElementById('groups-body');
     if (allGroups.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings vorhanden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings vorhanden</td></tr>';
       return;
     }
-
-    const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
     tbody.innerHTML = allGroups.map(g => {
       const trainerName = activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '–';
       const participants = g.current_participants || 0;
       const max = g.max_participants || '–';
-      const dayLabel = g.day_of_week != null ? (dayNames[g.day_of_week] || g.day_of_week) : '–';
+      const priceCents = g.price_per_person_cents || 0;
+      const sumCents = participants * priceCents;
       return `
         <tr>
+          <td>${g.scheduled_date ? formatDate(g.scheduled_date) : '–'}</td>
+          <td>${getDayName(g)}</td>
+          <td>${getTime(g)}</td>
+          <td>${g.city || '–'}</td>
           <td><strong>${g.name}</strong></td>
           <td>${trainerName}</td>
-          <td>${g.city || '–'} ${g.location_name ? '· ' + g.location_name : ''}</td>
-          <td>${dayLabel}</td>
-          <td>${g.start_time ? g.start_time.slice(0,5) : '–'}</td>
           <td>${participants} / ${max}</td>
-          <td class="text-accent">${formatEuro(g.price_per_person_cents)}</td>
+          <td class="text-accent">${formatEuro(priceCents)}</td>
+          <td class="text-accent">${formatEuro(sumCents)}</td>
           <td>${g.is_active ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
           <td>
             <div class="action-cell">
               <button class="btn btn-secondary btn-sm" onclick="editGroup('${g.id}')">Bearbeiten</button>
-              <button class="btn btn-ghost btn-sm" onclick="showParticipants('${g.id}', '${g.name}')">Teilnehmer</button>
+              <button class="btn btn-ghost btn-sm" onclick="showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')">Teilnehmer</button>
               <button class="btn btn-sm ${g.is_active ? 'btn-danger' : 'btn-success'}"
                 onclick="toggleActive('${g.id}', ${!g.is_active})">
                 ${g.is_active ? 'Deaktivieren' : 'Aktivieren'}
               </button>
               ${g.is_active
                 ? '<button class="btn btn-icon btn-icon-delete" disabled title="Kurs muss zuerst deaktiviert werden">&#x1F5D1;</button>'
-                : `<button class="btn btn-icon btn-icon-delete" onclick="deleteGroup('${g.id}', '${g.name.replace(/'/g, "\\'")}')" title="Kurs löschen">&#x1F5D1;</button>`
+                : `<button class="btn btn-icon btn-icon-delete" onclick="deleteGroup('${g.id}', '${(g.name||'').replace(/'/g, "\\'")}')" title="Kurs löschen">&#x1F5D1;</button>`
               }
             </div>
           </td>
@@ -251,11 +259,12 @@
     }).join('');
   }
 
-  // ─── Create / Edit ────────────────────────────────────────────────
+  // Create / Edit
   function openNewModal() {
     editingGroupId = null;
     document.getElementById('modal-title').textContent = 'Neues Gruppentraining';
     document.getElementById('group-form').reset();
+    document.getElementById('f-active').checked = true;
     document.getElementById('group-modal').classList.add('open');
   }
 
@@ -269,8 +278,8 @@
     document.getElementById('f-city').value = g.city || '';
     document.getElementById('f-location-name').value = g.location_name || '';
     document.getElementById('f-location-address').value = g.location_address || '';
-    document.getElementById('f-weekday').value = g.day_of_week != null ? g.day_of_week : 1;
-    document.getElementById('f-time').value = g.start_time ? g.start_time.slice(0,5) : '';
+    document.getElementById('f-date').value = g.scheduled_date || '';
+    document.getElementById('f-time').value = (g.scheduled_time || g.start_time || '').slice(0, 5);
     document.getElementById('f-duration').value = g.duration_minutes || 60;
     document.getElementById('f-max').value = g.max_participants || 12;
     document.getElementById('f-price').value = g.price_per_person_cents ? (g.price_per_person_cents / 100).toFixed(2) : '';
@@ -282,8 +291,15 @@
     const name = document.getElementById('f-name').value.trim();
     const trainerId = document.getElementById('f-trainer').value;
     const city = document.getElementById('f-city').value.trim();
+    const scheduledDate = document.getElementById('f-date').value;
+    const scheduledTime = document.getElementById('f-time').value;
+
     if (!name || !trainerId || !city) {
       alert('Kursname, Trainer und Stadt sind Pflichtfelder.');
+      return;
+    }
+    if (!scheduledDate || !scheduledTime) {
+      alert('Datum und Uhrzeit sind Pflichtfelder.');
       return;
     }
 
@@ -294,8 +310,9 @@
       city,
       location_name: document.getElementById('f-location-name').value.trim() || null,
       location_address: document.getElementById('f-location-address').value.trim() || null,
-      day_of_week: parseInt(document.getElementById('f-weekday').value),
-      start_time: document.getElementById('f-time').value ? document.getElementById('f-time').value + ':00' : null,
+      scheduled_date: scheduledDate,
+      scheduled_time: scheduledTime + ':00',
+      start_time: scheduledTime + ':00',
       duration_minutes: parseInt(document.getElementById('f-duration').value) || 60,
       max_participants: parseInt(document.getElementById('f-max').value) || 12,
       price_per_person_cents: priceEur ? Math.round(priceEur * 100) : null,
@@ -327,10 +344,7 @@
   async function deleteGroup(id, name) {
     if (!confirm(`Kurs "${name}" wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) return;
     try {
-      await adminApi('/api/admin?action=groups', {
-        method: 'DELETE',
-        body: JSON.stringify({ id }),
-      });
+      await adminApi('/api/admin?action=groups', { method: 'DELETE', body: JSON.stringify({ id }) });
       showAlert('alert-box', 'Kurs gelöscht!', 'success');
       await loadGroups();
     } catch (err) {
@@ -340,63 +354,147 @@
 
   async function toggleActive(id, newState) {
     try {
-      await adminApi('/api/admin?action=groups', {
-        method: 'PUT',
-        body: JSON.stringify({ id, is_active: newState }),
-      });
+      await adminApi('/api/admin?action=groups', { method: 'PUT', body: JSON.stringify({ id, is_active: newState }) });
       await loadGroups();
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     }
   }
 
-  // ─── Participants ─────────────────────────────────────────────────
-  async function showParticipants(groupId, groupName) {
-    document.getElementById('participants-title').textContent = `Teilnehmer: ${groupName}`;
+  // Participants
+  let currentParticipantsGroupId = null;
+
+  async function showParticipants(groupId, groupName, date, time) {
+    currentParticipantsGroupId = groupId;
+    const dateStr = date ? formatDate(date) : '';
+    document.getElementById('participants-title').textContent = `${groupName} – ${dateStr} ${time}`;
     document.getElementById('participants-body').innerHTML = '<div class="loading-overlay"><span class="spinner"></span> Laden...</div>';
     document.getElementById('participants-modal').classList.add('open');
+    await loadParticipants(groupId);
+  }
 
+  async function loadParticipants(groupId) {
     try {
       const res = await adminApi(`/api/admin?action=data&type=group_participants&group_id=${groupId}`);
       const participants = res.data || [];
 
-      if (participants.length === 0) {
-        document.getElementById('participants-body').innerHTML = '<p class="text-muted text-center" style="padding:20px">Keine Teilnehmer angemeldet.</p>';
-        return;
+      const attendedCount = participants.filter(p => p.attended).length;
+      const totalCount = participants.length;
+
+      let html = `
+        <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
+          <div style="background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 16px">
+            <span style="font-size:12px;color:#8888A0">SOLL (angemeldet)</span>
+            <div style="font-size:20px;font-weight:700">${totalCount}</div>
+          </div>
+          <div style="background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 16px">
+            <span style="font-size:12px;color:#8888A0">IST (teilgenommen)</span>
+            <div style="font-size:20px;font-weight:700;color:var(--success)">${attendedCount}</div>
+          </div>
+        </div>
+      `;
+
+      if (participants.length > 0) {
+        html += `
+          <div style="overflow-x:auto">
+            <table>
+              <thead><tr>
+                <th>Name</th>
+                <th>E-Mail</th>
+                <th>Status</th>
+                <th>Bezahlt (Kunde)</th>
+                <th>Bezahlt (Trainer)</th>
+                <th>Teilgenommen</th>
+              </tr></thead>
+              <tbody>
+                ${participants.map(p => `
+                  <tr>
+                    <td>${p.customer_name || p.name || '–'}</td>
+                    <td class="text-secondary">${p.customer_email || p.email || '–'}</td>
+                    <td>${statusBadge(p.status || 'angemeldet')}</td>
+                    <td><input type="checkbox" ${p.customer_paid ? 'checked' : ''} onchange="updateParticipant('${p.id}', 'customer_paid', this.checked)"></td>
+                    <td><input type="checkbox" ${p.trainer_paid ? 'checked' : ''} onchange="updateParticipant('${p.id}', 'trainer_paid', this.checked)"></td>
+                    <td><input type="checkbox" ${p.attended ? 'checked' : ''} onchange="updateParticipant('${p.id}', 'attended', this.checked)"></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        `;
+      } else {
+        html += '<p class="text-muted text-center" style="padding:12px">Keine Teilnehmer angemeldet.</p>';
       }
 
-      document.getElementById('participants-body').innerHTML = `
-        <table>
-          <thead><tr><th>Name</th><th>E-Mail</th><th>Angemeldet am</th></tr></thead>
-          <tbody>
-            ${participants.map(p => `
-              <tr>
-                <td>${p.name || '–'}</td>
-                <td class="text-secondary">${p.email || '–'}</td>
-                <td class="text-muted">${formatDate(p.created_at)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+      html += `
+        <hr style="border-color:#2a2a2a;margin:20px 0">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Teilnehmer hinzufügen</h3>
+        <div class="two-col">
+          <div class="form-group">
+            <label>Name *</label>
+            <input class="form-control" id="add-p-name" placeholder="Max Mustermann">
+          </div>
+          <div class="form-group">
+            <label>E-Mail</label>
+            <input class="form-control" type="email" id="add-p-email" placeholder="max@beispiel.de">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="addParticipant()">Teilnehmer hinzufügen</button>
       `;
+
+      document.getElementById('participants-body').innerHTML = html;
     } catch (err) {
       document.getElementById('participants-body').innerHTML =
         `<p class="text-error" style="padding:16px">Fehler: ${err.message}</p>`;
     }
   }
 
-  // ─── Modal Helpers ────────────────────────────────────────────────
+  async function updateParticipant(id, field, value) {
+    try {
+      await adminApi('/api/admin?action=update-participant', {
+        method: 'PUT',
+        body: JSON.stringify({ id, [field]: value }),
+      });
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+      // Reload to reset checkbox state
+      if (currentParticipantsGroupId) await loadParticipants(currentParticipantsGroupId);
+    }
+  }
+
+  async function addParticipant() {
+    const name = document.getElementById('add-p-name').value.trim();
+    const email = document.getElementById('add-p-email').value.trim();
+    if (!name) { alert('Name ist ein Pflichtfeld.'); return; }
+
+    try {
+      await adminApi('/api/admin?action=add-participant', {
+        method: 'POST',
+        body: JSON.stringify({
+          group_class_id: currentParticipantsGroupId,
+          customer_name: name,
+          customer_email: email || null,
+        }),
+      });
+      showAlert('alert-box', 'Teilnehmer hinzugefügt!', 'success');
+      await loadParticipants(currentParticipantsGroupId);
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // Modal Helpers
   function closeModal() {
     document.getElementById('group-modal').classList.remove('open');
     editingGroupId = null;
   }
   function closeParticipants() {
     document.getElementById('participants-modal').classList.remove('open');
+    currentParticipantsGroupId = null;
   }
 
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => {
-      if (e.target === o) { o.classList.remove('open'); editingGroupId = null; }
+      if (e.target === o) { o.classList.remove('open'); editingGroupId = null; currentParticipantsGroupId = null; }
     });
   });
 </script>

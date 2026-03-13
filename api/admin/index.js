@@ -86,11 +86,34 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════════
-      // BOOKINGS – PUT (Status ändern)
+      // BOOKINGS – PUT (Status + paid ändern)
       // ═══════════════════════════════════════════════════════════════════
       case 'bookings': {
         if (req.method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
         return await handleBookingsPut(req, res, supabase);
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // CUSTOMERS – GET (alle) + POST (erstellen) + PUT (aktualisieren)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'customers': {
+        return await handleCustomers(req, res, supabase);
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // UPDATE-PARTICIPANT – PUT (attended, customer_paid, trainer_paid)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'update-participant': {
+        if (req.method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
+        return await handleUpdateParticipant(req, res, supabase);
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // ADD-PARTICIPANT – POST
+      // ═══════════════════════════════════════════════════════════════════
+      case 'add-participant': {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        return await handleAddParticipant(req, res, supabase);
       }
 
       // ═══════════════════════════════════════════════════════════════════
@@ -365,7 +388,7 @@ async function handleData(req, res, supabase) {
       const { data, error } = await supabase
         .from('group_classes')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('scheduled_date', { ascending: false, nullsFirst: false });
       if (error) {
         if (error.code === '42P01') return res.json({ data: [] });
         throw error;
@@ -385,6 +408,34 @@ async function handleData(req, res, supabase) {
         throw error;
       }
       return res.json({ data: data || [] });
+    }
+
+    case 'all_customers': {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        if (error.code === '42P01') return res.json({ data: [] });
+        throw error;
+      }
+      return res.json({ data: data || [] });
+    }
+
+    case 'customer_bookings': {
+      const customerId = req.query.customer_id;
+      if (!customerId) return res.status(400).json({ error: 'customer_id fehlt' });
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('*')
+        .or(`customer_id.eq.${customerId},customer_email.eq.${customerId}`)
+        .order('scheduled_date', { ascending: false });
+      if (error) {
+        if (error.code === '42P01') return res.json({ data: [] });
+        throw error;
+      }
+      const enriched = await enrichBookings(supabase, data || []);
+      return res.json({ data: enriched });
     }
 
     default:
@@ -433,7 +484,7 @@ async function handleTrainersPut(req, res, supabase) {
   const allowed = [
     'full_name', 'email', 'phone', 'city', 'specializations', 'bio',
     'steuernummer', 'is_kleinunternehmer', 'street_address', 'postal_code', 'wohnort',
-    'status', 'is_active', 'hourly_rate_cents', 'payout_cents',
+    'status', 'is_active', 'hourly_rate_cents', 'payout_cents', 'contract_files',
   ];
 
   const update = {};
@@ -589,16 +640,29 @@ async function handleDeleteTrainer(req, res, supabase) {
 
 async function handleBookingsPut(req, res, supabase) {
   const body = await getBody(req);
-  const { bookingId, status } = body;
+  const { bookingId, status, paid } = body;
 
-  if (!bookingId || !status) return res.status(400).json({ error: 'bookingId und status sind erforderlich' });
+  if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
 
-  const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({ error: `Ungültiger Status. Erlaubt: ${validStatuses.join(', ')}` });
+  const update = {};
+
+  if (status !== undefined) {
+    const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: `Ungültiger Status. Erlaubt: ${validStatuses.join(', ')}` });
+    }
+    update.status = status;
   }
 
-  const { error } = await supabase.from('bookings').update({ status }).eq('id', bookingId);
+  if (paid !== undefined) {
+    update.paid = !!paid;
+  }
+
+  if (Object.keys(update).length === 0) {
+    return res.status(400).json({ error: 'Keine aktualisierbaren Felder angegeben' });
+  }
+
+  const { error } = await supabase.from('bookings').update(update).eq('id', bookingId);
   if (error) throw error;
   return res.json({ success: true });
 }
@@ -608,18 +672,26 @@ async function handleBookingsPut(req, res, supabase) {
 async function handleGroups(req, res, supabase) {
   if (req.method === 'POST') {
     const body = await getBody(req);
-    const { name, trainer_id, city, location_name, location_address, day_of_week, start_time, duration_minutes, max_participants, price_per_person_cents, is_active } = body;
+    const { name, trainer_id, city, location_name, location_address, day_of_week, start_time, duration_minutes, max_participants, price_per_person_cents, is_active, scheduled_date, scheduled_time } = body;
 
     if (!name || !trainer_id || !city) {
       return res.status(400).json({ error: 'Kursname, Trainer und Stadt sind Pflichtfelder' });
+    }
+
+    // Calculate day_of_week from scheduled_date if provided
+    let computedDayOfWeek = day_of_week;
+    if (scheduled_date && computedDayOfWeek == null) {
+      computedDayOfWeek = new Date(scheduled_date + 'T00:00:00').getDay();
     }
 
     const { data, error } = await supabase.from('group_classes').insert({
       name, trainer_id, city,
       location_name: location_name || null,
       location_address: location_address || null,
-      day_of_week: day_of_week || null,
-      start_time: start_time || null,
+      day_of_week: computedDayOfWeek ?? null,
+      start_time: start_time || scheduled_time || null,
+      scheduled_date: scheduled_date || null,
+      scheduled_time: scheduled_time || start_time || null,
       duration_minutes: duration_minutes || 60,
       max_participants: max_participants || 12,
       price_per_person_cents: price_per_person_cents || null,
@@ -635,9 +707,15 @@ async function handleGroups(req, res, supabase) {
     const { id, ...fields } = body;
     if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
 
-    const allowed = ['name', 'trainer_id', 'city', 'location_name', 'location_address', 'day_of_week', 'start_time', 'duration_minutes', 'max_participants', 'price_per_person_cents', 'is_active'];
+    const allowed = ['name', 'trainer_id', 'city', 'location_name', 'location_address', 'day_of_week', 'start_time', 'duration_minutes', 'max_participants', 'price_per_person_cents', 'is_active', 'scheduled_date', 'scheduled_time'];
     const update = {};
     for (const key of allowed) { if (key in fields) update[key] = fields[key]; }
+
+    // Recalculate day_of_week if scheduled_date changed
+    if (update.scheduled_date) {
+      update.day_of_week = new Date(update.scheduled_date + 'T00:00:00').getDay();
+    }
+
     if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });
 
     const { error } = await supabase.from('group_classes').update(update).eq('id', id);
@@ -815,4 +893,99 @@ async function handleDocuments(req, res, supabase) {
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
+}
+
+// ─── ACTION: customers ───────────────────────────────────────────────────────
+
+async function handleCustomers(req, res, supabase) {
+  if (req.method === 'POST') {
+    const body = await getBody(req);
+    const { first_name, last_name, email, phone, street_address, postal_code, city, notes } = body;
+
+    if (!first_name || !last_name || !email) {
+      return res.status(400).json({ error: 'Vorname, Nachname und E-Mail sind Pflichtfelder' });
+    }
+
+    const full_name = (first_name + ' ' + last_name).trim();
+    const { data, error } = await supabase.from('customers').insert({
+      first_name, last_name, full_name,
+      email: email.trim().toLowerCase(),
+      phone: phone || null,
+      street_address: street_address || null,
+      postal_code: postal_code || null,
+      city: city || null,
+      notes: notes || null,
+    }).select();
+
+    if (error) throw error;
+    return res.json({ success: true, data: data?.[0] });
+  }
+
+  if (req.method === 'PUT') {
+    const body = await getBody(req);
+    const { id, ...fields } = body;
+    if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
+
+    const allowed = ['first_name', 'last_name', 'email', 'phone', 'street_address', 'postal_code', 'city', 'notes', 'contract_accepted', 'contract_accepted_at', 'terms_accepted', 'terms_accepted_at'];
+    const update = {};
+    for (const key of allowed) { if (key in fields) update[key] = fields[key]; }
+
+    if (update.first_name || update.last_name) {
+      const { data: existing } = await supabase.from('customers').select('first_name, last_name').eq('id', id).single();
+      if (existing) {
+        update.full_name = ((update.first_name || existing.first_name) + ' ' + (update.last_name || existing.last_name)).trim();
+      }
+    }
+
+    if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });
+
+    const { error } = await supabase.from('customers').update(update).eq('id', id);
+    if (error) throw error;
+    return res.json({ success: true });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
+}
+
+// ─── ACTION: update-participant ──────────────────────────────────────────────
+
+async function handleUpdateParticipant(req, res, supabase) {
+  const body = await getBody(req);
+  const { id, attended, customer_paid, trainer_paid } = body;
+
+  if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
+
+  const update = {};
+  if (attended !== undefined) update.attended = !!attended;
+  if (customer_paid !== undefined) update.customer_paid = !!customer_paid;
+  if (trainer_paid !== undefined) update.trainer_paid = !!trainer_paid;
+
+  if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });
+
+  const { error } = await supabase.from('group_participants').update(update).eq('id', id);
+  if (error) throw error;
+  return res.json({ success: true });
+}
+
+// ─── ACTION: add-participant ─────────────────────────────────────────────────
+
+async function handleAddParticipant(req, res, supabase) {
+  const body = await getBody(req);
+  const { group_class_id, customer_name, customer_email } = body;
+
+  if (!group_class_id || !customer_name) {
+    return res.status(400).json({ error: 'group_class_id und customer_name sind erforderlich' });
+  }
+
+  const { data, error } = await supabase.from('group_participants').insert({
+    group_class_id,
+    customer_name,
+    customer_email: customer_email || null,
+    attended: false,
+    customer_paid: false,
+    trainer_paid: false,
+  }).select();
+
+  if (error) throw error;
+  return res.json({ success: true, data: data?.[0] });
 }

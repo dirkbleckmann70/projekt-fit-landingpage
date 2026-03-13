@@ -22,6 +22,7 @@
         <div class="table-header">
           <div class="table-title">Alle Buchungen</div>
           <div class="table-actions">
+            <input type="text" class="search-input" id="search" placeholder="Kunde oder Trainer suchen...">
             <div class="filter-tabs" id="filter-tabs">
               <button class="filter-tab active" data-filter="all">Alle</button>
               <button class="filter-tab" data-filter="PENDING">Pending</button>
@@ -31,30 +32,34 @@
             </div>
           </div>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Kunde</th>
-              <th>Trainer</th>
-              <th>Datum</th>
-              <th>Uhrzeit</th>
-              <th>Ort</th>
-              <th>Status</th>
-              <th>Preis</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="bookings-body">
-            <tr><td colspan="8" class="loading-overlay"><span class="spinner"></span> Buchungen werden geladen...</td></tr>
-          </tbody>
-        </table>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Datum</th>
+                <th>Ort</th>
+                <th>Uhrzeit</th>
+                <th>Art</th>
+                <th>Trainer</th>
+                <th>Kunde</th>
+                <th>Status</th>
+                <th>Preis</th>
+                <th>Bezahlt?</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-body">
+              <tr><td colspan="10" class="loading-overlay"><span class="spinner"></span> Buchungen werden geladen...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- ─── Booking Detail Modal ──────────────────────────────────────── -->
+<!-- Booking Detail Modal -->
 <div class="modal-overlay" id="detail-modal">
   <div class="modal">
     <div class="modal-header">
@@ -74,6 +79,7 @@
 <script>
   let allBookings = [];
   let currentFilter = 'all';
+  let currentSearch = '';
   let editingBookingId = null;
 
   (async () => {
@@ -93,6 +99,11 @@
         renderBookings();
       });
     });
+
+    document.getElementById('search').addEventListener('input', (e) => {
+      currentSearch = e.target.value.toLowerCase();
+      renderBookings();
+    });
   })();
 
   async function loadBookings() {
@@ -102,8 +113,13 @@
       renderBookings();
     } catch (err) {
       document.getElementById('bookings-body').innerHTML =
-        `<tr><td colspan="8" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="10" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
+  }
+
+  function getBookingType(b) {
+    if (b.booking_type === 'group') return 'Gruppentraining';
+    return 'Personal Training';
   }
 
   function renderBookings() {
@@ -111,28 +127,73 @@
     if (currentFilter !== 'all') {
       filtered = filtered.filter(b => b.status === currentFilter);
     }
+    if (currentSearch) {
+      filtered = filtered.filter(b =>
+        (b.customer_name || '').toLowerCase().includes(currentSearch) ||
+        (b.trainer_name || '').toLowerCase().includes(currentSearch)
+      );
+    }
 
     const tbody = document.getElementById('bookings-body');
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
       return;
     }
 
     tbody.innerHTML = filtered.map(b => `
       <tr>
-        <td>${b.customer_name || b.customer_id || '–'}</td>
-        <td>${b.trainer_name || '–'}</td>
         <td>${formatDate(b.scheduled_date)}</td>
-        <td>${b.scheduled_time || '–'}</td>
-        <td>${b.location || '–'}</td>
+        <td>${b.location_name || b.location || '–'}</td>
+        <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
+        <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
+        <td>${b.trainer_name || '–'}</td>
+        <td>${b.customer_name || b.customer_id || '–'}</td>
         <td>${statusBadge(b.status)}</td>
-        <td class="text-accent">${formatEuro(b.price_cents)}</td>
+        <td class="text-accent">${formatEuro(b.price_cents || b.final_price_cents)}</td>
         <td>
-          <button class="btn btn-secondary btn-sm" onclick="openDetail('${b.id}')">Details</button>
+          <input type="checkbox" ${b.paid ? 'checked' : ''} onchange="togglePaid('${b.id}', this.checked)" title="Bezahlt?">
+        </td>
+        <td>
+          <div class="action-cell">
+            <select class="form-control" style="width:130px;padding:4px 8px;font-size:12px" onchange="quickStatusChange('${b.id}', this.value)" title="Status ändern">
+              <option value="PENDING" ${b.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
+              <option value="CONFIRMED" ${b.status === 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
+              <option value="COMPLETED" ${b.status === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
+              <option value="CANCELLED" ${b.status === 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="openDetail('${b.id}')">Details</button>
+          </div>
         </td>
       </tr>
     `).join('');
+  }
+
+  async function togglePaid(bookingId, paid) {
+    try {
+      await adminApi('/api/admin?action=bookings', {
+        method: 'PUT',
+        body: JSON.stringify({ bookingId, paid }),
+      });
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+      await loadBookings();
+    }
+  }
+
+  async function quickStatusChange(bookingId, status) {
+    try {
+      await adminApi('/api/admin?action=bookings', {
+        method: 'PUT',
+        body: JSON.stringify({ bookingId, status }),
+      });
+      // Update local data
+      const b = allBookings.find(x => x.id === bookingId);
+      if (b) b.status = status;
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+      await loadBookings();
+    }
   }
 
   function openDetail(id) {
@@ -158,17 +219,27 @@
         </div>
         <div class="form-group">
           <label>Uhrzeit</label>
-          <input class="form-control" value="${b.scheduled_time || '–'}" disabled>
+          <input class="form-control" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}" disabled>
         </div>
       </div>
       <div class="two-col">
         <div class="form-group">
           <label>Ort</label>
-          <input class="form-control" value="${b.location || '–'}" disabled>
+          <input class="form-control" value="${b.location_name || b.location || '–'}" disabled>
         </div>
         <div class="form-group">
+          <label>Art</label>
+          <input class="form-control" value="${getBookingType(b)}" disabled>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
           <label>Preis</label>
-          <input class="form-control" value="${formatEuro(b.price_cents)}" disabled>
+          <input class="form-control" value="${formatEuro(b.price_cents || b.final_price_cents)}" disabled>
+        </div>
+        <div class="form-group">
+          <label>Bezahlt</label>
+          <input class="form-control" value="${b.paid ? 'Ja' : 'Nein'}" disabled>
         </div>
       </div>
       <div class="two-col">

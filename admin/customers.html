@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kunden – Projekt Fit Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <div id="alert-box" class="alert"></div>
+
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
+        Kundendaten werden über die App erfasst. Hier kannst du Kunden einsehen und verwalten.
+      </p>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Kunden-Verwaltung</div>
+          <div class="table-actions">
+            <input type="text" class="search-input" id="search" placeholder="Name oder E-Mail suchen...">
+            <div class="filter-tabs" id="filter-tabs">
+              <button class="filter-tab active" data-filter="all">Alle</button>
+              <button class="filter-tab" data-filter="contract">Mit Vertrag</button>
+              <button class="filter-tab" data-filter="no-contract">Ohne Vertrag</button>
+            </div>
+            <button class="btn btn-primary" onclick="openNewModal()">+ Kunde anlegen</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>E-Mail</th>
+                <th>Telefon</th>
+                <th>Stadt</th>
+                <th>Vertrag</th>
+                <th>Registriert am</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="customers-body">
+              <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Kunden werden geladen...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- New Customer Modal -->
+<div class="modal-overlay" id="new-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title">Neuen Kunden anlegen</div>
+      <button class="modal-close" onclick="closeNewModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="new-customer-form">
+        <div class="two-col">
+          <div class="form-group">
+            <label>Vorname *</label>
+            <input class="form-control" id="new-firstname" required>
+          </div>
+          <div class="form-group">
+            <label>Nachname *</label>
+            <input class="form-control" id="new-lastname" required>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>E-Mail *</label>
+            <input class="form-control" type="email" id="new-email" required>
+          </div>
+          <div class="form-group">
+            <label>Telefon</label>
+            <input class="form-control" id="new-phone">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Straße und Hausnummer</label>
+          <input class="form-control" id="new-street">
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>PLZ</label>
+            <input class="form-control" id="new-postal">
+          </div>
+          <div class="form-group">
+            <label>Ort</label>
+            <input class="form-control" id="new-city">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notizen</label>
+          <textarea class="form-control" id="new-notes" rows="3"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeNewModal()">Abbrechen</button>
+      <button class="btn btn-primary" id="new-save-btn" onclick="createCustomer()">Anlegen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Customer Detail Modal -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" style="max-width:700px">
+    <div class="modal-header">
+      <div class="modal-title" id="detail-title">Kunden-Details</div>
+      <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeDetailModal()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  let allCustomers = [];
+  let currentFilter = 'all';
+  let currentSearch = '';
+
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderSidebar('customers');
+    document.getElementById('header').innerHTML = renderHeader('Kunden');
+
+    await loadCustomers();
+
+    document.querySelectorAll('#filter-tabs .filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentFilter = tab.dataset.filter;
+        renderCustomers();
+      });
+    });
+
+    document.getElementById('search').addEventListener('input', (e) => {
+      currentSearch = e.target.value.toLowerCase();
+      renderCustomers();
+    });
+  })();
+
+  async function loadCustomers() {
+    try {
+      const res = await adminApi('/api/admin?action=data&type=all_customers');
+      allCustomers = res.data || [];
+      renderCustomers();
+    } catch (err) {
+      document.getElementById('customers-body').innerHTML =
+        `<tr><td colspan="7" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+    }
+  }
+
+  function renderCustomers() {
+    let filtered = allCustomers;
+
+    if (currentFilter === 'contract') {
+      filtered = filtered.filter(c => c.contract_accepted);
+    } else if (currentFilter === 'no-contract') {
+      filtered = filtered.filter(c => !c.contract_accepted);
+    }
+
+    if (currentSearch) {
+      filtered = filtered.filter(c =>
+        (c.full_name || '').toLowerCase().includes(currentSearch) ||
+        (c.first_name || '').toLowerCase().includes(currentSearch) ||
+        (c.last_name || '').toLowerCase().includes(currentSearch) ||
+        (c.email || '').toLowerCase().includes(currentSearch)
+      );
+    }
+
+    const tbody = document.getElementById('customers-body');
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Keine Kunden gefunden</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(c => {
+      const contractBadge = c.contract_accepted
+        ? '<span class="badge badge-active">Vertrag akzeptiert</span>'
+        : '<span class="badge badge-red">Kein Vertrag</span>';
+      return `
+        <tr>
+          <td><strong>${c.full_name || (c.first_name + ' ' + c.last_name) || '–'}</strong></td>
+          <td class="text-secondary">${c.email || '–'}</td>
+          <td>${c.phone || '–'}</td>
+          <td>${c.city || '–'}</td>
+          <td>${contractBadge}</td>
+          <td class="text-muted">${formatDate(c.created_at)}</td>
+          <td>
+            <button class="btn btn-secondary btn-sm" onclick="showDetail('${c.id}')">Details</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // New Customer
+  function openNewModal() {
+    document.getElementById('new-customer-form').reset();
+    document.getElementById('new-modal').classList.add('open');
+  }
+  function closeNewModal() {
+    document.getElementById('new-modal').classList.remove('open');
+  }
+
+  async function createCustomer() {
+    const firstname = document.getElementById('new-firstname').value.trim();
+    const lastname = document.getElementById('new-lastname').value.trim();
+    const email = document.getElementById('new-email').value.trim();
+
+    if (!firstname || !lastname || !email) {
+      alert('Vorname, Nachname und E-Mail sind Pflichtfelder.');
+      return;
+    }
+
+    const btn = document.getElementById('new-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      await adminApi('/api/admin?action=customers', {
+        method: 'POST',
+        body: JSON.stringify({
+          first_name: firstname,
+          last_name: lastname,
+          email,
+          phone: document.getElementById('new-phone').value.trim() || null,
+          street_address: document.getElementById('new-street').value.trim() || null,
+          postal_code: document.getElementById('new-postal').value.trim() || null,
+          city: document.getElementById('new-city').value.trim() || null,
+          notes: document.getElementById('new-notes').value.trim() || null,
+        }),
+      });
+      closeNewModal();
+      showAlert('alert-box', 'Kunde angelegt!', 'success');
+      await loadCustomers();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Anlegen';
+    }
+  }
+
+  // Customer Detail
+  async function showDetail(id) {
+    const c = allCustomers.find(x => x.id === id);
+    if (!c) return;
+
+    document.getElementById('detail-title').textContent = c.full_name || 'Kunden-Details';
+
+    const contractBadge = c.contract_accepted
+      ? '<span class="badge badge-active">Vertrag akzeptiert</span>'
+      : '<span class="badge badge-red">Kein Vertrag</span>';
+    const contractDate = c.contract_accepted_at ? formatDateTime(c.contract_accepted_at) : '–';
+
+    let html = `
+      <div class="two-col">
+        <div class="form-group">
+          <label>Vorname</label>
+          <input class="form-control" value="${c.first_name || '–'}" disabled>
+        </div>
+        <div class="form-group">
+          <label>Nachname</label>
+          <input class="form-control" value="${c.last_name || '–'}" disabled>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>E-Mail</label>
+          <input class="form-control" value="${c.email || '–'}" disabled>
+        </div>
+        <div class="form-group">
+          <label>Telefon</label>
+          <input class="form-control" value="${c.phone || '–'}" disabled>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Adresse</label>
+        <input class="form-control" value="${[c.street_address, c.postal_code, c.city].filter(Boolean).join(', ') || '–'}" disabled>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Vertrag</label>
+          <div style="padding:8px 0">${contractBadge}</div>
+        </div>
+        <div class="form-group">
+          <label>Vertrag akzeptiert am</label>
+          <input class="form-control" value="${contractDate}" disabled>
+        </div>
+      </div>
+      ${c.notes ? `<div class="form-group"><label>Notizen</label><textarea class="form-control" disabled>${c.notes}</textarea></div>` : ''}
+      <p class="text-muted" style="font-size:12px">Registriert: ${formatDateTime(c.created_at)} · ID: ${c.id}</p>
+
+      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Buchungshistorie</h3>
+      <div id="customer-bookings"><div class="loading-overlay"><span class="spinner"></span> Laden...</div></div>
+    `;
+
+    document.getElementById('detail-body').innerHTML = html;
+    document.getElementById('detail-modal').classList.add('open');
+
+    // Load customer bookings
+    try {
+      const res = await adminApi(`/api/admin?action=data&type=customer_bookings&customer_id=${encodeURIComponent(c.email || c.id)}`);
+      const bookings = res.data || [];
+      const bookingsEl = document.getElementById('customer-bookings');
+
+      if (bookings.length === 0) {
+        bookingsEl.innerHTML = '<p class="text-muted text-center" style="padding:12px">Keine Buchungen vorhanden.</p>';
+      } else {
+        bookingsEl.innerHTML = `
+          <table>
+            <thead><tr>
+              <th>Datum</th>
+              <th>Trainer</th>
+              <th>Status</th>
+              <th>Preis</th>
+            </tr></thead>
+            <tbody>
+              ${bookings.map(b => `
+                <tr>
+                  <td>${formatDate(b.scheduled_date)}</td>
+                  <td>${b.trainer_name || '–'}</td>
+                  <td>${statusBadge(b.status)}</td>
+                  <td class="text-accent">${formatEuro(b.price_cents || b.final_price_cents)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+    } catch (err) {
+      document.getElementById('customer-bookings').innerHTML =
+        `<p class="text-error" style="font-size:13px">Buchungen konnten nicht geladen werden: ${err.message}</p>`;
+    }
+  }
+
+  function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('open');
+  }
+
+  // Modal overlay clicks
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => {
+      if (e.target === o) o.classList.remove('open');
+    });
+  });
+</script>
+
+</body>
+</html>
