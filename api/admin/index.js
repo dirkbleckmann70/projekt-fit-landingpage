@@ -705,10 +705,27 @@ async function handleDeleteTrainer(req, res, supabase) {
       return res.status(500).json({ error: 'Trainer konnte nicht gelöscht werden: ' + deleteErr.message });
     }
 
-    // 9. Falls auth_user_id vorhanden: Auth-User löschen
+    // 9. Falls auth_user_id vorhanden: Auth-User nur löschen wenn sicher
     if (trainer.auth_user_id) {
-      const { error: authErr } = await supabase.auth.admin.deleteUser(trainer.auth_user_id);
-      if (authErr) console.error('Auth-User löschen fehlgeschlagen:', authErr.message);
+      // Prüfe ob der Auth-User ein Admin ist → NIEMALS löschen
+      const { data: { user: authUser } } = await supabase.auth.admin.getUserById(trainer.auth_user_id);
+      const userRole = authUser?.user_metadata?.role || '';
+      if (userRole.includes('admin')) {
+        console.log(`Auth-User ${trainer.auth_user_id} ist Admin (${userRole}) – wird NICHT gelöscht`);
+      } else {
+        // Prüfe ob andere trainer_profiles die gleiche auth_user_id nutzen
+        const { count } = await supabase
+          .from('trainer_profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('auth_user_id', trainer.auth_user_id)
+          .neq('id', trainerId);
+        if (count && count > 0) {
+          console.log(`Auth-User ${trainer.auth_user_id} wird von ${count} anderen Profilen genutzt – wird NICHT gelöscht`);
+        } else {
+          const { error: authErr } = await supabase.auth.admin.deleteUser(trainer.auth_user_id);
+          if (authErr) console.error('Auth-User löschen fehlgeschlagen:', authErr.message);
+        }
+      }
     }
 
     return res.json({ success: true, message: `Trainer "${trainer.full_name}" und alle zugehörigen Daten gelöscht.` });
