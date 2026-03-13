@@ -58,6 +58,8 @@ export default async function handler(req, res) {
 
   // trainerId aus fields extrahieren (formidable v3 gibt Arrays zurück)
   const trainerId = Array.isArray(fields.trainerId) ? fields.trainerId[0] : fields.trainerId;
+  const subfolder = Array.isArray(fields.subfolder) ? fields.subfolder[0] : fields.subfolder;
+  const isContract = subfolder === 'contracts';
 
   if (!trainerId) {
     return res.status(400).json({ success: false, error: 'trainerId ist erforderlich' });
@@ -66,7 +68,7 @@ export default async function handler(req, res) {
   // Prüfen ob Trainer existiert
   const { data: trainer, error: trainerErr } = await supabase
     .from('trainer_profiles')
-    .select('id, license_files')
+    .select('id, license_files, contract_files')
     .eq('id', trainerId)
     .single();
 
@@ -74,8 +76,8 @@ export default async function handler(req, res) {
     return res.status(404).json({ success: false, error: 'Trainer nicht gefunden' });
   }
 
-  // Bestehende Lizenzen zählen
-  const existingFiles = trainer.license_files || [];
+  // Bestehende Dateien zählen (je nach Typ)
+  const existingFiles = isContract ? (trainer.contract_files || []) : (trainer.license_files || []);
   const fileList = files.files || files.file || [];
   const fileArray = Array.isArray(fileList) ? fileList : [fileList];
 
@@ -113,7 +115,9 @@ export default async function handler(req, res) {
 
     const timestamp = Date.now();
     const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const storagePath = `${trainerId}/${timestamp}_${safeName}`;
+    const storagePath = isContract
+      ? `${trainerId}/contracts/${timestamp}_${safeName}`
+      : `${trainerId}/${timestamp}_${safeName}`;
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
@@ -144,11 +148,12 @@ export default async function handler(req, res) {
     });
   }
 
-  // license_files aktualisieren (bestehende + neue)
+  // Dateien-Referenzen aktualisieren (license_files ODER contract_files)
   const updatedFiles = [...existingFiles, ...uploadedRefs];
+  const updateField = isContract ? { contract_files: updatedFiles } : { license_files: updatedFiles };
   const { error: updateError } = await supabase
     .from('trainer_profiles')
-    .update({ license_files: updatedFiles })
+    .update(updateField)
     .eq('id', trainerId);
 
   if (updateError) {

@@ -926,7 +926,7 @@ async function handleCustomers(req, res, supabase) {
     const { id, ...fields } = body;
     if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
 
-    const allowed = ['first_name', 'last_name', 'email', 'phone', 'street_address', 'postal_code', 'city', 'notes', 'contract_accepted', 'contract_accepted_at', 'terms_accepted', 'terms_accepted_at'];
+    const allowed = ['first_name', 'last_name', 'email', 'phone', 'street_address', 'postal_code', 'city', 'notes', 'contract_accepted', 'contract_accepted_at', 'terms_accepted', 'terms_accepted_at', 'document_files'];
     const update = {};
     for (const key of allowed) { if (key in fields) update[key] = fields[key]; }
 

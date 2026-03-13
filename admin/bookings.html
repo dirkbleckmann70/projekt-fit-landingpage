@@ -30,6 +30,13 @@
               <button class="filter-tab" data-filter="COMPLETED">Completed</button>
               <button class="filter-tab" data-filter="CANCELLED">Cancelled</button>
             </div>
+            <select class="form-control" id="filter-type" style="width:160px;padding:6px 10px;font-size:13px">
+              <option value="">Alle Arten</option>
+              <option value="personal">Personal Training</option>
+              <option value="group">Gruppentraining</option>
+            </select>
+            <input type="date" class="form-control" id="filter-date-from" style="width:140px;padding:6px 10px;font-size:13px" title="Datum von">
+            <input type="date" class="form-control" id="filter-date-to" style="width:140px;padding:6px 10px;font-size:13px" title="Datum bis">
           </div>
         </div>
         <div style="overflow-x:auto">
@@ -80,6 +87,9 @@
   let allBookings = [];
   let currentFilter = 'all';
   let currentSearch = '';
+  let filterType = '';
+  let filterDateFrom = '';
+  let filterDateTo = '';
   let editingBookingId = null;
 
   (async () => {
@@ -104,6 +114,10 @@
       currentSearch = e.target.value.toLowerCase();
       renderBookings();
     });
+
+    document.getElementById('filter-type').addEventListener('change', (e) => { filterType = e.target.value; renderBookings(); });
+    document.getElementById('filter-date-from').addEventListener('change', (e) => { filterDateFrom = e.target.value; renderBookings(); });
+    document.getElementById('filter-date-to').addEventListener('change', (e) => { filterDateTo = e.target.value; renderBookings(); });
   })();
 
   async function loadBookings() {
@@ -132,6 +146,15 @@
         (b.customer_name || '').toLowerCase().includes(currentSearch) ||
         (b.trainer_name || '').toLowerCase().includes(currentSearch)
       );
+    }
+    if (filterType) {
+      filtered = filtered.filter(b => (b.booking_type || 'personal') === filterType);
+    }
+    if (filterDateFrom) {
+      filtered = filtered.filter(b => b.scheduled_date && b.scheduled_date >= filterDateFrom);
+    }
+    if (filterDateTo) {
+      filtered = filtered.filter(b => b.scheduled_date && b.scheduled_date <= filterDateTo);
     }
 
     const tbody = document.getElementById('bookings-body');

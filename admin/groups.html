@@ -25,6 +25,21 @@
             <button class="btn btn-primary" onclick="openNewModal()">+ Neues Gruppentraining</button>
           </div>
         </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.06)">
+          <div class="filter-tabs" id="status-filter">
+            <button class="filter-tab active" data-filter="all">Alle</button>
+            <button class="filter-tab" data-filter="active">Aktiv</button>
+            <button class="filter-tab" data-filter="inactive">Deaktiviert</button>
+          </div>
+          <select class="form-control" id="filter-city" style="width:150px;padding:6px 10px;font-size:13px">
+            <option value="">Alle Städte</option>
+          </select>
+          <select class="form-control" id="filter-trainer" style="width:170px;padding:6px 10px;font-size:13px">
+            <option value="">Alle Trainer</option>
+          </select>
+          <input type="date" class="form-control" id="filter-date-from" style="width:140px;padding:6px 10px;font-size:13px" title="Datum von">
+          <input type="date" class="form-control" id="filter-date-to" style="width:140px;padding:6px 10px;font-size:13px" title="Datum bis">
+        </div>
         <div style="overflow-x:auto">
           <table>
             <thead>
@@ -152,6 +167,11 @@
   let allGroups = [];
   let activeTrainers = [];
   let editingGroupId = null;
+  let filterStatus = 'all';
+  let filterCity = '';
+  let filterTrainer = '';
+  let filterDateFrom = '';
+  let filterDateTo = '';
   const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 
   (async () => {
@@ -188,17 +208,52 @@
     } catch (err) { console.error('Einsatzorte laden fehlgeschlagen:', err); }
 
     await loadGroups();
+
+    // Filter events
+    document.querySelectorAll('#status-filter .filter-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('#status-filter .filter-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        filterStatus = tab.dataset.filter;
+        renderGroups();
+      });
+    });
+    document.getElementById('filter-city').addEventListener('change', (e) => { filterCity = e.target.value; renderGroups(); });
+    document.getElementById('filter-trainer').addEventListener('change', (e) => { filterTrainer = e.target.value; renderGroups(); });
+    document.getElementById('filter-date-from').addEventListener('change', (e) => { filterDateFrom = e.target.value; renderGroups(); });
+    document.getElementById('filter-date-to').addEventListener('change', (e) => { filterDateTo = e.target.value; renderGroups(); });
   })();
 
   async function loadGroups() {
     try {
       const res = await adminApi('/api/admin?action=data&type=all_groups');
       allGroups = res.data || [];
+      populateFilterDropdowns();
       renderGroups();
     } catch (err) {
       document.getElementById('groups-body').innerHTML =
         `<tr><td colspan="11" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
+  }
+
+  function populateFilterDropdowns() {
+    // Cities
+    const cities = [...new Set(allGroups.map(g => g.city).filter(Boolean))].sort();
+    const citySel = document.getElementById('filter-city');
+    const prevCity = citySel.value;
+    citySel.innerHTML = '<option value="">Alle Städte</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join('');
+    citySel.value = prevCity;
+
+    // Trainers
+    const trainerMap = {};
+    allGroups.forEach(g => {
+      const t = activeTrainers.find(t => t.id === g.trainer_id);
+      if (t) trainerMap[t.id] = t.full_name;
+    });
+    const trainerSel = document.getElementById('filter-trainer');
+    const prevTrainer = trainerSel.value;
+    trainerSel.innerHTML = '<option value="">Alle Trainer</option>' + Object.entries(trainerMap).map(([id, name]) => `<option value="${id}">${name}</option>`).join('');
+    trainerSel.value = prevTrainer;
   }
 
   function getDayName(group) {
@@ -216,13 +271,29 @@
   }
 
   function renderGroups() {
+    let filtered = allGroups;
+
+    // Status filter
+    if (filterStatus === 'active') filtered = filtered.filter(g => g.is_active);
+    if (filterStatus === 'inactive') filtered = filtered.filter(g => !g.is_active);
+
+    // City filter
+    if (filterCity) filtered = filtered.filter(g => g.city === filterCity);
+
+    // Trainer filter
+    if (filterTrainer) filtered = filtered.filter(g => g.trainer_id === filterTrainer);
+
+    // Date range filter
+    if (filterDateFrom) filtered = filtered.filter(g => g.scheduled_date && g.scheduled_date >= filterDateFrom);
+    if (filterDateTo) filtered = filtered.filter(g => g.scheduled_date && g.scheduled_date <= filterDateTo);
+
     const tbody = document.getElementById('groups-body');
-    if (allGroups.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings vorhanden</td></tr>';
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings gefunden</td></tr>';
       return;
     }
 
-    tbody.innerHTML = allGroups.map(g => {
+    tbody.innerHTML = filtered.map(g => {
       const trainerName = activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '–';
       const participants = g.current_participants || 0;
       const max = g.max_participants || '–';

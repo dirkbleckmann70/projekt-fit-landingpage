@@ -57,3 +57,6 @@ CREATE POLICY IF NOT EXISTS "Service role full access on customers"
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_email TEXT;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS booking_type TEXT DEFAULT 'personal';
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS location_name TEXT;
+
+-- ─── 7. Kunden-Dokumente ──────────────────────────────────────────────────
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS document_files JSONB DEFAULT '[]';

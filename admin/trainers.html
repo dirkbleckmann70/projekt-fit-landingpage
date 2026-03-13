@@ -545,7 +545,7 @@
 
   async function viewLicense(path) {
     try {
-      const res = await adminApi('/api/admin?action=license?path=' + encodeURIComponent(path));
+      const res = await adminApi('/api/admin?action=license&path=' + encodeURIComponent(path));
       if (res.url) window.open(res.url, '_blank');
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
@@ -594,23 +594,6 @@
       });
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error || 'Upload fehlgeschlagen');
-
-      // For contracts, update contract_files field
-      if (isContract) {
-        const t = allTrainers.find(tr => tr.id === trainerId);
-        const existingContracts = t?.contract_files || [];
-        const newContracts = [...existingContracts, ...result.files.map(f => ({
-          filename: f.filename,
-          path: f.path,
-          size_bytes: f.size_bytes,
-          content_type: f.content_type,
-          uploaded_at: new Date().toISOString(),
-        }))];
-        await adminApi('/api/admin?action=trainers', {
-          method: 'PUT',
-          body: JSON.stringify({ trainerId, contract_files: newContracts }),
-        });
-      }
 
       status.textContent = '';
       showAlert('alert-box', `${result.files.length} Datei(en) hochgeladen!`, 'success');
