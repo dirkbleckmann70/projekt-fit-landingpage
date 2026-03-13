@@ -246,7 +246,13 @@
         .delete()
         .eq('trainer_id', trainerId);
 
-      if (delError && delError.code !== '42P01') throw delError;
+      if (delError && delError.code !== '42P01') {
+        console.error('Delete error:', delError);
+        if (delError.message?.includes('row-level security') || delError.code === '42501') {
+          throw new Error('Keine Berechtigung zum Löschen. Bitte den Admin kontaktieren (RLS-Konfiguration fehlt).');
+        }
+        throw delError;
+      }
 
       // Zeitblöcke aus State zusammenfassen
       const rows = [];
@@ -263,8 +269,9 @@
             rows.push({
               trainer_id: trainerId,
               day_of_week: dayIndex,
-              start_time: String(blockStart).padStart(2, '0') + ':00',
-              end_time: String(prev + 1).padStart(2, '0') + ':00',
+              start_time: String(blockStart).padStart(2, '0') + ':00:00',
+              end_time: String(prev + 1).padStart(2, '0') + ':00:00',
+              is_active: true,
             });
             if (i < hours.length) blockStart = hours[i];
           }
@@ -278,8 +285,11 @@
           .insert(rows);
 
         if (insError) {
-          console.error('Insert error:', insError);
-          throw new Error('Speichern fehlgeschlagen. Bitte versuche es erneut.');
+          console.error('Insert error:', insError, 'Rows:', JSON.stringify(rows));
+          if (insError.message?.includes('row-level security') || insError.code === '42501') {
+            throw new Error('Keine Berechtigung. Bitte den Admin kontaktieren (RLS-Konfiguration fehlt).');
+          }
+          throw new Error('Speichern fehlgeschlagen: ' + (insError.message || 'Unbekannter Fehler'));
         }
       }
 
