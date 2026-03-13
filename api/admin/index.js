@@ -152,6 +152,19 @@ export default async function handler(req, res) {
         return await handleDocuments(req, res, supabase);
       }
 
+      // ═══════════════════════════════════════════════════════════════════
+      // DELETE-STORAGE-FILE – POST (Datei aus beliebigem Bucket löschen)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'delete-storage-file': {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        const body = await getBody(req);
+        const { path, bucket } = body;
+        if (!path) return res.status(400).json({ error: 'path ist erforderlich' });
+        const { error: delErr } = await supabase.storage.from(bucket || 'trainer-documents').remove([path]);
+        if (delErr) throw delErr;
+        return res.json({ success: true });
+      }
+
       default:
         return res.status(404).json({ error: `Unbekannte Action: ${action}` });
     }

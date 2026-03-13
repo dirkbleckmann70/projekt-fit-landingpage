@@ -26,17 +26,11 @@
         <div class="table-header">
           <div class="table-title">Kunden-Verwaltung</div>
           <div class="table-actions">
-            <input type="text" class="search-input" id="search" placeholder="Name oder E-Mail suchen...">
-            <div class="filter-tabs" id="filter-tabs">
-              <button class="filter-tab active" data-filter="all">Alle</button>
-              <button class="filter-tab" data-filter="contract">Mit Vertrag</button>
-              <button class="filter-tab" data-filter="no-contract">Ohne Vertrag</button>
-            </div>
             <button class="btn btn-primary" onclick="openNewModal()">+ Kunde anlegen</button>
           </div>
         </div>
         <div style="overflow-x:auto">
-          <table>
+          <table id="customers-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -131,10 +125,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
+<script src="table-filter.js"></script>
 <script>
   let allCustomers = [];
-  let currentFilter = 'all';
-  let currentSearch = '';
+  let tableFilter;
 
   (async () => {
     const user = await checkAdminAuth();
@@ -145,18 +139,19 @@
 
     await loadCustomers();
 
-    document.querySelectorAll('#filter-tabs .filter-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('#filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        currentFilter = tab.dataset.filter;
-        renderCustomers();
-      });
-    });
-
-    document.getElementById('search').addEventListener('input', (e) => {
-      currentSearch = e.target.value.toLowerCase();
-      renderCustomers();
+    tableFilter = new TableFilter({
+      tableId: 'customers-table',
+      columns: [
+        { key: 'full_name', type: 'select', getValue: c => c.full_name || (c.first_name + ' ' + c.last_name) || '\u2013' },
+        { key: 'email', type: 'select', getValue: c => c.email || '\u2013' },
+        { key: 'phone', type: 'select', getValue: c => c.phone || '\u2013' },
+        { key: 'city', type: 'select', getValue: c => c.city || '\u2013' },
+        { key: 'contract', type: 'select', getValue: c => c.contract_accepted ? 'Vertrag akzeptiert' : 'Kein Vertrag' },
+        { key: 'created_at', type: 'date', getValue: c => c.created_at ? c.created_at.slice(0, 10) : '' },
+        null,
+      ],
+      getData: () => allCustomers,
+      onFilter: () => renderCustomers(),
     });
   })();
 
@@ -172,22 +167,7 @@
   }
 
   function renderCustomers() {
-    let filtered = allCustomers;
-
-    if (currentFilter === 'contract') {
-      filtered = filtered.filter(c => c.contract_accepted);
-    } else if (currentFilter === 'no-contract') {
-      filtered = filtered.filter(c => !c.contract_accepted);
-    }
-
-    if (currentSearch) {
-      filtered = filtered.filter(c =>
-        (c.full_name || '').toLowerCase().includes(currentSearch) ||
-        (c.first_name || '').toLowerCase().includes(currentSearch) ||
-        (c.last_name || '').toLowerCase().includes(currentSearch) ||
-        (c.email || '').toLowerCase().includes(currentSearch)
-      );
-    }
+    let filtered = tableFilter ? tableFilter.applyFilters(allCustomers) : allCustomers;
 
     const tbody = document.getElementById('customers-body');
 
@@ -426,57 +406,24 @@
     status.textContent = 'Hochladen...';
 
     try {
-      const c = allCustomers.find(x => x.id === customerId);
-      const existingDocs = c?.document_files || [];
-      const newDocs = [];
-
-      const token = (await getSupabase().auth.getSession()).data.session?.access_token;
-
+      const formData = new FormData();
+      formData.append('customerId', customerId);
       for (let i = 0; i < filesList.length; i++) {
-        const file = filesList[i];
-        if (file.size > 10 * 1024 * 1024) {
-          showAlert('alert-box', `${file.name} ist zu groß (max 10 MB)`, 'error');
-          continue;
-        }
-
-        const timestamp = Date.now();
-        const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const storagePath = `customers/${customerId}/${timestamp}_${safeName}`;
-
-        // Upload directly via Supabase Storage REST
-        const sb = getSupabase();
-        const { error: uploadErr } = await sb.storage.from('trainer-documents').upload(storagePath, file, {
-          contentType: file.type,
-          upsert: false,
-        });
-
-        if (uploadErr) {
-          showAlert('alert-box', `Upload-Fehler: ${uploadErr.message}`, 'error');
-          continue;
-        }
-
-        newDocs.push({
-          filename: file.name,
-          path: storagePath,
-          uploaded_at: new Date().toISOString(),
-          size_bytes: file.size,
-          content_type: file.type,
-        });
+        formData.append('files', filesList[i]);
       }
 
-      if (newDocs.length > 0) {
-        const updatedDocs = [...existingDocs, ...newDocs];
-        await adminApi('/api/admin?action=customers', {
-          method: 'PUT',
-          body: JSON.stringify({ id: customerId, document_files: updatedDocs }),
-        });
+      const resp = await fetch('/api/upload-license', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || 'Upload fehlgeschlagen');
 
-        showAlert('alert-box', `${newDocs.length} Dokument(e) hochgeladen!`, 'success');
-        await loadCustomers();
-        const updated = allCustomers.find(x => x.id === customerId);
-        if (updated) {
-          document.getElementById('customer-docs').innerHTML = renderDocList(updated.document_files || [], customerId);
-        }
+      showAlert('alert-box', `${result.files.length} Dokument(e) hochgeladen!`, 'success');
+      await loadCustomers();
+      const updated = allCustomers.find(x => x.id === customerId);
+      if (updated) {
+        document.getElementById('customer-docs').innerHTML = renderDocList(updated.document_files || [], customerId);
       }
     } catch (err) {
       showAlert('alert-box', 'Upload-Fehler: ' + err.message, 'error');
@@ -489,8 +436,10 @@
   async function deleteCustomerDoc(customerId, path) {
     if (!confirm('Dokument wirklich löschen?')) return;
     try {
-      const sb = getSupabase();
-      await sb.storage.from('trainer-documents').remove([path]);
+      await adminApi('/api/admin?action=delete-storage-file', {
+        method: 'POST',
+        body: JSON.stringify({ path, bucket: 'trainer-documents' }),
+      });
 
       const c = allCustomers.find(x => x.id === customerId);
       const updatedDocs = (c?.document_files || []).filter(f => f.path !== path);

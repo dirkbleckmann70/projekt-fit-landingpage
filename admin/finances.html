@@ -44,18 +44,7 @@
             <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV Export</button>
           </div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.06)">
-          <div class="filter-tabs" id="period-filter">
-            <button class="filter-tab active" data-period="all">Alles</button>
-            <button class="filter-tab" data-period="this_month">Diesen Monat</button>
-            <button class="filter-tab" data-period="last_month">Letzter Monat</button>
-            <button class="filter-tab" data-period="this_year">Dieses Jahr</button>
-          </div>
-          <select class="form-control" id="filter-trainer" style="width:170px;padding:6px 10px;font-size:13px">
-            <option value="">Alle Trainer</option>
-          </select>
-        </div>
-        <table>
+        <table id="finance-table">
           <thead>
             <tr>
               <th>Datum</th>
@@ -103,10 +92,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
+<script src="table-filter.js"></script>
 <script>
   let financeData = [];
-  let filterPeriod = 'all';
-  let filterTrainer = '';
+  let tableFilter;
 
   (async () => {
     const user = await checkAdminAuth();
@@ -117,23 +106,26 @@
 
     await Promise.all([loadFinances(), loadCredits()]);
 
-    // Filter events
-    document.querySelectorAll('#period-filter .filter-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('#period-filter .filter-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        filterPeriod = tab.dataset.period;
-        renderFinanceTable();
-      });
+    tableFilter = new TableFilter({
+      tableId: 'finance-table',
+      columns: [
+        { key: 'scheduled_date', type: 'date', getValue: b => b.scheduled_date || '' },
+        { key: 'customer_name', type: 'select', getValue: b => b.customer_name || '\u2013' },
+        { key: 'trainer_name', type: 'select', getValue: b => b.trainer_name || '\u2013' },
+        { key: 'price', type: 'number', getValue: b => (b.price_cents || 0) / 100 },
+        { key: 'payout', type: 'number', getValue: b => (b.payout_cents || 0) / 100 },
+        { key: 'margin', type: 'number', getValue: b => ((b.price_cents || 0) - (b.payout_cents || 0)) / 100 },
+        { key: 'status', type: 'select', getValue: b => b.status || '\u2013' },
+      ],
+      getData: () => financeData,
+      onFilter: () => renderFinanceTable(),
     });
-    document.getElementById('filter-trainer').addEventListener('change', (e) => { filterTrainer = e.target.value; renderFinanceTable(); });
   })();
 
   async function loadFinances() {
     try {
       const res = await adminApi('/api/admin?action=data&type=finances');
       financeData = res.data || [];
-      populateTrainerFilter();
       renderFinanceTable();
     } catch (err) {
       document.getElementById('revenue-body').innerHTML =
@@ -144,41 +136,8 @@
     }
   }
 
-  function populateTrainerFilter() {
-    const trainers = [...new Set(financeData.map(b => b.trainer_name).filter(Boolean))].sort();
-    const sel = document.getElementById('filter-trainer');
-    sel.innerHTML = '<option value="">Alle Trainer</option>' + trainers.map(t => `<option value="${t}">${t}</option>`).join('');
-  }
-
-  function getDateRange() {
-    const now = new Date();
-    if (filterPeriod === 'this_month') {
-      const from = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-01`;
-      return { from, to: null };
-    }
-    if (filterPeriod === 'last_month') {
-      const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const from = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-01`;
-      const last = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-      const to = `${last.getFullYear()}-${String(last.getMonth()+1).padStart(2,'0')}-${String(last.getDate()).padStart(2,'0')}`;
-      return { from, to };
-    }
-    if (filterPeriod === 'this_year') {
-      return { from: `${now.getFullYear()}-01-01`, to: null };
-    }
-    return { from: null, to: null };
-  }
-
   function renderFinanceTable() {
-    let filtered = financeData;
-
-    // Period filter
-    const { from, to } = getDateRange();
-    if (from) filtered = filtered.filter(b => b.scheduled_date && b.scheduled_date >= from);
-    if (to) filtered = filtered.filter(b => b.scheduled_date && b.scheduled_date <= to);
-
-    // Trainer filter
-    if (filterTrainer) filtered = filtered.filter(b => b.trainer_name === filterTrainer);
+    let filtered = tableFilter ? tableFilter.applyFilters(financeData) : financeData;
 
     // KPIs based on filtered data
     let totalRevenue = 0;

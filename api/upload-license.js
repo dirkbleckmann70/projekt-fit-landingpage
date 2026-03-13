@@ -56,28 +56,49 @@ export default async function handler(req, res) {
     return res.status(400).json({ success: false, error: 'Fehler beim Lesen der Dateien: ' + err.message });
   }
 
-  // trainerId aus fields extrahieren (formidable v3 gibt Arrays zurück)
+  // trainerId oder customerId aus fields extrahieren (formidable v3 gibt Arrays zurück)
   const trainerId = Array.isArray(fields.trainerId) ? fields.trainerId[0] : fields.trainerId;
+  const customerId = Array.isArray(fields.customerId) ? fields.customerId[0] : fields.customerId;
   const subfolder = Array.isArray(fields.subfolder) ? fields.subfolder[0] : fields.subfolder;
   const isContract = subfolder === 'contracts';
+  const isCustomer = !!customerId && !trainerId;
 
-  if (!trainerId) {
-    return res.status(400).json({ success: false, error: 'trainerId ist erforderlich' });
+  if (!trainerId && !customerId) {
+    return res.status(400).json({ success: false, error: 'trainerId oder customerId ist erforderlich' });
   }
 
-  // Prüfen ob Trainer existiert
-  const { data: trainer, error: trainerErr } = await supabase
-    .from('trainer_profiles')
-    .select('id, license_files, contract_files')
-    .eq('id', trainerId)
-    .single();
+  let existingFiles;
+  let targetId;
+  let targetTable;
+  let targetField;
 
-  if (trainerErr || !trainer) {
-    return res.status(404).json({ success: false, error: 'Trainer nicht gefunden' });
+  if (isCustomer) {
+    targetId = customerId;
+    targetTable = 'customers';
+    targetField = 'document_files';
+    const { data: customer, error: customerErr } = await supabase
+      .from('customers')
+      .select('id, document_files')
+      .eq('id', customerId)
+      .single();
+    if (customerErr || !customer) {
+      return res.status(404).json({ success: false, error: 'Kunde nicht gefunden' });
+    }
+    existingFiles = customer.document_files || [];
+  } else {
+    targetId = trainerId;
+    targetTable = 'trainer_profiles';
+    targetField = isContract ? 'contract_files' : 'license_files';
+    const { data: trainer, error: trainerErr } = await supabase
+      .from('trainer_profiles')
+      .select('id, license_files, contract_files')
+      .eq('id', trainerId)
+      .single();
+    if (trainerErr || !trainer) {
+      return res.status(404).json({ success: false, error: 'Trainer nicht gefunden' });
+    }
+    existingFiles = isContract ? (trainer.contract_files || []) : (trainer.license_files || []);
   }
-
-  // Bestehende Dateien zählen (je nach Typ)
-  const existingFiles = isContract ? (trainer.contract_files || []) : (trainer.license_files || []);
   const fileList = files.files || files.file || [];
   const fileArray = Array.isArray(fileList) ? fileList : [fileList];
 
@@ -115,9 +136,11 @@ export default async function handler(req, res) {
 
     const timestamp = Date.now();
     const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const storagePath = isContract
-      ? `${trainerId}/contracts/${timestamp}_${safeName}`
-      : `${trainerId}/${timestamp}_${safeName}`;
+    const storagePath = isCustomer
+      ? `customers/${customerId}/${timestamp}_${safeName}`
+      : isContract
+        ? `${trainerId}/contracts/${timestamp}_${safeName}`
+        : `${trainerId}/${timestamp}_${safeName}`;
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
@@ -148,13 +171,12 @@ export default async function handler(req, res) {
     });
   }
 
-  // Dateien-Referenzen aktualisieren (license_files ODER contract_files)
+  // Dateien-Referenzen aktualisieren
   const updatedFiles = [...existingFiles, ...uploadedRefs];
-  const updateField = isContract ? { contract_files: updatedFiles } : { license_files: updatedFiles };
   const { error: updateError } = await supabase
-    .from('trainer_profiles')
-    .update(updateField)
-    .eq('id', trainerId);
+    .from(targetTable)
+    .update({ [targetField]: updatedFiles })
+    .eq('id', targetId);
 
   if (updateError) {
     console.error('license_files UPDATE error:', updateError.message);

@@ -21,26 +21,10 @@
       <div class="table-wrap">
         <div class="table-header">
           <div class="table-title">Alle Buchungen</div>
-          <div class="table-actions">
-            <input type="text" class="search-input" id="search" placeholder="Kunde oder Trainer suchen...">
-            <div class="filter-tabs" id="filter-tabs">
-              <button class="filter-tab active" data-filter="all">Alle</button>
-              <button class="filter-tab" data-filter="PENDING">Pending</button>
-              <button class="filter-tab" data-filter="CONFIRMED">Confirmed</button>
-              <button class="filter-tab" data-filter="COMPLETED">Completed</button>
-              <button class="filter-tab" data-filter="CANCELLED">Cancelled</button>
-            </div>
-            <select class="form-control" id="filter-type" style="width:160px;padding:6px 10px;font-size:13px">
-              <option value="">Alle Arten</option>
-              <option value="personal">Personal Training</option>
-              <option value="group">Gruppentraining</option>
-            </select>
-            <input type="date" class="form-control" id="filter-date-from" style="width:140px;padding:6px 10px;font-size:13px" title="Datum von">
-            <input type="date" class="form-control" id="filter-date-to" style="width:140px;padding:6px 10px;font-size:13px" title="Datum bis">
-          </div>
+          <div class="table-actions"></div>
         </div>
         <div style="overflow-x:auto">
-          <table>
+          <table id="bookings-table">
             <thead>
               <tr>
                 <th>Datum</th>
@@ -83,14 +67,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
+<script src="table-filter.js"></script>
 <script>
   let allBookings = [];
-  let currentFilter = 'all';
-  let currentSearch = '';
-  let filterType = '';
-  let filterDateFrom = '';
-  let filterDateTo = '';
   let editingBookingId = null;
+  let tableFilter;
 
   (async () => {
     const user = await checkAdminAuth();
@@ -101,23 +82,23 @@
 
     await loadBookings();
 
-    document.querySelectorAll('#filter-tabs .filter-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('#filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        currentFilter = tab.dataset.filter;
-        renderBookings();
-      });
+    tableFilter = new TableFilter({
+      tableId: 'bookings-table',
+      columns: [
+        { key: 'scheduled_date', type: 'date', getValue: b => b.scheduled_date || '' },
+        { key: 'location', type: 'select', getValue: b => b.location_name || b.location || '\u2013' },
+        { key: 'scheduled_time', type: 'select', getValue: b => b.scheduled_time ? b.scheduled_time.slice(0, 5) : '\u2013' },
+        { key: 'booking_type', type: 'select', getValue: b => b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training' },
+        { key: 'trainer_name', type: 'select', getValue: b => b.trainer_name || '\u2013' },
+        { key: 'customer_name', type: 'select', getValue: b => b.customer_name || b.customer_id || '\u2013' },
+        { key: 'status', type: 'select', getValue: b => b.status || '\u2013' },
+        { key: 'price', type: 'number', getValue: b => (b.price_cents || b.final_price_cents || 0) / 100 },
+        { key: 'paid', type: 'select', getValue: b => b.paid ? 'Ja' : 'Nein' },
+        null,
+      ],
+      getData: () => allBookings,
+      onFilter: () => renderBookings(),
     });
-
-    document.getElementById('search').addEventListener('input', (e) => {
-      currentSearch = e.target.value.toLowerCase();
-      renderBookings();
-    });
-
-    document.getElementById('filter-type').addEventListener('change', (e) => { filterType = e.target.value; renderBookings(); });
-    document.getElementById('filter-date-from').addEventListener('change', (e) => { filterDateFrom = e.target.value; renderBookings(); });
-    document.getElementById('filter-date-to').addEventListener('change', (e) => { filterDateTo = e.target.value; renderBookings(); });
   })();
 
   async function loadBookings() {
@@ -137,25 +118,7 @@
   }
 
   function renderBookings() {
-    let filtered = allBookings;
-    if (currentFilter !== 'all') {
-      filtered = filtered.filter(b => b.status === currentFilter);
-    }
-    if (currentSearch) {
-      filtered = filtered.filter(b =>
-        (b.customer_name || '').toLowerCase().includes(currentSearch) ||
-        (b.trainer_name || '').toLowerCase().includes(currentSearch)
-      );
-    }
-    if (filterType) {
-      filtered = filtered.filter(b => (b.booking_type || 'personal') === filterType);
-    }
-    if (filterDateFrom) {
-      filtered = filtered.filter(b => b.scheduled_date && b.scheduled_date >= filterDateFrom);
-    }
-    if (filterDateTo) {
-      filtered = filtered.filter(b => b.scheduled_date && b.scheduled_date <= filterDateTo);
-    }
+    let filtered = tableFilter ? tableFilter.applyFilters(allBookings) : allBookings;
 
     const tbody = document.getElementById('bookings-body');
 

@@ -23,17 +23,10 @@
         <div class="table-header">
           <div class="table-title">Trainer-Verwaltung</div>
           <div class="table-actions">
-            <input type="text" class="search-input" id="search" placeholder="Name oder E-Mail suchen...">
-            <div class="filter-tabs" id="filter-tabs">
-              <button class="filter-tab active" data-filter="all">Alle</button>
-              <button class="filter-tab" data-filter="pending">Pending</button>
-              <button class="filter-tab" data-filter="active">Aktiv</button>
-              <button class="filter-tab" data-filter="gesperrt">Gesperrt</button>
-            </div>
             <button class="btn btn-primary" onclick="openNewTrainerModal()">+ Neuer Trainer</button>
           </div>
         </div>
-        <table>
+        <table id="trainers-table">
           <thead>
             <tr>
               <th>Name</th>
@@ -197,12 +190,12 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
+<script src="table-filter.js"></script>
 <script>
   let allTrainers = [];
   let serviceLocations = [];
-  let currentFilter = 'all';
-  let currentSearch = '';
   let editingTrainerId = null;
+  let tableFilter;
 
   (async () => {
     const user = await checkAdminAuth();
@@ -228,20 +221,20 @@
 
     await loadTrainers();
 
-    // Filter tabs
-    document.querySelectorAll('#filter-tabs .filter-tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        document.querySelectorAll('#filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
-        tab.classList.add('active');
-        currentFilter = tab.dataset.filter;
-        renderTrainers();
-      });
-    });
-
-    // Search
-    document.getElementById('search').addEventListener('input', (e) => {
-      currentSearch = e.target.value.toLowerCase();
-      renderTrainers();
+    tableFilter = new TableFilter({
+      tableId: 'trainers-table',
+      columns: [
+        { key: 'full_name', type: 'select', getValue: t => t.full_name || '\u2013' },
+        { key: 'email', type: 'select', getValue: t => t.email || '\u2013' },
+        { key: 'city', type: 'select', getValue: t => t.city || '\u2013' },
+        { key: 'status', type: 'select', getValue: t => t.status || '\u2013' },
+        { key: 'license_count', type: 'select', getValue: t => (t.license_files || []).length > 0 ? `${(t.license_files || []).length} Datei(en)` : 'Keine' },
+        { key: 'rating', type: 'number', getValue: t => t.rating || 0 },
+        { key: 'created_at', type: 'date', getValue: t => t.created_at ? t.created_at.slice(0, 10) : '' },
+        null,
+      ],
+      getData: () => allTrainers,
+      onFilter: () => renderTrainers(),
     });
   })();
 
@@ -257,17 +250,7 @@
   }
 
   function renderTrainers() {
-    let filtered = allTrainers;
-
-    if (currentFilter !== 'all') {
-      filtered = filtered.filter(t => t.status === currentFilter);
-    }
-    if (currentSearch) {
-      filtered = filtered.filter(t =>
-        (t.full_name || '').toLowerCase().includes(currentSearch) ||
-        (t.email || '').toLowerCase().includes(currentSearch)
-      );
-    }
+    let filtered = tableFilter ? tableFilter.applyFilters(allTrainers) : allTrainers;
 
     const tbody = document.getElementById('trainers-body');
 
