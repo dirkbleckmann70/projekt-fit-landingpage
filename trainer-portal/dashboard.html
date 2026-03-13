@@ -95,9 +95,9 @@
     try {
       const { data: monthBookings } = await sb
         .from('bookings')
-        .select('id, price_cents, status, session_date, session_time, customer_name, customer_id, location')
+        .select('id, price_cents, status, scheduled_date, scheduled_time, customer_name, customer_id, location')
         .eq('trainer_id', trainerId)
-        .gte('session_date', monthStart.toISOString().slice(0, 10));
+        .gte('scheduled_date', monthStart.toISOString().slice(0, 10));
 
       const confirmed = (monthBookings || []).filter(b => b.status !== 'CANCELLED');
       document.getElementById('kpi-month').textContent = confirmed.length;
@@ -120,8 +120,8 @@
         .select('*')
         .eq('trainer_id', trainerId)
         .eq('status', 'CONFIRMED')
-        .gte('session_date', today)
-        .order('session_date', { ascending: true })
+        .gte('scheduled_date', today)
+        .order('scheduled_date', { ascending: true })
         .limit(5);
 
       const list = document.getElementById('upcoming-list');
@@ -130,7 +130,7 @@
         document.getElementById('kpi-next').textContent = 'Keine';
       } else {
         document.getElementById('kpi-next').textContent =
-          formatDate(upcoming[0].session_date) + ' ' + formatTime(upcoming[0].session_time);
+          formatDate(upcoming[0].scheduled_date) + ' ' + formatTime(upcoming[0].scheduled_time);
 
         list.innerHTML = upcoming.map(b => `
           <div class="booking-item">
@@ -139,7 +139,7 @@
               ${statusBadge(b.status)}
             </div>
             <div class="booking-meta">
-              📅 ${formatDate(b.session_date)} · ${formatTime(b.session_time)}<br>
+              📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
               📍 ${b.location || '–'}
             </div>
           </div>
@@ -172,7 +172,7 @@
               ${statusBadge('PENDING')}
             </div>
             <div class="booking-meta">
-              📅 ${formatDate(b.session_date)} · ${formatTime(b.session_time)}<br>
+              📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
               📍 ${b.location || '–'}
             </div>
             <div class="booking-actions">

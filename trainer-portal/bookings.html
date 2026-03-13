@@ -84,7 +84,7 @@
         .from('bookings')
         .select('*')
         .eq('trainer_id', trainerId)
-        .order('session_date', { ascending: false });
+        .order('scheduled_date', { ascending: false });
 
       if (error) throw error;
       allBookings = data || [];
@@ -109,12 +109,12 @@
         filtered = allBookings.filter(b => b.status === 'PENDING');
         break;
       case 'confirmed':
-        filtered = allBookings.filter(b => b.status === 'CONFIRMED' && b.session_date >= today);
+        filtered = allBookings.filter(b => b.status === 'CONFIRMED' && b.scheduled_date >= today);
         break;
       case 'past':
         filtered = allBookings.filter(b =>
           b.status === 'COMPLETED' || b.status === 'CANCELLED' ||
-          (b.status === 'CONFIRMED' && b.session_date < today)
+          (b.status === 'CONFIRMED' && b.scheduled_date < today)
         );
         break;
       default:
@@ -147,7 +147,7 @@
             ${statusBadge(b.status)}
           </div>
           <div class="booking-meta">
-            📅 ${formatDate(b.session_date)} · ${formatTime(b.session_time)}<br>
+            📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
             📍 ${b.location || '–'}
             ${b.price_cents ? '<br>💰 ' + formatEuro(b.price_cents) : ''}
             ${hasRating ? '<br>⭐ ' + b.rating + '/5' + (b.review_comment ? ' – „' + b.review_comment + '"' : '') : ''}

@@ -144,9 +144,171 @@
         </div>
       </div>
 
+      <!-- Lizenzen & Zertifikate -->
+      <div class="card">
+        <div class="card-title mb-2">Lizenzen & Zertifikate</div>
+        <div id="license-list">
+          ${renderFileList(t.license_files || [], 'license')}
+        </div>
+        <div style="margin-top:12px">
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+            <input type="file" id="license-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+              onchange="uploadFiles('license')">
+            + Lizenz hochladen
+          </label>
+          <span id="license-upload-status" class="form-hint" style="margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
+        </div>
+      </div>
+
+      <!-- Vertrag -->
+      <div class="card">
+        <div class="card-title mb-2">Vertrag</div>
+        <div id="contract-list">
+          ${renderFileList(t.contract_files || [], 'contract')}
+        </div>
+        <div style="margin-top:12px">
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+            <input type="file" id="contract-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+              onchange="uploadFiles('contract')">
+            + Vertrag hochladen
+          </label>
+          <span id="contract-upload-status" class="form-hint" style="margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
+        </div>
+      </div>
+
       <button class="btn btn-primary btn-block btn-lg" id="save-btn" onclick="saveProfile()">Profil speichern</button>
       <div style="height:20px"></div>
     `;
+  }
+
+  // ─── Datei-Funktionen ─────────────────────────────────────────────
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function renderFileList(files, type) {
+    if (!files || files.length === 0) {
+      return type === 'contract'
+        ? '<p class="text-muted" style="font-size:13px">Kein Vertrag hochgeladen.</p>'
+        : '<p class="text-muted" style="font-size:13px">Keine Lizenzen hochgeladen.</p>';
+    }
+    const iconColor = type === 'contract' ? 'rgba(46,117,182,0.12)' : 'rgba(232,147,10,0.12)';
+    const iconTextColor = type === 'contract' ? '#2E75B6' : '#e8930a';
+    return files.map(f => {
+      const date = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('de-DE') : '–';
+      const size = f.size_bytes ? formatFileSize(f.size_bytes) : '–';
+      const icon = (f.content_type === 'application/pdf' || (f.filename && f.filename.endsWith('.pdf'))) ? 'PDF' : 'IMG';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px">
+          <div style="width:36px;height:36px;border-radius:8px;background:${iconColor};color:${iconTextColor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.filename}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${date} &middot; ${size}</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewFile('${f.path}')">Anzeigen</button>
+          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteFile('${f.path}','${type}')">L&ouml;schen</button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function viewFile(path) {
+    try {
+      const sb = getSupabase();
+      const { data, error } = await sb.storage
+        .from('trainer-documents')
+        .createSignedUrl(path, 300); // 5 min
+      if (error) throw error;
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank');
+    } catch (err) {
+      showAlert('alert-box', 'Datei konnte nicht geöffnet werden: ' + err.message, 'error');
+    }
+  }
+
+  async function uploadFiles(type) {
+    const isContract = type === 'contract';
+    const input = document.getElementById(isContract ? 'contract-upload' : 'license-upload');
+    const status = document.getElementById(isContract ? 'contract-upload-status' : 'license-upload-status');
+    const files = input.files;
+    if (!files || files.length === 0) return;
+
+    status.textContent = 'Hochladen...';
+    const trainerId = window.currentTrainer.id;
+
+    try {
+      const formData = new FormData();
+      formData.append('trainerId', trainerId);
+      if (isContract) formData.append('subfolder', 'contracts');
+      for (let i = 0; i < files.length; i++) {
+        formData.append('files', files[i]);
+      }
+
+      const resp = await fetch('/api/upload-license', {
+        method: 'POST',
+        body: formData,
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || 'Upload fehlgeschlagen');
+
+      showAlert('alert-box', `${result.files.length} Datei(en) hochgeladen!`, 'success');
+
+      // Profil neu laden und UI updaten
+      const sb = getSupabase();
+      const { data: profile } = await sb
+        .from('trainer_profiles')
+        .select('license_files, contract_files')
+        .eq('id', trainerId)
+        .single();
+
+      if (profile) {
+        window.currentTrainer.license_files = profile.license_files;
+        window.currentTrainer.contract_files = profile.contract_files;
+        document.getElementById('license-list').innerHTML = renderFileList(profile.license_files || [], 'license');
+        document.getElementById('contract-list').innerHTML = renderFileList(profile.contract_files || [], 'contract');
+      }
+    } catch (err) {
+      showAlert('alert-box', 'Upload-Fehler: ' + err.message, 'error');
+    }
+
+    status.textContent = 'PDF, JPG, PNG – max 10 MB';
+    input.value = '';
+  }
+
+  async function deleteFile(path, type) {
+    if (!confirm('Datei wirklich löschen?')) return;
+
+    const sb = getSupabase();
+    const trainerId = window.currentTrainer.id;
+    const isContract = type === 'contract';
+    const field = isContract ? 'contract_files' : 'license_files';
+    const currentFiles = window.currentTrainer[field] || [];
+
+    try {
+      // Datei aus Storage löschen
+      const { error: storageErr } = await sb.storage
+        .from('trainer-documents')
+        .remove([path]);
+      if (storageErr) console.error('Storage delete error:', storageErr.message);
+
+      // JSONB Array updaten
+      const updatedFiles = currentFiles.filter(f => f.path !== path);
+      const { error: updateErr } = await sb
+        .from('trainer_profiles')
+        .update({ [field]: updatedFiles })
+        .eq('id', trainerId);
+
+      if (updateErr) throw updateErr;
+
+      window.currentTrainer[field] = updatedFiles;
+      document.getElementById(isContract ? 'contract-list' : 'license-list').innerHTML =
+        renderFileList(updatedFiles, type);
+      showAlert('alert-box', 'Datei gelöscht!', 'success');
+    } catch (err) {
+      showAlert('alert-box', 'Fehler beim Löschen: ' + err.message, 'error');
+    }
   }
 
   async function saveProfile() {

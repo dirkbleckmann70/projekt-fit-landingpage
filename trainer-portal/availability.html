@@ -54,7 +54,7 @@
   const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
   const DAY_NAMES = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
   const HOURS = [];
-  for (let h = 6; h <= 21; h++) HOURS.push(h); // 6:00 - 21:00
+  for (let h = 5; h <= 22; h++) HOURS.push(h); // 5:00 - 22:00 (letzter Block = 22:00-23:00)
 
   // State: { "Mo": [8, 9, 10, 16, 17, 18, 19], "Di": [...], ... }
   let availState = {};
@@ -180,7 +180,7 @@
               onmouseenter="continuePaint(event, '${day}', ${h})"
               ontouchstart="startPaint(event, '${day}', ${h})"
               ontouchmove="handleTouchMove(event)"
-            >${h}</div>`;
+            >${h}:00</div>`;
           }).join('')}
         </div>
       </div>
@@ -277,7 +277,10 @@
           .from('trainer_availability')
           .insert(rows);
 
-        if (insError) throw insError;
+        if (insError) {
+          console.error('Insert error:', insError);
+          throw new Error('Speichern fehlgeschlagen. Bitte versuche es erneut.');
+        }
       }
 
       showAlert('alert-box', 'Verfügbarkeit gespeichert!', 'success');
