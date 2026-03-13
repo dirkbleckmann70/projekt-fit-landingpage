@@ -76,15 +76,30 @@ export default async function handler(req, res) {
     targetId = customerId;
     targetTable = 'customers';
     targetField = 'document_files';
-    const { data: customer, error: customerErr } = await supabase
+    // Try selecting with document_files; if column doesn't exist, fall back to id-only
+    let customer;
+    const { data: custData, error: customerErr } = await supabase
       .from('customers')
       .select('id, document_files')
       .eq('id', customerId)
       .single();
-    if (customerErr || !customer) {
-      return res.status(404).json({ success: false, error: 'Kunde nicht gefunden' });
+    if (customerErr) {
+      // Column might not exist yet – try without it
+      const { data: custFallback, error: fallbackErr } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('id', customerId)
+        .single();
+      if (fallbackErr || !custFallback) {
+        console.error('Customer lookup error:', customerErr.message, fallbackErr?.message);
+        return res.status(404).json({ success: false, error: 'Kunde nicht gefunden: ' + (customerErr.message || fallbackErr?.message || 'Unbekannt') });
+      }
+      customer = custFallback;
+      existingFiles = [];
+    } else {
+      customer = custData;
+      existingFiles = customer.document_files || [];
     }
-    existingFiles = customer.document_files || [];
   } else {
     targetId = trainerId;
     targetTable = 'trainer_profiles';
@@ -179,10 +194,10 @@ export default async function handler(req, res) {
     .eq('id', targetId);
 
   if (updateError) {
-    console.error('license_files UPDATE error:', updateError.message);
+    console.error('DB UPDATE error:', updateError.message, '| table:', targetTable, '| field:', targetField);
     return res.status(500).json({
       success: false,
-      error: 'Dateien hochgeladen, aber Referenz-Speicherung fehlgeschlagen',
+      error: `Dateien hochgeladen, aber Referenz-Speicherung fehlgeschlagen: ${updateError.message}`,
     });
   }
 

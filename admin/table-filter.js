@@ -1,4 +1,5 @@
 // table-filter.js – Wiederverwendbare Excel-Stil Spaltenfilter für Admin-Tabellen
+// Dropdowns werden an document.body gehängt (position:fixed) um overflow:hidden-Clipping zu vermeiden
 (function () {
   if (!document.getElementById('tf-styles')) {
     const s = document.createElement('style');
@@ -8,10 +9,11 @@
       .tf-icon { display:inline-block; margin-left:5px; font-size:9px; color:#55556A; transition:color 0.15s; vertical-align:middle; }
       .tf-icon.active { color:#E07A3A; }
       .tf-dropdown {
-        position:absolute; top:calc(100% + 4px); right:0; z-index:1000;
+        position:fixed; z-index:10000;
         background:#1A1A2E; border:1px solid rgba(255,255,255,0.12); border-radius:10px;
         min-width:230px; box-shadow:0 8px 32px rgba(0,0,0,0.5);
         padding:12px; display:none; text-align:left; font-weight:400;
+        font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; color:#F0F0F5;
       }
       .tf-dropdown.open { display:block; }
       .tf-dropdown input[type="text"],
@@ -56,13 +58,16 @@
   class TableFilter {
     constructor({ tableId, columns, getData, onFilter }) {
       this.tableEl = document.getElementById(tableId);
+      if (!this.tableEl) { console.warn('TableFilter: table not found:', tableId); return; }
       this.columns = columns || [];
       this.getData = getData;
       this.onFilter = onFilter;
       this.filters = {};
       this.dropdowns = {};
       this.icons = {};
+      this.ths = {};
       this._boundClose = (e) => this._closeAll(e);
+      this._boundScroll = () => this._repositionOpen();
       this.init();
     }
 
@@ -72,28 +77,54 @@
         if (!col || i >= ths.length) return;
         const th = ths[i];
         th.classList.add('tf-th');
+        this.ths[i] = th;
 
+        // Add ▼ icon
         const icon = document.createElement('span');
         icon.className = 'tf-icon';
         icon.textContent = '\u25BC';
         th.appendChild(icon);
         this.icons[i] = icon;
 
+        // Create dropdown on document.body (avoids overflow clipping)
         const dd = document.createElement('div');
         dd.className = 'tf-dropdown';
-        th.appendChild(dd);
+        document.body.appendChild(dd);
         this.dropdowns[i] = dd;
 
         // Click on th toggles dropdown
         th.addEventListener('click', (e) => {
           e.stopPropagation();
-          // Don't open if clicking inside dd
-          if (dd.contains(e.target) && e.target !== th) return;
-          this._toggle(i, col);
+          this._toggle(i);
         });
+        // Prevent clicks inside dropdown from closing it
         dd.addEventListener('click', (e) => e.stopPropagation());
       });
       document.addEventListener('click', this._boundClose);
+      window.addEventListener('scroll', this._boundScroll, true);
+      window.addEventListener('resize', this._boundScroll);
+    }
+
+    _positionDropdown(index) {
+      const th = this.ths[index];
+      const dd = this.dropdowns[index];
+      if (!th || !dd) return;
+      const rect = th.getBoundingClientRect();
+      dd.style.top = (rect.bottom + 4) + 'px';
+      // Align right edge of dropdown with right edge of th
+      const ddWidth = dd.offsetWidth || 230;
+      let left = rect.right - ddWidth;
+      if (left < 8) left = 8;
+      dd.style.left = left + 'px';
+    }
+
+    _repositionOpen() {
+      Object.keys(this.dropdowns).forEach(i => {
+        const dd = this.dropdowns[i];
+        if (dd.classList.contains('open')) {
+          this._positionDropdown(i);
+        }
+      });
     }
 
     _toggle(index) {
@@ -104,6 +135,7 @@
       if (!wasOpen) {
         this._renderDropdown(index);
         dd.classList.add('open');
+        this._positionDropdown(index);
       }
     }
 
@@ -158,7 +190,6 @@
             item.style.display = text.includes(q) ? '' : 'none';
           });
         });
-        // Focus search on open
         setTimeout(() => searchInput.focus(), 50);
       }
 
@@ -172,7 +203,7 @@
         });
       });
 
-      // Apply button
+      // Apply / Clear buttons
       dd.querySelector('.tf-btn-apply').addEventListener('click', () => this._apply(index));
       dd.querySelector('.tf-btn-clear').addEventListener('click', () => this._clear(index));
     }
@@ -259,7 +290,6 @@
       });
     }
 
-    // Check if any filter is active
     hasActiveFilters() {
       return Object.keys(this.filters).length > 0;
     }
