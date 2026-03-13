@@ -441,7 +441,7 @@ async function handleData(req, res, supabase) {
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
-        .or(`customer_id.eq.${customerId},customer_email.eq.${customerId}`)
+        .eq('customer_id', customerId)
         .order('scheduled_date', { ascending: false });
       if (error) {
         if (error.code === '42P01') return res.json({ data: [] });

@@ -318,7 +318,7 @@
 
     // Load customer bookings
     try {
-      const res = await adminApi(`/api/admin?action=data&type=customer_bookings&customer_id=${encodeURIComponent(c.email || c.id)}`);
+      const res = await adminApi(`/api/admin?action=data&type=customer_bookings&customer_id=${encodeURIComponent(c.id)}`);
       const bookings = res.data || [];
       const bookingsEl = document.getElementById('customer-bookings');
 
