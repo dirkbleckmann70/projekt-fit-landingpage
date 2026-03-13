@@ -784,7 +784,30 @@
 
   // ─── Delete Trainer ──────────────────────────────────────────────
   async function deleteTrainer(id, name) {
-    if (!confirm(`Diesen Trainer wirklich löschen?\n\n"${name}"\n\nAlle zugehörigen Daten werden entfernt.`)) return;
+    // Prüfe ob der Trainer aktive Buchungen oder Gruppentrainings hat
+    const t = allTrainers.find(tr => tr.id === id);
+    let warnings = [];
+
+    try {
+      const [bookingsRes, groupsRes] = await Promise.all([
+        adminApi(`/api/admin?action=data&type=all_bookings`),
+        adminApi(`/api/admin?action=data&type=all_groups`),
+      ]);
+      const trainerBookings = (bookingsRes.data || []).filter(b => b.trainer_id === id && b.status !== 'CANCELLED');
+      const trainerGroups = (groupsRes.data || []).filter(g => g.trainer_id === id);
+
+      if (trainerBookings.length > 0) warnings.push(`${trainerBookings.length} aktive Buchung(en)`);
+      if (trainerGroups.length > 0) warnings.push(`${trainerGroups.length} Gruppentraining(s)`);
+    } catch (e) {
+      // Falls Prüfung fehlschlägt, trotzdem weiter mit Standard-Warnung
+      console.error('Vorprüfung fehlgeschlagen:', e);
+    }
+
+    let confirmMsg = `Trainer "${name}" wirklich löschen?\n\nAlle zugehörigen Daten werden entfernt.`;
+    if (warnings.length > 0) {
+      confirmMsg = `Trainer "${name}" hat noch:\n\n- ${warnings.join('\n- ')}\n\nDiese werden beim Löschen dem Trainer entzogen.\n\nTrotzdem löschen?`;
+    }
+    if (!confirm(confirmMsg)) return;
 
     try {
       const res = await adminApi('/api/admin?action=delete-trainer', {
@@ -795,7 +818,7 @@
       showAlert('alert-box', res.message || 'Trainer gelöscht!', 'success');
       await loadTrainers();
     } catch (err) {
-      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+      showAlert('alert-box', err.message, 'error');
     }
   }
 

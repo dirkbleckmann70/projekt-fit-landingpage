@@ -170,7 +170,21 @@ export default async function handler(req, res) {
     }
   } catch (err) {
     console.error(`Admin API Error [${action}]:`, err);
-    return res.status(500).json({ error: err.message || 'Interner Fehler' });
+    // Deutsche Fehlermeldungen für bekannte DB-Fehler
+    const msg = err.message || '';
+    if (msg.includes('foreign key')) {
+      return res.status(400).json({ error: 'Aktion nicht möglich: Es bestehen noch Verknüpfungen zu anderen Datensätzen. Bitte löse diese zuerst auf.' });
+    }
+    if (msg.includes('violates unique constraint')) {
+      return res.status(400).json({ error: 'Ein Eintrag mit diesen Daten existiert bereits.' });
+    }
+    if (msg.includes('violates not-null constraint')) {
+      return res.status(400).json({ error: 'Ein Pflichtfeld wurde nicht ausgefüllt.' });
+    }
+    if (msg.includes('column') && msg.includes('does not exist')) {
+      return res.status(500).json({ error: 'Datenbank-Schema veraltet. Bitte SQL-Migration ausführen (siehe docs/sql-admin-erweiterungen.sql).' });
+    }
+    return res.status(500).json({ error: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.' });
   }
 }
 
@@ -618,7 +632,7 @@ async function handleDeleteTrainer(req, res, supabase) {
 
   const { data: trainer, error: fetchErr } = await supabase
     .from('trainer_profiles')
-    .select('id, status, auth_user_id, license_files')
+    .select('id, full_name, status, auth_user_id, license_files, contract_files')
     .eq('id', trainerId)
     .single();
 
@@ -627,26 +641,82 @@ async function handleDeleteTrainer(req, res, supabase) {
     return res.status(400).json({ error: 'Aktive Trainer können nicht gelöscht werden. Bitte zuerst deaktivieren.' });
   }
 
-  const BUCKET = 'trainer-documents';
-  const { data: storageFiles } = await supabase.storage.from(BUCKET).list(trainerId);
-  if (storageFiles && storageFiles.length > 0) {
-    const paths = storageFiles.map(f => `${trainerId}/${f.name}`);
-    await supabase.storage.from(BUCKET).remove(paths);
+  try {
+    // 1. Alle group_participants löschen, deren Kurs diesem Trainer gehört
+    const { data: trainerGroups } = await supabase
+      .from('group_classes')
+      .select('id')
+      .eq('trainer_id', trainerId);
+    if (trainerGroups && trainerGroups.length > 0) {
+      const groupIds = trainerGroups.map(g => g.id);
+      const { error: partErr } = await supabase
+        .from('group_participants')
+        .delete()
+        .in('group_class_id', groupIds);
+      if (partErr && partErr.code !== '42P01') console.error('group_participants DELETE:', partErr.message);
+    }
+
+    // 2. group_classes: trainer_id auf NULL setzen
+    const { error: gcErr } = await supabase
+      .from('group_classes')
+      .update({ trainer_id: null })
+      .eq('trainer_id', trainerId);
+    if (gcErr && gcErr.code !== '42P01') console.error('group_classes UPDATE:', gcErr.message);
+
+    // 3. trainer_availability löschen
+    const { error: taErr } = await supabase.from('trainer_availability').delete().eq('trainer_id', trainerId);
+    if (taErr && taErr.code !== '42P01') console.error('trainer_availability DELETE:', taErr.message);
+
+    // 4. trainer_reviews löschen
+    const { error: trErr } = await supabase.from('trainer_reviews').delete().eq('trainer_id', trainerId);
+    if (trErr && trErr.code !== '42P01') console.error('trainer_reviews DELETE:', trErr.message);
+
+    // 5. bookings: trainer_id auf NULL setzen (Buchungen bleiben erhalten)
+    const { error: bkErr } = await supabase.from('bookings').update({ trainer_id: null }).eq('trainer_id', trainerId);
+    if (bkErr && bkErr.code !== '42P01') console.error('bookings UPDATE:', bkErr.message);
+
+    // 6. gutschriften: trainer_id auf NULL setzen (falls Tabelle existiert)
+    const { error: gsErr } = await supabase.from('gutschriften').update({ trainer_id: null }).eq('trainer_id', trainerId);
+    if (gsErr && gsErr.code !== '42P01') console.error('gutschriften UPDATE:', gsErr.message);
+
+    // 7. Dateien aus Supabase Storage löschen (trainer-documents/{trainerId}/* + contracts/*)
+    const BUCKET = 'trainer-documents';
+    const { data: storageFiles } = await supabase.storage.from(BUCKET).list(trainerId);
+    if (storageFiles && storageFiles.length > 0) {
+      const paths = storageFiles.map(f => `${trainerId}/${f.name}`);
+      await supabase.storage.from(BUCKET).remove(paths);
+    }
+    // Auch Unterordner contracts/ löschen
+    const { data: contractFiles } = await supabase.storage.from(BUCKET).list(`${trainerId}/contracts`);
+    if (contractFiles && contractFiles.length > 0) {
+      const cPaths = contractFiles.map(f => `${trainerId}/contracts/${f.name}`);
+      await supabase.storage.from(BUCKET).remove(cPaths);
+    }
+
+    // 8. trainer_profiles Eintrag löschen
+    const { error: deleteErr } = await supabase.from('trainer_profiles').delete().eq('id', trainerId);
+    if (deleteErr) {
+      console.error('trainer_profiles DELETE error:', deleteErr.message);
+      if (deleteErr.message.includes('foreign key')) {
+        return res.status(400).json({
+          error: 'Trainer kann nicht gelöscht werden: Es bestehen noch Verknüpfungen in der Datenbank. Bitte wende dich an den Support.',
+        });
+      }
+      return res.status(500).json({ error: 'Trainer konnte nicht gelöscht werden: ' + deleteErr.message });
+    }
+
+    // 9. Falls auth_user_id vorhanden: Auth-User löschen
+    if (trainer.auth_user_id) {
+      const { error: authErr } = await supabase.auth.admin.deleteUser(trainer.auth_user_id);
+      if (authErr) console.error('Auth-User löschen fehlgeschlagen:', authErr.message);
+    }
+
+    return res.json({ success: true, message: `Trainer "${trainer.full_name}" und alle zugehörigen Daten gelöscht.` });
+
+  } catch (err) {
+    console.error('handleDeleteTrainer Fehler:', err);
+    return res.status(500).json({ error: 'Trainer konnte nicht gelöscht werden. Bitte versuche es erneut oder wende dich an den Support.' });
   }
-
-  await supabase.from('trainer_availability').delete().eq('trainer_id', trainerId);
-  await supabase.from('trainer_reviews').delete().eq('trainer_id', trainerId);
-  await supabase.from('bookings').update({ trainer_id: null }).eq('trainer_id', trainerId);
-
-  const { error: deleteErr } = await supabase.from('trainer_profiles').delete().eq('id', trainerId);
-  if (deleteErr) throw deleteErr;
-
-  if (trainer.auth_user_id) {
-    const { error: authErr } = await supabase.auth.admin.deleteUser(trainer.auth_user_id);
-    if (authErr) console.error('Auth-User löschen fehlgeschlagen:', authErr.message);
-  }
-
-  return res.json({ success: true, message: 'Trainer und alle zugehörigen Daten gelöscht.' });
 }
 
 // ─── ACTION: bookings ────────────────────────────────────────────────────────
