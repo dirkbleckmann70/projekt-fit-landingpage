@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dienstleistungsvertrag – Projekt Fit</title>
+    <style>
+        :root {
+            --bg-primary: #0D0D15;
+            --bg-secondary: #151520;
+            --text-primary: #E8E8EC;
+            --text-secondary: #9999A8;
+            --accent-green: #40916C;
+            --accent-orange: #E07A3A;
+            --border-color: #2A2A3A;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 40px 24px 80px;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--accent-green);
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 32px;
+            transition: opacity 0.2s;
+        }
+
+        .back-link:hover {
+            opacity: 0.8;
+        }
+
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 48px;
+        }
+
+        h2 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 16px;
+            color: var(--text-primary);
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-top: 24px;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        p {
+            margin-bottom: 12px;
+            color: var(--text-secondary);
+        }
+
+        ul, ol {
+            margin-bottom: 12px;
+            padding-left: 24px;
+            color: var(--text-secondary);
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        a {
+            color: var(--accent-green);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .highlight-box {
+            background: var(--bg-secondary);
+            border-left: 3px solid var(--accent-green);
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+
+        .highlight-box p {
+            margin-bottom: 4px;
+        }
+
+        .warning-box {
+            background: var(--bg-secondary);
+            border-left: 3px solid var(--accent-orange);
+            padding: 16px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+
+        .warning-box p {
+            margin-bottom: 4px;
+        }
+
+        .parties-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin: 24px 0;
+        }
+
+        @media (max-width: 600px) {
+            .parties-box {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .party-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .party-card h3 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            color: var(--accent-green);
+        }
+
+        .party-card p {
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .footer {
+            margin-top: 60px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="https://projektfit.net" class="back-link">&larr; Zurück zu Projekt Fit</a>
+
+        <h1>Dienstleistungsvertrag</h1>
+        <p class="subtitle">Vertrag über Personal- und Gruppentraining &middot; Stand: März 2026</p>
+
+        <p>Zwischen dem Kunden (nachfolgend <strong>&bdquo;Auftraggeber&ldquo;</strong>) und dem über die App Projekt Fit vermittelten Trainer (nachfolgend <strong>&bdquo;Auftragnehmer&ldquo;</strong>) wird folgender Vertrag geschlossen:</p>
+
+        <div class="parties-box">
+            <div class="party-card">
+                <h3>Auftraggeber</h3>
+                <p>Der in der App registrierte Kunde mit seinen hinterlegten Profildaten (Name, Adresse, Kontaktdaten).</p>
+            </div>
+            <div class="party-card">
+                <h3>Auftragnehmer</h3>
+                <p>Der in der App registrierte, selbstständige Trainer mit den in seinem Trainerprofil hinterlegten Daten.</p>
+            </div>
+        </div>
+
+        <p>Die Vermittlung erfolgt über die Plattform <strong>Projekt Fit</strong>, betrieben von Dirk Bleckmann, Kopernikusstraße 6, 46147 Oberhausen.</p>
+
+        <h2>§ 1 Vertragsgegenstand</h2>
+        <p>Gegenstand dieses Vertrags ist die Durchführung von Trainingsdienstleistungen im Bereich Fitness und Gesundheit, insbesondere:</p>
+        <ul>
+            <li><strong>Personal Training:</strong> Individuelles 1:1-Training, zugeschnitten auf die Ziele, den Fitnessstand und gesundheitliche Einschränkungen des Auftraggebers</li>
+            <li><strong>Gruppentraining:</strong> Angeleitetes Training in Kleingruppen (max. 12 Teilnehmer) an festen Outdoor-Standorten</li>
+        </ul>
+        <p>Der Auftragnehmer erbringt seine Leistungen als selbstständiger Unternehmer. Er ist kein Angestellter des Plattformbetreibers.</p>
+
+        <h2>§ 2 Leistungsumfang</h2>
+        <p>Der Auftragnehmer verpflichtet sich:</p>
+        <ul>
+            <li>Das Training fachgerecht, sorgfältig und unter Berücksichtigung des Fitnessstands des Auftraggebers durchzuführen</li>
+            <li>Vor dem ersten Training ein kurzes Gespräch mit dem Auftraggeber zu führen, um individuelle Ziele, Einschränkungen und Erfahrungen zu klären</li>
+            <li>Gesundheitliche Einschränkungen, die der Auftraggeber in der Gesundheitserklärung angegeben hat, bei der Trainingsgestaltung zu berücksichtigen</li>
+            <li>Bei gesundheitlichen Bedenken dem Auftraggeber zu empfehlen, vor dem Training einen Arzt zu konsultieren</li>
+            <li>Pünktlich am vereinbarten Trainingsort zu erscheinen</li>
+            <li>Geeignetes Trainingsequipment (soweit erforderlich) bereitzustellen</li>
+        </ul>
+
+        <h2>§ 3 Terminvereinbarung</h2>
+        <p>Termine werden über die App Projekt Fit gebucht. Der Vertrag für eine einzelne Trainingseinheit kommt zustande, wenn der Auftragnehmer die Buchungsanfrage bestätigt.</p>
+        <p>Der Auftragnehmer hat seine Verfügbarkeit in der App korrekt zu hinterlegen und Buchungsanfragen zeitnah (innerhalb von 24 Stunden) zu bestätigen oder abzulehnen.</p>
+
+        <h2>§ 4 Vergütung</h2>
+        <p>Die Vergütung für das Training ergibt sich aus dem zum Zeitpunkt der Buchung in der App angezeigten Preis. Alle Preise sind Endpreise inklusive gesetzlicher Mehrwertsteuer.</p>
+        <div class="highlight-box">
+            <p><strong>Personal Training:</strong> Ab 79,00 € pro Session (60 Min.), je nach Trainer und Region</p>
+            <p><strong>Gruppentraining:</strong> Ab 15,00 € pro Person und Session (60 Min.)</p>
+        </div>
+        <p>Die Zahlungsabwicklung erfolgt über die Plattform Projekt Fit mittels des Zahlungsdienstleisters Stripe. Der Zahlungseinzug beim Auftraggeber erfolgt erst nach Bestätigung des Termins durch den Auftragnehmer.</p>
+        <p>Der Auftragnehmer erhält seine Vergütung (Auszahlungsbetrag) nach Abschluss des Trainings und Bestätigung durch den Auftraggeber. Die Auszahlung erfolgt über Stripe Connect auf das vom Auftragnehmer hinterlegte Konto.</p>
+
+        <h2>§ 5 Stornierung und Absage</h2>
+        <h3>Durch den Auftraggeber</h3>
+        <ul>
+            <li>Kostenfreie Stornierung bis 48 Stunden vor dem Termin</li>
+            <li>Bei späterer Stornierung oder Nichterscheinen wird der volle Buchungsbetrag fällig</li>
+        </ul>
+        <h3>Durch den Auftragnehmer</h3>
+        <ul>
+            <li>Der Auftragnehmer kann einen Termin absagen, muss dies jedoch schnellstmöglich über die App mitteilen</li>
+            <li>Die Plattform bemüht sich, einen Ersatztrainer zu vermitteln</li>
+            <li>Ist kein Ersatztrainer verfügbar, wird dem Auftraggeber der volle Betrag erstattet</li>
+            <li>Wiederholte kurzfristige Absagen durch den Auftragnehmer können zur Deaktivierung des Trainerprofils führen</li>
+        </ul>
+
+        <h2>§ 6 Gesundheit und Eigenverantwortung</h2>
+        <div class="warning-box">
+            <p><strong>Wichtig:</strong> Der Auftraggeber nimmt am Training auf eigene Verantwortung und eigenes Risiko teil.</p>
+        </div>
+        <p>Der Auftraggeber verpflichtet sich:</p>
+        <ul>
+            <li>Wahrheitsgemäße Angaben in der Gesundheitserklärung zu machen</li>
+            <li>Den Auftragnehmer über gesundheitliche Veränderungen seit der letzten Erklärung zu informieren</li>
+            <li>Bei Schmerzen oder Unwohlsein das Training sofort abzubrechen und den Auftragnehmer zu informieren</li>
+            <li>Geeignete Sportbekleidung und Schuhe zu tragen</li>
+            <li>Ausreichend Flüssigkeit mitzubringen</li>
+        </ul>
+        <p>Der Auftragnehmer ist <strong>kein</strong> Arzt und darf keine medizinischen Diagnosen stellen oder Behandlungen empfehlen. Bei gesundheitlichen Bedenken ist der Auftraggeber angehalten, einen Arzt aufzusuchen.</p>
+
+        <h2>§ 7 Versicherung</h2>
+        <p>Der Auftragnehmer ist verpflichtet, eine gültige Berufshaftpflichtversicherung für seine Tätigkeit als Fitness-Trainer abzuschließen und aufrechtzuerhalten.</p>
+        <p>Der Auftraggeber ist für seinen eigenen Versicherungsschutz (z.B. Krankenversicherung, Unfallversicherung) selbst verantwortlich.</p>
+        <p>Der Plattformbetreiber (Projekt Fit) übernimmt keine Versicherungsleistungen für Schäden, die während des Trainings entstehen.</p>
+
+        <h2>§ 8 Haftung</h2>
+        <p>Der Auftragnehmer haftet für Schäden, die er durch vorsätzliches oder grob fahrlässiges Handeln verursacht hat. Die Haftung für leichte Fahrlässigkeit ist – soweit gesetzlich zulässig – ausgeschlossen.</p>
+        <p>Der Plattformbetreiber (Projekt Fit) haftet nicht für Schäden, die aus der Durchführung des Trainings entstehen, da er lediglich als Vermittler auftritt.</p>
+        <p>Beide Parteien haften uneingeschränkt für Schäden aus der Verletzung von Leben, Körper und Gesundheit.</p>
+
+        <h2>§ 9 Vertraulichkeit und Datenschutz</h2>
+        <p>Der Auftragnehmer verpflichtet sich, personenbezogene Daten des Auftraggebers – insbesondere Gesundheitsdaten aus der Gesundheitserklärung – vertraulich zu behandeln und nicht an Dritte weiterzugeben.</p>
+        <p>Die Verarbeitung personenbezogener Daten durch die Plattform erfolgt gemäß der Datenschutzerklärung unter <a href="https://projektfit.net/datenschutz">projektfit.net/datenschutz</a>.</p>
+
+        <h2>§ 10 Vertragslaufzeit und Kündigung</h2>
+        <p>Dieser Vertrag gilt für die Dauer der gebuchten Trainingseinheiten. Er endet automatisch mit Abschluss der letzten gebuchten Session.</p>
+        <p>Beide Parteien können die Geschäftsbeziehung jederzeit beenden, indem sie keine weiteren Buchungen vornehmen bzw. annehmen. Bereits bestätigte Buchungen bleiben davon unberührt und sind gemäß den Stornierungsregeln (§ 5) zu behandeln.</p>
+
+        <h2>§ 11 Schlussbestimmungen</h2>
+        <p>Es gilt das Recht der Bundesrepublik Deutschland. Sollten einzelne Bestimmungen dieses Vertrags unwirksam sein oder werden, bleibt die Wirksamkeit der übrigen Bestimmungen unberührt.</p>
+        <p>Änderungen und Ergänzungen dieses Vertrags bedürfen der Schriftform (auch digital). Dies gilt auch für die Aufhebung dieses Schriftformerfordernisses.</p>
+        <p>Gerichtsstand für alle Streitigkeiten aus diesem Vertrag ist – soweit gesetzlich zulässig – der Sitz des Plattformbetreibers.</p>
+        <p>Bei Fragen zu diesem Vertrag: <a href="mailto:projektfit.app@web.de">projektfit.app@web.de</a></p>
+
+        <div class="footer">
+            <p>&copy; 2026 Dirk Bleckmann &middot; <a href="https://projektfit.net">projektfit.net</a></p>
+        </div>
+    </div>
+</body>
+</html>
