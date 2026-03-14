@@ -471,9 +471,161 @@
         </label>
         <span id="admin-contract-upload-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
       </div>
+
+      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Verfügbarkeit</h3>
+
+      <div id="availability-grid" style="margin-bottom:12px">
+        <div style="font-size:12px;color:#8888A0;text-align:center;padding:16px">Wird geladen...</div>
+      </div>
+
+      <button class="btn btn-primary btn-sm" onclick="saveAvailability('${id}')" id="save-availability-btn" style="display:none">
+        Verfügbarkeit speichern
+      </button>
+      <span id="availability-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
     `;
 
     document.getElementById('detail-modal').classList.add('open');
+
+    // Load availability after modal is open
+    loadAvailability(id);
+  }
+
+  // ─── Availability Grid ────────────────────────────────────────────────────
+
+  const AVAIL_DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const AVAIL_HOURS_START = 5;
+  const AVAIL_HOURS_END = 23;
+  let availabilitySlots = {}; // key: "day-hour" → true/false
+
+  async function loadAvailability(trainerId) {
+    const grid = document.getElementById('availability-grid');
+    try {
+      const resp = await fetch(`/api/admin?action=trainer-availability&trainerId=${trainerId}`, {
+        headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
+      });
+      const result = await resp.json();
+
+      availabilitySlots = {};
+      if (result.data) {
+        for (const row of result.data) {
+          for (let h = row.start_hour; h < row.end_hour; h++) {
+            availabilitySlots[`${row.day_of_week}-${h}`] = true;
+          }
+        }
+      }
+
+      renderAvailabilityGrid();
+      document.getElementById('save-availability-btn').style.display = 'inline-flex';
+    } catch (err) {
+      grid.innerHTML = '<div style="color:#E74C3C;font-size:13px">Fehler beim Laden der Verfügbarkeit.</div>';
+      console.error('Availability load error:', err);
+    }
+  }
+
+  function renderAvailabilityGrid() {
+    const grid = document.getElementById('availability-grid');
+
+    let html = '<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;font-size:11px">';
+
+    // Header row with hours
+    html += '<tr><td style="padding:4px 6px;font-weight:700;color:#8888A0;min-width:32px"></td>';
+    for (let h = AVAIL_HOURS_START; h < AVAIL_HOURS_END; h++) {
+      html += `<td style="padding:4px 2px;text-align:center;color:#8888A0;font-weight:600;min-width:28px">${h}</td>`;
+    }
+    html += '</tr>';
+
+    // Day rows
+    for (let d = 1; d <= 6; d++) { // Mo-Sa first
+      html += renderAvailDayRow(d);
+    }
+    html += renderAvailDayRow(0); // So last
+
+    html += '</table></div>';
+    html += '<div style="font-size:11px;color:#8888A0;margin-top:8px">Klicke auf Zeitslots um sie zu aktivieren/deaktivieren</div>';
+
+    grid.innerHTML = html;
+  }
+
+  function renderAvailDayRow(dayIndex) {
+    let html = `<tr><td style="padding:4px 6px;font-weight:700;color:#e0e0e0">${AVAIL_DAYS[dayIndex]}</td>`;
+    for (let h = AVAIL_HOURS_START; h < AVAIL_HOURS_END; h++) {
+      const key = `${dayIndex}-${h}`;
+      const active = !!availabilitySlots[key];
+      const bg = active ? 'rgba(232,147,10,0.3)' : 'rgba(255,255,255,0.03)';
+      const border = active ? '#e8930a' : 'rgba(255,255,255,0.08)';
+      html += `<td style="padding:2px" onclick="toggleAvailSlot(${dayIndex},${h})">
+        <div style="width:24px;height:24px;border-radius:4px;background:${bg};border:1px solid ${border};cursor:pointer;margin:auto"
+             id="avail-${key}" title="${AVAIL_DAYS[dayIndex]} ${h}:00-${h+1}:00"></div>
+      </td>`;
+    }
+    html += '</tr>';
+    return html;
+  }
+
+  function toggleAvailSlot(day, hour) {
+    const key = `${day}-${hour}`;
+    availabilitySlots[key] = !availabilitySlots[key];
+
+    const el = document.getElementById(`avail-${key}`);
+    if (el) {
+      const active = availabilitySlots[key];
+      el.style.background = active ? 'rgba(232,147,10,0.3)' : 'rgba(255,255,255,0.03)';
+      el.style.borderColor = active ? '#e8930a' : 'rgba(255,255,255,0.08)';
+    }
+  }
+
+  async function saveAvailability(trainerId) {
+    const btn = document.getElementById('save-availability-btn');
+    const status = document.getElementById('availability-status');
+    btn.disabled = true;
+    status.textContent = 'Wird gespeichert...';
+    status.style.color = '#8888A0';
+
+    // Convert grid slots to consecutive hour ranges per day
+    const slots = [];
+    for (let d = 0; d <= 6; d++) {
+      let startHour = null;
+      for (let h = AVAIL_HOURS_START; h <= AVAIL_HOURS_END; h++) {
+        const active = !!availabilitySlots[`${d}-${h}`];
+        if (active && startHour === null) {
+          startHour = h;
+        } else if (!active && startHour !== null) {
+          slots.push({ day_of_week: d, start_hour: startHour, end_hour: h, is_active: true });
+          startHour = null;
+        }
+      }
+      if (startHour !== null) {
+        slots.push({ day_of_week: d, start_hour: startHour, end_hour: AVAIL_HOURS_END, is_active: true });
+      }
+    }
+
+    try {
+      const resp = await fetch('/api/admin?action=trainer-availability', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
+        },
+        body: JSON.stringify({ trainerId, slots })
+      });
+      const result = await resp.json();
+
+      if (result.success) {
+        status.textContent = `Gespeichert (${result.count} Einträge)`;
+        status.style.color = '#27AE60';
+      } else {
+        status.textContent = result.error || 'Fehler beim Speichern';
+        status.style.color = '#E74C3C';
+      }
+    } catch (err) {
+      status.textContent = 'Netzwerkfehler';
+      status.style.color = '#E74C3C';
+      console.error('Availability save error:', err);
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => { status.textContent = ''; }, 4000);
+    }
   }
 
   function renderLicenseList(files, trainerId) {

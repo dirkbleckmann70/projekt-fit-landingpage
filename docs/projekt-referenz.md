@@ -23,7 +23,7 @@ Letzte Aktualisierung: 13.03.2026
 
 Routing über /api/admin?action=ACTION_NAME
 
-Actions: data, trainers, activate-trainer, deactivate-trainer, delete-trainer, bookings, groups, locations, documents, get-file-url, delete-storage-file, customers, all_customers, customer_bookings, add-participant, update-participant
+Actions: data, trainers, activate-trainer, deactivate-trainer, delete-trainer, bookings, groups, locations, documents, get-file-url, delete-storage-file, customers, all_customers, customer_bookings, add-participant, update-participant, trainer-availability
 
 ## 4. Supabase-Schema
 
@@ -37,7 +37,7 @@ id (UUID PK), customer_id (UUID), trainer_id (UUID FK), booking_type (TEXT 'pers
 id (UUID PK), auth_user_id (UUID), first_name, last_name, full_name, email (TEXT NOT NULL), phone, street_address, postal_code, city, date_of_birth (DATE), health_declaration (JSONB {}), health_declaration_accepted (BOOL false), health_declaration_accepted_at, contract_accepted (BOOL false), contract_accepted_at, terms_accepted (BOOL false), terms_accepted_at, service_contract_accepted (BOOL false), service_contract_accepted_at, document_files (JSONB []), notes, created_at
 
 ### trainer_availability
-id (UUID PK), trainer_id (UUID FK), day_of_week (INT 0-6, 0=Sonntag), start_time (TIME), end_time (TIME), is_active (BOOL)
+id (UUID PK), trainer_id (UUID FK), day_of_week (INT 0-6, 0=Sonntag), start_hour (INTEGER), end_hour (INTEGER), is_active (BOOL)
 
 ### trainer_reviews
 id (UUID PK), booking_id, customer_id, trainer_id (UUID FK), rating (INT 1-5), comment, created_at

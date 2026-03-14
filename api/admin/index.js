@@ -165,6 +165,15 @@ export default async function handler(req, res) {
         return res.json({ success: true });
       }
 
+      // ═══════════════════════════════════════════════════════════════════
+      // TRAINER-AVAILABILITY – GET + POST
+      // ═══════════════════════════════════════════════════════════════════
+      case 'trainer-availability': {
+        if (req.method === 'GET') return await handleTrainerAvailabilityGet(req, res, supabase);
+        if (req.method === 'POST') return await handleTrainerAvailabilityPost(req, res, supabase);
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+
       default:
         return res.status(404).json({ error: `Unbekannte Action: ${action}` });
     }
@@ -1089,4 +1098,58 @@ async function handleAddParticipant(req, res, supabase) {
 
   if (error) throw error;
   return res.json({ success: true, data: data?.[0] });
+}
+
+// ─── ACTION: trainer-availability GET ───────────────────────────────────────
+
+async function handleTrainerAvailabilityGet(req, res, supabase) {
+  const { trainerId } = req.query;
+  if (!trainerId) return res.status(400).json({ error: 'trainerId ist erforderlich' });
+
+  const { data, error } = await supabase
+    .from('trainer_availability')
+    .select('*')
+    .eq('trainer_id', trainerId)
+    .order('day_of_week', { ascending: true })
+    .order('start_hour', { ascending: true });
+
+  if (error) throw error;
+  return res.json({ success: true, data: data || [] });
+}
+
+// ─── ACTION: trainer-availability POST ──────────────────────────────────────
+
+async function handleTrainerAvailabilityPost(req, res, supabase) {
+  const body = await getBody(req);
+  const { trainerId, slots } = body;
+
+  if (!trainerId) return res.status(400).json({ error: 'trainerId ist erforderlich' });
+  if (!Array.isArray(slots)) return res.status(400).json({ error: 'slots muss ein Array sein' });
+
+  // Delete existing entries for this trainer
+  const { error: delError } = await supabase
+    .from('trainer_availability')
+    .delete()
+    .eq('trainer_id', trainerId);
+
+  if (delError) throw delError;
+
+  // Insert new entries
+  if (slots.length > 0) {
+    const rows = slots.map(s => ({
+      trainer_id: trainerId,
+      day_of_week: s.day_of_week,
+      start_hour: s.start_hour,
+      end_hour: s.end_hour,
+      is_active: s.is_active !== false,
+    }));
+
+    const { error: insError } = await supabase
+      .from('trainer_availability')
+      .insert(rows);
+
+    if (insError) throw insError;
+  }
+
+  return res.json({ success: true, count: slots.length });
 }
