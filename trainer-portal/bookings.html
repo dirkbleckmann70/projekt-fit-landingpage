@@ -82,15 +82,21 @@
     try {
       const { data, error } = await sb
         .from('bookings')
-        .select('*')
+        .select('*, customers(first_name, last_name, full_name)')
         .eq('trainer_id', trainerId)
         .order('scheduled_date', { ascending: false });
 
       if (error) throw error;
-      allBookings = data || [];
+      // Kundennamen aus der Join-Tabelle extrahieren
+      allBookings = (data || []).map(b => ({
+        ...b,
+        customer_name: b.customers?.full_name
+          || [b.customers?.first_name, b.customers?.last_name].filter(Boolean).join(' ')
+          || 'Kunde',
+      }));
 
-      // Update pending count
-      const pendingCount = allBookings.filter(b => b.status === 'PENDING').length;
+      // Update pending count (Supabase speichert lowercase)
+      const pendingCount = allBookings.filter(b => b.status === 'pending').length;
       document.getElementById('pending-count').textContent = pendingCount > 0 ? `(${pendingCount})` : '';
 
       renderBookings();
@@ -106,15 +112,15 @@
 
     switch (currentTab) {
       case 'pending':
-        filtered = allBookings.filter(b => b.status === 'PENDING');
+        filtered = allBookings.filter(b => b.status === 'pending');
         break;
       case 'confirmed':
-        filtered = allBookings.filter(b => b.status === 'CONFIRMED' && b.scheduled_date >= today);
+        filtered = allBookings.filter(b => b.status === 'confirmed' && b.scheduled_date >= today);
         break;
       case 'past':
         filtered = allBookings.filter(b =>
-          b.status === 'COMPLETED' || b.status === 'CANCELLED' ||
-          (b.status === 'CONFIRMED' && b.scheduled_date < today)
+          b.status === 'completed' || b.status === 'cancelled' || b.status === 'cancelled_by_trainer' ||
+          (b.status === 'confirmed' && b.scheduled_date < today)
         );
         break;
       default:
@@ -137,7 +143,7 @@
     }
 
     container.innerHTML = filtered.map(b => {
-      const isPending = b.status === 'PENDING';
+      const isPending = b.status === 'pending';
       const hasRating = b.rating && b.rating > 0;
 
       return `
@@ -148,14 +154,14 @@
           </div>
           <div class="booking-meta">
             📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
-            📍 ${b.location || '–'}
+            📍 ${b.location_name || b.location || '–'}
             ${b.price_cents ? '<br>💰 ' + formatEuro(b.price_cents) : ''}
             ${hasRating ? '<br>⭐ ' + b.rating + '/5' + (b.review_comment ? ' – „' + b.review_comment + '"' : '') : ''}
           </div>
           ${isPending ? `
             <div class="booking-actions">
-              <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', 'CONFIRMED')">Bestätigen</button>
-              <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', 'CANCELLED')">Ablehnen</button>
+              <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', 'confirmed')">Bestätigen</button>
+              <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', 'cancelled_by_trainer')">Ablehnen</button>
             </div>
           ` : ''}
         </div>
@@ -169,7 +175,7 @@
     if (error) {
       showAlert('alert-box', 'Fehler: ' + error.message, 'error');
     } else {
-      showAlert('alert-box', status === 'CONFIRMED' ? 'Buchung bestätigt!' : 'Buchung abgelehnt.', 'success');
+      showAlert('alert-box', status === 'confirmed' ? 'Buchung bestätigt!' : 'Buchung abgelehnt.', 'success');
       await loadBookings();
     }
   }

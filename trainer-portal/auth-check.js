@@ -103,6 +103,8 @@ function statusBadge(status) {
     confirmed: 'badge-confirmed',
     completed: 'badge-completed',
     cancelled: 'badge-cancelled',
+    cancelled_by_trainer: 'badge-cancelled',
+    paid: 'badge-completed',
   };
   const cls = map[status] || 'badge-pending';
   const labels = {
@@ -110,6 +112,12 @@ function statusBadge(status) {
     CONFIRMED: 'Bestätigt',
     COMPLETED: 'Abgeschlossen',
     CANCELLED: 'Storniert',
+    pending: 'Anfrage',
+    confirmed: 'Bestätigt',
+    completed: 'Abgeschlossen',
+    cancelled: 'Storniert',
+    cancelled_by_trainer: 'Abgelehnt',
+    paid: 'Bezahlt',
   };
   return `<span class="badge ${cls}">${labels[status] || status}</span>`;
 }

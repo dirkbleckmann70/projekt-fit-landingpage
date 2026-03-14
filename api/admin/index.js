@@ -94,7 +94,7 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════════
-      // CUSTOMERS – GET (alle) + POST (erstellen) + PUT (aktualisieren)
+      // CUSTOMERS – GET (alle) + POST (erstellen) + PUT (aktualisieren) + DELETE (löschen)
       // ═══════════════════════════════════════════════════════════════════
       case 'customers': {
         return await handleCustomers(req, res, supabase);
@@ -1050,6 +1050,40 @@ async function handleCustomers(req, res, supabase) {
     if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });
 
     const { error } = await supabase.from('customers').update(update).eq('id', id);
+    if (error) throw error;
+    return res.json({ success: true });
+  }
+
+  if (req.method === 'DELETE') {
+    const body = await getBody(req);
+    const { id } = body;
+    if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
+
+    // Prüfe ob aktive Buchungen vorhanden
+    const { data: activeBookings } = await supabase
+      .from('bookings')
+      .select('id, status')
+      .eq('customer_id', id)
+      .in('status', ['pending', 'confirmed']);
+
+    if (activeBookings && activeBookings.length > 0) {
+      return res.status(400).json({
+        error: 'Kunde hat noch aktive Buchungen. Bitte zuerst stornieren.',
+      });
+    }
+
+    // Dokumente aus Storage löschen
+    const { data: customer } = await supabase.from('customers').select('document_files').eq('id', id).single();
+    if (customer?.document_files?.length > 0) {
+      const paths = customer.document_files.map(f => f.path);
+      await supabase.storage.from('trainer-documents').remove(paths);
+    }
+
+    // bookings.customer_id auf NULL setzen
+    await supabase.from('bookings').update({ customer_id: null }).eq('customer_id', id);
+
+    // Kunde löschen
+    const { error } = await supabase.from('customers').delete().eq('id', id);
     if (error) throw error;
     return res.json({ success: true });
   }

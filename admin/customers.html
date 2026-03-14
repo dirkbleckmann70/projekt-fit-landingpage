@@ -124,8 +124,12 @@
       <button class="modal-close" onclick="closeDetailModal()">&times;</button>
     </div>
     <div class="modal-body" id="detail-body"></div>
-    <div class="modal-footer">
+    <div class="modal-footer" id="detail-footer">
+      <button class="btn btn-danger" id="detail-delete-btn" onclick="deleteCustomer()">Löschen</button>
+      <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="closeDetailModal()">Schließen</button>
+      <button class="btn btn-secondary" id="detail-edit-btn" onclick="toggleEditMode()">Bearbeiten</button>
+      <button class="btn btn-primary" id="detail-save-btn" style="display:none" onclick="saveCustomer()">Speichern</button>
     </div>
   </div>
 </div>
@@ -277,6 +281,9 @@
     const c = allCustomers.find(x => x.id === id);
     if (!c) return;
 
+    currentDetailId = id;
+    editMode = false;
+
     document.getElementById('detail-title').textContent = c.full_name || 'Kunden-Details';
 
     const dobFormatted = c.date_of_birth ? formatDateDE(c.date_of_birth) : '–';
@@ -325,34 +332,45 @@
       <div class="two-col">
         <div class="form-group">
           <label>Vorname</label>
-          <input class="form-control" value="${c.first_name || '–'}" disabled>
+          <input class="form-control edit-field" id="edit-firstname" value="${c.first_name || ''}" disabled>
         </div>
         <div class="form-group">
           <label>Nachname</label>
-          <input class="form-control" value="${c.last_name || '–'}" disabled>
+          <input class="form-control edit-field" id="edit-lastname" value="${c.last_name || ''}" disabled>
         </div>
       </div>
       <div class="two-col">
         <div class="form-group">
           <label>E-Mail</label>
-          <input class="form-control" value="${c.email || '–'}" disabled>
+          <input class="form-control edit-field" type="email" id="edit-email" value="${c.email || ''}" disabled>
         </div>
         <div class="form-group">
           <label>Telefon</label>
-          <input class="form-control" value="${c.phone || '–'}" disabled>
+          <input class="form-control edit-field" id="edit-phone" value="${c.phone || ''}" disabled>
         </div>
+      </div>
+      <div class="form-group">
+        <label>Straße und Hausnummer</label>
+        <input class="form-control edit-field" id="edit-street" value="${c.street_address || ''}" disabled>
       </div>
       <div class="two-col">
         <div class="form-group">
-          <label>Adresse</label>
-          <input class="form-control" value="${[c.street_address, c.postal_code, c.city].filter(Boolean).join(', ') || '–'}" disabled>
+          <label>PLZ</label>
+          <input class="form-control edit-field" id="edit-postal" value="${c.postal_code || ''}" disabled>
         </div>
         <div class="form-group">
-          <label>Geburtsdatum</label>
-          <input class="form-control" value="${dobFormatted}" disabled>
+          <label>Ort</label>
+          <input class="form-control edit-field" id="edit-city" value="${c.city || ''}" disabled>
         </div>
       </div>
-      ${c.notes ? `<div class="form-group"><label>Notizen</label><textarea class="form-control" disabled>${c.notes}</textarea></div>` : ''}
+      <div class="form-group">
+        <label>Geburtsdatum</label>
+        <input class="form-control edit-field" type="date" id="edit-dob" value="${c.date_of_birth || ''}" disabled>
+      </div>
+      <div class="form-group">
+        <label>Notizen</label>
+        <textarea class="form-control edit-field" id="edit-notes" rows="3" disabled>${c.notes || ''}</textarea>
+      </div>
       <p class="text-muted" style="font-size:12px">Registriert: ${formatDateTime(c.created_at)} · ID: ${c.id}</p>
 
       <hr style="border-color:#2a2a2a;margin:20px 0">
@@ -398,6 +416,8 @@
     `;
 
     document.getElementById('detail-body').innerHTML = html;
+    document.getElementById('detail-edit-btn').style.display = '';
+    document.getElementById('detail-save-btn').style.display = 'none';
     document.getElementById('detail-modal').classList.add('open');
 
     // Load customer bookings
@@ -540,6 +560,75 @@
       }
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Edit Mode ──────────────────────────────────────────────
+  let editMode = false;
+  let currentDetailId = null;
+
+  function toggleEditMode() {
+    editMode = !editMode;
+    document.querySelectorAll('.edit-field').forEach(f => f.disabled = !editMode);
+    document.getElementById('detail-edit-btn').style.display = editMode ? 'none' : '';
+    document.getElementById('detail-save-btn').style.display = editMode ? '' : 'none';
+  }
+
+  async function saveCustomer() {
+    if (!currentDetailId) return;
+    const btn = document.getElementById('detail-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      await adminApi('/api/admin?action=customers', {
+        method: 'PUT',
+        body: JSON.stringify({
+          id: currentDetailId,
+          first_name: document.getElementById('edit-firstname').value.trim() || null,
+          last_name: document.getElementById('edit-lastname').value.trim() || null,
+          email: document.getElementById('edit-email').value.trim() || null,
+          phone: document.getElementById('edit-phone').value.trim() || null,
+          street_address: document.getElementById('edit-street').value.trim() || null,
+          postal_code: document.getElementById('edit-postal').value.trim() || null,
+          city: document.getElementById('edit-city').value.trim() || null,
+          date_of_birth: document.getElementById('edit-dob').value || null,
+          notes: document.getElementById('edit-notes').value.trim() || null,
+        }),
+      });
+      editMode = false;
+      closeDetailModal();
+      showAlert('alert-box', 'Kunde gespeichert!', 'success');
+      await loadCustomers();
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Speichern';
+    }
+  }
+
+  async function deleteCustomer() {
+    if (!currentDetailId) return;
+    if (!confirm('Diesen Kunden wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) return;
+
+    const btn = document.getElementById('detail-delete-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      await adminApi('/api/admin?action=customers', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: currentDetailId }),
+      });
+      closeDetailModal();
+      showAlert('alert-box', 'Kunde gelöscht!', 'success');
+      await loadCustomers();
+    } catch (err) {
+      showAlert('alert-box', err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Löschen';
     }
   }
 
