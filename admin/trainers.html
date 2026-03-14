@@ -501,19 +501,19 @@
   async function loadAvailability(trainerId) {
     const grid = document.getElementById('availability-grid');
     try {
-      const resp = await fetch(`/api/admin?action=trainer-availability&trainerId=${trainerId}`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('admin_token')}` }
-      });
-      const result = await resp.json();
+      const result = await adminApi(`/api/admin?action=trainer-availability&trainerId=${trainerId}`);
+      console.log('Availability API response:', result);
 
       availabilitySlots = {};
       if (result.data) {
+        console.log('Availability entries:', result.data.length, result.data);
         for (const row of result.data) {
           for (let h = row.start_hour; h < row.end_hour; h++) {
             availabilitySlots[`${row.day_of_week}-${h}`] = true;
           }
         }
       }
+      console.log('Mapped slots:', Object.keys(availabilitySlots).filter(k => availabilitySlots[k]));
 
       renderAvailabilityGrid();
       document.getElementById('save-availability-btn').style.display = 'inline-flex';
@@ -601,15 +601,10 @@
     }
 
     try {
-      const resp = await fetch('/api/admin?action=trainer-availability', {
+      const result = await adminApi('/api/admin?action=trainer-availability', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('admin_token')}`
-        },
         body: JSON.stringify({ trainerId, slots })
       });
-      const result = await resp.json();
 
       if (result.success) {
         status.textContent = `Gespeichert (${result.count} Einträge)`;
