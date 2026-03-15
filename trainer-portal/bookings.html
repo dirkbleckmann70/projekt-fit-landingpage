@@ -91,9 +91,10 @@
         .single();
       console.log('[Bookings] Trainer self-check:', selfCheck, selfErr?.message);
 
+      // Buchungen laden (KEIN JOIN auf customers – FK fehlt im Schema)
       const { data, error } = await sb
         .from('bookings')
-        .select('*, customers(first_name, last_name, full_name)')
+        .select('*')
         .eq('trainer_id', trainerId)
         .order('scheduled_date', { ascending: false });
 
@@ -101,12 +102,25 @@
       if (data) console.log('[Bookings] Statuses:', data.map(b => b.status).join(', '));
 
       if (error) throw error;
-      // Kundennamen aus der Join-Tabelle extrahieren
+
+      // Kundennamen separat laden
+      const customerIds = [...new Set((data || []).map(b => b.customer_id).filter(Boolean))];
+      const customerNames = {};
+      if (customerIds.length > 0) {
+        const { data: customers } = await sb
+          .from('customers')
+          .select('id, first_name, last_name, full_name')
+          .in('id', customerIds);
+        if (customers) {
+          customers.forEach(c => {
+            customerNames[c.id] = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Kunde';
+          });
+        }
+      }
+
       allBookings = (data || []).map(b => ({
         ...b,
-        customer_name: b.customers?.full_name
-          || [b.customers?.first_name, b.customers?.last_name].filter(Boolean).join(' ')
-          || 'Kunde',
+        customer_name: customerNames[b.customer_id] || 'Kunde',
       }));
 
       // Update pending count (Supabase speichert lowercase)
