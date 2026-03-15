@@ -51,10 +51,14 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-check.js"></script>
 <script>
-  const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-  const DAY_NAMES = ['Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag', 'Sonntag'];
+  // 0=Sonntag (JavaScript Standard, konsistent mit Date.getDay() und Admin-Backend)
+  const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  const DAY_NAMES = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
   const HOURS = [];
   for (let h = 5; h <= 22; h++) HOURS.push(h); // 5:00 - 22:00 (letzter Block = 22:00-23:00)
+
+  // Anzeige-Reihenfolge: Mo-So (UX-freundlich), intern 0=So (JS Standard)
+  const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mo, Di, Mi, Do, Fr, Sa, So
 
   // State: { "Mo": [8, 9, 10, 16, 17, 18, 19], "Di": [...], ... }
   let availState = {};
@@ -145,7 +149,7 @@
 
       // Parse availability data into state
       (data || []).forEach(row => {
-        const dayIndex = row.day_of_week; // 0=Mo, 1=Di, ..., 6=So
+        const dayIndex = row.day_of_week; // 0=So, 1=Mo, ..., 6=Sa (JS Standard)
         if (dayIndex >= 0 && dayIndex < 7) {
           const dayKey = DAYS[dayIndex];
           const startHour = row.start_hour;
@@ -168,7 +172,9 @@
   function renderGrid() {
     const grid = document.getElementById('avail-grid');
 
-    grid.innerHTML = DAYS.map((day, di) => `
+    grid.innerHTML = DISPLAY_ORDER.map(di => {
+      const day = DAYS[di];
+      return `
       <div class="avail-day-row">
         <div class="avail-day-label">${day}</div>
         <div class="avail-slots">
@@ -184,7 +190,7 @@
           }).join('')}
         </div>
       </div>
-    `).join('');
+    `}).join('');
 
     // Mouse up anywhere
     document.addEventListener('mouseup', () => { isMouseDown = false; });
