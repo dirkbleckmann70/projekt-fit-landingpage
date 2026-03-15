@@ -45,11 +45,17 @@
 
   function renderProfileForm(t) {
     document.getElementById('profile-form-wrap').innerHTML = `
-      <!-- Avatar Platzhalter -->
+      <!-- Avatar mit Upload -->
       <div class="card" style="text-align:center">
-        <div style="width:80px;height:80px;border-radius:50%;background:#2a2a2a;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:32px;color:#55556a">
-          ${(t.full_name || 'T').charAt(0).toUpperCase()}
+        <div style="position:relative;display:inline-block;margin-bottom:12px">
+          ${t.avatar_url
+            ? `<img id="avatar-img" src="${t.avatar_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`
+            : `<div id="avatar-img" style="width:80px;height:80px;border-radius:50%;background:#2a2a2a;display:flex;align-items:center;justify-content:center;font-size:32px;color:#55556a">${(t.full_name || 'T').charAt(0).toUpperCase()}</div>`
+          }
+          <label for="avatar-upload" style="position:absolute;bottom:0;right:-4px;width:28px;height:28px;border-radius:14px;background:#40916C;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #1a1a1a;font-size:12px">📷</label>
+          <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
         </div>
+        ${t.avatar_url ? '<div><button class="btn btn-ghost btn-sm" onclick="removeAvatar()" style="font-size:11px;color:#E05555">Bild entfernen</button></div>' : ''}
         <div style="font-size:18px;font-weight:700">${t.full_name || '–'}</div>
         <div class="text-secondary" style="font-size:13px">${t.email || ''}</div>
         ${t.rating ? `<div class="text-accent mt-1">${t.rating} ★ (${t.review_count || 0} Bewertungen)</div>` : ''}
@@ -347,6 +353,48 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Profil speichern';
+    }
+  }
+
+  async function uploadAvatar(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const trainerId = window.currentTrainer.id;
+    const sb = getSupabase();
+    const ext = file.name.split('.').pop() || 'jpg';
+    const path = `${trainerId}/avatar.${ext}`;
+
+    try {
+      const { error: upErr } = await sb.storage.from('avatars').upload(path, file, { upsert: true });
+      if (upErr) { showAlert('alert-box', 'Upload fehlgeschlagen: ' + upErr.message, 'error'); return; }
+
+      const { data } = sb.storage.from('avatars').getPublicUrl(path);
+      const url = data.publicUrl + '?t=' + Date.now();
+
+      await sb.from('trainer_profiles').update({ avatar_url: url }).eq('id', trainerId);
+      window.currentTrainer.avatar_url = url;
+      showAlert('alert-box', 'Profilbild aktualisiert!', 'success');
+      renderProfileForm(window.currentTrainer);
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  async function removeAvatar() {
+    const trainerId = window.currentTrainer.id;
+    const sb = getSupabase();
+
+    try {
+      const { data: files } = await sb.storage.from('avatars').list(trainerId);
+      if (files && files.length > 0) {
+        await sb.storage.from('avatars').remove(files.map(f => `${trainerId}/${f.name}`));
+      }
+      await sb.from('trainer_profiles').update({ avatar_url: null }).eq('id', trainerId);
+      window.currentTrainer.avatar_url = null;
+      showAlert('alert-box', 'Profilbild entfernt.', 'success');
+      renderProfileForm(window.currentTrainer);
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     }
   }
 </script>
