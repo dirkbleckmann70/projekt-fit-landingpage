@@ -78,13 +78,27 @@
   async function loadBookings() {
     const sb = getSupabase();
     const trainerId = window.currentTrainer.id;
+    const authUserId = window.currentTrainer.auth_user_id;
+
+    console.log('[Bookings] Lade für trainer_id:', trainerId, 'auth_user_id:', authUserId);
 
     try {
+      // Erst prüfen ob der Trainer sich selbst sehen kann
+      const { data: selfCheck, error: selfErr } = await sb
+        .from('trainer_profiles')
+        .select('id, full_name')
+        .eq('id', trainerId)
+        .single();
+      console.log('[Bookings] Trainer self-check:', selfCheck, selfErr?.message);
+
       const { data, error } = await sb
         .from('bookings')
         .select('*, customers(first_name, last_name, full_name)')
         .eq('trainer_id', trainerId)
         .order('scheduled_date', { ascending: false });
+
+      console.log('[Bookings] Query result:', data?.length, 'Buchungen', error?.message);
+      if (data) console.log('[Bookings] Statuses:', data.map(b => b.status).join(', '));
 
       if (error) throw error;
       // Kundennamen aus der Join-Tabelle extrahieren
