@@ -30,21 +30,20 @@
           <table id="groups-table">
             <thead>
               <tr>
+                <th>Stadt</th>
+                <th>Kursname</th>
+                <th>Status</th>
                 <th>Datum</th>
                 <th>Wochentag</th>
                 <th>Uhrzeit</th>
-                <th>Stadt</th>
-                <th>Kursname</th>
                 <th>Trainer</th>
-                <th>Teilnehmer</th>
+                <th>Anz. Teilnehmer</th>
                 <th>Preis/Person</th>
-                <th>Summe EUR</th>
-                <th>Status</th>
                 <th>Aktionen</th>
               </tr>
             </thead>
             <tbody id="groups-body">
-              <tr><td colspan="11" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+              <tr><td colspan="10" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
             </tbody>
           </table>
         </div>
@@ -193,16 +192,15 @@
     await loadGroups();
 
     tableFilter = initSortableTable('groups-table', [
+      { key: 'city',           type: 'select', getValue: g => g.city || '\u2013' },
+      { key: 'name',           type: 'text',   getValue: g => g.name || '' },
+      { key: 'status',         type: 'select', getValue: g => g.is_active ? 'Aktiv' : 'Inaktiv' },
       { key: 'scheduled_date', type: 'date',   getValue: g => g.scheduled_date || '' },
       { key: 'day_name',       type: 'select', getValue: g => getDayName(g) },
       { key: 'time',           type: 'select', getValue: g => getTime(g) },
-      { key: 'city',           type: 'select', getValue: g => g.city || '\u2013' },
-      { key: 'name',           type: 'text',   getValue: g => g.name || '' },
       { key: 'trainer',        type: 'text',   getValue: g => activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '' },
       { key: 'participants',   type: 'number', getValue: g => g.current_participants || 0 },
       { key: 'price',          type: 'number', getValue: g => (g.price_per_person_cents || 0) / 100 },
-      { key: 'sum',            type: 'number', getValue: g => ((g.current_participants || 0) * (g.price_per_person_cents || 0)) / 100 },
-      { key: 'status',         type: 'select', getValue: g => g.is_active ? 'Aktiv' : 'Inaktiv' },
       null,
     ]);
     tableFilter.onFilterChange(() => renderGroups());
@@ -215,7 +213,7 @@
       renderGroups();
     } catch (err) {
       document.getElementById('groups-body').innerHTML =
-        `<tr><td colspan="11" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="10" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -238,7 +236,7 @@
 
     const tbody = document.getElementById('groups-body');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings gefunden</td></tr>';
       return;
     }
 
@@ -247,19 +245,17 @@
       const participants = g.current_participants || 0;
       const max = g.max_participants || '–';
       const priceCents = g.price_per_person_cents || 0;
-      const sumCents = participants * priceCents;
       return `
         <tr>
+          <td>${g.city || '–'}</td>
+          <td><strong>${g.name}</strong></td>
+          <td>${g.is_active ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
           <td>${g.scheduled_date ? formatDate(g.scheduled_date) : '–'}</td>
           <td>${getDayName(g)}</td>
           <td>${getTime(g)}</td>
-          <td>${g.city || '–'}</td>
-          <td><strong>${g.name}</strong></td>
           <td>${trainerName}</td>
           <td>${participants} / ${max}</td>
           <td class="text-accent">${formatEuro(priceCents)}</td>
-          <td class="text-accent">${formatEuro(sumCents)}</td>
-          <td>${g.is_active ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
           <td>
             <div class="action-cell">
               <button class="btn btn-secondary btn-sm" onclick="editGroup('${g.id}')">Bearbeiten</button>
