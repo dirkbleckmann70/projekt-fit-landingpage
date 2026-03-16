@@ -150,12 +150,9 @@
         <div class="two-col">
           <div class="form-group">
             <label>Stundensatz (EUR)</label>
-            <input class="form-control" type="number" id="new-hourly-rate" placeholder="79.00" step="0.01" min="0">
-          </div>
-          <div class="form-group">
-            <label>Auszahlung (EUR)</label>
             <input class="form-control" type="number" id="new-payout" placeholder="35.00" step="0.01" min="0">
           </div>
+          <div class="form-group"></div>
         </div>
         <hr style="border-color:#2a2a2a;margin:20px 0">
         <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Lizenzen & Zertifikate</h3>
@@ -455,12 +452,9 @@
       <div class="two-col">
         <div class="form-group">
           <label>Stundensatz (EUR)</label>
-          <input class="form-control" type="number" id="edit-hourly-rate" step="0.01" min="0" value="${t.hourly_rate_cents ? (t.hourly_rate_cents / 100).toFixed(2) : ''}">
-        </div>
-        <div class="form-group">
-          <label>Auszahlung (EUR)</label>
           <input class="form-control" type="number" id="edit-payout" step="0.01" min="0" value="${t.payout_cents ? (t.payout_cents / 100).toFixed(2) : ''}">
         </div>
+        <div class="form-group"></div>
       </div>
 
       ${t.auth_user_id ? `<p class="text-muted mt-2" style="font-size:12px">Auth User ID: ${t.auth_user_id}</p>` : ''}
@@ -819,7 +813,6 @@
       is_kleinunternehmer: document.getElementById('edit-kleinunternehmer').checked,
       status: document.getElementById('edit-status').value,
       is_active: document.getElementById('edit-is-active').value === 'true',
-      hourly_rate_cents: document.getElementById('edit-hourly-rate').value ? Math.round(parseFloat(document.getElementById('edit-hourly-rate').value) * 100) : null,
       payout_cents: document.getElementById('edit-payout').value ? Math.round(parseFloat(document.getElementById('edit-payout').value) * 100) : null,
     };
 
@@ -1003,7 +996,6 @@
           bio: document.getElementById('new-bio').value.trim() || null,
           steuernummer: document.getElementById('new-steuernummer').value.trim() || null,
           is_kleinunternehmer: document.getElementById('new-kleinunternehmer').checked,
-          hourly_rate_cents: document.getElementById('new-hourly-rate').value ? Math.round(parseFloat(document.getElementById('new-hourly-rate').value) * 100) : null,
           payout_cents: document.getElementById('new-payout').value ? Math.round(parseFloat(document.getElementById('new-payout').value) * 100) : null,
           status: document.getElementById('new-status').value,
         }),
