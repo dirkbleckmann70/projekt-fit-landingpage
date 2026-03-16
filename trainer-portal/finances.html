@@ -141,7 +141,7 @@
         .from('bookings')
         .select('id, scheduled_date, payout_cents, status, customer_name')
         .eq('trainer_id', trainer.id)
-        .in('status', ['COMPLETED', 'CONFIRMED'])
+        .in('status', ['completed'])
         .order('scheduled_date', { ascending: false });
 
       if (error) throw error;

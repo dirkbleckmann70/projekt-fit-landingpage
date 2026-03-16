@@ -184,7 +184,9 @@
       { key: 'status',   type: 'select', getValue: item => item._type === 'gt' ? (item.is_active ? 'Aktiv' : 'Inaktiv') : (item.status || '') },
       { key: 'revenue',  type: 'number', getValue: item => {
           const rate = window.currentTrainer?.payout_cents ?? 0;
-          if (item._type === 'gt') return item.participant_count > 0 ? Math.round(rate / item.participant_count) / 100 : rate / 100;
+          const cancelled = ['cancelled', 'cancelled_by_trainer', 'refunded'];
+          if (item._type === 'gt') return item.is_active ? (item.participant_count > 0 ? Math.round(rate / item.participant_count) / 100 : rate / 100) : 0;
+          if (cancelled.includes(item.status) || item.status === 'pending') return 0;
           return (item.payout_cents ?? rate) / 100;
         } },
       null,
@@ -329,7 +331,12 @@
     const city         = b.location_name || b.location || '–';
     const trainerRate  = window.currentTrainer?.payout_cents ?? null;
     const payoutCents  = b.payout_cents ?? trainerRate;
-    const revenue      = payoutCents ? formatEuro(payoutCents) : '–';
+    const cancelled    = ['cancelled', 'cancelled_by_trainer', 'refunded'];
+    const revenue      = cancelled.includes(b.status)
+      ? '<span style="color:var(--text-muted)">0,00 €</span>'
+      : b.status === 'pending'
+        ? '–'
+        : payoutCents ? formatEuro(payoutCents) : '–';
     const actions = isPending
       ? `<button class="btn btn-sm btn-confirm" onclick="updateBooking('${b.id}','confirmed')">Bestätigen</button>
          <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}','cancelled_by_trainer')">Ablehnen</button>`
@@ -355,7 +362,9 @@
     const payoutShare  = (trainerRate && gc.participant_count > 0)
       ? Math.round(trainerRate / gc.participant_count)
       : null;
-    const revenue      = payoutShare ? formatEuro(payoutShare) : (trainerRate ? formatEuro(trainerRate) : '–');
+    const revenue      = !gc.is_active
+      ? '<span style="color:var(--text-muted)">0,00 €</span>'
+      : payoutShare ? formatEuro(payoutShare) : (trainerRate ? formatEuro(trainerRate) : '–');
     const statusEl  = gc.is_active
       ? '<span class="badge badge-active">Aktiv</span>'
       : '<span class="badge badge-paused">Inaktiv</span>';
@@ -381,7 +390,12 @@
 
     const trainerRate = window.currentTrainer?.payout_cents ?? null;
     const payoutCents = b.payout_cents ?? trainerRate;
-    const vergütung   = payoutCents ? formatEuro(payoutCents) : '–';
+    const cancelled   = ['cancelled', 'cancelled_by_trainer', 'refunded'];
+    const vergütung   = cancelled.includes(b.status)
+      ? '0,00 €'
+      : b.status === 'pending'
+        ? '–'
+        : payoutCents ? formatEuro(payoutCents) : '–';
     const hasRating   = b.rating && b.rating > 0;
 
     document.getElementById('detail-modal-body').innerHTML = `
