@@ -311,14 +311,10 @@
           .in('group_class_id', classIds)
           .neq('status', 'cancelled');
 
-        console.log('[DEBUG] classIds:', classIds);
-        console.log('[DEBUG] ptcps:', ptcps, 'error:', ptcpErr);
-
         const pcMap = {};
         (ptcps || []).forEach(p => {
           pcMap[p.group_class_id] = (pcMap[p.group_class_id] || 0) + 1;
         });
-        console.log('[DEBUG] pcMap:', pcMap);
 
         allGTClasses = gtClasses.map(gc => ({
           _type:                  'gt',
