@@ -234,6 +234,8 @@ async function getAdminEmail(req) {
 
 async function enrichBookings(supabase, bookings) {
   if (bookings.length === 0) return [];
+
+  // Trainer-Namen + Stadt
   const trainerIds = [...new Set(bookings.map(b => b.trainer_id).filter(Boolean))];
   let trainerMap = {};
   if (trainerIds.length > 0) {
@@ -243,11 +245,31 @@ async function enrichBookings(supabase, bookings) {
       .in('id', trainerIds);
     if (trainers) trainers.forEach(t => { trainerMap[t.id] = t; });
   }
+
+  // Kunden-Namen aus customers-Tabelle für Buchungen ohne customer_name
+  const missingNameIds = [...new Set(
+    bookings
+      .filter(b => !b.customer_name && b.customer_id)
+      .map(b => b.customer_id)
+  )];
+  let customerMap = {};
+  if (missingNameIds.length > 0) {
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('id, full_name, email')
+      .in('id', missingNameIds);
+    if (customers) customers.forEach(c => { customerMap[c.id] = c; });
+  }
+
   return bookings.map(b => ({
     ...b,
     trainer_name: trainerMap[b.trainer_id]?.full_name || null,
     trainer_city: trainerMap[b.trainer_id]?.city || null,
     payout_cents: trainerMap[b.trainer_id]?.payout_cents || null,
+    customer_name: b.customer_name ||
+      customerMap[b.customer_id]?.full_name ||
+      customerMap[b.customer_id]?.email ||
+      null,
   }));
 }
 
