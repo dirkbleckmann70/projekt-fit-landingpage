@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
 <body>
 
@@ -148,7 +149,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
-<script src="table-filter.js"></script>
+<script src="../shared/table-utils.js"></script>
 <script>
   let allGroups = [];
   let activeTrainers = [];
@@ -191,24 +192,20 @@
 
     await loadGroups();
 
-    tableFilter = new TableFilter({
-      tableId: 'groups-table',
-      columns: [
-        { key: 'scheduled_date', type: 'date', getValue: g => g.scheduled_date || '' },
-        { key: 'day_name', type: 'select', getValue: g => getDayName(g) },
-        { key: 'time', type: 'select', getValue: g => getTime(g) },
-        { key: 'city', type: 'select', getValue: g => g.city || '\u2013' },
-        { key: 'name', type: 'select', getValue: g => g.name || '\u2013' },
-        { key: 'trainer', type: 'select', getValue: g => activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '\u2013' },
-        { key: 'participants', type: 'number', getValue: g => g.current_participants || 0 },
-        { key: 'price', type: 'number', getValue: g => (g.price_per_person_cents || 0) / 100 },
-        { key: 'sum', type: 'number', getValue: g => ((g.current_participants || 0) * (g.price_per_person_cents || 0)) / 100 },
-        { key: 'status', type: 'select', getValue: g => g.is_active ? 'Aktiv' : 'Inaktiv' },
-        null,
-      ],
-      getData: () => allGroups,
-      onFilter: () => renderGroups(),
-    });
+    tableFilter = initSortableTable('groups-table', [
+      { key: 'scheduled_date', type: 'date',   getValue: g => g.scheduled_date || '' },
+      { key: 'day_name',       type: 'select', getValue: g => getDayName(g) },
+      { key: 'time',           type: 'select', getValue: g => getTime(g) },
+      { key: 'city',           type: 'select', getValue: g => g.city || '\u2013' },
+      { key: 'name',           type: 'text',   getValue: g => g.name || '' },
+      { key: 'trainer',        type: 'text',   getValue: g => activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '' },
+      { key: 'participants',   type: 'number', getValue: g => g.current_participants || 0 },
+      { key: 'price',          type: 'number', getValue: g => (g.price_per_person_cents || 0) / 100 },
+      { key: 'sum',            type: 'number', getValue: g => ((g.current_participants || 0) * (g.price_per_person_cents || 0)) / 100 },
+      { key: 'status',         type: 'select', getValue: g => g.is_active ? 'Aktiv' : 'Inaktiv' },
+      null,
+    ]);
+    tableFilter.onFilterChange(() => renderGroups());
   })();
 
   async function loadGroups() {
@@ -237,7 +234,7 @@
   }
 
   function renderGroups() {
-    let filtered = tableFilter ? tableFilter.applyFilters(allGroups) : allGroups;
+    let filtered = tableFilter ? tableFilter.apply(allGroups) : allGroups;
 
     const tbody = document.getElementById('groups-body');
     if (filtered.length === 0) {

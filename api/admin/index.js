@@ -326,6 +326,28 @@ async function handleData(req, res, supabase) {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
+
+      // Aggregate ratings from trainer_reviews
+      const { data: reviews } = await supabase
+        .from('trainer_reviews')
+        .select('trainer_id, rating');
+
+      if (reviews && reviews.length > 0) {
+        const ratingMap = {};
+        reviews.forEach(r => {
+          if (!ratingMap[r.trainer_id]) ratingMap[r.trainer_id] = { sum: 0, count: 0 };
+          ratingMap[r.trainer_id].sum += r.rating || 0;
+          ratingMap[r.trainer_id].count += 1;
+        });
+        (data || []).forEach(t => {
+          const agg = ratingMap[t.id];
+          if (agg && agg.count > 0) {
+            t.rating = Math.round((agg.sum / agg.count) * 10) / 10;
+            t.review_count = agg.count;
+          }
+        });
+      }
+
       return res.json({ data });
     }
 

@@ -84,8 +84,23 @@
     }
 
     // ─── KPI: Rating ──────────────────────────────────────────────
-    document.getElementById('kpi-rating').textContent =
-      trainer.rating ? `${trainer.rating} ★` : '–';
+    sb.from('trainer_reviews')
+      .select('rating')
+      .eq('trainer_id', trainerId)
+      .then(({ data: reviews }) => {
+        const r = reviews || [];
+        if (r.length === 0) {
+          document.getElementById('kpi-rating').textContent = '–';
+        } else {
+          const avg = r.reduce((s, x) => s + (x.rating || 0), 0) / r.length;
+          document.getElementById('kpi-rating').textContent =
+            `${(Math.round(avg * 10) / 10).toFixed(1)} ★ (${r.length})`;
+        }
+      })
+      .catch(() => {
+        document.getElementById('kpi-rating').textContent =
+          trainer.rating ? `${trainer.rating} ★` : '–';
+      });
 
     // ─── KPI: Bookings this month + earnings ──────────────────────
     const monthStart = new Date();

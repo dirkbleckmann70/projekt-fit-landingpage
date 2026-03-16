@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
 <body>
 
@@ -25,7 +26,7 @@
             <button class="btn btn-primary" onclick="openNewModal()">+ Neuer Einsatzort</button>
           </div>
         </div>
-        <table>
+        <table id="locations-table">
           <thead>
             <tr>
               <th>Stadt</th>
@@ -73,9 +74,11 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
+<script src="../shared/table-utils.js"></script>
 <script>
   let allLocations = [];
   let editingLocationId = null;
+  let tableFilter;
 
   (async () => {
     const user = await checkAdminAuth();
@@ -85,6 +88,14 @@
     document.getElementById('header').innerHTML = renderHeader('Einsatzorte');
 
     await loadLocations();
+
+    tableFilter = initSortableTable('locations-table', [
+      { key: 'city',       type: 'text',   getValue: l => l.city || '' },
+      { key: 'status',     type: 'select', getValue: l => l.is_active !== false ? 'Aktiv' : 'Inaktiv' },
+      { key: 'created_at', type: 'date',   getValue: l => l.created_at ? l.created_at.slice(0, 10) : '' },
+      null,
+    ]);
+    tableFilter.onFilterChange(() => renderLocations());
   })();
 
   async function loadLocations() {
@@ -99,13 +110,14 @@
   }
 
   function renderLocations() {
+    const filtered = tableFilter ? tableFilter.apply(allLocations) : allLocations;
     const tbody = document.getElementById('locations-body');
-    if (allLocations.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:24px">Keine Einsatzorte vorhanden</td></tr>';
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:24px">Keine Einsatzorte gefunden</td></tr>';
       return;
     }
 
-    tbody.innerHTML = allLocations.map(l => `
+    tbody.innerHTML = filtered.map(l => `
       <tr>
         <td><strong>${l.city}</strong></td>
         <td>${l.is_active !== false ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>

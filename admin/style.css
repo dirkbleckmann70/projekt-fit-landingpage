@@ -467,9 +467,50 @@ textarea.form-control { resize: vertical; min-height: 80px; }
 }
 
 .action-cell .btn-sm {
-  min-width: 90px;
+  min-width: unset;
   justify-content: center;
   text-align: center;
+  font-size: inherit;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Dezente Outline-Buttons für Tabellen-Aktionen */
+.action-cell .btn-danger {
+  background: transparent;
+  color: var(--error);
+  border: 1px solid var(--error);
+}
+.action-cell .btn-danger:hover {
+  background: rgba(231, 76, 60, 0.1);
+  opacity: 1;
+}
+.action-cell .btn-success {
+  background: transparent;
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+.action-cell .btn-success:hover {
+  background: rgba(39, 174, 96, 0.1);
+  opacity: 1;
+}
+.action-cell .btn-secondary {
+  background: transparent;
+  color: #5BB8FF;
+  border: 1px solid #5BB8FF;
+}
+.action-cell .btn-secondary:hover {
+  background: rgba(91, 184, 255, 0.1);
+  opacity: 1;
+}
+.action-cell .btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+.action-cell .btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 1;
 }
 
 .action-cell .btn-icon {

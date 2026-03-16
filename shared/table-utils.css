@@ -1,0 +1,90 @@
+/* ── Sortierbare Spaltenheader ─────────────────────────────────────── */
+th.tf-sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+th.tf-sortable:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+.tf-sort-icon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 9px;
+  color: #55556A;
+  transition: color 0.15s;
+  vertical-align: middle;
+  line-height: 1;
+}
+.tf-sort-icon.active {
+  color: #E07A3A;
+}
+
+/* ── Filter-Zeile ─────────────────────────────────────────────────── */
+tr.tf-filter-row th.tf-filter-cell {
+  padding: 4px 6px;
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  font-weight: 400;
+  cursor: default;
+}
+.tf-fi {
+  width: 100%;
+  padding: 4px 7px;
+  font-size: 12px;
+  border-radius: 5px;
+  background: #0D0D15;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #F0F0F5;
+  font-family: inherit;
+  box-sizing: border-box;
+  min-width: 50px;
+  transition: border-color 0.15s;
+}
+.tf-fi:focus {
+  outline: none;
+  border-color: #E07A3A;
+}
+.tf-fi::placeholder {
+  color: #44445A;
+}
+.tf-fi-select {
+  cursor: pointer;
+  appearance: auto;
+}
+.tf-date-range {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── Zähler-Leiste ────────────────────────────────────────────────── */
+.tf-count-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 2px;
+  margin-bottom: 4px;
+  gap: 12px;
+}
+.tf-count-text {
+  font-size: 12px;
+  color: #8888A0;
+  white-space: nowrap;
+}
+.tf-reset-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #8888A0;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tf-reset-btn:hover {
+  color: #F0F0F5;
+  border-color: rgba(255, 255, 255, 0.25);
+}

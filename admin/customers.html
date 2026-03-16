@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
 <body>
 
@@ -136,7 +137,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
-<script src="table-filter.js"></script>
+<script src="../shared/table-utils.js"></script>
 <script>
   let allCustomers = [];
   let tableFilter;
@@ -157,23 +158,19 @@
 
     await loadCustomers();
 
-    tableFilter = new TableFilter({
-      tableId: 'customers-table',
-      columns: [
-        { key: 'full_name', type: 'select', getValue: c => c.full_name || (c.first_name + ' ' + c.last_name) || '\u2013' },
-        { key: 'email', type: 'select', getValue: c => c.email || '\u2013' },
-        { key: 'phone', type: 'select', getValue: c => c.phone || '\u2013' },
-        { key: 'city', type: 'select', getValue: c => c.city || '\u2013' },
-        null,
-        { key: 'terms', type: 'select', getValue: c => c.terms_accepted ? 'Akzeptiert' : 'Offen' },
-        { key: 'contract', type: 'select', getValue: c => c.service_contract_accepted ? 'Akzeptiert' : 'Offen' },
-        { key: 'health', type: 'select', getValue: c => c.health_declaration_accepted ? 'Akzeptiert' : 'Offen' },
-        { key: 'created_at', type: 'date', getValue: c => c.created_at ? c.created_at.slice(0, 10) : '' },
-        null,
-      ],
-      getData: () => allCustomers,
-      onFilter: () => renderCustomers(),
-    });
+    tableFilter = initSortableTable('customers-table', [
+      { key: 'full_name',  type: 'text',   getValue: c => c.full_name || (c.first_name + ' ' + c.last_name) || '' },
+      { key: 'email',      type: 'text',   getValue: c => c.email || '' },
+      { key: 'phone',      type: 'text',   getValue: c => c.phone || '' },
+      { key: 'city',       type: 'select', getValue: c => c.city || '\u2013' },
+      null,
+      { key: 'terms',      type: 'select', getValue: c => c.terms_accepted ? 'Akzeptiert' : 'Offen' },
+      { key: 'contract',   type: 'select', getValue: c => c.service_contract_accepted ? 'Akzeptiert' : 'Offen' },
+      { key: 'health',     type: 'select', getValue: c => c.health_declaration_accepted ? 'Akzeptiert' : 'Offen' },
+      { key: 'created_at', type: 'date',   getValue: c => c.created_at ? c.created_at.slice(0, 10) : '' },
+      null,
+    ]);
+    tableFilter.onFilterChange(() => renderCustomers());
   })();
 
   async function loadCustomers() {
@@ -188,7 +185,7 @@
   }
 
   function renderCustomers() {
-    let filtered = tableFilter ? tableFilter.applyFilters(allCustomers) : allCustomers;
+    let filtered = tableFilter ? tableFilter.apply(allCustomers) : allCustomers;
 
     const tbody = document.getElementById('customers-body');
 

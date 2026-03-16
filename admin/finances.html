@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
 <body>
 
@@ -92,7 +93,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
-<script src="table-filter.js"></script>
+<script src="../shared/table-utils.js"></script>
 <script>
   let financeData = [];
   let tableFilter;
@@ -106,20 +107,16 @@
 
     await Promise.all([loadFinances(), loadCredits()]);
 
-    tableFilter = new TableFilter({
-      tableId: 'finance-table',
-      columns: [
-        { key: 'scheduled_date', type: 'date', getValue: b => b.scheduled_date || '' },
-        { key: 'customer_name', type: 'select', getValue: b => b.customer_name || '\u2013' },
-        { key: 'trainer_name', type: 'select', getValue: b => b.trainer_name || '\u2013' },
-        { key: 'price', type: 'number', getValue: b => (b.price_cents || 0) / 100 },
-        { key: 'payout', type: 'number', getValue: b => (b.payout_cents || 0) / 100 },
-        { key: 'margin', type: 'number', getValue: b => ((b.price_cents || 0) - (b.payout_cents || 0)) / 100 },
-        { key: 'status', type: 'select', getValue: b => b.status || '\u2013' },
-      ],
-      getData: () => financeData,
-      onFilter: () => renderFinanceTable(),
-    });
+    tableFilter = initSortableTable('finance-table', [
+      { key: 'scheduled_date', type: 'date',   getValue: b => b.scheduled_date || '' },
+      { key: 'customer_name',  type: 'text',   getValue: b => b.customer_name || '' },
+      { key: 'trainer_name',   type: 'text',   getValue: b => b.trainer_name || '' },
+      { key: 'price',          type: 'number', getValue: b => (b.price_cents || 0) / 100 },
+      { key: 'payout',         type: 'number', getValue: b => (b.payout_cents || 0) / 100 },
+      { key: 'margin',         type: 'number', getValue: b => ((b.price_cents || 0) - (b.payout_cents || 0)) / 100 },
+      { key: 'status',         type: 'select', getValue: b => b.status || '\u2013' },
+    ]);
+    tableFilter.onFilterChange(() => renderFinanceTable());
   })();
 
   async function loadFinances() {
@@ -137,7 +134,7 @@
   }
 
   function renderFinanceTable() {
-    let filtered = tableFilter ? tableFilter.applyFilters(financeData) : financeData;
+    let filtered = tableFilter ? tableFilter.apply(financeData) : financeData;
 
     // KPIs based on filtered data
     let totalRevenue = 0;

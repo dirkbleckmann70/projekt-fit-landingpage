@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
 <body>
 
@@ -30,8 +31,8 @@
           <thead>
             <tr>
               <th>Name</th>
-              <th>E-Mail</th>
               <th>Stadt</th>
+              <th>E-Mail</th>
               <th>Status</th>
               <th>Lizenzen</th>
               <th>Bewertung</th>
@@ -190,7 +191,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
-<script src="table-filter.js"></script>
+<script src="../shared/table-utils.js"></script>
 <script>
   let allTrainers = [];
   let serviceLocations = [];
@@ -221,21 +222,17 @@
 
     await loadTrainers();
 
-    tableFilter = new TableFilter({
-      tableId: 'trainers-table',
-      columns: [
-        { key: 'full_name', type: 'select', getValue: t => t.full_name || '\u2013' },
-        { key: 'email', type: 'select', getValue: t => t.email || '\u2013' },
-        { key: 'city', type: 'select', getValue: t => t.city || '\u2013' },
-        { key: 'status', type: 'select', getValue: t => t.status || '\u2013' },
-        { key: 'license_count', type: 'select', getValue: t => (t.license_files || []).length > 0 ? `${(t.license_files || []).length} Datei(en)` : 'Keine' },
-        { key: 'rating', type: 'number', getValue: t => t.rating || 0 },
-        { key: 'created_at', type: 'date', getValue: t => t.created_at ? t.created_at.slice(0, 10) : '' },
-        null,
-      ],
-      getData: () => allTrainers,
-      onFilter: () => renderTrainers(),
-    });
+    tableFilter = initSortableTable('trainers-table', [
+      { key: 'full_name',     type: 'text',   getValue: t => t.full_name || '' },
+      { key: 'city',          type: 'select', getValue: t => t.city || '\u2013' },
+      { key: 'email',         type: 'text',   getValue: t => t.email || '' },
+      { key: 'status',        type: 'select', getValue: t => t.status || '\u2013' },
+      { key: 'license_count', type: 'select', getValue: t => (t.license_files || []).length > 0 ? `${(t.license_files || []).length} Datei(en)` : 'Keine' },
+      { key: 'rating',        type: 'number', getValue: t => t.rating || 0 },
+      { key: 'created_at',    type: 'date',   getValue: t => t.created_at ? t.created_at.slice(0, 10) : '' },
+      null,
+    ]);
+    tableFilter.onFilterChange(() => renderTrainers());
   })();
 
   async function loadTrainers() {
@@ -250,7 +247,7 @@
   }
 
   function renderTrainers() {
-    let filtered = tableFilter ? tableFilter.applyFilters(allTrainers) : allTrainers;
+    let filtered = tableFilter ? tableFilter.apply(allTrainers) : allTrainers;
 
     const tbody = document.getElementById('trainers-body');
 
@@ -276,8 +273,8 @@
             }
             <strong>${t.full_name || '–'}</strong>
           </td>
-          <td class="text-secondary">${t.email || '–'}</td>
           <td>${t.city || '–'}</td>
+          <td class="text-secondary">${t.email || '–'}</td>
           <td>${statusBadge(t.status)}</td>
           <td>${licenseBadge}</td>
           <td class="text-accent">${rating}</td>

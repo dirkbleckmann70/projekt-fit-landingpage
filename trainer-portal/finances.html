@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
 <body>
 
@@ -49,7 +50,16 @@
       <div class="card-title">Auszahlungen</div>
     </div>
     <div id="payouts-list">
-      <div class="loading-center"><span class="spinner"></span> Laden...</div>
+      <div id="payouts-loading" class="loading-center"><span class="spinner"></span> Laden...</div>
+      <div id="payouts-empty" class="empty-state" style="display:none"><div class="empty-state-text text-muted">Noch keine Auszahlungen</div></div>
+      <div style="overflow-x:auto; display:none" id="payouts-table-wrap">
+        <table id="payouts-table" class="simple-table">
+          <thead>
+            <tr><th>Datum</th><th>Kunde</th><th>Betrag</th><th>Status</th></tr>
+          </thead>
+          <tbody id="payouts-body"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -59,7 +69,16 @@
       <div class="card-title">Gutschriften</div>
     </div>
     <div id="credits-list">
-      <div class="loading-center"><span class="spinner"></span> Laden...</div>
+      <div id="credits-loading" class="loading-center"><span class="spinner"></span> Laden...</div>
+      <div id="credits-empty" class="empty-state" style="display:none"><div class="empty-state-text text-muted">Keine Gutschriften vorhanden</div></div>
+      <div style="overflow-x:auto; display:none" id="credits-table-wrap">
+        <table id="credits-table" class="simple-table">
+          <thead>
+            <tr><th>Datum</th><th>Betrag</th><th>Grund</th><th></th></tr>
+          </thead>
+          <tbody id="credits-body"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
@@ -68,7 +87,38 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-check.js"></script>
+<script src="../shared/table-utils.js"></script>
 <script>
+  let allPayouts = [];
+  let allCredits = [];
+  let tfPayouts = null;
+  let tfCredits = null;
+  let _payoutPerSession = 0;
+
+  function renderPayouts() {
+    const data = tfPayouts ? tfPayouts.apply(allPayouts) : allPayouts;
+    document.getElementById('payouts-body').innerHTML = data.map(b => `
+      <tr>
+        <td>${formatDate(b.scheduled_date)}</td>
+        <td>${b.customer_name || '–'}</td>
+        <td class="text-success">${formatEuro(_payoutPerSession)}</td>
+        <td><span class="badge badge-completed">${b.status}</span></td>
+      </tr>
+    `).join('');
+  }
+
+  function renderCredits() {
+    const data = tfCredits ? tfCredits.apply(allCredits) : allCredits;
+    document.getElementById('credits-body').innerHTML = data.map(c => `
+      <tr>
+        <td>${formatDate(c.created_at)}</td>
+        <td class="text-accent">${formatEuro(c.amount_cents)}</td>
+        <td>${c.reason || '–'}</td>
+        <td><button class="btn btn-ghost btn-sm" disabled title="Kommt bald">PDF</button></td>
+      </tr>
+    `).join('');
+  }
+
   (async () => {
     const trainer = await checkTrainerAuth();
     if (!trainer) return;
@@ -83,7 +133,7 @@
     }
 
     const sb = getSupabase();
-    const payoutPerSession = trainer.payout_cents || 0;
+    _payoutPerSession = trainer.payout_cents || 0;
 
     // ─── Alle abgeschlossenen Buchungen laden ─────────────────────
     try {
@@ -98,29 +148,20 @@
       const all = bookings || [];
 
       // KPIs
-      const totalEarnings = all.length * payoutPerSession;
-      const avgPerSession = all.length > 0 ? payoutPerSession : 0;
-
-      const monthStart = new Date();
-      monthStart.setDate(1);
-      monthStart.setHours(0, 0, 0, 0);
-      const thisMonth = all.filter(b => new Date(b.scheduled_date) >= monthStart);
-      const monthEarnings = thisMonth.length * payoutPerSession;
+      const totalEarnings = all.length * _payoutPerSession;
+      const avgPerSession = all.length > 0 ? _payoutPerSession : 0;
+      const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+      const monthEarnings = all.filter(b => new Date(b.scheduled_date) >= monthStart).length * _payoutPerSession;
 
       document.getElementById('kpi-total').textContent = formatEuro(totalEarnings);
       document.getElementById('kpi-sessions').textContent = all.length;
       document.getElementById('kpi-avg').textContent = formatEuro(avgPerSession);
       document.getElementById('kpi-month').textContent = formatEuro(monthEarnings);
 
-      // ─── Monatsübersicht (Balkendiagramm als CSS) ───────────────
+      // ─── Monatsübersicht ─────────────────────────────────────────
       const monthMap = {};
-      all.forEach(b => {
-        const key = b.scheduled_date.substring(0, 7); // YYYY-MM
-        if (!monthMap[key]) monthMap[key] = 0;
-        monthMap[key]++;
-      });
-
-      const months = Object.keys(monthMap).sort().slice(-6); // Letzte 6 Monate
+      all.forEach(b => { const k = b.scheduled_date.substring(0, 7); monthMap[k] = (monthMap[k] || 0) + 1; });
+      const months = Object.keys(monthMap).sort().slice(-6);
       const maxCount = Math.max(...months.map(m => monthMap[m]), 1);
 
       if (months.length === 0) {
@@ -132,41 +173,34 @@
           const pct = Math.round((count / maxCount) * 100);
           const [y, mo] = m.split('-');
           const label = new Date(y, parseInt(mo) - 1).toLocaleDateString('de-DE', { month: 'short', year: '2-digit' });
-          const earnings = count * payoutPerSession;
           return `
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
               <div style="width:60px;font-size:13px;color:var(--text-secondary);text-align:right">${label}</div>
               <div style="flex:1;height:28px;background:#1a1a1a;border-radius:6px;overflow:hidden">
                 <div style="height:100%;width:${pct}%;background:var(--accent);border-radius:6px;display:flex;align-items:center;padding-left:8px;font-size:12px;font-weight:600;color:#fff;min-width:fit-content">
-                  ${formatEuro(earnings)}
+                  ${formatEuro(count * _payoutPerSession)}
                 </div>
               </div>
               <div style="width:40px;font-size:12px;color:var(--text-muted)">${count}x</div>
-            </div>
-          `;
+            </div>`;
         }).join('');
       }
 
-      // ─── Auszahlungen (basierend auf Buchungen) ─────────────────
-      const payoutsList = document.getElementById('payouts-list');
+      // ─── Auszahlungen-Tabelle ────────────────────────────────────
+      document.getElementById('payouts-loading').style.display = 'none';
       if (all.length === 0) {
-        payoutsList.innerHTML = '<div class="empty-state"><div class="empty-state-text text-muted">Noch keine Auszahlungen</div></div>';
+        document.getElementById('payouts-empty').style.display = '';
       } else {
-        payoutsList.innerHTML = `
-          <table class="simple-table">
-            <thead><tr><th>Datum</th><th>Kunde</th><th>Betrag</th><th>Status</th></tr></thead>
-            <tbody>
-              ${all.slice(0, 20).map(b => `
-                <tr>
-                  <td>${formatDate(b.scheduled_date)}</td>
-                  <td>${b.customer_name || '–'}</td>
-                  <td class="text-success">${formatEuro(payoutPerSession)}</td>
-                  <td><span class="badge badge-completed">${b.status}</span></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        `;
+        allPayouts = all;
+        document.getElementById('payouts-table-wrap').style.display = '';
+        tfPayouts = initSortableTable('payouts-table', [
+          { key: 'scheduled_date', type: 'date',   getValue: b => b.scheduled_date || '' },
+          { key: 'customer_name',  type: 'text',   getValue: b => b.customer_name || '' },
+          null,
+          { key: 'status',         type: 'select', getValue: b => b.status || '' },
+        ]);
+        tfPayouts.onFilterChange(() => renderPayouts());
+        renderPayouts();
       }
 
     } catch (err) {
@@ -174,9 +208,9 @@
       ['kpi-total', 'kpi-sessions', 'kpi-avg', 'kpi-month'].forEach(id =>
         document.getElementById(id).textContent = '–');
       document.getElementById('monthly-chart').innerHTML =
-        '<div class="empty-state"><div class="empty-state-text text-muted">Keine Daten für diesen Monat</div></div>';
-      document.getElementById('payouts-list').innerHTML =
-        '<div class="empty-state"><div class="empty-state-text text-muted">Keine Auszahlungen vorhanden</div></div>';
+        '<div class="empty-state"><div class="empty-state-text text-muted">Keine Daten</div></div>';
+      document.getElementById('payouts-loading').style.display = 'none';
+      document.getElementById('payouts-empty').style.display = '';
     }
 
     // ─── Gutschriften ─────────────────────────────────────────────
@@ -187,34 +221,27 @@
         .eq('trainer_id', trainer.id)
         .order('created_at', { ascending: false });
 
-      const creditsList = document.getElementById('credits-list');
+      document.getElementById('credits-loading').style.display = 'none';
 
-      if (error && error.code === '42P01') {
-        // Tabelle existiert noch nicht
-        creditsList.innerHTML = '<div class="empty-state"><div class="empty-state-text text-muted">Keine Gutschriften vorhanden</div></div>';
-      } else if (!credits || credits.length === 0) {
-        creditsList.innerHTML = '<div class="empty-state"><div class="empty-state-text text-muted">Keine Gutschriften vorhanden</div></div>';
+      if ((error && error.code === '42P01') || !credits || credits.length === 0) {
+        document.getElementById('credits-empty').style.display = '';
       } else {
-        creditsList.innerHTML = `
-          <table class="simple-table">
-            <thead><tr><th>Datum</th><th>Betrag</th><th>Grund</th><th></th></tr></thead>
-            <tbody>
-              ${credits.map(c => `
-                <tr>
-                  <td>${formatDate(c.created_at)}</td>
-                  <td class="text-accent">${formatEuro(c.amount_cents)}</td>
-                  <td>${c.reason || '–'}</td>
-                  <td><button class="btn btn-ghost btn-sm" disabled title="Kommt bald">PDF</button></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-          <div class="form-hint mt-1 text-center">PDF-Download kommt bald.</div>
-        `;
+        allCredits = credits;
+        document.getElementById('credits-table-wrap').style.display = '';
+        tfCredits = initSortableTable('credits-table', [
+          { key: 'created_at',   type: 'date',   getValue: c => c.created_at ? c.created_at.slice(0, 10) : '' },
+          { key: 'amount_cents', type: 'number', getValue: c => (c.amount_cents || 0) / 100 },
+          { key: 'reason',       type: 'text',   getValue: c => c.reason || '' },
+          null,
+        ]);
+        tfCredits.onFilterChange(() => renderCredits());
+        renderCredits();
+        document.getElementById('credits-list').insertAdjacentHTML('beforeend',
+          '<div class="form-hint mt-1 text-center">PDF-Download kommt bald.</div>');
       }
     } catch (err) {
-      document.getElementById('credits-list').innerHTML =
-        '<div class="empty-state"><div class="empty-state-text text-muted">Keine Gutschriften vorhanden</div></div>';
+      document.getElementById('credits-loading').style.display = 'none';
+      document.getElementById('credits-empty').style.display = '';
     }
   })();
 </script>
