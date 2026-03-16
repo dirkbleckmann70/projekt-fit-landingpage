@@ -281,9 +281,9 @@
           <td class="text-muted">${formatDate(t.created_at)}</td>
           <td>
             <div class="action-cell">
+              <button class="btn btn-secondary btn-sm" onclick="openDetailModal('${t.id}')">Details</button>
               ${canActivate ? `<button class="btn btn-success btn-sm" onclick="activateTrainer('${t.id}')">Aktivieren</button>` : ''}
               ${canDeactivate ? `<button class="btn btn-danger btn-sm" onclick="deactivateTrainer('${t.id}')">Deaktivieren</button>` : ''}
-              <button class="btn btn-secondary btn-sm" onclick="openDetailModal('${t.id}')">Details</button>
               ${t.status !== 'active'
                 ? `<button class="btn btn-icon btn-icon-delete" onclick="deleteTrainer('${t.id}','${(t.full_name||'').replace(/'/g,"\\'")}')" title="Trainer löschen">&#x1F5D1;</button>`
                 : `<button class="btn btn-icon btn-icon-delete" disabled title="Trainer muss zuerst deaktiviert werden">&#x1F5D1;</button>`}
