@@ -105,6 +105,10 @@
   <div id="alert-box" class="alert"></div>
 </div>
 
+<div id="bk-tfoot" style="display:none;text-align:right;padding:0 24px 10px;font-size:14px;color:var(--text-secondary)">
+  Gesamt (best. + erl.): <strong id="bk-sum-value" style="color:var(--accent)">–</strong>
+</div>
+
 <div class="bk-outer">
   <div class="bk-table-wrap">
     <div style="overflow-x:auto">
@@ -125,13 +129,6 @@
         <tbody id="bookings-body">
           <tr><td colspan="9" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
         </tbody>
-        <tfoot id="bk-tfoot" style="display:none">
-          <tr>
-            <td colspan="7" style="text-align:right;padding:10px 16px;font-size:13px;color:var(--text-secondary);border-top:2px solid var(--border)">Gesamt (best. + erl.):</td>
-            <td id="bk-sum-value" style="padding:10px 16px;font-weight:700;color:var(--accent);border-top:2px solid var(--border);white-space:nowrap">–</td>
-            <td style="border-top:2px solid var(--border)"></td>
-          </tr>
-        </tfoot>
       </table>
     </div>
   </div>
