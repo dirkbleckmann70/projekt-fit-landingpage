@@ -110,6 +110,17 @@
     try {
       const res = await adminApi('/api/admin?action=data&type=all_bookings');
       allBookings = res.data || [];
+      if (allBookings.length > 0) {
+        console.log('[Bookings] Felder im ersten Datensatz:', Object.keys(allBookings[0]));
+        console.log('[Bookings] Preis-Felder:', {
+          price_cents:       allBookings[0].price_cents,
+          final_price_cents: allBookings[0].final_price_cents,
+          price:             allBookings[0].price,
+          amount:            allBookings[0].amount,
+          total_price:       allBookings[0].total_price,
+          status:            allBookings[0].status,
+        });
+      }
       renderBookings();
     } catch (err) {
       document.getElementById('bookings-body').innerHTML =
