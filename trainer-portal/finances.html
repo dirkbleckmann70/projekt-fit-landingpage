@@ -227,7 +227,7 @@
     try {
       const { data, error } = await sb
         .from('bookings')
-        .select('id, scheduled_date, scheduled_time, customer_id, city, location_name, location, status, payout_cents, booking_type, notes, rating, review_comment, created_at')
+        .select('id, scheduled_date, scheduled_time, customer_id, location_name, location, status, payout_cents, booking_type, notes, rating, review_comment, created_at')
         .eq('trainer_id', trainerId)
         .order('scheduled_date', { ascending: false });
 
@@ -284,7 +284,7 @@
         { key: 'time',       type: 'select', getValue: b => (b.scheduled_time || '').slice(0, 5) },
         { key: 'customer',   type: 'text',   getValue: b => b.customer_name || '' },
         { key: 'type',       type: 'select', getValue: b => b.booking_type === 'group' ? 'GT' : 'PT' },
-        { key: 'city',       type: 'select', getValue: b => b.city || b.location_name || '' },
+        { key: 'city',       type: 'select', getValue: b => b.location_name || '' },
         { key: 'status',     type: 'select', getValue: b => b.status || '' },
         { key: 'verguetung', type: 'number', getValue: b => effBrutto(b) / 100 },
         null,
@@ -362,7 +362,7 @@
     }
 
     tbody.innerHTML = filtered.map(b => {
-      const city     = b.city || b.location_name || b.location || '–';
+      const city     = b.location_name || b.location || '–';
       const artBadge = b.booking_type === 'group'
         ? '<span class="badge" style="background:rgba(45,106,79,0.12);color:#40916C;border:1px solid rgba(64,145,108,0.25)">GT</span>'
         : '<span class="badge" style="background:rgba(46,117,182,0.12);color:#5BB8FF;border:1px solid rgba(91,184,255,0.25)">PT</span>';
@@ -394,7 +394,7 @@
       b.scheduled_time ? b.scheduled_time.slice(0, 5) : '',
       b.customer_name  || '',
       b.booking_type === 'group' ? 'GT' : 'PT',
-      b.city || b.location_name || '',
+      b.location_name || '',
       b.status || '',
       (effBrutto(b)     / 100).toFixed(2).replace('.', ','),
       (effMwSt(b)       / 100).toFixed(2).replace('.', ','),
@@ -427,7 +427,7 @@
         <div class="detail-field"><label>Uhrzeit</label><div class="dv">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</div></div>
       </div>
       <div class="detail-row">
-        <div class="detail-field"><label>Stadt</label><div class="dv">${b.city || b.location_name || '–'}</div></div>
+        <div class="detail-field"><label>Stadt</label><div class="dv">${b.location_name || '–'}</div></div>
         <div class="detail-field"><label>Status</label><div class="dv">${statusBadge(b.status)}</div></div>
       </div>
       <div class="detail-row">
