@@ -8,6 +8,44 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
+  <style>
+    .fin-kpi-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .fin-kpi-card {
+      flex: 1;
+      background: #161625;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 16px 18px;
+      min-width: 0;
+    }
+    .fin-kpi-label {
+      font-size: 11px;
+      color: #55556A;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+      white-space: nowrap;
+    }
+    .fin-kpi-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #F0F0F5;
+      letter-spacing: -0.4px;
+      white-space: nowrap;
+    }
+    .fin-month-highlight td {
+      background: rgba(46,117,182,0.07);
+    }
+    .fin-total-row td {
+      font-weight: 700;
+      border-top: 1px solid rgba(255,255,255,0.12) !important;
+      color: #F0F0F5;
+    }
+  </style>
 </head>
 <body>
 
@@ -17,63 +55,86 @@
     <header class="header" id="header"></header>
     <div class="content">
 
-      <!-- KPI Finance -->
-      <div class="kpi-grid" id="finance-kpis">
-        <div class="kpi-card">
-          <div class="kpi-label">Gesamtumsatz</div>
-          <div class="kpi-value" id="kpi-total"><span class="spinner"></span></div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Trainer-Auszahlungen</div>
-          <div class="kpi-value" id="kpi-payouts"><span class="spinner"></span></div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Projekt Fit Marge</div>
-          <div class="kpi-value" id="kpi-margin"><span class="spinner"></span></div>
-        </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Gutschriften</div>
-          <div class="kpi-value" id="kpi-credits"><span class="spinner"></span></div>
+      <!-- Kopfzeile: Jahresauswahl + CSV -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h2 style="font-size:18px;font-weight:700;color:#F0F0F5;margin:0">Finanzübersicht</h2>
+        <div style="display:flex;align-items:center;gap:10px">
+          <select id="year-select" class="form-control" style="width:auto;padding:6px 14px;font-size:14px" onchange="onYearChange()"></select>
+          <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV Export</button>
         </div>
       </div>
 
-      <!-- Revenue Table -->
+      <!-- Ebene 1: Jahres-KPIs -->
+      <div class="fin-kpi-bar">
+        <div class="fin-kpi-card"><div class="fin-kpi-label">Einnahmen brutto</div><div class="fin-kpi-value" id="kpi-brutto"><span class="spinner"></span></div></div>
+        <div class="fin-kpi-card"><div class="fin-kpi-label">MwSt 19%</div><div class="fin-kpi-value" id="kpi-mwst"><span class="spinner"></span></div></div>
+        <div class="fin-kpi-card"><div class="fin-kpi-label">Einnahmen netto</div><div class="fin-kpi-value" id="kpi-netto"><span class="spinner"></span></div></div>
+        <div class="fin-kpi-card"><div class="fin-kpi-label">Trainer-Kosten</div><div class="fin-kpi-value" id="kpi-kosten"><span class="spinner"></span></div></div>
+        <div class="fin-kpi-card"><div class="fin-kpi-label">Erlöse</div><div class="fin-kpi-value" id="kpi-erloese"><span class="spinner"></span></div></div>
+      </div>
+
+      <!-- Ebene 2: Monatsübersicht -->
       <div class="table-wrap mb-2">
         <div class="table-header">
-          <div class="table-title">Umsatz pro Buchung</div>
-          <div class="table-actions">
-            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV Export</button>
-          </div>
+          <div class="table-title">Monatsübersicht</div>
         </div>
-        <table id="finance-table">
+        <table id="month-table">
           <thead>
-            <tr id="finance-sum-row" style="display:none;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
-              <td colspan="3" style="padding:6px 12px;text-align:right;font-style:italic" id="fin-count-cell"></td>
-              <td style="padding:6px 12px" class="text-accent"  id="fin-brutto-sum"></td>
-              <td style="padding:6px 12px" class="text-muted"   id="fin-netto-sum"></td>
-              <td style="padding:6px 12px" class="text-muted"   id="fin-kosten-sum"></td>
-              <td style="padding:6px 12px" class="text-success" id="fin-erloese-sum"></td>
-              <td colspan="2"></td>
-            </tr>
             <tr>
-              <th>Datum</th>
-              <th>Kunde</th>
-              <th>Trainer</th>
-              <th>Einnahme brutto</th>
-              <th>Einnahme netto</th>
-              <th>Trainer Kosten</th>
+              <th>Monat</th>
+              <th>Buchungen</th>
+              <th>Einnahmen brutto</th>
+              <th>MwSt</th>
+              <th>Einnahmen netto</th>
+              <th>Trainer-Kosten</th>
               <th>Erlöse</th>
-              <th>Status</th>
-              <th>Details</th>
             </tr>
           </thead>
-          <tbody id="revenue-body">
-            <tr><td colspan="9" class="loading-overlay"><span class="spinner"></span> Daten werden geladen...</td></tr>
+          <tbody id="month-body">
+            <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
           </tbody>
         </table>
       </div>
 
-      <!-- Credits Table -->
+      <!-- Ebene 3: Einzelbuchungen -->
+      <div class="table-wrap mb-2">
+        <div class="table-header">
+          <div class="table-title">Einzelbuchungen</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table id="finance-table">
+            <thead>
+              <tr id="finance-sum-row" style="display:none;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
+                <td colspan="4" style="padding:6px 12px;text-align:right;font-style:italic" id="fin-count-cell"></td>
+                <td style="padding:6px 12px" id="fin-brutto-sum"></td>
+                <td style="padding:6px 12px" id="fin-mwst-sum"></td>
+                <td style="padding:6px 12px" id="fin-netto-sum"></td>
+                <td style="padding:6px 12px" id="fin-kosten-sum"></td>
+                <td style="padding:6px 12px" id="fin-erloese-sum"></td>
+                <td colspan="2"></td>
+              </tr>
+              <tr>
+                <th>Datum</th>
+                <th>Kunde</th>
+                <th>Trainer</th>
+                <th>Art</th>
+                <th>Einnahmen brutto</th>
+                <th>MwSt</th>
+                <th>Netto</th>
+                <th>Trainer-Kosten</th>
+                <th>Erlöse</th>
+                <th>Status</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="revenue-body">
+              <tr><td colspan="11" class="loading-overlay"><span class="spinner"></span> Daten werden geladen...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Gutschriften -->
       <div class="table-wrap">
         <div class="table-header">
           <div class="table-title">Gutschriften</div>
@@ -119,129 +180,202 @@
 <script src="auth-guard.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script>
-  let financeData = [];
-  let tableFilter;
+  let allData      = [];
+  let yearData     = [];
+  let tableFilter  = null;
+  let selectedYear = new Date().getFullYear();
 
   const FIN_CANCELLED = ['cancelled', 'refunded', 'cancelled_by_trainer'];
+  const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
+  // ── Berechnungen ──────────────────────────────────────────────────────────
   function effBrutto(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.price_cents || b.final_price_cents || 0); }
   function effNetto(b)   { return Math.round(effBrutto(b) / 1.19); }
+  function effMwSt(b)    { return effBrutto(b) - effNetto(b); }
   function effKosten(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.payout_cents || b.trainer_rate_cents || 0); }
   function effErloese(b) { return effNetto(b) - effKosten(b); }
 
+  function f(cents) {
+    if (cents == null) return '–';
+    return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
   (async () => {
     const user = await checkAdminAuth();
     if (!user) return;
-
     document.getElementById('sidebar').innerHTML = renderSidebar('finances');
-    document.getElementById('header').innerHTML = renderHeader('Finanzen');
-
+    document.getElementById('header').innerHTML  = renderHeader('Finanzen');
     await Promise.all([loadFinances(), loadCredits()]);
-
-    tableFilter = initSortableTable('finance-table', [
-      { key: 'scheduled_date', type: 'date',   getValue: b => b.scheduled_date || '' },
-      { key: 'customer_name',  type: 'text',   getValue: b => b.customer_name || '' },
-      { key: 'trainer_name',   type: 'text',   getValue: b => b.trainer_name || '' },
-      { key: 'brutto',         type: 'number', getValue: b => effBrutto(b) / 100 },
-      { key: 'netto',          type: 'number', getValue: b => effNetto(b) / 100 },
-      { key: 'kosten',         type: 'number', getValue: b => effKosten(b) / 100 },
-      { key: 'erloese',        type: 'number', getValue: b => effErloese(b) / 100 },
-      { key: 'status',         type: 'select', getValue: b => b.status || '\u2013' },
-    ]);
-    tableFilter.onFilterChange(() => renderFinanceTable());
   })();
 
+  // ── Daten laden ───────────────────────────────────────────────────────────
   async function loadFinances() {
     try {
       const res = await adminApi('/api/admin?action=data&type=finances');
-      financeData = res.data || [];
-      renderFinanceTable();
+      allData = res.data || [];
+
+      // Jahres-Dropdown
+      const years = [...new Set(allData.map(b => (b.scheduled_date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+      if (!years.includes(String(selectedYear))) years.unshift(String(selectedYear));
+      const sel = document.getElementById('year-select');
+      sel.innerHTML = years.map(y =>
+        `<option value="${y}"${y == selectedYear ? ' selected' : ''}>${y}</option>`
+      ).join('');
+
+      applyYearFilter();
     } catch (err) {
       document.getElementById('revenue-body').innerHTML =
-        `<tr><td colspan="8" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
-      document.getElementById('kpi-total').textContent = '–';
-      document.getElementById('kpi-payouts').textContent = '–';
-      document.getElementById('kpi-margin').textContent = '–';
+        `<tr><td colspan="11" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+      ['kpi-brutto','kpi-mwst','kpi-netto','kpi-kosten','kpi-erloese'].forEach(id =>
+        document.getElementById(id).textContent = '–'
+      );
     }
   }
 
-  function renderFinanceTable() {
-    let filtered = tableFilter ? tableFilter.apply(financeData) : financeData;
+  function onYearChange() {
+    selectedYear = parseInt(document.getElementById('year-select').value);
+    applyYearFilter();
+  }
 
-    // KPIs (nur nicht-stornierte)
-    let totalBrutto = 0, totalNetto = 0, totalKosten = 0;
-    filtered.forEach(b => {
-      totalBrutto += effBrutto(b);
-      totalNetto  += effNetto(b);
-      totalKosten += effKosten(b);
+  function applyYearFilter() {
+    yearData = allData.filter(b => (b.scheduled_date || '').startsWith(String(selectedYear)));
+    updateKPIs();
+    renderMonthTable();
+
+    if (!tableFilter) {
+      tableFilter = initSortableTable('finance-table', [
+        { key: 'scheduled_date', type: 'date',   getValue: b => b.scheduled_date || '' },
+        { key: 'customer_name',  type: 'text',   getValue: b => b.customer_name || '' },
+        { key: 'trainer_name',   type: 'text',   getValue: b => b.trainer_name || '' },
+        { key: 'booking_type',   type: 'select', getValue: b => b.booking_type === 'group' ? 'GT' : 'PT' },
+        { key: 'brutto',         type: 'number', getValue: b => effBrutto(b) / 100 },
+        { key: 'mwst',           type: 'number', getValue: b => effMwSt(b) / 100 },
+        { key: 'netto',          type: 'number', getValue: b => effNetto(b) / 100 },
+        { key: 'kosten',         type: 'number', getValue: b => effKosten(b) / 100 },
+        { key: 'erloese',        type: 'number', getValue: b => effErloese(b) / 100 },
+        { key: 'status',         type: 'select', getValue: b => b.status || '\u2013' },
+        null,
+      ]);
+      tableFilter.onFilterChange(() => renderBookingsTable());
+    }
+    renderBookingsTable();
+  }
+
+  // ── Ebene 1: KPIs ─────────────────────────────────────────────────────────
+  function updateKPIs() {
+    let brutto = 0, netto = 0, kosten = 0;
+    yearData.forEach(b => { brutto += effBrutto(b); netto += effNetto(b); kosten += effKosten(b); });
+    document.getElementById('kpi-brutto').textContent  = f(brutto);
+    document.getElementById('kpi-mwst').textContent    = f(brutto - netto);
+    document.getElementById('kpi-netto').textContent   = f(netto);
+    document.getElementById('kpi-kosten').textContent  = f(kosten);
+    document.getElementById('kpi-erloese').textContent = f(netto - kosten);
+  }
+
+  // ── Ebene 2: Monatsübersicht ───────────────────────────────────────────────
+  function renderMonthTable() {
+    const now          = new Date();
+    const currentMonth = now.getFullYear() === selectedYear ? now.getMonth() : -1;
+    let totB = 0, totM = 0, totN = 0, totK = 0, totE = 0, totCount = 0;
+
+    const rows = MONTHS_DE.map((name, mi) => {
+      const prefix = `${selectedYear}-${String(mi + 1).padStart(2, '0')}`;
+      const mb     = yearData.filter(b => (b.scheduled_date || '').startsWith(prefix));
+      const count  = mb.length;
+      const brutto = mb.reduce((s, b) => s + effBrutto(b), 0);
+      const mwst   = mb.reduce((s, b) => s + effMwSt(b),   0);
+      const netto  = mb.reduce((s, b) => s + effNetto(b),  0);
+      const kosten = mb.reduce((s, b) => s + effKosten(b), 0);
+      const erl    = mb.reduce((s, b) => s + effErloese(b),0);
+      totB += brutto; totM += mwst; totN += netto; totK += kosten; totE += erl; totCount += count;
+
+      const cls = mi === currentMonth ? ' class="fin-month-highlight"' : '';
+      if (count === 0) {
+        return `<tr${cls}><td>${name}</td><td class="text-muted">–</td><td class="text-muted">–</td><td class="text-muted">–</td><td class="text-muted">–</td><td class="text-muted">–</td><td class="text-muted">–</td></tr>`;
+      }
+      return `<tr${cls}>
+        <td>${name}</td>
+        <td>${count}</td>
+        <td>${f(brutto)}</td>
+        <td class="text-muted">${f(mwst)}</td>
+        <td>${f(netto)}</td>
+        <td class="text-muted">${f(kosten)}</td>
+        <td>${f(erl)}</td>
+      </tr>`;
     });
-    document.getElementById('kpi-total').textContent   = formatEuro(totalBrutto);
-    document.getElementById('kpi-payouts').textContent = formatEuro(totalKosten);
-    document.getElementById('kpi-margin').textContent  = formatEuro(totalNetto - totalKosten);
 
-    const tbody  = document.getElementById('revenue-body');
-    const sumRow = document.getElementById('finance-sum-row');
+    rows.push(`<tr class="fin-total-row">
+      <td>Gesamt ${selectedYear}</td>
+      <td>${totCount}</td>
+      <td>${f(totB)}</td>
+      <td>${f(totM)}</td>
+      <td>${f(totN)}</td>
+      <td>${f(totK)}</td>
+      <td>${f(totE)}</td>
+    </tr>`);
+
+    document.getElementById('month-body').innerHTML = rows.join('');
+  }
+
+  // ── Ebene 3: Einzelbuchungen ──────────────────────────────────────────────
+  function renderBookingsTable() {
+    const filtered = tableFilter ? tableFilter.apply(yearData) : yearData;
+    const tbody    = document.getElementById('revenue-body');
+    const sumRow   = document.getElementById('finance-sum-row');
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
       sumRow.style.display = 'none';
       return;
     }
 
     tbody.innerHTML = filtered.map(b => {
-      const brutto  = effBrutto(b);
-      const netto   = effNetto(b);
-      const kosten  = effKosten(b);
-      const erloese = effErloese(b);
-      return `
-        <tr>
-          <td>${formatDate(b.scheduled_date)}</td>
-          <td>${b.customer_name || '–'}</td>
-          <td>${b.trainer_name || '–'}</td>
-          <td class="text-accent">${formatEuro(brutto)}</td>
-          <td class="text-muted">${formatEuro(netto)}</td>
-          <td class="text-muted">${formatEuro(kosten)}</td>
-          <td class="${erloese > 0 ? 'text-success' : ''}">${formatEuro(erloese)}</td>
-          <td>${statusBadge(b.status)}</td>
-          <td><button class="btn btn-secondary btn-sm" onclick="openFinanceDetail('${b.id}')">Details</button></td>
-        </tr>
-      `;
+      const art = b.booking_type === 'group' ? 'GT' : 'PT';
+      return `<tr>
+        <td>${formatDate(b.scheduled_date)}</td>
+        <td>${b.customer_name || '–'}</td>
+        <td>${b.trainer_name || '–'}</td>
+        <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${art}</span></td>
+        <td>${f(effBrutto(b))}</td>
+        <td class="text-muted">${f(effMwSt(b))}</td>
+        <td>${f(effNetto(b))}</td>
+        <td class="text-muted">${f(effKosten(b))}</td>
+        <td>${f(effErloese(b))}</td>
+        <td>${statusBadge(b.status)}</td>
+        <td><button class="btn btn-secondary btn-sm" onclick="openFinanceDetail('${b.id}')">Details</button></td>
+      </tr>`;
     }).join('');
 
-    // Summenzeile
-    let sumBrutto = 0, sumNetto = 0, sumKosten = 0, sumErloese = 0;
-    filtered.forEach(b => { sumBrutto += effBrutto(b); sumNetto += effNetto(b); sumKosten += effKosten(b); sumErloese += effErloese(b); });
+    let sB = 0, sM = 0, sN = 0, sK = 0, sE = 0;
+    filtered.forEach(b => { sB += effBrutto(b); sM += effMwSt(b); sN += effNetto(b); sK += effKosten(b); sE += effErloese(b); });
     sumRow.style.display = '';
-    document.getElementById('fin-count-cell').textContent  = `${filtered.length} von ${financeData.length} Buchungen`;
-    document.getElementById('fin-brutto-sum').textContent  = formatEuro(sumBrutto);
-    document.getElementById('fin-netto-sum').textContent   = formatEuro(sumNetto);
-    document.getElementById('fin-kosten-sum').textContent  = formatEuro(sumKosten);
-    document.getElementById('fin-erloese-sum').textContent = formatEuro(sumErloese);
+    document.getElementById('fin-count-cell').textContent  = `${filtered.length} von ${yearData.length} Buchungen`;
+    document.getElementById('fin-brutto-sum').textContent  = f(sB);
+    document.getElementById('fin-mwst-sum').textContent    = f(sM);
+    document.getElementById('fin-netto-sum').textContent   = f(sN);
+    document.getElementById('fin-kosten-sum').textContent  = f(sK);
+    document.getElementById('fin-erloese-sum').textContent = f(sE);
   }
 
+  // ── Gutschriften ──────────────────────────────────────────────────────────
   async function loadCredits() {
     try {
-      const res = await adminApi('/api/admin?action=data&type=credits');
+      const res     = await adminApi('/api/admin?action=data&type=credits');
       const credits = res.data || [];
-
-      let totalCredits = 0;
-      credits.forEach(c => { totalCredits += (c.bruttobetrag_cent || 0); });
-      document.getElementById('kpi-credits').textContent = formatEuro(totalCredits);
-
-      const tbody = document.getElementById('credits-body');
+      const tbody   = document.getElementById('credits-body');
       if (credits.length === 0) {
         tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Gutschriften vorhanden</td></tr>';
         return;
       }
-
       tbody.innerHTML = credits.map(c => `
         <tr>
           <td><strong>${c.gs_nummer || '–'}</strong></td>
           <td>${formatDate(c.ausgestellt_am)}</td>
           <td>${c.trainer_name || '–'}</td>
-          <td>${formatEuro(c.nettobetrag_cent)}</td>
-          <td>${formatEuro(c.mwst_betrag_cent)}</td>
-          <td class="text-accent">${formatEuro(c.bruttobetrag_cent)}</td>
+          <td>${f(c.nettobetrag_cent)}</td>
+          <td>${f(c.mwst_betrag_cent)}</td>
+          <td>${f(c.bruttobetrag_cent)}</td>
           <td>${c.leistungsbeschreibung || '–'}</td>
           <td>${statusBadge(c.status || 'pending')}</td>
         </tr>
@@ -249,120 +383,76 @@
     } catch (err) {
       document.getElementById('credits-body').innerHTML =
         `<tr><td colspan="8" class="text-error" style="padding:16px">Fehler: ${err.message}</td></tr>`;
-      document.getElementById('kpi-credits').textContent = '–';
     }
   }
 
+  // ── CSV Export ────────────────────────────────────────────────────────────
   function exportCSV() {
-    if (financeData.length === 0) { alert('Keine Daten zum Exportieren.'); return; }
-
-    const headers = ['Datum', 'Kunde', 'Trainer', 'Einnahme brutto (EUR)', 'Einnahme netto (EUR)', 'Trainer Kosten (EUR)', 'Erlöse (EUR)', 'Status'];
-    const rows = financeData.map(b => [
+    if (yearData.length === 0) { alert('Keine Daten für ' + selectedYear + '.'); return; }
+    const headers = ['Datum','Kunde','Trainer','Art','Status',
+      'Einnahmen brutto (EUR)','MwSt (EUR)','Einnahmen netto (EUR)','Kosten (EUR)','Erlöse (EUR)'];
+    const rows = yearData.map(b => [
       b.scheduled_date || '',
-      b.customer_name || '',
-      b.trainer_name || '',
-      (effBrutto(b) / 100).toFixed(2).replace('.', ','),
-      (effNetto(b)  / 100).toFixed(2).replace('.', ','),
-      (effKosten(b) / 100).toFixed(2).replace('.', ','),
-      (effErloese(b)/ 100).toFixed(2).replace('.', ','),
+      b.customer_name  || '',
+      b.trainer_name   || '',
+      b.booking_type === 'group' ? 'GT' : 'PT',
       b.status || '',
+      (effBrutto(b)  / 100).toFixed(2).replace('.', ','),
+      (effMwSt(b)    / 100).toFixed(2).replace('.', ','),
+      (effNetto(b)   / 100).toFixed(2).replace('.', ','),
+      (effKosten(b)  / 100).toFixed(2).replace('.', ','),
+      (effErloese(b) / 100).toFixed(2).replace('.', ','),
     ]);
-
-    let csv = '\uFEFF'; // BOM for Excel
-    csv += headers.join(';') + '\n';
+    let csv = '\uFEFF' + headers.join(';') + '\n';
     rows.forEach(r => { csv += r.map(v => `"${v}"`).join(';') + '\n'; });
-
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `projektfit-finanzen-${new Date().toISOString().slice(0,10)}.csv`;
-    a.click();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `projektfit-finanzen-${selectedYear}.csv`; a.click();
     URL.revokeObjectURL(url);
   }
 
+  // ── Details Modal ─────────────────────────────────────────────────────────
   function paymentLabel(b) {
     const ps = (b.payment_status || '').toLowerCase();
     const st = (b.status || '').toLowerCase();
-    if (ps === 'paid'    || b.paid === true || st === 'completed') return '\u2705 Bezahlt';
-    if (ps === 'refunded')                                         return '\u21a9\ufe0f Erstattet';
-    if (ps === 'failed')                                           return '\u274c Fehlgeschlagen';
+    if (ps === 'paid'    || b.paid === true || st === 'completed')  return '\u2705 Bezahlt';
+    if (ps === 'refunded')                                          return '\u21a9\ufe0f Erstattet';
+    if (ps === 'failed')                                            return '\u274c Fehlgeschlagen';
     if (ps === 'pending' || st === 'confirmed' || st === 'pending') return '\u23f3 Ausstehend';
     return '\u2013 Keine';
   }
 
   function openFinanceDetail(id) {
-    const b = financeData.find(x => x.id === id);
+    const b = allData.find(x => x.id === id);
     if (!b) return;
-    const brutto  = effBrutto(b);
-    const netto   = effNetto(b);
-    const kosten  = effKosten(b);
-    const erloese = effErloese(b);
     document.getElementById('finance-modal-body').innerHTML = `
       <div class="two-col">
-        <div class="form-group">
-          <label>Trainer</label>
-          <input class="form-control" value="${b.trainer_name || '–'}" disabled>
-        </div>
-        <div class="form-group">
-          <label>Kunde</label>
-          <input class="form-control" value="${b.customer_name || b.customer_id || '–'}" disabled>
-        </div>
+        <div class="form-group"><label>Trainer</label><input class="form-control" value="${b.trainer_name || '–'}" disabled></div>
+        <div class="form-group"><label>Kunde</label><input class="form-control" value="${b.customer_name || b.customer_id || '–'}" disabled></div>
       </div>
       <div class="two-col">
-        <div class="form-group">
-          <label>Datum</label>
-          <input class="form-control" value="${formatDate(b.scheduled_date)}" disabled>
-        </div>
-        <div class="form-group">
-          <label>Uhrzeit</label>
-          <input class="form-control" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}" disabled>
-        </div>
+        <div class="form-group"><label>Datum</label><input class="form-control" value="${formatDate(b.scheduled_date)}" disabled></div>
+        <div class="form-group"><label>Uhrzeit</label><input class="form-control" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}" disabled></div>
       </div>
       <div class="two-col">
-        <div class="form-group">
-          <label>Stadt</label>
-          <input class="form-control" value="${b.trainer_city || b.city || '–'}" disabled>
-        </div>
-        <div class="form-group">
-          <label>Art</label>
-          <input class="form-control" value="${b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training'}" disabled>
-        </div>
+        <div class="form-group"><label>Stadt</label><input class="form-control" value="${b.trainer_city || b.city || '–'}" disabled></div>
+        <div class="form-group"><label>Art</label><input class="form-control" value="${b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training'}" disabled></div>
       </div>
-      <div class="form-group">
-        <label>Treffpunkt-Adresse</label>
-        <input class="form-control" value="${b.location_name || b.location_address || b.location || '–'}" disabled>
+      <div class="form-group"><label>Treffpunkt</label><input class="form-control" value="${b.location_name || b.location_address || b.location || '–'}" disabled></div>
+      <div class="two-col">
+        <div class="form-group"><label>Status</label><input class="form-control" value="${b.status || '–'}" disabled></div>
+        <div class="form-group"><label>Zahlung</label><input class="form-control" value="${paymentLabel(b)}" disabled></div>
       </div>
       <div class="two-col">
-        <div class="form-group">
-          <label>Status</label>
-          <input class="form-control" value="${b.status || '–'}" disabled>
-        </div>
-        <div class="form-group">
-          <label>Zahlung</label>
-          <input class="form-control" value="${paymentLabel(b)}" disabled>
-        </div>
+        <div class="form-group"><label>Einnahmen brutto</label><input class="form-control" value="${f(effBrutto(b))}" disabled></div>
+        <div class="form-group"><label>MwSt (19%)</label><input class="form-control" value="${f(effMwSt(b))}" disabled></div>
       </div>
       <div class="two-col">
-        <div class="form-group">
-          <label>Einnahme brutto</label>
-          <input class="form-control" value="${formatEuro(brutto)}" disabled>
-        </div>
-        <div class="form-group">
-          <label>Einnahme netto (−19% MwSt)</label>
-          <input class="form-control" value="${formatEuro(netto)}" disabled>
-        </div>
+        <div class="form-group"><label>Einnahmen netto</label><input class="form-control" value="${f(effNetto(b))}" disabled></div>
+        <div class="form-group"><label>Trainer-Kosten</label><input class="form-control" value="${f(effKosten(b))}" disabled></div>
       </div>
-      <div class="two-col">
-        <div class="form-group">
-          <label>Trainer Kosten</label>
-          <input class="form-control" value="${formatEuro(kosten)}" disabled>
-        </div>
-        <div class="form-group">
-          <label>Erlöse</label>
-          <input class="form-control text-success" value="${formatEuro(erloese)}" disabled>
-        </div>
-      </div>
+      <div class="form-group"><label>Erlöse</label><input class="form-control" value="${f(effErloese(b))}" disabled></div>
       <p class="text-muted mt-1" style="font-size:12px">Erstellt: ${formatDateTime(b.created_at)} &middot; ID: ${b.id}</p>
     `;
     document.getElementById('finance-detail-modal').classList.add('open');
