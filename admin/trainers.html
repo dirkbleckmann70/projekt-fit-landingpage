@@ -189,6 +189,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="../shared/form-dirty.js"></script>
 <script>
   let allTrainers = [];
   let serviceLocations = [];
@@ -333,6 +334,7 @@
 
     document.getElementById('modal-title').textContent = t.full_name || 'Trainer-Details';
     document.getElementById('modal-body').innerHTML = `
+      <form id="trainer-detail-form">
       <!-- Avatar -->
       <div id="avatar-section" style="text-align:center;margin-bottom:20px">
         <div id="avatar-preview" style="margin-bottom:10px">
@@ -458,6 +460,7 @@
       </div>
 
       ${t.auth_user_id ? `<p class="text-muted mt-2" style="font-size:12px">Auth User ID: ${t.auth_user_id}</p>` : ''}
+      </form>
 
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Lizenzen & Zertifikate</h3>
@@ -505,6 +508,13 @@
     `;
 
     document.getElementById('detail-modal').classList.add('open');
+
+    if (window._trainerDirty) window._trainerDirty.destroy();
+    window._trainerDirty = initFormDirty({
+      form: document.getElementById('trainer-detail-form'),
+      saveBtnId: 'modal-save-btn',
+      onSave: saveTrainer,
+    });
 
     // Load availability after modal is open
     loadAvailability(id);
@@ -821,6 +831,7 @@
         method: 'PUT',
         body: JSON.stringify(payload),
       });
+      if (window._trainerDirty) window._trainerDirty.reset();
       closeModal('detail-modal');
       showAlert('alert-box', 'Trainer gespeichert!', 'success');
       await loadTrainers();
@@ -1083,6 +1094,18 @@
 
   // ─── Modal Helpers ────────────────────────────────────────────────
   function closeModal(id) {
+    if (id === 'detail-modal' && window._trainerDirty && window._trainerDirty.isDirty()) {
+      window._trainerDirty.confirmDiscard(function () {
+        window._trainerDirty = null;
+        editingTrainerId = null;
+        document.getElementById('detail-modal').classList.remove('open');
+      });
+      return;
+    }
+    if (id === 'detail-modal' && window._trainerDirty) {
+      window._trainerDirty.destroy();
+      window._trainerDirty = null;
+    }
     document.getElementById(id).classList.remove('open');
     editingTrainerId = null;
   }
@@ -1090,7 +1113,14 @@
   // Close modal on overlay click
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) overlay.classList.remove('open');
+      if (e.target === overlay) {
+        if (overlay.id === 'detail-modal') {
+          closeModal('detail-modal');
+        } else {
+          overlay.classList.remove('open');
+          editingTrainerId = null;
+        }
+      }
     });
   });
 </script>

@@ -125,3 +125,16 @@ tr.tf-filter-row th.tf-filter-cell {
   color: #F0F0F5;
   border-color: rgba(255, 255, 255, 0.25);
 }
+
+/* ── Dirty-State ─────────────────────────────────────────────────── */
+.field-dirty {
+  border-color: #E07A3A !important;
+  box-shadow: 0 0 0 2px rgba(224,122,58,0.18) !important;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.btn-dirty {
+  background: #E07A3A !important;
+  color: #fff !important;
+  box-shadow: 0 0 12px rgba(224,122,58,0.35);
+  transition: background 0.2s, box-shadow 0.2s;
+}

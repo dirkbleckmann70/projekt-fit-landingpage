@@ -129,8 +129,7 @@
       <button class="btn btn-danger" id="detail-delete-btn" onclick="deleteCustomer()">Löschen</button>
       <div style="flex:1"></div>
       <button class="btn btn-ghost" onclick="closeDetailModal()">Schließen</button>
-      <button class="btn btn-secondary" id="detail-edit-btn" onclick="toggleEditMode()">Bearbeiten</button>
-      <button class="btn btn-primary" id="detail-save-btn" style="display:none" onclick="saveCustomer()">Speichern</button>
+      <button class="btn btn-primary" id="detail-save-btn" onclick="saveCustomer()">Speichern</button>
     </div>
   </div>
 </div>
@@ -138,6 +137,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="../shared/form-dirty.js"></script>
 <script>
   let allCustomers = [];
   let tableFilter;
@@ -326,49 +326,51 @@
     }
 
     let html = `
+      <form id="customer-detail-form">
       <div class="two-col">
         <div class="form-group">
           <label>Vorname</label>
-          <input class="form-control edit-field" id="edit-firstname" value="${c.first_name || ''}" disabled>
+          <input class="form-control edit-field" id="edit-firstname" value="${c.first_name || ''}">
         </div>
         <div class="form-group">
           <label>Nachname</label>
-          <input class="form-control edit-field" id="edit-lastname" value="${c.last_name || ''}" disabled>
+          <input class="form-control edit-field" id="edit-lastname" value="${c.last_name || ''}">
         </div>
       </div>
       <div class="two-col">
         <div class="form-group">
           <label>E-Mail</label>
-          <input class="form-control edit-field" type="email" id="edit-email" value="${c.email || ''}" disabled>
+          <input class="form-control edit-field" type="email" id="edit-email" value="${c.email || ''}">
         </div>
         <div class="form-group">
           <label>Telefon</label>
-          <input class="form-control edit-field" id="edit-phone" value="${c.phone || ''}" disabled>
+          <input class="form-control edit-field" id="edit-phone" value="${c.phone || ''}">
         </div>
       </div>
       <div class="form-group">
         <label>Straße und Hausnummer</label>
-        <input class="form-control edit-field" id="edit-street" value="${c.street_address || ''}" disabled>
+        <input class="form-control edit-field" id="edit-street" value="${c.street_address || ''}">
       </div>
       <div class="two-col">
         <div class="form-group">
           <label>PLZ</label>
-          <input class="form-control edit-field" id="edit-postal" value="${c.postal_code || ''}" disabled>
+          <input class="form-control edit-field" id="edit-postal" value="${c.postal_code || ''}">
         </div>
         <div class="form-group">
           <label>Ort</label>
-          <input class="form-control edit-field" id="edit-city" value="${c.city || ''}" disabled>
+          <input class="form-control edit-field" id="edit-city" value="${c.city || ''}">
         </div>
       </div>
       <div class="form-group">
         <label>Geburtsdatum</label>
-        <input class="form-control edit-field" type="date" id="edit-dob" value="${c.date_of_birth || ''}" disabled>
+        <input class="form-control edit-field" type="date" id="edit-dob" value="${c.date_of_birth || ''}">
       </div>
       <div class="form-group">
         <label>Notizen</label>
-        <textarea class="form-control edit-field" id="edit-notes" rows="3" disabled>${c.notes || ''}</textarea>
+        <textarea class="form-control edit-field" id="edit-notes" rows="3">${c.notes || ''}</textarea>
       </div>
       <p class="text-muted" style="font-size:12px">Registriert: ${formatDateTime(c.created_at)} · ID: ${c.id}</p>
+      </form>
 
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Vertragsstatus</h3>
@@ -413,9 +415,14 @@
     `;
 
     document.getElementById('detail-body').innerHTML = html;
-    document.getElementById('detail-edit-btn').style.display = '';
-    document.getElementById('detail-save-btn').style.display = 'none';
     document.getElementById('detail-modal').classList.add('open');
+
+    if (window._customerDirty) window._customerDirty.destroy();
+    window._customerDirty = initFormDirty({
+      form: document.getElementById('customer-detail-form'),
+      saveBtnId: 'detail-save-btn',
+      onSave: saveCustomer,
+    });
 
     // Load customer bookings
     try {
@@ -454,6 +461,14 @@
   }
 
   function closeDetailModal() {
+    if (window._customerDirty && window._customerDirty.isDirty()) {
+      window._customerDirty.confirmDiscard(function () {
+        window._customerDirty = null;
+        document.getElementById('detail-modal').classList.remove('open');
+      });
+      return;
+    }
+    if (window._customerDirty) { window._customerDirty.destroy(); window._customerDirty = null; }
     document.getElementById('detail-modal').classList.remove('open');
   }
 
@@ -561,15 +576,7 @@
   }
 
   // ─── Edit Mode ──────────────────────────────────────────────
-  let editMode = false;
   let currentDetailId = null;
-
-  function toggleEditMode() {
-    editMode = !editMode;
-    document.querySelectorAll('.edit-field').forEach(f => f.disabled = !editMode);
-    document.getElementById('detail-edit-btn').style.display = editMode ? 'none' : '';
-    document.getElementById('detail-save-btn').style.display = editMode ? '' : 'none';
-  }
 
   async function saveCustomer() {
     if (!currentDetailId) return;
@@ -593,7 +600,7 @@
           notes: document.getElementById('edit-notes').value.trim() || null,
         }),
       });
-      editMode = false;
+      if (window._customerDirty) window._customerDirty.reset();
       closeDetailModal();
       showAlert('alert-box', 'Kunde gespeichert!', 'success');
       await loadCustomers();
@@ -632,7 +639,13 @@
   // Modal overlay clicks
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => {
-      if (e.target === o) o.classList.remove('open');
+      if (e.target === o) {
+        if (o.id === 'detail-modal') {
+          closeDetailModal();
+        } else {
+          o.classList.remove('open');
+        }
+      }
     });
   });
 </script>

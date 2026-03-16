@@ -26,6 +26,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-check.js"></script>
+<script src="../shared/form-dirty.js"></script>
 <script>
   (async () => {
     const trainer = await checkTrainerAuth();
@@ -62,6 +63,7 @@
       </div>
 
       <!-- Editierbare Felder -->
+      <form id="profile-edit-form">
       <div class="card">
         <div class="card-title mb-2">Persönliche Daten</div>
 
@@ -122,6 +124,7 @@
           </div>
         </div>
       </div>
+      </form>
 
       <!-- Nur-Lese Felder (Admin setzt diese) -->
       <div class="card">
@@ -185,6 +188,13 @@
       <button class="btn btn-primary btn-block btn-lg" id="save-btn" onclick="saveProfile()">Profil speichern</button>
       <div style="height:20px"></div>
     `;
+
+    if (window._profileDirty) window._profileDirty.destroy();
+    window._profileDirty = initFormDirty({
+      form: document.getElementById('profile-edit-form'),
+      saveBtnId: 'save-btn',
+      onSave: saveProfile,
+    });
   }
 
   // ─── Datei-Funktionen ─────────────────────────────────────────────
@@ -347,6 +357,7 @@
 
       // Update local state
       Object.assign(window.currentTrainer, update);
+      if (window._profileDirty) window._profileDirty.reset();
       showAlert('alert-box', 'Profil gespeichert!', 'success');
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');

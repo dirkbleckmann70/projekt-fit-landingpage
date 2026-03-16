@@ -76,6 +76,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="../shared/form-dirty.js"></script>
 <script>
   let allBookings = [];
   let editingBookingId = null;
@@ -258,6 +259,7 @@
     editingBookingId = id;
 
     document.getElementById('modal-body').innerHTML = `
+      <form id="booking-detail-form">
       <div class="two-col">
         <div class="form-group">
           <label>Kunde</label>
@@ -315,9 +317,17 @@
       </div>
       ${b.notes ? `<div class="form-group"><label>Notizen</label><textarea class="form-control" disabled>${b.notes}</textarea></div>` : ''}
       <p class="text-muted mt-1" style="font-size:12px">Erstellt: ${formatDateTime(b.created_at)} · ID: ${b.id}</p>
+      </form>
     `;
 
     document.getElementById('detail-modal').classList.add('open');
+
+    if (window._bookingDirty) window._bookingDirty.destroy();
+    window._bookingDirty = initFormDirty({
+      form: document.getElementById('booking-detail-form'),
+      saveBtnId: 'modal-save-btn',
+      onSave: saveBookingStatus,
+    });
   }
 
   async function saveBookingStatus() {
@@ -332,6 +342,7 @@
         method: 'PUT',
         body: JSON.stringify({ bookingId: editingBookingId, status: newStatus }),
       });
+      if (window._bookingDirty) window._bookingDirty.reset();
       closeModal();
       showAlert('alert-box', 'Status aktualisiert!', 'success');
       await loadBookings();
@@ -344,6 +355,15 @@
   }
 
   function closeModal() {
+    if (window._bookingDirty && window._bookingDirty.isDirty()) {
+      window._bookingDirty.confirmDiscard(function () {
+        window._bookingDirty = null;
+        editingBookingId = null;
+        document.getElementById('detail-modal').classList.remove('open');
+      });
+      return;
+    }
+    if (window._bookingDirty) { window._bookingDirty.destroy(); window._bookingDirty = null; }
     document.getElementById('detail-modal').classList.remove('open');
     editingBookingId = null;
   }
