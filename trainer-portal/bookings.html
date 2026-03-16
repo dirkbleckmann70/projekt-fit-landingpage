@@ -18,45 +18,43 @@
     }
 
     .bk-table-wrap {
-      background: #161625;
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
       overflow: hidden;
     }
 
     #bookings-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 14px;
     }
 
     #bookings-table thead th {
-      padding: 12px 16px;
       text-align: left;
-      font-size: 11px;
-      font-weight: 700;
-      color: #8888A0;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
       text-transform: uppercase;
-      letter-spacing: 0.6px;
-      background: rgba(0,0,0,0.2);
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
       white-space: nowrap;
     }
 
+    #bookings-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background 0.1s;
+    }
+    #bookings-table tbody tr:last-child { border-bottom: none; }
+    #bookings-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+
     #bookings-table tbody td {
-      padding: 14px 16px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      padding: 12px 16px;
+      font-size: 14px;
       vertical-align: middle;
-      color: #F0F0F5;
-      line-height: 1.4;
     }
 
-    #bookings-table tbody tr:last-child td { border-bottom: none; }
-    #bookings-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
-
-    .bk-date-main  { font-weight: 600; white-space: nowrap; }
-    .bk-date-time  { font-size: 12px; color: #8888A0; margin-top: 2px; }
-    .bk-sub        { font-size: 12px; color: #8888A0; margin-top: 2px; }
+    .bk-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
 
     .bk-actions { display: flex; gap: 6px; flex-wrap: nowrap; align-items: center; }
 
@@ -113,6 +111,7 @@
         <thead>
           <tr>
             <th>Datum</th>
+            <th>Uhrzeit</th>
             <th>Kunde / Kurs</th>
             <th>Art</th>
             <th>Stadt</th>
@@ -122,7 +121,7 @@
           </tr>
         </thead>
         <tbody id="bookings-body">
-          <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+          <tr><td colspan="8" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
         </tbody>
       </table>
     </div>
@@ -163,7 +162,7 @@
 
     if (!trainer.id) {
       document.getElementById('bookings-body').innerHTML =
-        '<tr><td colspan="7" class="text-muted" style="padding:20px">Kein Trainer-Profil verknüpft.</td></tr>';
+        '<tr><td colspan="8" class="text-muted" style="padding:20px">Kein Trainer-Profil verknüpft.</td></tr>';
       return;
     }
 
@@ -178,6 +177,7 @@
 
     tableFilter = initSortableTable('bookings-table', [
       { key: 'date',     type: 'date',   getValue: item => item.scheduled_date || '' },
+      { key: 'time',     type: 'select', getValue: item => (item.scheduled_time || '').slice(0,5) || '–' },
       { key: 'name',     type: 'text',   getValue: item => item._type === 'gt' ? item.group_class_name : (item.customer_name || '') },
       { key: 'type',     type: 'select', getValue: item => item._type === 'gt' ? 'GT' : 'PT' },
       { key: 'city',     type: 'select', getValue: item => item._type === 'gt' ? (item.location_name || '') : (item.location_name || item.location || '') },
@@ -278,7 +278,7 @@
       renderBookings();
     } catch (err) {
       document.getElementById('bookings-body').innerHTML =
-        `<tr><td colspan="7" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="8" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -315,7 +315,7 @@
         confirmed: 'Keine bestätigten Termine',
         past:      'Noch keine vergangenen Buchungen',
       };
-      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding:24px">${messages[currentTab] || 'Keine Einträge'}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding:24px">${messages[currentTab] || 'Keine Einträge'}</td></tr>`;
       return;
     }
 
@@ -330,16 +330,14 @@
     const trainerRate  = window.currentTrainer?.payout_cents ?? null;
     const payoutCents  = b.payout_cents ?? trainerRate;
     const revenue      = payoutCents ? formatEuro(payoutCents) : '–';
-    const dateHtml  = b.scheduled_date
-      ? `<div class="bk-date-main">${formatDate(b.scheduled_date)}</div>${b.scheduled_time ? '<div class="bk-date-time">' + formatTime(b.scheduled_time) + '</div>' : ''}`
-      : '–';
     const actions = isPending
       ? `<button class="btn btn-sm btn-confirm" onclick="updateBooking('${b.id}','confirmed')">Bestätigen</button>
          <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}','cancelled_by_trainer')">Ablehnen</button>`
       : `<button class="btn btn-ghost btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
     return `
       <tr>
-        <td>${dateHtml}</td>
+        <td style="white-space:nowrap">${b.scheduled_date ? formatDate(b.scheduled_date) : '–'}</td>
+        <td style="white-space:nowrap;color:var(--text-secondary)">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
         <td>${b.customer_name || 'Kunde'}</td>
         <td><span class="badge" style="background:rgba(46,117,182,0.12);color:#5BB8FF;border:1px solid rgba(91,184,255,0.25)">PT</span></td>
         <td>${city}</td>
@@ -361,12 +359,10 @@
     const statusEl  = gc.is_active
       ? '<span class="badge badge-active">Aktiv</span>'
       : '<span class="badge badge-paused">Inaktiv</span>';
-    const dateHtml  = gc.scheduled_date
-      ? `<div class="bk-date-main">${formatDate(gc.scheduled_date)}</div>${gc.scheduled_time ? '<div class="bk-date-time">' + formatTime(gc.scheduled_time) + '</div>' : ''}`
-      : '–';
     return `
       <tr>
-        <td>${dateHtml}</td>
+        <td style="white-space:nowrap">${gc.scheduled_date ? formatDate(gc.scheduled_date) : '–'}</td>
+        <td style="white-space:nowrap;color:var(--text-secondary)">${gc.scheduled_time ? gc.scheduled_time.slice(0,5) : '–'}</td>
         <td>
           <div style="font-weight:600">${gc.group_class_name}</div>
           <div class="bk-sub">👥 ${participants} Teilnehmer</div>
