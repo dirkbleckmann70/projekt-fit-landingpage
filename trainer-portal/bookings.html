@@ -9,11 +9,10 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
   <style>
-    .bk-page   { padding: 20px 24px 8px; }
-    .bk-outer  { padding: 0 24px 24px; }
-
+    .bk-page  { padding: 20px 24px 16px; }
+    .bk-outer { padding: 0 24px 24px; }
     @media (max-width: 768px) {
-      .bk-page  { padding: 16px 16px 8px; }
+      .bk-page  { padding: 16px 16px 12px; }
       .bk-outer { padding: 0 16px 16px; }
     }
 
@@ -45,8 +44,11 @@
       border-bottom: 1px solid var(--border);
       transition: background 0.1s;
     }
-    #bookings-table tbody tr:last-child { border-bottom: none; }
-    #bookings-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+    #bookings-table tbody tr:last-child  { border-bottom: none; }
+    #bookings-table tbody tr:hover       { background: rgba(255,255,255,0.025); }
+    #bookings-table tbody tr.row-pending { background: rgba(231,76,60,0.05); }
+    #bookings-table tbody tr.row-pending:hover { background: rgba(231,76,60,0.09); }
+    #bookings-table tbody tr.row-done    { opacity: 0.55; }
 
     #bookings-table tbody td {
       padding: 12px 16px;
@@ -54,9 +56,13 @@
       vertical-align: middle;
     }
 
-    .bk-sub { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-
+    .bk-sub     { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
     .bk-actions { display: flex; gap: 6px; flex-wrap: nowrap; align-items: center; }
+
+    .badge-neue-anfrage { background: rgba(231,76,60,0.15); color: #e74c3c; border: 1px solid rgba(231,76,60,0.4); }
+    .badge-bestaetigt   { background: rgba(39,174,96,0.15);  color: #27ae60; border: 1px solid rgba(39,174,96,0.4); }
+    .badge-erledigt     { background: rgba(136,136,160,0.12); color: #8888a0; border: 1px solid rgba(136,136,160,0.3); }
+    .badge-storniert    { background: rgba(85,85,106,0.12);   color: #55556a; border: 1px solid rgba(85,85,106,0.3); }
 
     .btn-confirm { color: #27ae60; border: 1px solid rgba(39,174,96,0.5); background: rgba(39,174,96,0.08); }
     .btn-confirm:hover { background: rgba(39,174,96,0.18); }
@@ -97,11 +103,6 @@
 <div class="bk-page">
   <h1 class="page-title">Meine Buchungen</h1>
   <div id="alert-box" class="alert"></div>
-  <div class="tab-bar" id="tab-bar">
-    <button class="tab-btn active" data-tab="pending">Neue Anfragen <span id="pending-count"></span></button>
-    <button class="tab-btn" data-tab="confirmed">Bestätigt</button>
-    <button class="tab-btn" data-tab="past">Vergangen</button>
-  </div>
 </div>
 
 <div class="bk-outer">
@@ -110,12 +111,12 @@
       <table id="bookings-table">
         <thead>
           <tr>
+            <th>Status</th>
             <th>Datum</th>
             <th>Uhrzeit</th>
             <th>Kunde / Kurs</th>
             <th>Art</th>
             <th>Stadt</th>
-            <th>Status</th>
             <th>Vergütung</th>
             <th>Aktion</th>
           </tr>
@@ -150,8 +151,67 @@
 <script>
   let allBookings  = [];
   let allGTClasses = [];
-  let currentTab   = 'pending';
   let tableFilter;
+
+  const CANCELLED = ['cancelled', 'cancelled_by_trainer', 'refunded'];
+
+  // Sortier-Priorität: pending=0, confirmed=1, completed=2, cancelled+=3
+  function statusPriority(item) {
+    if (item._type === 'gt') return item.is_active ? 1 : 3;
+    if (item.status === 'pending')            return 0;
+    if (item.status === 'confirmed')          return 1;
+    if (item.status === 'completed')          return 2;
+    return 3;
+  }
+
+  function getAllItems() {
+    const all = [...allBookings, ...allGTClasses];
+    return all.sort((a, b) => {
+      const pa = statusPriority(a), pb = statusPriority(b);
+      if (pa !== pb) return pa - pb;
+      // Bestätigt: aufsteigend nach Datum (nächster Termin oben)
+      if (pa === 1) return (a.scheduled_date || '').localeCompare(b.scheduled_date || '');
+      // Alle anderen: absteigend nach Datum (neueste oben)
+      return (b.scheduled_date || '').localeCompare(a.scheduled_date || '');
+    });
+  }
+
+  function statusBadgeBK(item) {
+    if (item._type === 'gt') {
+      return item.is_active
+        ? '<span class="badge badge-bestaetigt">Aktiv</span>'
+        : '<span class="badge badge-storniert">Inaktiv</span>';
+    }
+    switch (item.status) {
+      case 'pending':            return '<span class="badge badge-neue-anfrage">Neue Anfrage</span>';
+      case 'confirmed':          return '<span class="badge badge-bestaetigt">Bestätigt</span>';
+      case 'completed':          return '<span class="badge badge-erledigt">Erledigt</span>';
+      case 'cancelled':
+      case 'cancelled_by_trainer':
+      case 'refunded':           return '<span class="badge badge-storniert">Storniert</span>';
+      default:                   return `<span class="badge badge-erledigt">${item.status}</span>`;
+    }
+  }
+
+  function rowClass(item) {
+    if (item._type === 'gt') return item.is_active ? '' : 'row-done';
+    if (item.status === 'pending') return 'row-pending';
+    if (item.status === 'completed' || CANCELLED.includes(item.status)) return 'row-done';
+    return '';
+  }
+
+  function calcRevenue(item) {
+    const rate = window.currentTrainer?.payout_cents ?? null;
+    if (item._type === 'gt') {
+      if (!item.is_active) return '<span style="color:var(--text-muted)">0,00 €</span>';
+      const share = (rate && item.participant_count > 0) ? Math.round(rate / item.participant_count) : rate;
+      return share ? formatEuro(share) : '–';
+    }
+    if (CANCELLED.includes(item.status)) return '<span style="color:var(--text-muted)">0,00 €</span>';
+    if (item.status === 'pending') return '–';
+    const payout = item.payout_cents ?? rate;
+    return payout ? formatEuro(payout) : '–';
+  }
 
   (async () => {
     const trainer = await checkTrainerAuth();
@@ -166,27 +226,21 @@
       return;
     }
 
-    document.querySelectorAll('#tab-bar .tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#tab-bar .tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentTab = btn.dataset.tab;
-        renderBookings();
-      });
-    });
-
     tableFilter = initSortableTable('bookings-table', [
+      { key: 'status',   type: 'select', getValue: item => {
+          if (item._type === 'gt') return item.is_active ? 'Aktiv' : 'Inaktiv';
+          const map = { pending: 'Neue Anfrage', confirmed: 'Bestätigt', completed: 'Erledigt', cancelled: 'Storniert', cancelled_by_trainer: 'Storniert', refunded: 'Storniert' };
+          return map[item.status] || item.status;
+        } },
       { key: 'date',     type: 'date',   getValue: item => item.scheduled_date || '' },
       { key: 'time',     type: 'select', getValue: item => (item.scheduled_time || '').slice(0,5) || '–' },
       { key: 'name',     type: 'text',   getValue: item => item._type === 'gt' ? item.group_class_name : (item.customer_name || '') },
       { key: 'type',     type: 'select', getValue: item => item._type === 'gt' ? 'GT' : 'PT' },
       { key: 'city',     type: 'select', getValue: item => item._type === 'gt' ? (item.location_name || '') : (item.location_name || item.location || '') },
-      { key: 'status',   type: 'select', getValue: item => item._type === 'gt' ? (item.is_active ? 'Aktiv' : 'Inaktiv') : (item.status || '') },
       { key: 'revenue',  type: 'number', getValue: item => {
           const rate = window.currentTrainer?.payout_cents ?? 0;
-          const cancelled = ['cancelled', 'cancelled_by_trainer', 'refunded'];
           if (item._type === 'gt') return item.is_active ? (item.participant_count > 0 ? Math.round(rate / item.participant_count) / 100 : rate / 100) : 0;
-          if (cancelled.includes(item.status) || item.status === 'pending') return 0;
+          if (CANCELLED.includes(item.status) || item.status === 'pending') return 0;
           return (item.payout_cents ?? rate) / 100;
         } },
       null,
@@ -195,7 +249,6 @@
 
     await loadBookings();
 
-    // Realtime
     const sb = getSupabase();
     sb.channel('bookings-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `trainer_id=eq.${trainer.id}` },
@@ -216,7 +269,6 @@
 
       if (error) throw error;
 
-      // Kundennamen laden
       const customerIds = [...new Set((data || []).map(b => b.customer_id).filter(Boolean))];
       const customerNames = {};
       if (customerIds.length > 0) {
@@ -237,7 +289,6 @@
         customer_name: customerNames[b.customer_id] || b.customer_name || 'Kunde',
       }));
 
-      // Gruppentrainings laden
       const { data: gtClasses } = await sb
         .from('group_classes')
         .select('*')
@@ -254,7 +305,7 @@
 
         const pcMap = {};
         (ptcps || []).forEach(p => {
-          if (!['cancelled', 'refunded'].includes((p.status || '').toLowerCase())) {
+          if (!CANCELLED.includes((p.status || '').toLowerCase())) {
             pcMap[p.group_class_id] = (pcMap[p.group_class_id] || 0) + 1;
           }
         });
@@ -274,9 +325,6 @@
         }));
       }
 
-      const pendingCount = allBookings.filter(b => b.status === 'pending').length;
-      document.getElementById('pending-count').textContent = pendingCount > 0 ? `(${pendingCount})` : '';
-
       renderBookings();
     } catch (err) {
       document.getElementById('bookings-body').innerHTML =
@@ -284,40 +332,12 @@
     }
   }
 
-  function getTabItems() {
-    const today = new Date().toISOString().slice(0, 10);
-    switch (currentTab) {
-      case 'pending':
-        return allBookings.filter(b => b.status === 'pending');
-      case 'confirmed':
-        return [
-          ...allBookings.filter(b => b.status === 'confirmed' && b.scheduled_date >= today),
-          ...allGTClasses.filter(gc => gc.is_active && gc.scheduled_date >= today),
-        ].sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''));
-      case 'past':
-        return [
-          ...allBookings.filter(b =>
-            b.status === 'completed' || b.status === 'cancelled' || b.status === 'cancelled_by_trainer' ||
-            (b.status === 'confirmed' && b.scheduled_date < today)
-          ),
-          ...allGTClasses.filter(gc => !gc.is_active || gc.scheduled_date < today),
-        ].sort((a, b) => (b.scheduled_date || '').localeCompare(a.scheduled_date || ''));
-      default:
-        return [...allBookings, ...allGTClasses];
-    }
-  }
-
   function renderBookings() {
-    const items = tableFilter ? tableFilter.apply(getTabItems()) : getTabItems();
+    const items = tableFilter ? tableFilter.apply(getAllItems()) : getAllItems();
     const tbody = document.getElementById('bookings-body');
 
     if (items.length === 0) {
-      const messages = {
-        pending:   'Keine neuen Anfragen',
-        confirmed: 'Keine bestätigten Termine',
-        past:      'Noch keine vergangenen Buchungen',
-      };
-      tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted" style="padding:24px">${messages[currentTab] || 'Keine Einträge'}</td></tr>`;
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Buchungen vorhanden</td></tr>';
       return;
     }
 
@@ -327,28 +347,20 @@
   }
 
   function renderPTRow(b) {
-    const isPending    = b.status === 'pending';
-    const city         = b.location_name || b.location || '–';
-    const trainerRate  = window.currentTrainer?.payout_cents ?? null;
-    const payoutCents  = b.payout_cents ?? trainerRate;
-    const cancelled    = ['cancelled', 'cancelled_by_trainer', 'refunded'];
-    const revenue      = cancelled.includes(b.status)
-      ? '<span style="color:var(--text-muted)">0,00 €</span>'
-      : b.status === 'pending'
-        ? '–'
-        : payoutCents ? formatEuro(payoutCents) : '–';
-    const actions = isPending
+    const city    = b.location_name || b.location || '–';
+    const revenue = calcRevenue(b);
+    const actions = b.status === 'pending'
       ? `<button class="btn btn-sm btn-confirm" onclick="updateBooking('${b.id}','confirmed')">Bestätigen</button>
          <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}','cancelled_by_trainer')">Ablehnen</button>`
       : `<button class="btn btn-ghost btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
     return `
-      <tr>
+      <tr class="${rowClass(b)}">
+        <td>${statusBadgeBK(b)}</td>
         <td style="white-space:nowrap">${b.scheduled_date ? formatDate(b.scheduled_date) : '–'}</td>
         <td style="white-space:nowrap;color:var(--text-secondary)">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
         <td>${b.customer_name || 'Kunde'}</td>
         <td><span class="badge" style="background:rgba(46,117,182,0.12);color:#5BB8FF;border:1px solid rgba(91,184,255,0.25)">PT</span></td>
         <td>${city}</td>
-        <td>${statusBadge(b.status)}</td>
         <td class="text-accent">${revenue}</td>
         <td><div class="bk-actions">${actions}</div></td>
       </tr>`;
@@ -358,18 +370,10 @@
     const participants = gc.max_participants
       ? `${gc.participant_count} / ${gc.max_participants}`
       : gc.participant_count;
-    const trainerRate  = window.currentTrainer?.payout_cents ?? null;
-    const payoutShare  = (trainerRate && gc.participant_count > 0)
-      ? Math.round(trainerRate / gc.participant_count)
-      : null;
-    const revenue      = !gc.is_active
-      ? '<span style="color:var(--text-muted)">0,00 €</span>'
-      : payoutShare ? formatEuro(payoutShare) : (trainerRate ? formatEuro(trainerRate) : '–');
-    const statusEl  = gc.is_active
-      ? '<span class="badge badge-active">Aktiv</span>'
-      : '<span class="badge badge-paused">Inaktiv</span>';
+    const revenue = calcRevenue(gc);
     return `
-      <tr>
+      <tr class="${rowClass(gc)}">
+        <td>${statusBadgeBK(gc)}</td>
         <td style="white-space:nowrap">${gc.scheduled_date ? formatDate(gc.scheduled_date) : '–'}</td>
         <td style="white-space:nowrap;color:var(--text-secondary)">${gc.scheduled_time ? gc.scheduled_time.slice(0,5) : '–'}</td>
         <td>
@@ -378,7 +382,6 @@
         </td>
         <td><span class="badge" style="background:rgba(45,106,79,0.12);color:#40916C;border:1px solid rgba(64,145,108,0.25)">GT</span></td>
         <td>${gc.location_name || '–'}</td>
-        <td>${statusEl}</td>
         <td class="text-accent">${revenue}</td>
         <td><div class="bk-actions"></div></td>
       </tr>`;
@@ -388,15 +391,8 @@
     const b = allBookings.find(x => x.id === bookingId);
     if (!b) return;
 
-    const trainerRate = window.currentTrainer?.payout_cents ?? null;
-    const payoutCents = b.payout_cents ?? trainerRate;
-    const cancelled   = ['cancelled', 'cancelled_by_trainer', 'refunded'];
-    const vergütung   = cancelled.includes(b.status)
-      ? '0,00 €'
-      : b.status === 'pending'
-        ? '–'
-        : payoutCents ? formatEuro(payoutCents) : '–';
-    const hasRating   = b.rating && b.rating > 0;
+    const vergütung = calcRevenue(b).replace(/<[^>]+>/g, ''); // Strip HTML for modal
+    const hasRating = b.rating && b.rating > 0;
 
     document.getElementById('detail-modal-body').innerHTML = `
       <div class="detail-row">
@@ -409,7 +405,7 @@
       </div>
       <div class="detail-row">
         <div class="detail-field"><label>Stadt / Ort</label><div class="dv">${b.location_name || b.location || '–'}</div></div>
-        <div class="detail-field"><label>Status</label><div class="dv">${statusBadge(b.status)}</div></div>
+        <div class="detail-field"><label>Status</label><div class="dv">${statusBadgeBK(b)}</div></div>
       </div>
       <div class="detail-row">
         <div class="detail-field"><label>Vergütung</label><div class="dv" style="color:var(--accent);font-weight:700">${vergütung}</div></div>
