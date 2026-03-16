@@ -47,18 +47,27 @@
         </div>
         <table id="finance-table">
           <thead>
+            <tr id="finance-sum-row" style="display:none;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
+              <td colspan="3" style="padding:6px 12px;text-align:right;font-style:italic" id="fin-count-cell"></td>
+              <td style="padding:6px 12px" class="text-accent"  id="fin-brutto-sum"></td>
+              <td style="padding:6px 12px" class="text-muted"   id="fin-netto-sum"></td>
+              <td style="padding:6px 12px" class="text-muted"   id="fin-kosten-sum"></td>
+              <td style="padding:6px 12px" class="text-success" id="fin-erloese-sum"></td>
+              <td></td>
+            </tr>
             <tr>
               <th>Datum</th>
               <th>Kunde</th>
               <th>Trainer</th>
-              <th>Preis (Kunde)</th>
-              <th>Trainer-Anteil</th>
-              <th>Marge</th>
+              <th>Einnahme brutto</th>
+              <th>Einnahme netto</th>
+              <th>Trainer Kosten</th>
+              <th>Erlöse</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody id="revenue-body">
-            <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Daten werden geladen...</td></tr>
+            <tr><td colspan="8" class="loading-overlay"><span class="spinner"></span> Daten werden geladen...</td></tr>
           </tbody>
         </table>
       </div>
@@ -98,6 +107,13 @@
   let financeData = [];
   let tableFilter;
 
+  const FIN_CANCELLED = ['cancelled', 'refunded', 'cancelled_by_trainer'];
+
+  function effBrutto(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.price_cents || b.final_price_cents || 0); }
+  function effNetto(b)   { return Math.round(effBrutto(b) / 1.19); }
+  function effKosten(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.payout_cents || b.trainer_rate_cents || 0); }
+  function effErloese(b) { return effNetto(b) - effKosten(b); }
+
   (async () => {
     const user = await checkAdminAuth();
     if (!user) return;
@@ -111,9 +127,10 @@
       { key: 'scheduled_date', type: 'date',   getValue: b => b.scheduled_date || '' },
       { key: 'customer_name',  type: 'text',   getValue: b => b.customer_name || '' },
       { key: 'trainer_name',   type: 'text',   getValue: b => b.trainer_name || '' },
-      { key: 'price',          type: 'number', getValue: b => (b.price_cents || 0) / 100 },
-      { key: 'payout',         type: 'number', getValue: b => (b.payout_cents || 0) / 100 },
-      { key: 'margin',         type: 'number', getValue: b => ((b.price_cents || 0) - (b.payout_cents || 0)) / 100 },
+      { key: 'brutto',         type: 'number', getValue: b => effBrutto(b) / 100 },
+      { key: 'netto',          type: 'number', getValue: b => effNetto(b) / 100 },
+      { key: 'kosten',         type: 'number', getValue: b => effKosten(b) / 100 },
+      { key: 'erloese',        type: 'number', getValue: b => effErloese(b) / 100 },
       { key: 'status',         type: 'select', getValue: b => b.status || '\u2013' },
     ]);
     tableFilter.onFilterChange(() => renderFinanceTable());
@@ -126,7 +143,7 @@
       renderFinanceTable();
     } catch (err) {
       document.getElementById('revenue-body').innerHTML =
-        `<tr><td colspan="7" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="8" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
       document.getElementById('kpi-total').textContent = '–';
       document.getElementById('kpi-payouts').textContent = '–';
       document.getElementById('kpi-margin').textContent = '–';
@@ -136,43 +153,54 @@
   function renderFinanceTable() {
     let filtered = tableFilter ? tableFilter.apply(financeData) : financeData;
 
-    // KPIs based on filtered data
-    let totalRevenue = 0;
-    let totalPayouts = 0;
+    // KPIs (nur nicht-stornierte)
+    let totalBrutto = 0, totalNetto = 0, totalKosten = 0;
     filtered.forEach(b => {
-      if (b.status === 'COMPLETED' || b.status === 'CONFIRMED') {
-        totalRevenue += (b.price_cents || 0);
-        totalPayouts += (b.payout_cents || 0);
-      }
+      totalBrutto += effBrutto(b);
+      totalNetto  += effNetto(b);
+      totalKosten += effKosten(b);
     });
-    const margin = totalRevenue - totalPayouts;
+    document.getElementById('kpi-total').textContent   = formatEuro(totalBrutto);
+    document.getElementById('kpi-payouts').textContent = formatEuro(totalKosten);
+    document.getElementById('kpi-margin').textContent  = formatEuro(totalNetto - totalKosten);
 
-    document.getElementById('kpi-total').textContent = formatEuro(totalRevenue);
-    document.getElementById('kpi-payouts').textContent = formatEuro(totalPayouts);
-    document.getElementById('kpi-margin').textContent = formatEuro(margin);
+    const tbody  = document.getElementById('revenue-body');
+    const sumRow = document.getElementById('finance-sum-row');
 
-    const tbody = document.getElementById('revenue-body');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
+      sumRow.style.display = 'none';
       return;
     }
 
     tbody.innerHTML = filtered.map(b => {
-      const payout = b.payout_cents || 0;
-      const price = b.price_cents || 0;
-      const m = price - payout;
+      const brutto  = effBrutto(b);
+      const netto   = effNetto(b);
+      const kosten  = effKosten(b);
+      const erloese = effErloese(b);
       return `
         <tr>
           <td>${formatDate(b.scheduled_date)}</td>
           <td>${b.customer_name || '–'}</td>
           <td>${b.trainer_name || '–'}</td>
-          <td class="text-accent">${formatEuro(price)}</td>
-          <td>${formatEuro(payout)}</td>
-          <td class="${m > 0 ? 'text-success' : ''}">${formatEuro(m)}</td>
+          <td class="text-accent">${formatEuro(brutto)}</td>
+          <td class="text-muted">${formatEuro(netto)}</td>
+          <td class="text-muted">${formatEuro(kosten)}</td>
+          <td class="${erloese > 0 ? 'text-success' : ''}">${formatEuro(erloese)}</td>
           <td>${statusBadge(b.status)}</td>
         </tr>
       `;
     }).join('');
+
+    // Summenzeile
+    let sumBrutto = 0, sumNetto = 0, sumKosten = 0, sumErloese = 0;
+    filtered.forEach(b => { sumBrutto += effBrutto(b); sumNetto += effNetto(b); sumKosten += effKosten(b); sumErloese += effErloese(b); });
+    sumRow.style.display = '';
+    document.getElementById('fin-count-cell').textContent  = `${filtered.length} von ${financeData.length} Buchungen`;
+    document.getElementById('fin-brutto-sum').textContent  = formatEuro(sumBrutto);
+    document.getElementById('fin-netto-sum').textContent   = formatEuro(sumNetto);
+    document.getElementById('fin-kosten-sum').textContent  = formatEuro(sumKosten);
+    document.getElementById('fin-erloese-sum').textContent = formatEuro(sumErloese);
   }
 
   async function loadCredits() {
@@ -212,14 +240,15 @@
   function exportCSV() {
     if (financeData.length === 0) { alert('Keine Daten zum Exportieren.'); return; }
 
-    const headers = ['Datum', 'Kunde', 'Trainer', 'Preis (Cent)', 'Trainer-Anteil (Cent)', 'Marge (Cent)', 'Status'];
+    const headers = ['Datum', 'Kunde', 'Trainer', 'Einnahme brutto (EUR)', 'Einnahme netto (EUR)', 'Trainer Kosten (EUR)', 'Erlöse (EUR)', 'Status'];
     const rows = financeData.map(b => [
       b.scheduled_date || '',
       b.customer_name || '',
       b.trainer_name || '',
-      b.price_cents || 0,
-      b.payout_cents || 0,
-      (b.price_cents || 0) - (b.payout_cents || 0),
+      (effBrutto(b) / 100).toFixed(2).replace('.', ','),
+      (effNetto(b)  / 100).toFixed(2).replace('.', ','),
+      (effKosten(b) / 100).toFixed(2).replace('.', ','),
+      (effErloese(b)/ 100).toFixed(2).replace('.', ','),
       b.status || '',
     ]);
 

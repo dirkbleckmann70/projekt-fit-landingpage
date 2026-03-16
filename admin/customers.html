@@ -447,7 +447,7 @@
                   <td>${formatDate(b.scheduled_date)}</td>
                   <td>${b.trainer_name || '–'}</td>
                   <td>${statusBadge(b.status)}</td>
-                  <td class="text-accent">${formatEuro(b.price_cents || b.final_price_cents)}</td>
+                  <td class="text-accent">${['cancelled','refunded','cancelled_by_trainer'].includes((b.status||'').toLowerCase()) ? '0,00\u00a0€' : formatEuro(b.price_cents || b.final_price_cents)}</td>
                 </tr>
               `).join('')}
             </tbody>
