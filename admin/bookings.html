@@ -24,6 +24,7 @@
           <div class="table-title">Alle Buchungen</div>
           <div class="table-actions"></div>
         </div>
+        <div id="bookings-summary" style="display:none;padding:8px 4px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px"></div>
         <div style="overflow-x:auto">
           <table id="bookings-table">
             <thead>
@@ -36,12 +37,13 @@
                 <th>Kunde</th>
                 <th>Status</th>
                 <th>Preis</th>
+                <th>Kosten</th>
                 <th>Zahlung</th>
                 <th>Aktionen</th>
               </tr>
             </thead>
             <tbody id="bookings-body">
-              <tr><td colspan="10" class="loading-overlay"><span class="spinner"></span> Buchungen werden geladen...</td></tr>
+              <tr><td colspan="11" class="loading-overlay"><span class="spinner"></span> Buchungen werden geladen...</td></tr>
             </tbody>
           </table>
         </div>
@@ -91,7 +93,8 @@
       { key: 'trainer_name',   type: 'text',   getValue: b => b.trainer_name || '' },
       { key: 'customer_name',  type: 'text',   getValue: b => b.customer_name || b.customer_id || '' },
       { key: 'status',         type: 'select', getValue: b => b.status || '\u2013' },
-      { key: 'price',          type: 'number', getValue: b => (b.price_cents || b.final_price_cents || 0) / 100 },
+      { key: 'price',          type: 'number', getValue: b => effectivePrice(b) / 100 },
+      { key: 'cost',           type: 'number', getValue: b => effectiveCost(b) / 100 },
       { key: 'payment_status', type: 'select', getValue: b => getPaymentLabel(b) },
       null,
     ]);
@@ -105,7 +108,7 @@
       renderBookings();
     } catch (err) {
       document.getElementById('bookings-body').innerHTML =
-        `<tr><td colspan="10" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="11" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -145,34 +148,61 @@
     return detailBtn;
   }
 
+  function effectivePrice(b) {
+    const st = (b.status || '').toUpperCase();
+    if (['CANCELLED', 'REFUNDED'].includes(st)) return 0;
+    return b.price_cents || b.final_price_cents || 0;
+  }
+
+  function effectiveCost(b) {
+    const st = (b.status || '').toUpperCase();
+    if (['CANCELLED', 'REFUNDED'].includes(st)) return 0;
+    return b.payout_cents || 0;
+  }
+
   function renderBookings() {
     let filtered = tableFilter ? tableFilter.apply(allBookings) : allBookings;
 
     const tbody = document.getElementById('bookings-body');
+    const summary = document.getElementById('bookings-summary');
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
+      summary.style.display = 'none';
       return;
     }
 
-    tbody.innerHTML = filtered.map(b => `
-      <tr>
-        <td>${formatDate(b.scheduled_date)}</td>
-        <td>${b.trainer_city || b.city || '–'}</td>
-        <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
-        <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
-        <td>${b.trainer_name || '–'}</td>
-        <td>${b.customer_name || b.customer_id || '–'}</td>
-        <td>${statusBadge(b.status)}</td>
-        <td class="text-accent">${formatEuro(b.price_cents || b.final_price_cents)}</td>
-        <td>${paymentBadge(b)}</td>
-        <td>
-          <div class="action-cell">
-            ${bookingActions(b)}
-          </div>
-        </td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = filtered.map(b => {
+      const price = effectivePrice(b);
+      const cost  = effectiveCost(b);
+      return `
+        <tr>
+          <td>${formatDate(b.scheduled_date)}</td>
+          <td>${b.trainer_city || b.city || '–'}</td>
+          <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
+          <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
+          <td>${b.trainer_name || '–'}</td>
+          <td>${b.customer_name || b.customer_id || '–'}</td>
+          <td>${statusBadge(b.status)}</td>
+          <td class="text-accent">${price > 0 ? formatEuro(price) : '–'}</td>
+          <td class="text-muted">${cost > 0 ? formatEuro(cost) : '–'}</td>
+          <td>${paymentBadge(b)}</td>
+          <td>
+            <div class="action-cell">
+              ${bookingActions(b)}
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    // Summen (nur gefilterte Zeilen)
+    const totalPrice = filtered.reduce((s, b) => s + effectivePrice(b), 0);
+    const totalCost  = filtered.reduce((s, b) => s + effectiveCost(b), 0);
+    summary.style.display = '';
+    summary.innerHTML =
+      `<strong>Summe (${filtered.length} von ${allBookings.length} Buchungen):</strong>` +
+      `&nbsp;&nbsp;Preis: <span class="text-accent">${formatEuro(totalPrice)}</span>` +
+      `&nbsp;&nbsp;|&nbsp;&nbsp;Kosten: <span class="text-muted">${formatEuro(totalCost)}</span>`;
   }
 
   function getPaymentLabel(b) {
