@@ -27,6 +27,12 @@
         <div style="overflow-x:auto">
           <table id="bookings-table">
             <thead>
+              <tr id="bookings-tfoot" style="display:none;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
+                <td colspan="7" style="padding:6px 12px;text-align:right;font-style:italic" id="bookings-count-cell"></td>
+                <td style="padding:6px 12px" class="text-accent" id="bookings-price-sum"></td>
+                <td style="padding:6px 12px" class="text-muted"  id="bookings-cost-sum"></td>
+                <td colspan="2"></td>
+              </tr>
               <tr>
                 <th>Datum</th>
                 <th>Ort</th>
@@ -44,14 +50,6 @@
             <tbody id="bookings-body">
               <tr><td colspan="11" class="loading-overlay"><span class="spinner"></span> Buchungen werden geladen...</td></tr>
             </tbody>
-            <tfoot id="bookings-tfoot" style="display:none">
-              <tr style="border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
-                <td colspan="7" style="padding:8px 12px;text-align:right;font-style:italic" id="bookings-count-cell"></td>
-                <td style="padding:8px 12px" class="text-accent" id="bookings-price-sum"></td>
-                <td style="padding:8px 12px" class="text-muted"  id="bookings-cost-sum"></td>
-                <td colspan="2"></td>
-              </tr>
-            </tfoot>
           </table>
         </div>
       </div>
