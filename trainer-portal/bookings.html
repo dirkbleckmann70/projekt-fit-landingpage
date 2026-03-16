@@ -7,6 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
 <body>
 
@@ -23,8 +24,25 @@
     <button class="tab-btn" data-tab="past">Vergangen</button>
   </div>
 
-  <div id="bookings-list">
-    <div class="loading-center"><span class="spinner"></span> Buchungen laden...</div>
+  <div class="table-wrap" style="margin-top:0;border-radius:0 0 12px 12px">
+    <div style="overflow-x:auto">
+      <table id="bookings-table">
+        <thead>
+          <tr>
+            <th>Datum</th>
+            <th>Kunde / Kurs</th>
+            <th>Art</th>
+            <th>Stadt</th>
+            <th>Status</th>
+            <th>Einnahmen</th>
+            <th>Aktion</th>
+          </tr>
+        </thead>
+        <tbody id="bookings-body">
+          <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -32,24 +50,26 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-check.js"></script>
+<script src="../shared/table-utils.js"></script>
 <script>
-  let allBookings = [];
+  let allBookings  = [];
   let allGTClasses = [];
-  let currentTab = 'pending';
+  let currentTab   = 'pending';
+  let tableFilter;
 
   (async () => {
     const trainer = await checkTrainerAuth();
     if (!trainer) return;
 
     document.getElementById('top-header').innerHTML = renderTopHeader();
-    document.getElementById('bottom-nav').innerHTML = renderNav('bookings');
+    document.getElementById('bottom-nav').innerHTML  = renderNav('bookings');
 
     if (!trainer.id) {
-      document.getElementById('bookings-list').innerHTML = '<div class="empty-state"><div class="empty-state-text">Kein Trainer-Profil verknüpft.</div></div>';
+      document.getElementById('bookings-body').innerHTML =
+        '<tr><td colspan="7" class="text-muted" style="padding:20px">Kein Trainer-Profil verknüpft.</td></tr>';
       return;
     }
 
-    // Tab clicks
     document.querySelectorAll('#tab-bar .tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('#tab-bar .tab-btn').forEach(b => b.classList.remove('active'));
@@ -59,52 +79,41 @@
       });
     });
 
+    tableFilter = initSortableTable('bookings-table', [
+      { key: 'date',     type: 'date',   getValue: item => item.scheduled_date || '' },
+      { key: 'name',     type: 'text',   getValue: item => item._type === 'gt' ? item.group_class_name : (item.customer_name || '') },
+      { key: 'type',     type: 'select', getValue: item => item._type === 'gt' ? 'GT' : 'PT' },
+      { key: 'city',     type: 'select', getValue: item => item._type === 'gt' ? (item.location_name || '') : (item.location_name || item.location || '') },
+      { key: 'status',   type: 'select', getValue: item => item._type === 'gt' ? (item.is_active ? 'Aktiv' : 'Inaktiv') : (item.status || '') },
+      { key: 'revenue',  type: 'number', getValue: item => item._type === 'gt' ? (item.price_per_person_cents || 0) / 100 : (item.price_cents || 0) / 100 },
+      null,
+    ]);
+    tableFilter.onFilterChange(() => renderBookings());
+
     await loadBookings();
 
-    // ─── Realtime: Neue Buchungen ───────────────────────────────
+    // Realtime
     const sb = getSupabase();
     sb.channel('bookings-realtime')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'bookings',
-        filter: `trainer_id=eq.${trainer.id}`,
-      }, (payload) => {
-        console.log('Realtime Buchungs-Update:', payload);
-        loadBookings(); // Reload
-      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'bookings', filter: `trainer_id=eq.${trainer.id}` },
+        () => loadBookings())
       .subscribe();
   })();
 
   async function loadBookings() {
     const sb = getSupabase();
     const trainerId = window.currentTrainer.id;
-    const authUserId = window.currentTrainer.auth_user_id;
-
-    console.log('[Bookings] Lade für trainer_id:', trainerId, 'auth_user_id:', authUserId);
 
     try {
-      // Erst prüfen ob der Trainer sich selbst sehen kann
-      const { data: selfCheck, error: selfErr } = await sb
-        .from('trainer_profiles')
-        .select('id, full_name')
-        .eq('id', trainerId)
-        .single();
-      console.log('[Bookings] Trainer self-check:', selfCheck, selfErr?.message);
-
-      // Buchungen laden (KEIN JOIN auf customers – FK fehlt im Schema)
       const { data, error } = await sb
         .from('bookings')
         .select('*')
         .eq('trainer_id', trainerId)
         .order('scheduled_date', { ascending: false });
 
-      console.log('[Bookings] Query result:', data?.length, 'Buchungen', error?.message);
-      if (data) console.log('[Bookings] Statuses:', data.map(b => b.status).join(', '));
-
       if (error) throw error;
 
-      // Kundennamen separat laden
+      // Kundennamen laden
       const customerIds = [...new Set((data || []).map(b => b.customer_id).filter(Boolean))];
       const customerNames = {};
       if (customerIds.length > 0) {
@@ -125,7 +134,7 @@
         customer_name: customerNames[b.customer_id] || b.customer_name || 'Kunde',
       }));
 
-      // ─── Gruppentrainings laden ───────────────────────────────
+      // Gruppentrainings laden
       const { data: gtClasses } = await sb
         .from('group_classes')
         .select('*')
@@ -162,106 +171,109 @@
         }));
       }
 
-      // Update pending count (Supabase speichert lowercase)
       const pendingCount = allBookings.filter(b => b.status === 'pending').length;
       document.getElementById('pending-count').textContent = pendingCount > 0 ? `(${pendingCount})` : '';
 
       renderBookings();
     } catch (err) {
-      document.getElementById('bookings-list').innerHTML =
-        `<div class="empty-state text-error">Fehler: ${err.message}</div>`;
+      document.getElementById('bookings-body').innerHTML =
+        `<tr><td colspan="7" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
-  function renderBookings() {
+  function getTabItems() {
     const today = new Date().toISOString().slice(0, 10);
-    let filtered;
-
     switch (currentTab) {
       case 'pending':
-        // GT braucht keine Trainer-Bestätigung
-        filtered = allBookings.filter(b => b.status === 'pending');
-        break;
+        return allBookings.filter(b => b.status === 'pending');
       case 'confirmed':
-        filtered = [
+        return [
           ...allBookings.filter(b => b.status === 'confirmed' && b.scheduled_date >= today),
           ...allGTClasses.filter(gc => gc.is_active && gc.scheduled_date >= today),
         ].sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''));
-        break;
       case 'past':
-        filtered = [
+        return [
           ...allBookings.filter(b =>
             b.status === 'completed' || b.status === 'cancelled' || b.status === 'cancelled_by_trainer' ||
             (b.status === 'confirmed' && b.scheduled_date < today)
           ),
           ...allGTClasses.filter(gc => !gc.is_active || gc.scheduled_date < today),
         ].sort((a, b) => (b.scheduled_date || '').localeCompare(a.scheduled_date || ''));
-        break;
       default:
-        filtered = [...allBookings, ...allGTClasses];
+        return [...allBookings, ...allGTClasses];
     }
+  }
 
-    const container = document.getElementById('bookings-list');
+  function renderBookings() {
+    const items = tableFilter ? tableFilter.apply(getTabItems()) : getTabItems();
+    const tbody = document.getElementById('bookings-body');
 
-    if (filtered.length === 0) {
+    if (items.length === 0) {
       const messages = {
         pending:   'Keine neuen Anfragen',
         confirmed: 'Keine bestätigten Termine',
         past:      'Noch keine vergangenen Buchungen',
       };
-      container.innerHTML = `<div class="empty-state">
-        <div class="empty-state-icon">📋</div>
-        <div class="empty-state-text">${messages[currentTab]}</div>
-      </div>`;
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding:24px">${messages[currentTab] || 'Keine Einträge'}</td></tr>`;
       return;
     }
 
-    container.innerHTML = filtered.map(item =>
-      item._type === 'gt' ? renderGTCard(item) : renderPTCard(item)
+    tbody.innerHTML = items.map(item =>
+      item._type === 'gt' ? renderGTRow(item) : renderPTRow(item)
     ).join('');
   }
 
-  function renderPTCard(b) {
+  function renderPTRow(b) {
     const isPending = b.status === 'pending';
-    const hasRating = b.rating && b.rating > 0;
+    const city = b.location_name || b.location || '–';
+    const revenue = b.price_cents ? formatEuro(b.price_cents) : '–';
+    const actions = isPending
+      ? `<button class="btn btn-sm" style="color:var(--success);border-color:var(--success)" onclick="updateBooking('${b.id}','confirmed')">Bestätigen</button>
+         <button class="btn btn-sm" style="color:var(--error);border-color:var(--error)" onclick="updateBooking('${b.id}','cancelled_by_trainer')">Ablehnen</button>`
+      : `<button class="btn btn-ghost btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
     return `
-      <div class="booking-item">
-        <div class="booking-top">
-          <div class="booking-customer">${b.customer_name || 'Kunde'}</div>
-          ${statusBadge(b.status)}
-        </div>
-        <div class="booking-meta">
-          📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
-          📍 ${b.location_name || b.location || '–'}
-          ${b.price_cents ? '<br>💰 ' + formatEuro(b.price_cents) : ''}
-          ${hasRating ? '<br>⭐ ' + b.rating + '/5' + (b.review_comment ? ' – „' + b.review_comment + '"' : '') : ''}
-        </div>
-        ${isPending ? `
-          <div class="booking-actions">
-            <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', 'confirmed')">Bestätigen</button>
-            <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', 'cancelled_by_trainer')">Ablehnen</button>
-          </div>
-        ` : ''}
-      </div>`;
+      <tr>
+        <td>${b.scheduled_date ? formatDate(b.scheduled_date) + (b.scheduled_time ? '<br><span style="color:#8888A0;font-size:12px">' + formatTime(b.scheduled_time) + '</span>' : '') : '–'}</td>
+        <td>${b.customer_name || 'Kunde'}</td>
+        <td><span class="badge" style="background:rgba(46,117,182,0.15);color:#5BB8FF;border:1px solid rgba(91,184,255,0.3)">PT</span></td>
+        <td>${city}</td>
+        <td>${statusBadge(b.status)}</td>
+        <td class="text-accent">${revenue}</td>
+        <td><div class="action-cell">${actions}</div></td>
+      </tr>`;
   }
 
-  function renderGTCard(gc) {
-    const spotsText = gc.max_participants
-      ? `${gc.participant_count} / ${gc.max_participants} Teilnehmer`
-      : `${gc.participant_count} Teilnehmer`;
+  function renderGTRow(gc) {
+    const participants = gc.max_participants
+      ? `${gc.participant_count} / ${gc.max_participants}`
+      : gc.participant_count;
+    const revenue = gc.price_per_person_cents ? formatEuro(gc.price_per_person_cents) + ' / P.' : '–';
+    const statusEl = gc.is_active
+      ? '<span class="badge badge-active">Aktiv</span>'
+      : '<span class="badge badge-paused">Inaktiv</span>';
     return `
-      <div class="booking-item">
-        <div class="booking-top">
-          <div class="booking-customer">🏃 ${gc.group_class_name}</div>
-          <span class="badge badge-paused">Gruppentraining</span>
-        </div>
-        <div class="booking-meta">
-          📅 ${formatDate(gc.scheduled_date)} · ${formatTime(gc.scheduled_time)}<br>
-          📍 ${gc.location_name || '–'}<br>
-          👥 ${spotsText}
-          ${gc.price_per_person_cents ? '<br>💰 ' + formatEuro(gc.price_per_person_cents) + ' / Person' : ''}
-        </div>
-      </div>`;
+      <tr>
+        <td>${gc.scheduled_date ? formatDate(gc.scheduled_date) + (gc.scheduled_time ? '<br><span style="color:#8888A0;font-size:12px">' + formatTime(gc.scheduled_time) + '</span>' : '') : '–'}</td>
+        <td><strong>${gc.group_class_name}</strong><br><span style="color:#8888A0;font-size:12px">👥 ${participants} Teilnehmer</span></td>
+        <td><span class="badge" style="background:rgba(45,106,79,0.15);color:#40916C;border:1px solid rgba(64,145,108,0.3)">GT</span></td>
+        <td>${gc.location_name || '–'}</td>
+        <td>${statusEl}</td>
+        <td class="text-accent">${revenue}</td>
+        <td><div class="action-cell"></div></td>
+      </tr>`;
+  }
+
+  function showDetail(bookingId) {
+    const b = allBookings.find(x => x.id === bookingId);
+    if (!b) return;
+    const hasRating = b.rating && b.rating > 0;
+    alert(
+      `📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}\n` +
+      `👤 ${b.customer_name}\n` +
+      `📍 ${b.location_name || b.location || '–'}\n` +
+      `💰 ${b.price_cents ? formatEuro(b.price_cents) : '–'}\n` +
+      (hasRating ? `⭐ ${b.rating}/5${b.review_comment ? ' – „' + b.review_comment + '"' : ''}` : '')
+    );
   }
 
   async function updateBooking(bookingId, status) {
