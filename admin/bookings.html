@@ -41,7 +41,7 @@
                 <th>Trainer</th>
                 <th>Kunde</th>
                 <th>Status</th>
-                <th>Preis</th>
+                <th>Einnahmen</th>
                 <th>Kosten</th>
                 <th>Zahlung</th>
                 <th>Aktionen</th>
@@ -98,7 +98,7 @@
       { key: 'trainer_name',   type: 'text',   getValue: b => b.trainer_name || '' },
       { key: 'customer_name',  type: 'text',   getValue: b => b.customer_name || b.customer_id || '' },
       { key: 'status',         type: 'select', getValue: b => b.status || '\u2013' },
-      { key: 'price',          type: 'number', getValue: b => effectivePrice(b) / 100 },
+      { key: 'einnahmen',      type: 'number', getValue: b => effectivePrice(b) / 100 },
       { key: 'cost',           type: 'number', getValue: b => effectiveCost(b) / 100 },
       { key: 'payment_status', type: 'select', getValue: b => getPaymentLabel(b) },
       null,
@@ -164,7 +164,8 @@
   function effectiveCost(b) {
     const st = (b.status || '').toUpperCase();
     if (CANCELLED_STATUSES.includes(st)) return 0;
-    return b.payout_cents || 0;
+    // Buchungseigenes Feld bevorzugen, sonst Trainer-Rate aus trainer_profiles
+    return b.payout_cents || b.trainer_cost_cents || b.cost_cents || b.trainer_rate_cents || 0;
   }
 
   function renderBookings() {

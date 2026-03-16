@@ -263,9 +263,12 @@ async function enrichBookings(supabase, bookings) {
 
   return bookings.map(b => ({
     ...b,
-    trainer_name: trainerMap[b.trainer_id]?.full_name || null,
-    trainer_city: trainerMap[b.trainer_id]?.city || null,
-    payout_cents: trainerMap[b.trainer_id]?.payout_cents || null,
+    trainer_name:      trainerMap[b.trainer_id]?.full_name || null,
+    trainer_city:      trainerMap[b.trainer_id]?.city || null,
+    // Trainer-Auszahlungsrate aus trainer_profiles (überschreibt nicht das buchungseigene payout_cents)
+    trainer_rate_cents: trainerMap[b.trainer_id]?.payout_cents ?? null,
+    // payout_cents: Buchungseigenes Feld bevorzugen, sonst Trainer-Rate als Fallback
+    payout_cents:      b.payout_cents ?? trainerMap[b.trainer_id]?.payout_cents ?? null,
     customer_name: b.customer_name ||
       customerMap[b.customer_id]?.full_name ||
       customerMap[b.customer_id]?.email ||
