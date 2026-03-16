@@ -176,22 +176,26 @@
   }
 
   function getPaymentLabel(b) {
-    const ps = b.payment_status;
-    if (ps === 'paid'     || b.paid === true || b.status === 'COMPLETED') return 'Bezahlt';
-    if (ps === 'refunded')                     return 'Erstattet';
-    if (ps === 'failed')                       return 'Fehlgeschlagen';
-    if (ps === 'pending'  || b.status === 'CONFIRMED' || b.status === 'PENDING') return 'Ausstehend';
+    const ps = (b.payment_status || '').toLowerCase();
+    const st = (b.status || '').toUpperCase();
+    if (ps === 'paid'     || b.paid === true || st === 'COMPLETED') return 'Bezahlt';
+    if (ps === 'refunded')                                          return 'Erstattet';
+    if (ps === 'failed')                                            return 'Fehlgeschlagen';
+    if (ps === 'pending'  || st === 'CONFIRMED' || st === 'PENDING') return 'Ausstehend';
     return 'Keine';
   }
 
   function paymentBadge(b) {
-    const ps = b.payment_status;
-    if (ps === 'paid'     || b.paid === true || b.status === 'COMPLETED')
-                                               return '<span style="color:#27AE60;white-space:nowrap">\u2705 Bezahlt</span>';
-    if (ps === 'refunded')                     return '<span style="color:#E07A3A;white-space:nowrap">\u21A9\uFE0F Erstattet</span>';
-    if (ps === 'failed')                       return '<span style="color:#E74C3C;white-space:nowrap">\u274C Fehlgeschlagen</span>';
-    if (ps === 'pending'  || b.status === 'CONFIRMED' || b.status === 'PENDING')
-                                               return '<span style="color:#F39C12;white-space:nowrap">\u23F3 Ausstehend</span>';
+    const ps = (b.payment_status || '').toLowerCase();
+    const st = (b.status || '').toUpperCase();
+    if (ps === 'paid'     || b.paid === true || st === 'COMPLETED')
+      return '<span style="color:#27AE60;white-space:nowrap">\u2705 Bezahlt</span>';
+    if (ps === 'refunded')
+      return '<span style="color:#E07A3A;white-space:nowrap">\u21A9\uFE0F Erstattet</span>';
+    if (ps === 'failed')
+      return '<span style="color:#E74C3C;white-space:nowrap">\u274C Fehlgeschlagen</span>';
+    if (ps === 'pending'  || st === 'CONFIRMED' || st === 'PENDING')
+      return '<span style="color:#F39C12;white-space:nowrap">\u23F3 Ausstehend</span>';
     return '<span style="color:#55556A;white-space:nowrap">\u2013 Keine</span>';
   }
 
