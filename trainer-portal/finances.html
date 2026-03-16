@@ -9,11 +9,13 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
   <style>
+    /* Volle Seitenbreite – überschreibt max-width aus style.css */
+    .content { max-width: none !important; }
+
     .fin-kpi-bar {
       display: flex;
       gap: 12px;
       margin-bottom: 24px;
-      flex-wrap: wrap;
     }
     .fin-kpi-card {
       flex: 1;
@@ -21,7 +23,7 @@
       border: 1px solid rgba(255,255,255,0.06);
       border-radius: 10px;
       padding: 16px 18px;
-      min-width: 130px;
+      min-width: 0;
     }
     .fin-kpi-label {
       font-size: 11px;
