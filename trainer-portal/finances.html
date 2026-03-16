@@ -227,12 +227,29 @@
     try {
       const { data, error } = await sb
         .from('bookings')
-        .select('id, scheduled_date, scheduled_time, customer_name, customer_id, city, location_name, location, status, payout_cents, booking_type, notes, rating, review_comment, created_at')
+        .select('id, scheduled_date, scheduled_time, customer_id, city, location_name, location, status, payout_cents, booking_type, notes, rating, review_comment, created_at')
         .eq('trainer_id', trainerId)
         .order('scheduled_date', { ascending: false });
 
       if (error) throw error;
-      allData = data || [];
+
+      // Kundennamen nachladen
+      const customerIds = [...new Set((data || []).map(b => b.customer_id).filter(Boolean))];
+      const customerNames = {};
+      if (customerIds.length > 0) {
+        const { data: customers } = await sb
+          .from('customers')
+          .select('id, first_name, last_name, full_name')
+          .in('id', customerIds);
+        (customers || []).forEach(c => {
+          customerNames[c.id] = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Kunde';
+        });
+      }
+
+      allData = (data || []).map(b => ({
+        ...b,
+        customer_name: customerNames[b.customer_id] || 'Kunde',
+      }));
 
       // Jahres-Dropdown
       const years = [...new Set(allData.map(b => (b.scheduled_date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
