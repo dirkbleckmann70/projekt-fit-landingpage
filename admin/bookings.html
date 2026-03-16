@@ -114,6 +114,37 @@
     return 'Personal Training';
   }
 
+  function bookingActions(b) {
+    const s = (b.status || '').toUpperCase();
+    const id = b.id;
+    const detailBtn = `<button class="btn btn-secondary btn-sm" onclick="openDetail('${id}')">Details</button>`;
+
+    // Abgeschlossene/unveränderliche Zustände → nur Details
+    if (['COMPLETED', 'CANCELLED', 'REFUNDED', 'DISPUTED', 'ESCALATED'].includes(s)) {
+      return detailBtn;
+    }
+    // In Bearbeitung → nur Details
+    if (['CHECKED_IN', 'IN_PROGRESS'].includes(s)) {
+      return detailBtn;
+    }
+    // PENDING → Bestätigen + Stornieren + Details
+    if (s === 'PENDING') {
+      return `
+        <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}','CONFIRMED')">Bestätigen</button>
+        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}','CANCELLED')">Stornieren</button>
+        ${detailBtn}`;
+    }
+    // CONFIRMED → Abschließen + Stornieren + Details
+    if (s === 'CONFIRMED') {
+      return `
+        <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}','COMPLETED')">Abschließen</button>
+        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}','CANCELLED')">Stornieren</button>
+        ${detailBtn}`;
+    }
+    // Fallback
+    return detailBtn;
+  }
+
   function renderBookings() {
     let filtered = tableFilter ? tableFilter.apply(allBookings) : allBookings;
 
@@ -137,13 +168,7 @@
         <td>${paymentBadge(b)}</td>
         <td>
           <div class="action-cell">
-            <select class="form-control" style="width:130px;padding:4px 8px;font-size:12px" onchange="quickStatusChange('${b.id}', this.value)" title="Status ändern">
-              <option value="PENDING" ${b.status === 'PENDING' ? 'selected' : ''}>PENDING</option>
-              <option value="CONFIRMED" ${b.status === 'CONFIRMED' ? 'selected' : ''}>CONFIRMED</option>
-              <option value="COMPLETED" ${b.status === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
-              <option value="CANCELLED" ${b.status === 'CANCELLED' ? 'selected' : ''}>CANCELLED</option>
-            </select>
-            <button class="btn btn-secondary btn-sm" onclick="openDetail('${b.id}')">Details</button>
+            ${bookingActions(b)}
           </div>
         </td>
       </tr>
