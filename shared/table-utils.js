@@ -22,22 +22,28 @@
     if (!headerRow) return null;
 
     var ths = Array.prototype.slice.call(headerRow.querySelectorAll('th'));
-    var sortKey = null;
-    var sortDir = 0; // 0=none 1=asc -1=desc
+    var sortKey    = null;
+    var sortDir    = 0;       // 0=none 1=asc -1=desc
     var onChangeCb = null;
-    var filterStates = {}; // key -> {type, value, from, to, min, max} | null
+    var filterStates  = {};   // key -> {type, value, from, to, min, max} | null
+    var filterVisible = false; // Filterzeile standardmäßig ausgeblendet
 
-    // ── Count-Bar vor der Tabelle einfügen ────────────────────────────
-    var countBar = document.createElement('div');
-    countBar.className = 'tf-count-bar';
-    countBar.innerHTML = '<span class="tf-count-text"></span><button type="button" class="tf-reset-btn">Filter zur\u00fccksetzen</button>';
-    table.parentElement.insertBefore(countBar, table);
-    var countText = countBar.querySelector('.tf-count-text');
-    var resetBtn  = countBar.querySelector('.tf-reset-btn');
+    // ── Toolbar (Count-Bar + Toggle + Reset) ─────────────────────────
+    var toolbar = document.createElement('div');
+    toolbar.className = 'tf-count-bar';
+    toolbar.innerHTML =
+      '<span class="tf-count-text"></span>' +
+      '<div class="tf-toolbar-right">' +
+        '<button type="button" class="tf-toggle-btn">\uD83D\uDD3D Filter &amp; Sortierung</button>' +
+        '<button type="button" class="tf-reset-btn">Filter zur\u00fccksetzen</button>' +
+      '</div>';
+    table.parentElement.insertBefore(toolbar, table);
 
-    // ── Sort-Icons in <th> einfügen + direkte Click-Handler ──────────
-    // Jeder sortierbare <th> bekommt einen direkten click-Handler.
-    // forEach-Callback erzeugt eigene Closure → col ist korrekt gebunden.
+    var countText = toolbar.querySelector('.tf-count-text');
+    var toggleBtn = toolbar.querySelector('.tf-toggle-btn');
+    var resetBtn  = toolbar.querySelector('.tf-reset-btn');
+
+    // ── Sort-Icons + direkte Click-Handler auf <th> ───────────────────
     columnConfig.forEach(function (col, i) {
       if (!col || i >= ths.length) return;
       var th = ths[i];
@@ -50,7 +56,6 @@
       icon.innerHTML = '&#x21C5;'; // ⇅
       th.appendChild(icon);
 
-      // Direkter Handler – kein Event-Delegation nötig
       th.addEventListener('click', function () {
         if (sortKey === col.key) {
           if      (sortDir === 0)  { sortDir =  1; }
@@ -61,6 +66,7 @@
           sortDir = 1;
         }
         _updateSortIcons();
+        _updateToolbar();
         if (onChangeCb) onChangeCb();
       });
     });
@@ -71,18 +77,19 @@
         var icon = ths[i].querySelector('.tf-sort-icon');
         if (!icon) return;
         if (sortKey === col.key && sortDir !== 0) {
-          icon.innerHTML = sortDir === 1 ? '&#x25B2;' : '&#x25BC;'; // ▲ / ▼
+          icon.innerHTML = sortDir === 1 ? '&#x25B2;' : '&#x25BC;';
           icon.classList.add('active');
         } else {
-          icon.innerHTML = '&#x21C5;'; // ⇅
+          icon.innerHTML = '&#x21C5;';
           icon.classList.remove('active');
         }
       });
     }
 
-    // ── Filter-Zeile in <thead> einfügen ─────────────────────────────
+    // ── Filter-Zeile in <thead> einfügen (standardmäßig hidden) ──────
     var filterRow = document.createElement('tr');
     filterRow.className = 'tf-filter-row';
+    filterRow.style.display = 'none'; // default: ausgeblendet
 
     columnConfig.forEach(function (col) {
       var td = document.createElement('th');
@@ -112,10 +119,41 @@
 
     thead.appendChild(filterRow);
 
-    // Klick in Filter-Zeile darf Sort-Handler NICHT auslösen
+    // Klick in Filter-Zeile löst keinen Sort aus
     filterRow.addEventListener('click', function (e) { e.stopPropagation(); });
 
-    // ── Filter-Events (delegiert auf filterRow) ───────────────────────
+    // ── Toggle-Button ─────────────────────────────────────────────────
+    toggleBtn.addEventListener('click', function () {
+      filterVisible = !filterVisible;
+      filterRow.style.display = filterVisible ? '' : 'none';
+      _updateToolbar();
+    });
+
+    function _updateToolbar() {
+      var activeFilters = Object.values(filterStates).filter(function (s) { return s; }).length;
+
+      // Filterzeile automatisch einblenden wenn Filter aktiv werden
+      if (activeFilters > 0 && !filterVisible) {
+        filterVisible = true;
+        filterRow.style.display = '';
+      }
+
+      // Toggle-Button Text
+      var arrow = filterVisible ? '\uD83D\uDD3C' : '\uD83D\uDD3D';
+      var label = arrow + ' Filter & Sortierung';
+      if (activeFilters > 0) {
+        label += ' <span class="tf-filter-badge">' + activeFilters +
+                 (activeFilters === 1 ? ' aktiv' : ' aktiv') + '</span>';
+      }
+      toggleBtn.innerHTML = label;
+      toggleBtn.classList.toggle('tf-toggle-active', activeFilters > 0);
+
+      // Reset-Button nur wenn Filter oder Sort aktiv
+      var hasActive = activeFilters > 0 || sortDir !== 0;
+      resetBtn.style.display = hasActive ? 'inline-block' : 'none';
+    }
+
+    // ── Filter-Events ─────────────────────────────────────────────────
     filterRow.addEventListener('input', function (e) {
       var el = e.target, key = el.dataset.key;
       if (!key) return;
@@ -147,6 +185,7 @@
         filterStates[key].max = el.value !== '' ? parseFloat(el.value) : null;
         if (filterStates[key].min == null && filterStates[key].max == null) filterStates[key] = null;
       }
+      _updateToolbar();
       if (onChangeCb) onChangeCb();
     });
 
@@ -155,11 +194,12 @@
       if (!key) return;
       if (el.classList.contains('tf-fi-select')) {
         filterStates[key] = el.value ? { type: 'select', value: el.value } : null;
+        _updateToolbar();
         if (onChangeCb) onChangeCb();
       }
     });
 
-    // ── Select-Optionen aus Daten befüllen ────────────────────────────
+    // ── Select-Optionen befüllen ──────────────────────────────────────
     function _populateSelects(allData) {
       filterRow.querySelectorAll('.tf-fi-select').forEach(function (select) {
         var key = select.dataset.key;
@@ -178,7 +218,6 @@
           return a.localeCompare(b, 'de');
         });
 
-        // Nur neu aufbauen wenn sich die Werte geändert haben
         var existing = Array.from(select.options).slice(1).map(function (o) { return o.value; });
         var same = existing.length === values.length && values.every(function (v, i) { return v === existing[i]; });
         if (same) return;
@@ -242,7 +281,6 @@
             if (typeof va === 'number' && typeof vb === 'number') {
               cmp = va - vb;
             } else {
-              // Zahlenstrings (z.B. "€ 79,00") numerisch vergleichen
               cmp = String(va != null ? va : '').localeCompare(
                 String(vb != null ? vb : ''), 'de', { numeric: true, sensitivity: 'base' }
               );
@@ -252,28 +290,29 @@
         }
       }
 
-      // 3. Count-Bar aktualisieren
-      var hasActive = Object.values(filterStates).some(function (s) { return s; }) || sortDir !== 0;
+      // 3. Count-Text aktualisieren
       countText.textContent = result.length + ' von ' + allData.length + ' Eintr\u00e4gen';
-      resetBtn.style.display = hasActive ? 'inline-block' : 'none';
 
       return result;
     }
 
-    // ── Alles zurücksetzen ────────────────────────────────────────────
+    // ── Reset ─────────────────────────────────────────────────────────
     resetBtn.addEventListener('click', function () {
       Object.keys(filterStates).forEach(function (k) { filterStates[k] = null; });
       sortKey = null; sortDir = 0;
       _updateSortIcons();
       filterRow.querySelectorAll('input').forEach(function (i) { i.value = ''; });
       filterRow.querySelectorAll('select').forEach(function (s) { s.value = ''; });
-      resetBtn.style.display = 'none';
+      _updateToolbar();
       if (onChangeCb) onChangeCb();
     });
 
+    // Initiale Toolbar-Anzeige
+    _updateToolbar();
+
     return {
       apply:           apply,
-      applyFilters:    apply,  // Rückwärts-Kompatibilität
+      applyFilters:    apply,
       onFilterChange:  function (cb) { onChangeCb = cb; },
       clearAll:        function () { resetBtn.click(); },
     };

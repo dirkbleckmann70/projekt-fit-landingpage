@@ -20,7 +20,7 @@ th.tf-sortable:hover {
   color: #E07A3A;
 }
 
-/* ── Filter-Zeile ─────────────────────────────────────────────────── */
+/* ── Filter-Zeile (standardmäßig per JS hidden, Styles bleiben) ───── */
 tr.tf-filter-row th.tf-filter-cell {
   padding: 4px 6px;
   background: rgba(0, 0, 0, 0.25);
@@ -58,7 +58,7 @@ tr.tf-filter-row th.tf-filter-cell {
   gap: 2px;
 }
 
-/* ── Zähler-Leiste ────────────────────────────────────────────────── */
+/* ── Toolbar (Zähler + Toggle + Reset) ────────────────────────────── */
 .tf-count-bar {
   display: flex;
   align-items: center;
@@ -71,6 +71,43 @@ tr.tf-filter-row th.tf-filter-cell {
   font-size: 12px;
   color: #8888A0;
   white-space: nowrap;
+}
+.tf-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.tf-toggle-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #8888A0;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.tf-toggle-btn:hover {
+  color: #F0F0F5;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.tf-toggle-btn.tf-toggle-active {
+  color: #E07A3A;
+  border-color: rgba(224, 122, 58, 0.4);
+}
+.tf-filter-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  background: rgba(224, 122, 58, 0.18);
+  color: #E07A3A;
+  font-size: 10px;
+  font-weight: 600;
+  vertical-align: middle;
 }
 .tf-reset-btn {
   font-size: 11px;
