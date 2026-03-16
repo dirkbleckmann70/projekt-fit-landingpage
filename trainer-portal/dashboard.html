@@ -110,7 +110,7 @@
     try {
       const { data: monthBookings } = await sb
         .from('bookings')
-        .select('id, price_cents, status, scheduled_date, scheduled_time, customer_name, customer_id, location, location_name')
+        .select('id, payout_cents, status, scheduled_date, scheduled_time, customer_name, customer_id, location, location_name')
         .eq('trainer_id', trainerId)
         .gte('scheduled_date', monthStart.toISOString().slice(0, 10));
 
@@ -119,7 +119,7 @@
 
       const earnings = confirmed
         .filter(b => b.status === 'completed' || b.status === 'confirmed')
-        .reduce((sum, b) => sum + (trainer.payout_cents || b.price_cents || 0), 0);
+        .reduce((sum, b) => sum + (b.payout_cents ?? trainer.payout_cents ?? 0), 0);
       document.getElementById('kpi-earnings').textContent = formatEuro(earnings);
     } catch (err) {
       console.error('Monats-KPIs:', err);

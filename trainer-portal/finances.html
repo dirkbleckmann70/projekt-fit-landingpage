@@ -139,7 +139,7 @@
     try {
       const { data: bookings, error } = await sb
         .from('bookings')
-        .select('id, scheduled_date, price_cents, status, customer_name')
+        .select('id, scheduled_date, payout_cents, status, customer_name')
         .eq('trainer_id', trainer.id)
         .in('status', ['COMPLETED', 'CONFIRMED'])
         .order('scheduled_date', { ascending: false });

@@ -64,6 +64,32 @@
     .btn-confirm:hover { background: rgba(39,174,96,0.18); }
     .btn-decline { color: #e74c3c; border: 1px solid rgba(231,76,60,0.5); background: rgba(231,76,60,0.08); }
     .btn-decline:hover { background: rgba(231,76,60,0.18); }
+
+    /* Modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 200;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 16px; width: 100%; max-width: 560px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; border-bottom: 1px solid #2a2a2a;
+    }
+    .modal-title  { font-size: 18px; font-weight: 700; }
+    .modal-close  { background: none; border: none; color: #55556a; font-size: 24px; cursor: pointer; padding: 4px; line-height: 1; }
+    .modal-close:hover { color: #f0f0f5; }
+    .modal-body   { padding: 24px; }
+    .modal-footer { display: flex; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid #2a2a2a; }
+    .detail-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .detail-field label { display: block; font-size: 12px; font-weight: 600; color: #8888a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .detail-field .dv   { font-size: 15px; color: #f0f0f5; }
+    .detail-id    { font-size: 11px; color: #55556a; margin-top: 16px; padding-top: 16px; border-top: 1px solid #2a2a2a; }
   </style>
 </head>
 <body>
@@ -104,6 +130,20 @@
 </div>
 
 <nav class="bottom-nav" id="bottom-nav"></nav>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Buchungs-Details</div>
+      <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="detail-modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeDetailModal()">Schließen</button>
+    </div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-check.js"></script>
@@ -342,15 +382,42 @@
   function showDetail(bookingId) {
     const b = allBookings.find(x => x.id === bookingId);
     if (!b) return;
-    const hasRating = b.rating && b.rating > 0;
-    alert(
-      `📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}\n` +
-      `👤 ${b.customer_name}\n` +
-      `📍 ${b.location_name || b.location || '–'}\n` +
-      `💰 ${b.price_cents ? formatEuro(b.price_cents) : '–'}\n` +
-      (hasRating ? `⭐ ${b.rating}/5${b.review_comment ? ' – „' + b.review_comment + '"' : ''}` : '')
-    );
+
+    const trainerRate = window.currentTrainer?.payout_cents ?? null;
+    const payoutCents = b.payout_cents ?? trainerRate;
+    const vergütung   = payoutCents ? formatEuro(payoutCents) : '–';
+    const hasRating   = b.rating && b.rating > 0;
+
+    document.getElementById('detail-modal-body').innerHTML = `
+      <div class="detail-row">
+        <div class="detail-field"><label>Kunde</label><div class="dv">${b.customer_name || '–'}</div></div>
+        <div class="detail-field"><label>Art</label><div class="dv">Personal Training</div></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-field"><label>Datum</label><div class="dv">${b.scheduled_date ? formatDate(b.scheduled_date) : '–'}</div></div>
+        <div class="detail-field"><label>Uhrzeit</label><div class="dv">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</div></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-field"><label>Stadt / Ort</label><div class="dv">${b.location_name || b.location || '–'}</div></div>
+        <div class="detail-field"><label>Status</label><div class="dv">${statusBadge(b.status)}</div></div>
+      </div>
+      <div class="detail-row">
+        <div class="detail-field"><label>Vergütung</label><div class="dv" style="color:var(--accent);font-weight:700">${vergütung}</div></div>
+        ${hasRating ? `<div class="detail-field"><label>Bewertung</label><div class="dv">⭐ ${b.rating}/5${b.review_comment ? '<br><span style="font-size:13px;color:#8888a0">„' + b.review_comment + '"</span>' : ''}</div></div>` : '<div></div>'}
+      </div>
+      ${b.notes ? `<div class="detail-field" style="margin-bottom:16px"><label>Notizen</label><div class="dv" style="font-size:14px;color:#8888a0">${b.notes}</div></div>` : ''}
+      <div class="detail-id">Buchungs-ID: ${b.id}</div>
+    `;
+    document.getElementById('detail-modal').classList.add('open');
   }
+
+  function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('open');
+  }
+
+  document.addEventListener('click', e => {
+    if (e.target === document.getElementById('detail-modal')) closeDetailModal();
+  });
 
   async function updateBooking(bookingId, status) {
     const sb = getSupabase();
