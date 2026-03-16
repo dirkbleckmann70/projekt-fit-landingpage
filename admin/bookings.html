@@ -127,19 +127,19 @@
     if (['CHECKED_IN', 'IN_PROGRESS'].includes(s)) {
       return detailBtn;
     }
-    // PENDING → Bestätigen + Stornieren + Details
+    // PENDING → Details + Bestätigen + Stornieren
     if (s === 'PENDING') {
       return `
+        ${detailBtn}
         <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}','CONFIRMED')">Bestätigen</button>
-        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}','CANCELLED')">Stornieren</button>
-        ${detailBtn}`;
+        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}','CANCELLED')">Stornieren</button>`;
     }
-    // CONFIRMED → Abschließen + Stornieren + Details
+    // CONFIRMED → Details + Abschließen + Stornieren
     if (s === 'CONFIRMED') {
       return `
+        ${detailBtn}
         <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}','COMPLETED')">Abschließen</button>
-        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}','CANCELLED')">Stornieren</button>
-        ${detailBtn}`;
+        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}','CANCELLED')">Stornieren</button>`;
     }
     // Fallback
     return detailBtn;
