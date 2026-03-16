@@ -18,7 +18,10 @@
     var thead = table.querySelector('thead');
     if (!thead) { console.warn('initSortableTable: kein <thead> in', tableId); return null; }
 
-    var headerRow = thead.querySelector('tr');
+    var headerRow = Array.prototype.find.call(
+      thead.querySelectorAll('tr'),
+      function (r) { return r.querySelectorAll('th').length > 0; }
+    );
     if (!headerRow) return null;
 
     var ths = Array.prototype.slice.call(headerRow.querySelectorAll('th'));
