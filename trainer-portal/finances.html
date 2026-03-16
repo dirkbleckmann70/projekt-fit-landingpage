@@ -9,9 +9,43 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
   <style>
-    /* Volle Seitenbreite – überschreibt max-width aus style.css */
-    .content { max-width: none !important; }
+    /* ── Seiten-Wrapper (kein max-width, kein margin: auto) ─── */
+    .fin-page  { padding: 20px 24px 4px; }
+    .fin-outer { padding: 0 24px 24px; }
+    @media (max-width: 768px) {
+      .fin-page  { padding: 16px 16px 4px; }
+      .fin-outer { padding: 0 16px 16px; }
+    }
 
+    /* ── Fehlende Klassen aus admin/style.css ─────────────────── */
+    .table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .table-title { font-size: 16px; font-weight: 700; }
+    .loading-overlay {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      gap: 12px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* ── KPI-Leiste ───────────────────────────────────────────── */
     .fin-kpi-bar {
       display: flex;
       gap: 12px;
@@ -78,9 +112,7 @@
 
 <header class="top-header" id="top-header"></header>
 
-<div class="content">
-
-  <!-- Kopfzeile -->
+<div class="fin-page">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
     <h1 class="page-title" style="margin:0">Finanzen</h1>
     <div style="display:flex;align-items:center;gap:10px">
@@ -88,6 +120,9 @@
       <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV Export</button>
     </div>
   </div>
+</div>
+
+<div class="fin-outer">
 
   <!-- Ebene 1: Jahres-KPIs -->
   <div class="fin-kpi-bar">
