@@ -239,13 +239,14 @@ async function enrichBookings(supabase, bookings) {
   if (trainerIds.length > 0) {
     const { data: trainers } = await supabase
       .from('trainer_profiles')
-      .select('id, full_name, payout_cents')
+      .select('id, full_name, city, payout_cents')
       .in('id', trainerIds);
     if (trainers) trainers.forEach(t => { trainerMap[t.id] = t; });
   }
   return bookings.map(b => ({
     ...b,
     trainer_name: trainerMap[b.trainer_id]?.full_name || null,
+    trainer_city: trainerMap[b.trainer_id]?.city || null,
     payout_cents: trainerMap[b.trainer_id]?.payout_cents || null,
   }));
 }

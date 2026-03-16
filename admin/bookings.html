@@ -85,7 +85,7 @@
 
     tableFilter = initSortableTable('bookings-table', [
       { key: 'scheduled_date', type: 'date',   getValue: b => b.scheduled_date || '' },
-      { key: 'location',       type: 'select', getValue: b => b.location_name || b.location || '\u2013' },
+      { key: 'trainer_city',   type: 'select', getValue: b => b.trainer_city || b.city || '\u2013' },
       { key: 'scheduled_time', type: 'select', getValue: b => b.scheduled_time ? b.scheduled_time.slice(0, 5) : '\u2013' },
       { key: 'booking_type',   type: 'select', getValue: b => b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training' },
       { key: 'trainer_name',   type: 'text',   getValue: b => b.trainer_name || '' },
@@ -127,7 +127,7 @@
     tbody.innerHTML = filtered.map(b => `
       <tr>
         <td>${formatDate(b.scheduled_date)}</td>
-        <td>${b.location_name || b.location || '–'}</td>
+        <td>${b.trainer_city || b.city || '–'}</td>
         <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
         <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
         <td>${b.trainer_name || '–'}</td>
