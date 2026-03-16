@@ -8,6 +8,58 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
+  <style>
+    /* Tabelle braucht mehr Breite als die Standard-800px */
+    .content { max-width: 1100px !important; }
+
+    .bk-table-wrap {
+      background: #161625;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    #bookings-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    #bookings-table thead th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #8888A0;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      background: rgba(0,0,0,0.2);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+
+    #bookings-table tbody td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      vertical-align: middle;
+      color: #F0F0F5;
+      line-height: 1.4;
+    }
+
+    #bookings-table tbody tr:last-child td { border-bottom: none; }
+    #bookings-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .bk-date-main  { font-weight: 600; white-space: nowrap; }
+    .bk-date-time  { font-size: 12px; color: #8888A0; margin-top: 2px; }
+    .bk-sub        { font-size: 12px; color: #8888A0; margin-top: 2px; }
+
+    .bk-actions { display: flex; gap: 6px; flex-wrap: nowrap; align-items: center; }
+
+    .btn-confirm { color: #27ae60; border: 1px solid rgba(39,174,96,0.5); background: rgba(39,174,96,0.08); }
+    .btn-confirm:hover { background: rgba(39,174,96,0.18); }
+    .btn-decline { color: #e74c3c; border: 1px solid rgba(231,76,60,0.5); background: rgba(231,76,60,0.08); }
+    .btn-decline:hover { background: rgba(231,76,60,0.18); }
+  </style>
 </head>
 <body>
 
@@ -24,7 +76,7 @@
     <button class="tab-btn" data-tab="past">Vergangen</button>
   </div>
 
-  <div class="table-wrap" style="margin-top:0;border-radius:0 0 12px 12px">
+  <div class="bk-table-wrap">
     <div style="overflow-x:auto">
       <table id="bookings-table">
         <thead>
@@ -225,21 +277,24 @@
 
   function renderPTRow(b) {
     const isPending = b.status === 'pending';
-    const city = b.location_name || b.location || '–';
-    const revenue = b.price_cents ? formatEuro(b.price_cents) : '–';
+    const city      = b.location_name || b.location || '–';
+    const revenue   = b.price_cents ? formatEuro(b.price_cents) : '–';
+    const dateHtml  = b.scheduled_date
+      ? `<div class="bk-date-main">${formatDate(b.scheduled_date)}</div>${b.scheduled_time ? '<div class="bk-date-time">' + formatTime(b.scheduled_time) + '</div>' : ''}`
+      : '–';
     const actions = isPending
-      ? `<button class="btn btn-sm" style="color:var(--success);border-color:var(--success)" onclick="updateBooking('${b.id}','confirmed')">Bestätigen</button>
-         <button class="btn btn-sm" style="color:var(--error);border-color:var(--error)" onclick="updateBooking('${b.id}','cancelled_by_trainer')">Ablehnen</button>`
+      ? `<button class="btn btn-sm btn-confirm" onclick="updateBooking('${b.id}','confirmed')">Bestätigen</button>
+         <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}','cancelled_by_trainer')">Ablehnen</button>`
       : `<button class="btn btn-ghost btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
     return `
       <tr>
-        <td>${b.scheduled_date ? formatDate(b.scheduled_date) + (b.scheduled_time ? '<br><span style="color:#8888A0;font-size:12px">' + formatTime(b.scheduled_time) + '</span>' : '') : '–'}</td>
+        <td>${dateHtml}</td>
         <td>${b.customer_name || 'Kunde'}</td>
-        <td><span class="badge" style="background:rgba(46,117,182,0.15);color:#5BB8FF;border:1px solid rgba(91,184,255,0.3)">PT</span></td>
+        <td><span class="badge" style="background:rgba(46,117,182,0.12);color:#5BB8FF;border:1px solid rgba(91,184,255,0.25)">PT</span></td>
         <td>${city}</td>
         <td>${statusBadge(b.status)}</td>
         <td class="text-accent">${revenue}</td>
-        <td><div class="action-cell">${actions}</div></td>
+        <td><div class="bk-actions">${actions}</div></td>
       </tr>`;
   }
 
@@ -247,19 +302,25 @@
     const participants = gc.max_participants
       ? `${gc.participant_count} / ${gc.max_participants}`
       : gc.participant_count;
-    const revenue = gc.price_per_person_cents ? formatEuro(gc.price_per_person_cents) + ' / P.' : '–';
-    const statusEl = gc.is_active
+    const revenue   = gc.price_per_person_cents ? formatEuro(gc.price_per_person_cents) + ' / P.' : '–';
+    const statusEl  = gc.is_active
       ? '<span class="badge badge-active">Aktiv</span>'
       : '<span class="badge badge-paused">Inaktiv</span>';
+    const dateHtml  = gc.scheduled_date
+      ? `<div class="bk-date-main">${formatDate(gc.scheduled_date)}</div>${gc.scheduled_time ? '<div class="bk-date-time">' + formatTime(gc.scheduled_time) + '</div>' : ''}`
+      : '–';
     return `
       <tr>
-        <td>${gc.scheduled_date ? formatDate(gc.scheduled_date) + (gc.scheduled_time ? '<br><span style="color:#8888A0;font-size:12px">' + formatTime(gc.scheduled_time) + '</span>' : '') : '–'}</td>
-        <td><strong>${gc.group_class_name}</strong><br><span style="color:#8888A0;font-size:12px">👥 ${participants} Teilnehmer</span></td>
-        <td><span class="badge" style="background:rgba(45,106,79,0.15);color:#40916C;border:1px solid rgba(64,145,108,0.3)">GT</span></td>
+        <td>${dateHtml}</td>
+        <td>
+          <div style="font-weight:600">${gc.group_class_name}</div>
+          <div class="bk-sub">👥 ${participants} Teilnehmer</div>
+        </td>
+        <td><span class="badge" style="background:rgba(45,106,79,0.12);color:#40916C;border:1px solid rgba(64,145,108,0.25)">GT</span></td>
         <td>${gc.location_name || '–'}</td>
         <td>${statusEl}</td>
         <td class="text-accent">${revenue}</td>
-        <td><div class="action-cell"></div></td>
+        <td><div class="bk-actions"></div></td>
       </tr>`;
   }
 
