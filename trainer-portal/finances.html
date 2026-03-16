@@ -183,7 +183,7 @@
                          'September','Oktober','November','Dezember'];
 
   // ── Berechnungen ──────────────────────────────────────────────────────────
-  function effBrutto(b)     { return b.status === 'completed' ? (b.payout_cents ?? _trainerRate) : 0; }
+  function effBrutto(b)     { return b.status === 'completed' ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
   function effNetto(b)      { return Math.round(effBrutto(b) / 1.19); }
   function effMwSt(b)       { return effBrutto(b) - effNetto(b); }
   function effAuszahlung(b) { return effNetto(b); } // Abzüge = 0
@@ -197,7 +197,7 @@
       return '<span style="color:var(--text-muted)">0,00 €</span>';
     if (b.status === 'pending' || b.status === 'confirmed')
       return '<span style="color:var(--text-muted)">–</span>';
-    const v = b.payout_cents ?? _trainerRate;
+    const v = b.trainer_payout_cents ?? _trainerRate;
     return `<span style="color:var(--accent);font-weight:600">${f(v)}</span>`;
   }
 
@@ -227,7 +227,7 @@
     try {
       const { data, error } = await sb
         .from('bookings')
-        .select('id, scheduled_date, scheduled_time, customer_id, location_name, location, status, payout_cents, booking_type, notes, rating, review_comment, created_at')
+        .select('id, scheduled_date, scheduled_time, customer_id, location_name, location_address, status, trainer_payout_cents, booking_type, notes, created_at')
         .eq('trainer_id', trainerId)
         .order('scheduled_date', { ascending: false });
 
@@ -362,7 +362,7 @@
     }
 
     tbody.innerHTML = filtered.map(b => {
-      const city     = b.location_name || b.location || '–';
+      const city     = b.location_name || b.location_address || '–';
       const artBadge = b.booking_type === 'group'
         ? '<span class="badge" style="background:rgba(45,106,79,0.12);color:#40916C;border:1px solid rgba(64,145,108,0.25)">GT</span>'
         : '<span class="badge" style="background:rgba(46,117,182,0.12);color:#5BB8FF;border:1px solid rgba(91,184,255,0.25)">PT</span>';
