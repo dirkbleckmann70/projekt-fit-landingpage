@@ -337,11 +337,26 @@
     document.getElementById('modal-title').textContent = t.full_name || 'Trainer-Details';
     document.getElementById('modal-body').innerHTML = `
       <!-- Avatar -->
-      <div style="text-align:center;margin-bottom:16px">
-        ${t.avatar_url
-          ? `<img src="${t.avatar_url}" style="width:64px;height:64px;border-radius:50%;object-fit:cover">`
-          : `<div style="width:64px;height:64px;border-radius:50%;background:#374151;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff">${(t.full_name||'T').charAt(0)}</div>`
-        }
+      <div id="avatar-section" style="text-align:center;margin-bottom:20px">
+        <div id="avatar-preview" style="margin-bottom:10px">
+          ${t.avatar_url
+            ? `<img id="avatar-img" src="${t.avatar_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.1)">`
+            : `<div id="avatar-placeholder" style="width:80px;height:80px;border-radius:50%;background:#374151;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff">${(t.full_name||'T').charAt(0)}</div>`
+          }
+        </div>
+        <div style="display:flex;gap:8px;justify-content:center;align-items:center">
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0">
+            <input type="file" id="avatar-file-input" accept="image/jpeg,image/png" style="display:none"
+              onchange="handleAvatarFileChange(this)">
+            Bild ändern
+          </label>
+          ${t.avatar_url
+            ? `<button class="btn btn-sm" style="background:transparent;color:var(--error);border:1px solid var(--error);cursor:pointer"
+                onclick="deleteTrainerAvatar()">Bild löschen</button>`
+            : ''
+          }
+        </div>
+        <div id="avatar-status" style="font-size:12px;color:var(--text-secondary);margin-top:6px;min-height:18px"></div>
       </div>
       <div class="two-col">
         <div class="form-group">
@@ -821,6 +836,101 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Speichern';
+    }
+  }
+
+  // ─── Avatar Upload / Delete ───────────────────────────────────────
+  async function handleAvatarFileChange(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      alert('Nur JPG und PNG sind erlaubt.');
+      input.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Maximale Dateigröße: 2 MB');
+      input.value = '';
+      return;
+    }
+
+    const status = document.getElementById('avatar-status');
+    status.innerHTML = '<span class="spinner"></span> Wird hochgeladen...';
+
+    try {
+      const session = (await getSupabase().auth.getSession()).data.session;
+      const token = session?.access_token;
+
+      const formData = new FormData();
+      formData.append('trainerId', editingTrainerId);
+      formData.append('file', file);
+
+      const resp = await fetch('/api/admin?action=trainer-avatar', {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const result = await resp.json();
+      if (!resp.ok) throw new Error(result.error || 'Upload fehlgeschlagen');
+
+      // Vorschau sofort aktualisieren
+      const preview = document.getElementById('avatar-preview');
+      preview.innerHTML = `<img id="avatar-img" src="${result.url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.1)">`;
+
+      // "Bild löschen" Button einblenden falls noch nicht vorhanden
+      const section = document.getElementById('avatar-section');
+      if (!section.querySelector('[onclick="deleteTrainerAvatar()"]')) {
+        const btnRow = section.querySelector('div[style*="display:flex"]');
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn btn-sm';
+        delBtn.style.cssText = 'background:transparent;color:var(--error);border:1px solid var(--error);cursor:pointer';
+        delBtn.setAttribute('onclick', 'deleteTrainerAvatar()');
+        delBtn.textContent = 'Bild löschen';
+        btnRow.appendChild(delBtn);
+      }
+
+      // Cache aktualisieren
+      const cached = allTrainers.find(tr => tr.id === editingTrainerId);
+      if (cached) cached.avatar_url = result.url;
+
+      status.textContent = 'Bild gespeichert!';
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    } catch (err) {
+      status.textContent = 'Fehler: ' + err.message;
+    }
+    input.value = '';
+  }
+
+  async function deleteTrainerAvatar() {
+    if (!confirm('Profilbild wirklich löschen?')) return;
+
+    const status = document.getElementById('avatar-status');
+    status.innerHTML = '<span class="spinner"></span> Wird gelöscht...';
+
+    try {
+      await adminApi('/api/admin?action=trainer-avatar', {
+        method: 'DELETE',
+        body: JSON.stringify({ trainerId: editingTrainerId }),
+      });
+
+      // Vorschau durch Initialen-Placeholder ersetzen
+      const t = allTrainers.find(tr => tr.id === editingTrainerId) || {};
+      const initial = (t.full_name || 'T').charAt(0);
+      document.getElementById('avatar-preview').innerHTML =
+        `<div id="avatar-placeholder" style="width:80px;height:80px;border-radius:50%;background:#374151;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff">${initial}</div>`;
+
+      // "Bild löschen" Button entfernen
+      const delBtn = document.querySelector('[onclick="deleteTrainerAvatar()"]');
+      if (delBtn) delBtn.remove();
+
+      // Cache aktualisieren
+      if (t) t.avatar_url = null;
+
+      status.textContent = 'Bild gelöscht.';
+      setTimeout(() => { status.textContent = ''; }, 3000);
+    } catch (err) {
+      status.textContent = 'Fehler: ' + err.message;
     }
   }
 

@@ -131,6 +131,13 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════════
+      // TRAINER-AVATAR – POST (hochladen) + DELETE (löschen)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'trainer-avatar': {
+        return await handleTrainerAvatar(req, res, supabase);
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
       // LICENSE – GET (signierte URL) + DELETE (Datei löschen)
       // ═══════════════════════════════════════════════════════════════════
       case 'license': {
@@ -542,7 +549,7 @@ async function handleTrainersPut(req, res, supabase) {
   const allowed = [
     'full_name', 'email', 'phone', 'city', 'specializations', 'bio',
     'steuernummer', 'is_kleinunternehmer', 'street_address', 'postal_code', 'wohnort',
-    'status', 'is_active', 'hourly_rate_cents', 'payout_cents', 'contract_files',
+    'status', 'is_active', 'hourly_rate_cents', 'payout_cents', 'contract_files', 'avatar_url',
   ];
 
   const update = {};
@@ -1208,4 +1215,76 @@ async function handleTrainerAvailabilityPost(req, res, supabase) {
   }
 
   return res.json({ success: true, count: slots.length });
+}
+
+// ─── ACTION: trainer-avatar ───────────────────────────────────────────────────
+// POST  multipart/form-data: { trainerId, file }  → hochladen + URL speichern
+// DELETE JSON: { trainerId }                       → Bild aus Storage + DB löschen
+
+async function handleTrainerAvatar(req, res, supabase) {
+  const BUCKET = 'trainer-documents';
+  // Bilder werden unter avatars/{trainerId}/profile.jpg gespeichert (upsert).
+  // Dadurch braucht man keine extra DB-Spalte für den Pfad.
+
+  if (req.method === 'POST') {
+    // multipart parsen
+    const { fields, files } = await new Promise((resolve, reject) => {
+      const form = formidable({ maxFileSize: 2 * 1024 * 1024 });
+      form.parse(req, (err, f, fi) => err ? reject(err) : resolve({ fields: f, files: fi }));
+    });
+
+    const trainerId = Array.isArray(fields.trainerId) ? fields.trainerId[0] : fields.trainerId;
+    if (!trainerId) return res.status(400).json({ error: 'trainerId ist erforderlich' });
+
+    const fileEntry = files.file ? (Array.isArray(files.file) ? files.file[0] : files.file) : null;
+    if (!fileEntry) return res.status(400).json({ error: 'Keine Datei übermittelt' });
+
+    const mime = fileEntry.mimetype || '';
+    if (!['image/jpeg', 'image/png'].includes(mime)) {
+      return res.status(400).json({ error: 'Nur JPG und PNG erlaubt' });
+    }
+    if (fileEntry.size > 2 * 1024 * 1024) {
+      return res.status(400).json({ error: 'Maximale Dateigröße: 2 MB' });
+    }
+
+    const fs = await import('fs');
+    const fileBuffer = await fs.promises.readFile(fileEntry.filepath);
+    const storagePath = `avatars/${trainerId}/profile.jpg`;
+
+    const { error: uploadErr } = await supabase.storage.from(BUCKET).upload(storagePath, fileBuffer, {
+      contentType: mime,
+      upsert: true,
+    });
+    if (uploadErr) throw uploadErr;
+
+    // Signierte URL mit 10-Jahres-Laufzeit (Bucket ist privat)
+    const { data: signedData, error: signErr } = await supabase.storage
+      .from(BUCKET).createSignedUrl(storagePath, 315360000);
+    if (signErr) throw signErr;
+
+    const avatarUrl = signedData.signedUrl;
+
+    const { error: updateErr } = await supabase.from('trainer_profiles')
+      .update({ avatar_url: avatarUrl }).eq('id', trainerId);
+    if (updateErr) throw updateErr;
+
+    return res.json({ success: true, url: avatarUrl });
+  }
+
+  if (req.method === 'DELETE') {
+    const body = await getBody(req);
+    const { trainerId } = body;
+    if (!trainerId) return res.status(400).json({ error: 'trainerId ist erforderlich' });
+
+    const storagePath = `avatars/${trainerId}/profile.jpg`;
+    await supabase.storage.from(BUCKET).remove([storagePath]); // Fehler ignorieren (evtl. nicht vorhanden)
+
+    const { error: updateErr } = await supabase.from('trainer_profiles')
+      .update({ avatar_url: null }).eq('id', trainerId);
+    if (updateErr) throw updateErr;
+
+    return res.json({ success: true });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
 }
