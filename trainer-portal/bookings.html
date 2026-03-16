@@ -34,6 +34,7 @@
 <script src="auth-check.js"></script>
 <script>
   let allBookings = [];
+  let allGTClasses = [];
   let currentTab = 'pending';
 
   (async () => {
@@ -120,8 +121,46 @@
 
       allBookings = (data || []).map(b => ({
         ...b,
-        customer_name: customerNames[b.customer_id] || 'Kunde',
+        _type: 'pt',
+        customer_name: customerNames[b.customer_id] || b.customer_name || 'Kunde',
       }));
+
+      // ─── Gruppentrainings laden ───────────────────────────────
+      const { data: gtClasses } = await sb
+        .from('group_classes')
+        .select('*')
+        .eq('trainer_id', trainerId)
+        .order('scheduled_date', { ascending: false });
+
+      allGTClasses = [];
+      if (gtClasses && gtClasses.length > 0) {
+        const classIds = gtClasses.map(c => c.id);
+        const { data: ptcps } = await sb
+          .from('group_participants')
+          .select('group_class_id, status')
+          .in('group_class_id', classIds);
+
+        const pcMap = {};
+        (ptcps || []).forEach(p => {
+          if (!['cancelled', 'refunded'].includes((p.status || '').toLowerCase())) {
+            pcMap[p.group_class_id] = (pcMap[p.group_class_id] || 0) + 1;
+          }
+        });
+
+        allGTClasses = gtClasses.map(gc => ({
+          _type:                  'gt',
+          id:                     'gc_' + gc.id,
+          gc_id:                  gc.id,
+          scheduled_date:         gc.scheduled_date,
+          scheduled_time:         gc.scheduled_time,
+          location_name:          gc.city,
+          is_active:              gc.is_active,
+          group_class_name:       gc.name || 'Gruppentraining',
+          participant_count:      pcMap[gc.id] || 0,
+          max_participants:       gc.max_participants,
+          price_per_person_cents: gc.price_per_person_cents,
+        }));
+      }
 
       // Update pending count (Supabase speichert lowercase)
       const pendingCount = allBookings.filter(b => b.status === 'pending').length;
@@ -140,28 +179,35 @@
 
     switch (currentTab) {
       case 'pending':
+        // GT braucht keine Trainer-Bestätigung
         filtered = allBookings.filter(b => b.status === 'pending');
         break;
       case 'confirmed':
-        filtered = allBookings.filter(b => b.status === 'confirmed' && b.scheduled_date >= today);
+        filtered = [
+          ...allBookings.filter(b => b.status === 'confirmed' && b.scheduled_date >= today),
+          ...allGTClasses.filter(gc => gc.is_active && gc.scheduled_date >= today),
+        ].sort((a, b) => (a.scheduled_date || '').localeCompare(b.scheduled_date || ''));
         break;
       case 'past':
-        filtered = allBookings.filter(b =>
-          b.status === 'completed' || b.status === 'cancelled' || b.status === 'cancelled_by_trainer' ||
-          (b.status === 'confirmed' && b.scheduled_date < today)
-        );
+        filtered = [
+          ...allBookings.filter(b =>
+            b.status === 'completed' || b.status === 'cancelled' || b.status === 'cancelled_by_trainer' ||
+            (b.status === 'confirmed' && b.scheduled_date < today)
+          ),
+          ...allGTClasses.filter(gc => !gc.is_active || gc.scheduled_date < today),
+        ].sort((a, b) => (b.scheduled_date || '').localeCompare(a.scheduled_date || ''));
         break;
       default:
-        filtered = allBookings;
+        filtered = [...allBookings, ...allGTClasses];
     }
 
     const container = document.getElementById('bookings-list');
 
     if (filtered.length === 0) {
       const messages = {
-        pending: 'Keine neuen Anfragen',
+        pending:   'Keine neuen Anfragen',
         confirmed: 'Keine bestätigten Termine',
-        past: 'Noch keine vergangenen Buchungen',
+        past:      'Noch keine vergangenen Buchungen',
       };
       container.innerHTML = `<div class="empty-state">
         <div class="empty-state-icon">📋</div>
@@ -170,31 +216,52 @@
       return;
     }
 
-    container.innerHTML = filtered.map(b => {
-      const isPending = b.status === 'pending';
-      const hasRating = b.rating && b.rating > 0;
+    container.innerHTML = filtered.map(item =>
+      item._type === 'gt' ? renderGTCard(item) : renderPTCard(item)
+    ).join('');
+  }
 
-      return `
-        <div class="booking-item">
-          <div class="booking-top">
-            <div class="booking-customer">${b.customer_name || 'Kunde'}</div>
-            ${statusBadge(b.status)}
-          </div>
-          <div class="booking-meta">
-            📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
-            📍 ${b.location_name || b.location || '–'}
-            ${b.price_cents ? '<br>💰 ' + formatEuro(b.price_cents) : ''}
-            ${hasRating ? '<br>⭐ ' + b.rating + '/5' + (b.review_comment ? ' – „' + b.review_comment + '"' : '') : ''}
-          </div>
-          ${isPending ? `
-            <div class="booking-actions">
-              <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', 'confirmed')">Bestätigen</button>
-              <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', 'cancelled_by_trainer')">Ablehnen</button>
-            </div>
-          ` : ''}
+  function renderPTCard(b) {
+    const isPending = b.status === 'pending';
+    const hasRating = b.rating && b.rating > 0;
+    return `
+      <div class="booking-item">
+        <div class="booking-top">
+          <div class="booking-customer">${b.customer_name || 'Kunde'}</div>
+          ${statusBadge(b.status)}
         </div>
-      `;
-    }).join('');
+        <div class="booking-meta">
+          📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
+          📍 ${b.location_name || b.location || '–'}
+          ${b.price_cents ? '<br>💰 ' + formatEuro(b.price_cents) : ''}
+          ${hasRating ? '<br>⭐ ' + b.rating + '/5' + (b.review_comment ? ' – „' + b.review_comment + '"' : '') : ''}
+        </div>
+        ${isPending ? `
+          <div class="booking-actions">
+            <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', 'confirmed')">Bestätigen</button>
+            <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', 'cancelled_by_trainer')">Ablehnen</button>
+          </div>
+        ` : ''}
+      </div>`;
+  }
+
+  function renderGTCard(gc) {
+    const spotsText = gc.max_participants
+      ? `${gc.participant_count} / ${gc.max_participants} Teilnehmer`
+      : `${gc.participant_count} Teilnehmer`;
+    return `
+      <div class="booking-item">
+        <div class="booking-top">
+          <div class="booking-customer">🏃 ${gc.group_class_name}</div>
+          <span class="badge badge-paused">Gruppentraining</span>
+        </div>
+        <div class="booking-meta">
+          📅 ${formatDate(gc.scheduled_date)} · ${formatTime(gc.scheduled_time)}<br>
+          📍 ${gc.location_name || '–'}<br>
+          👥 ${spotsText}
+          ${gc.price_per_person_cents ? '<br>💰 ' + formatEuro(gc.price_per_person_cents) + ' / Person' : ''}
+        </div>
+      </div>`;
   }
 
   async function updateBooking(bookingId, status) {

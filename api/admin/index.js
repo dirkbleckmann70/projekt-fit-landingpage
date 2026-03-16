@@ -276,6 +276,75 @@ async function enrichBookings(supabase, bookings) {
   }));
 }
 
+// ─── GT-Teilnahmen als Buchungs-Objekte laden ─────────────────────────────────
+async function fetchGroupParticipantsAsBookings(supabase) {
+  const { data: participants, error } = await supabase
+    .from('group_participants')
+    .select('*')
+    .order('created_at', { ascending: false });
+  // Tabelle nicht vorhanden oder leer → keine GT-Einträge
+  if (error || !participants || participants.length === 0) return [];
+
+  const classIds = [...new Set(participants.map(p => p.group_class_id).filter(Boolean))];
+  const { data: classes } = await supabase
+    .from('group_classes')
+    .select('*')
+    .in('id', classIds);
+  const classMap = {};
+  if (classes) classes.forEach(c => { classMap[c.id] = c; });
+
+  const trainerIds = [...new Set((classes || []).map(c => c.trainer_id).filter(Boolean))];
+  const trainerMap = {};
+  if (trainerIds.length > 0) {
+    const { data: trainers } = await supabase
+      .from('trainer_profiles')
+      .select('id, full_name, city, payout_cents')
+      .in('id', trainerIds);
+    if (trainers) trainers.forEach(t => { trainerMap[t.id] = t; });
+  }
+
+  // Aktive Teilnehmer pro Kurs zählen (für anteilige Trainer-Kosten)
+  const activeCountByClass = {};
+  participants.forEach(p => {
+    const st = (p.status || '').toLowerCase();
+    if (!['cancelled', 'refunded'].includes(st)) {
+      activeCountByClass[p.group_class_id] = (activeCountByClass[p.group_class_id] || 0) + 1;
+    }
+  });
+
+  return participants.map(p => {
+    const gc      = classMap[p.group_class_id] || {};
+    const trainer = trainerMap[gc.trainer_id]  || {};
+    const count   = activeCountByClass[p.group_class_id] || 1;
+    const payoutShare = trainer.payout_cents ? Math.round(trainer.payout_cents / count) : 0;
+    const isCancelled = ['cancelled', 'refunded'].includes((p.status || '').toLowerCase());
+
+    return {
+      id:                 `gp_${p.id}`,
+      booking_type:       'group',
+      customer_name:      p.customer_name || p.customer_email || '–',
+      customer_id:        null,
+      trainer_id:         gc.trainer_id    || null,
+      trainer_name:       trainer.full_name || null,
+      trainer_city:       trainer.city || gc.city || null,
+      scheduled_date:     gc.scheduled_date  || null,
+      scheduled_time:     gc.scheduled_time  || null,
+      status:             p.status || 'confirmed',
+      price_cents:        isCancelled ? 0 : (gc.price_per_person_cents || 0),
+      final_price_cents:  isCancelled ? 0 : (gc.price_per_person_cents || 0),
+      payout_cents:       isCancelled ? 0 : payoutShare,
+      trainer_rate_cents: isCancelled ? 0 : payoutShare,
+      payment_status:     p.customer_paid ? 'paid' : 'pending',
+      location_name:      gc.city || null,
+      location:           gc.city || null,
+      notes:              gc.name ? `Kurs: ${gc.name}` : null,
+      created_at:         p.created_at || null,
+      group_class_id:     p.group_class_id || null,
+      group_class_name:   gc.name || null,
+    };
+  });
+}
+
 function parseForm(req) {
   return new Promise((resolve, reject) => {
     const form = formidable({ maxFileSize: 20 * 1024 * 1024, multiples: true });
@@ -407,13 +476,15 @@ async function handleData(req, res, supabase) {
     }
 
     case 'all_bookings': {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .order('scheduled_date', { ascending: false });
-      if (error) throw error;
-      const enriched = await enrichBookings(supabase, data || []);
-      return res.json({ data: enriched });
+      const [ptResult, gtRows] = await Promise.all([
+        supabase.from('bookings').select('*').order('scheduled_date', { ascending: false }),
+        fetchGroupParticipantsAsBookings(supabase),
+      ]);
+      if (ptResult.error) throw ptResult.error;
+      const enriched = await enrichBookings(supabase, ptResult.data || []);
+      const combined = [...enriched, ...gtRows]
+        .sort((a, b) => (b.scheduled_date || '').localeCompare(a.scheduled_date || ''));
+      return res.json({ data: combined });
     }
 
     case 'recent_bookings': {
@@ -429,13 +500,15 @@ async function handleData(req, res, supabase) {
     }
 
     case 'finances': {
-      const { data, error } = await supabase
-        .from('bookings')
-        .select('*')
-        .order('scheduled_date', { ascending: false });
-      if (error) throw error;
-      const enriched = await enrichBookings(supabase, data || []);
-      return res.json({ data: enriched });
+      const [ptResult, gtRows] = await Promise.all([
+        supabase.from('bookings').select('*').order('scheduled_date', { ascending: false }),
+        fetchGroupParticipantsAsBookings(supabase),
+      ]);
+      if (ptResult.error) throw ptResult.error;
+      const enriched = await enrichBookings(supabase, ptResult.data || []);
+      const combined = [...enriched, ...gtRows]
+        .sort((a, b) => (b.scheduled_date || '').localeCompare(a.scheduled_date || ''));
+      return res.json({ data: combined });
     }
 
     case 'credits': {
