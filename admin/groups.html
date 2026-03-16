@@ -62,6 +62,7 @@
     </div>
     <div class="modal-body">
       <form id="group-form">
+
         <div class="two-col">
           <div class="form-group">
             <label>Datum *</label>
@@ -122,6 +123,13 @@
           </div>
         </div>
       </form>
+      <div id="modal-participants-section" style="display:none;margin-top:24px">
+        <hr style="border-color:rgba(255,255,255,0.08);margin-bottom:20px">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:#F0F0F5">Angemeldete Teilnehmer</h3>
+        <div id="modal-participants-content">
+          <div class="loading-overlay"><span class="spinner"></span> Laden...</div>
+        </div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
@@ -281,6 +289,7 @@
     document.getElementById('modal-title').textContent = 'Neues Gruppentraining';
     document.getElementById('group-form').reset();
     document.getElementById('f-active').checked = true;
+    document.getElementById('modal-participants-section').style.display = 'none';
     document.getElementById('group-modal').classList.add('open');
   }
 
@@ -301,6 +310,58 @@
     document.getElementById('f-price').value = g.price_per_person_cents ? (g.price_per_person_cents / 100).toFixed(2) : '';
     document.getElementById('f-active').checked = g.is_active !== false;
     document.getElementById('group-modal').classList.add('open');
+    const section = document.getElementById('modal-participants-section');
+    section.style.display = 'block';
+    document.getElementById('modal-participants-content').innerHTML =
+      '<div class="loading-overlay"><span class="spinner"></span> Laden...</div>';
+    loadEditParticipants(id, g.price_per_person_cents || 0);
+  }
+
+  async function loadEditParticipants(groupId, priceCents) {
+    try {
+      const res = await adminApi(`/api/admin?action=data&type=group_participants&group_id=${groupId}`);
+      const participants = (res.data || []).filter(p => p.status !== 'cancelled');
+      const container = document.getElementById('modal-participants-content');
+
+      if (participants.length === 0) {
+        container.innerHTML = '<p style="color:#8888A0;font-size:13px;padding:4px 0">Noch keine Anmeldungen</p>';
+        return;
+      }
+
+      const totalEur = formatEuro(participants.length * priceCents);
+      container.innerHTML = `
+        <div style="overflow-x:auto">
+          <table style="font-size:13px">
+            <thead><tr>
+              <th>Name</th>
+              <th>Telefon / E-Mail</th>
+              <th>Einnahmen</th>
+              <th>Bezahlstatus</th>
+            </tr></thead>
+            <tbody>
+              ${participants.map(p => `
+                <tr>
+                  <td>${p.customer_name || '–'}</td>
+                  <td style="color:#8888A0">${p.customer_phone || p.customer_email || '–'}</td>
+                  <td class="text-accent">${formatEuro(priceCents)}</td>
+                  <td>${p.customer_paid
+                    ? '<span style="color:var(--success)">✅ Bezahlt</span>'
+                    : '<span style="color:#8888A0">⏳ Offen</span>'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:#8888A0">
+          <strong style="color:#F0F0F5">${participants.length} Teilnehmer</strong>
+          &nbsp;|&nbsp; Einnahmen gesamt:
+          <strong style="color:var(--accent)">${totalEur}</strong>
+        </div>
+      `;
+    } catch (err) {
+      document.getElementById('modal-participants-content').innerHTML =
+        `<p style="color:var(--error);font-size:13px">Fehler: ${err.message}</p>`;
+    }
   }
 
   async function saveGroup() {
