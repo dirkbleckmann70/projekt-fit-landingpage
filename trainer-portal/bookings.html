@@ -91,7 +91,7 @@
             <th>Art</th>
             <th>Stadt</th>
             <th>Status</th>
-            <th>Einnahmen</th>
+            <th>Vergütung</th>
             <th>Aktion</th>
           </tr>
         </thead>
@@ -142,7 +142,11 @@
       { key: 'type',     type: 'select', getValue: item => item._type === 'gt' ? 'GT' : 'PT' },
       { key: 'city',     type: 'select', getValue: item => item._type === 'gt' ? (item.location_name || '') : (item.location_name || item.location || '') },
       { key: 'status',   type: 'select', getValue: item => item._type === 'gt' ? (item.is_active ? 'Aktiv' : 'Inaktiv') : (item.status || '') },
-      { key: 'revenue',  type: 'number', getValue: item => item._type === 'gt' ? (item.price_per_person_cents || 0) / 100 : (item.price_cents || 0) / 100 },
+      { key: 'revenue',  type: 'number', getValue: item => {
+          const rate = window.currentTrainer?.payout_cents ?? 0;
+          if (item._type === 'gt') return item.participant_count > 0 ? Math.round(rate / item.participant_count) / 100 : rate / 100;
+          return (item.payout_cents ?? rate) / 100;
+        } },
       null,
     ]);
     tableFilter.onFilterChange(() => renderBookings());
@@ -281,9 +285,11 @@
   }
 
   function renderPTRow(b) {
-    const isPending = b.status === 'pending';
-    const city      = b.location_name || b.location || '–';
-    const revenue   = b.price_cents ? formatEuro(b.price_cents) : '–';
+    const isPending    = b.status === 'pending';
+    const city         = b.location_name || b.location || '–';
+    const trainerRate  = window.currentTrainer?.payout_cents ?? null;
+    const payoutCents  = b.payout_cents ?? trainerRate;
+    const revenue      = payoutCents ? formatEuro(payoutCents) : '–';
     const dateHtml  = b.scheduled_date
       ? `<div class="bk-date-main">${formatDate(b.scheduled_date)}</div>${b.scheduled_time ? '<div class="bk-date-time">' + formatTime(b.scheduled_time) + '</div>' : ''}`
       : '–';
@@ -307,7 +313,11 @@
     const participants = gc.max_participants
       ? `${gc.participant_count} / ${gc.max_participants}`
       : gc.participant_count;
-    const revenue   = gc.price_per_person_cents ? formatEuro(gc.price_per_person_cents) + ' / P.' : '–';
+    const trainerRate  = window.currentTrainer?.payout_cents ?? null;
+    const payoutShare  = (trainerRate && gc.participant_count > 0)
+      ? Math.round(trainerRate / gc.participant_count)
+      : null;
+    const revenue      = payoutShare ? formatEuro(payoutShare) : (trainerRate ? formatEuro(trainerRate) : '–');
     const statusEl  = gc.is_active
       ? '<span class="badge badge-active">Aktiv</span>'
       : '<span class="badge badge-paused">Inaktiv</span>';
