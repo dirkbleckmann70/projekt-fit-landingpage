@@ -110,15 +110,15 @@
     try {
       const { data: monthBookings } = await sb
         .from('bookings')
-        .select('id, price_cents, status, scheduled_date, scheduled_time, customer_name, customer_id, location')
+        .select('id, price_cents, status, scheduled_date, scheduled_time, customer_name, customer_id, location, location_name')
         .eq('trainer_id', trainerId)
         .gte('scheduled_date', monthStart.toISOString().slice(0, 10));
 
-      const confirmed = (monthBookings || []).filter(b => b.status !== 'CANCELLED');
+      const confirmed = (monthBookings || []).filter(b => b.status !== 'cancelled' && b.status !== 'cancelled_by_trainer');
       document.getElementById('kpi-month').textContent = confirmed.length;
 
       const earnings = confirmed
-        .filter(b => b.status === 'COMPLETED' || b.status === 'CONFIRMED')
+        .filter(b => b.status === 'completed' || b.status === 'confirmed')
         .reduce((sum, b) => sum + (trainer.payout_cents || b.price_cents || 0), 0);
       document.getElementById('kpi-earnings').textContent = formatEuro(earnings);
     } catch (err) {
@@ -134,7 +134,7 @@
         .from('bookings')
         .select('*')
         .eq('trainer_id', trainerId)
-        .eq('status', 'CONFIRMED')
+        .eq('status', 'confirmed')
         .gte('scheduled_date', today)
         .order('scheduled_date', { ascending: true })
         .limit(5);
@@ -155,7 +155,7 @@
             </div>
             <div class="booking-meta">
               📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
-              📍 ${b.location || '–'}
+              📍 ${b.location_name || b.location || '–'}
             </div>
           </div>
         `).join('');
@@ -172,7 +172,7 @@
         .from('bookings')
         .select('*')
         .eq('trainer_id', trainerId)
-        .eq('status', 'PENDING')
+        .eq('status', 'pending')
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -184,15 +184,15 @@
           <div class="booking-item">
             <div class="booking-top">
               <div class="booking-customer">${b.customer_name || 'Kunde'}</div>
-              ${statusBadge('PENDING')}
+              ${statusBadge('pending')}
             </div>
             <div class="booking-meta">
               📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
-              📍 ${b.location || '–'}
+              📍 ${b.location_name || b.location || '–'}
             </div>
             <div class="booking-actions">
-              <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', 'CONFIRMED')">Bestätigen</button>
-              <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', 'CANCELLED')">Ablehnen</button>
+              <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', 'confirmed')">Bestätigen</button>
+              <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', 'cancelled_by_trainer')">Ablehnen</button>
             </div>
           </div>
         `).join('');
