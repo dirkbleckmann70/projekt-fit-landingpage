@@ -24,7 +24,6 @@
           <div class="table-title">Alle Buchungen</div>
           <div class="table-actions"></div>
         </div>
-        <div id="bookings-summary" style="display:none;padding:8px 4px;font-size:13px;color:var(--text-secondary);border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px"></div>
         <div style="overflow-x:auto">
           <table id="bookings-table">
             <thead>
@@ -45,6 +44,14 @@
             <tbody id="bookings-body">
               <tr><td colspan="11" class="loading-overlay"><span class="spinner"></span> Buchungen werden geladen...</td></tr>
             </tbody>
+            <tfoot id="bookings-tfoot" style="display:none">
+              <tr style="border-top:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
+                <td colspan="7" style="padding:8px 12px;text-align:right;font-style:italic" id="bookings-count-cell"></td>
+                <td style="padding:8px 12px" class="text-accent" id="bookings-price-sum"></td>
+                <td style="padding:8px 12px" class="text-muted"  id="bookings-cost-sum"></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       </div>
@@ -164,11 +171,11 @@
     let filtered = tableFilter ? tableFilter.apply(allBookings) : allBookings;
 
     const tbody = document.getElementById('bookings-body');
-    const summary = document.getElementById('bookings-summary');
+    const tfoot  = document.getElementById('bookings-tfoot');
 
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
-      summary.style.display = 'none';
+      tfoot.style.display = 'none';
       return;
     }
 
@@ -198,11 +205,11 @@
     // Summen (nur gefilterte Zeilen)
     const totalPrice = filtered.reduce((s, b) => s + effectivePrice(b), 0);
     const totalCost  = filtered.reduce((s, b) => s + effectiveCost(b), 0);
-    summary.style.display = '';
-    summary.innerHTML =
-      `<strong>Summe (${filtered.length} von ${allBookings.length} Buchungen):</strong>` +
-      `&nbsp;&nbsp;Preis: <span class="text-accent">${formatEuro(totalPrice)}</span>` +
-      `&nbsp;&nbsp;|&nbsp;&nbsp;Kosten: <span class="text-muted">${formatEuro(totalCost)}</span>`;
+    tfoot.style.display = '';
+    document.getElementById('bookings-count-cell').textContent =
+      `${filtered.length} von ${allBookings.length} Buchungen`;
+    document.getElementById('bookings-price-sum').textContent = formatEuro(totalPrice);
+    document.getElementById('bookings-cost-sum').textContent  = formatEuro(totalCost);
   }
 
   function getPaymentLabel(b) {
