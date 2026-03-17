@@ -132,6 +132,10 @@
     if (['COMPLETED', 'CANCELLED', 'REFUNDED', 'DISPUTED', 'ESCALATED'].includes(s)) {
       return detailBtn;
     }
+    // EXPIRED → Details + Klären
+    if (s === 'EXPIRED') {
+      return `${detailBtn} <button class="btn btn-ghost btn-sm" style="color:#f39c12;border-color:rgba(243,156,18,0.4)" onclick="openDetail('${id}')">Klären</button>`;
+    }
     // In Bearbeitung → nur Details
     if (['CHECKED_IN', 'IN_PROGRESS'].includes(s)) {
       return detailBtn;
@@ -165,6 +169,7 @@
   function effectiveCost(b) {
     const st = (b.status || '').toUpperCase();
     if (CANCELLED_STATUSES.includes(st)) return 0;
+    if (st === 'EXPIRED') return 0; // Trainer bekommt nichts bis Klärung
     // Buchungseigenes Feld bevorzugen, sonst Trainer-Rate aus trainer_profiles
     return b.payout_cents || b.trainer_cost_cents || b.cost_cents || b.trainer_rate_cents || 0;
   }

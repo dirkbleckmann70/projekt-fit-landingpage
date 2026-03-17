@@ -192,7 +192,7 @@
   function effBrutto(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.price_cents || b.final_price_cents || 0); }
   function effNetto(b)   { return Math.round(effBrutto(b) / 1.19); }
   function effMwSt(b)    { return effBrutto(b) - effNetto(b); }
-  function effKosten(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.payout_cents || b.trainer_rate_cents || 0); }
+  function effKosten(b)  { const s = (b.status||'').toLowerCase(); return (FIN_CANCELLED.includes(s) || s === 'expired') ? 0 : (b.payout_cents || b.trainer_rate_cents || 0); }
   function effErloese(b) { return effNetto(b) - effKosten(b); }
 
   function f(cents) {

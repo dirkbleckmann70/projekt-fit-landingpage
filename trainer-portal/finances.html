@@ -232,6 +232,8 @@
   function vergütungCell(b) {
     if (FIN_CANCELLED.includes((b.status || '').toLowerCase()))
       return '<span style="color:var(--text-muted)">0,00 €</span>';
+    if (b.status === 'expired')
+      return '<span style="color:#f39c12">0,00 € (ausstehend)</span>';
     if (b.status === 'pending' || b.status === 'confirmed')
       return '<span style="color:var(--text-muted)">–</span>';
     const v = b.trainer_payout_cents ?? _trainerRate;

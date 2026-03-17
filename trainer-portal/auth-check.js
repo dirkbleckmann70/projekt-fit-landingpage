@@ -104,6 +104,8 @@ function statusBadge(status) {
     completed: 'badge-completed',
     cancelled: 'badge-cancelled',
     cancelled_by_trainer: 'badge-cancelled',
+    expired: 'badge-expired',
+    EXPIRED: 'badge-expired',
     paid: 'badge-completed',
   };
   const cls = map[status] || 'badge-pending';
@@ -112,10 +114,12 @@ function statusBadge(status) {
     CONFIRMED: 'Bestätigt',
     COMPLETED: 'Abgeschlossen',
     CANCELLED: 'Storniert',
+    EXPIRED: 'Abgelaufen',
     pending: 'Anfrage',
     confirmed: 'Bestätigt',
     completed: 'Abgeschlossen',
     cancelled: 'Storniert',
+    expired: 'Abgelaufen',
     cancelled_by_trainer: 'Abgelehnt',
     paid: 'Bezahlt',
   };

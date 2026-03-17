@@ -102,13 +102,21 @@ function statusBadge(status) {
     confirmed: 'badge-confirmed',
     completed: 'badge-completed',
     cancelled: 'badge-cancelled',
+    expired: 'badge-expired',
     PENDING: 'badge-pending',
     CONFIRMED: 'badge-confirmed',
     COMPLETED: 'badge-completed',
     CANCELLED: 'badge-cancelled',
+    EXPIRED: 'badge-expired',
+  };
+  const labels = {
+    pending: 'pending', active: 'active', confirmed: 'confirmed',
+    completed: 'completed', cancelled: 'cancelled', expired: 'Abgelaufen',
+    PENDING: 'PENDING', CONFIRMED: 'CONFIRMED', COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED', EXPIRED: 'Abgelaufen',
   };
   const cls = map[status] || 'badge-pending';
-  return `<span class="badge ${cls}">${status}</span>`;
+  return `<span class="badge ${cls}">${labels[status] || status}</span>`;
 }
 
 // Alert anzeigen

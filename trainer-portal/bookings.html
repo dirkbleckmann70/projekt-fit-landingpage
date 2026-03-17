@@ -191,6 +191,7 @@
       case 'pending':            return '<span class="badge badge-neue-anfrage">Neue Anfrage</span>';
       case 'confirmed':          return '<span class="badge badge-bestaetigt">Bestätigt</span>';
       case 'completed':          return '<span class="badge badge-erledigt">Erledigt</span>';
+      case 'expired':            return '<span class="badge badge-expired" style="background:rgba(243,156,18,0.15);color:#f39c12;border:1px solid rgba(243,156,18,0.4)">Abgelaufen</span>';
       case 'cancelled':
       case 'cancelled_by_trainer':
       case 'refunded':           return '<span class="badge badge-storniert">Storniert</span>';
@@ -201,7 +202,7 @@
   function rowClass(item) {
     if (item._type === 'gt') return item.is_active ? '' : 'row-done';
     if (item.status === 'pending') return 'row-pending';
-    if (item.status === 'completed' || CANCELLED.includes(item.status)) return 'row-done';
+    if (item.status === 'completed' || item.status === 'expired' || CANCELLED.includes(item.status)) return 'row-done';
     return '';
   }
 
@@ -213,6 +214,7 @@
       return share ? formatEuro(share) : '–';
     }
     if (CANCELLED.includes(item.status)) return '<span style="color:var(--text-muted)">0,00 €</span>';
+    if (item.status === 'expired') return '<span style="color:var(--text-muted)">0,00 € (ausstehend)</span>';
     if (item.status === 'pending') return '–';
     const payout = item.payout_cents ?? rate;
     return payout ? formatEuro(payout) : '–';
