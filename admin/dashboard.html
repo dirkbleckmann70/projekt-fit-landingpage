@@ -96,35 +96,58 @@
 
     const sb = getSupabase();
 
-    // ─── KPIs laden ───────────────────────────────────────────────
+    // ─── KPIs laden (direkt aus Supabase) ──────────────────────────
+
+    // Montag dieser Woche berechnen
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=So, 1=Mo, ...
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    const mondayISO = monday.toISOString().slice(0, 10);
+
+    // Monatsanfang
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthISO = monthStart.toISOString().slice(0, 10);
+
     try {
-      const [trainersRes, pendingRes, bookingsRes, revenueRes] = await Promise.allSettled([
-        adminApi('/api/admin?action=data&type=kpi_trainers'),
-        adminApi('/api/admin?action=data&type=kpi_pending'),
-        adminApi('/api/admin?action=data&type=kpi_bookings_week'),
-        adminApi('/api/admin?action=data&type=kpi_revenue_month'),
+      const [trainersRes, pendingRes, weekBookingsRes, monthRevenueRes] = await Promise.allSettled([
+        sb.from('trainer_profiles').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+        sb.from('trainer_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        sb.from('bookings').select('id', { count: 'exact', head: true }).gte('scheduled_date', mondayISO).in('status', ['confirmed', 'completed']),
+        sb.from('bookings').select('price_cents').eq('status', 'completed').gte('scheduled_date', monthISO),
       ]);
 
       document.getElementById('kpi-trainers').textContent =
-        trainersRes.status === 'fulfilled' ? trainersRes.value.count : '–';
+        trainersRes.status === 'fulfilled' ? (trainersRes.value.count ?? '–') : '–';
       document.getElementById('kpi-pending').textContent =
-        pendingRes.status === 'fulfilled' ? pendingRes.value.count : '–';
+        pendingRes.status === 'fulfilled' ? (pendingRes.value.count ?? '–') : '–';
       document.getElementById('kpi-bookings').textContent =
-        bookingsRes.status === 'fulfilled' ? bookingsRes.value.count : '–';
-      document.getElementById('kpi-revenue').textContent =
-        revenueRes.status === 'fulfilled' ? formatEuro(revenueRes.value.total_cents) : '–';
+        weekBookingsRes.status === 'fulfilled' ? (weekBookingsRes.value.count ?? '–') : '–';
+
+      if (monthRevenueRes.status === 'fulfilled' && monthRevenueRes.value.data) {
+        const totalCents = monthRevenueRes.value.data.reduce((sum, b) => sum + (b.price_cents || 0), 0);
+        document.getElementById('kpi-revenue').textContent = formatEuro(totalCents);
+      } else {
+        document.getElementById('kpi-revenue').textContent = '–';
+      }
     } catch (err) {
       console.error('KPIs laden fehlgeschlagen:', err);
     }
 
-    // ─── Neueste Bewerbungen ──────────────────────────────────────
+    // ─── Neueste Bewerbungen (direkt aus Supabase) ─────────────────
     try {
-      const res = await adminApi('/api/admin?action=data&type=recent_trainers&limit=5');
+      const { data: trainers, error: tErr } = await sb
+        .from('trainer_profiles')
+        .select('full_name, email, city, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (tErr) throw tErr;
       const tbody = document.getElementById('recent-trainers');
-      if (!res.data || res.data.length === 0) {
+      if (!trainers || trainers.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Bewerbungen vorhanden</td></tr>';
       } else {
-        tbody.innerHTML = res.data.map(t => `
+        tbody.innerHTML = trainers.map(t => `
           <tr>
             <td><strong>${t.full_name || '–'}</strong></td>
             <td class="text-secondary">${t.email || '–'}</td>
@@ -139,18 +162,41 @@
         `<tr><td colspan="5" class="text-error" style="padding:16px">Fehler: ${err.message}</td></tr>`;
     }
 
-    // ─── Letzte Buchungen ─────────────────────────────────────────
+    // ─── Letzte Buchungen (direkt aus Supabase) ──────────────────
     try {
-      const res = await adminApi('/api/admin?action=data&type=recent_bookings&limit=5');
+      const { data: bookings, error: bErr } = await sb
+        .from('bookings')
+        .select('customer_id, trainer_id, scheduled_date, status, price_cents')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (bErr) throw bErr;
+
       const tbody = document.getElementById('recent-bookings');
-      if (!res.data || res.data.length === 0) {
+      if (!bookings || bookings.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:24px">Keine Buchungen vorhanden</td></tr>';
       } else {
-        tbody.innerHTML = res.data.map(b => `
+        // Trainer- und Kundennamen nachladen
+        const trainerIds = [...new Set(bookings.map(b => b.trainer_id).filter(Boolean))];
+        const customerIds = [...new Set(bookings.map(b => b.customer_id).filter(Boolean))];
+
+        const [trainerRes, customerRes] = await Promise.all([
+          trainerIds.length > 0 ? sb.from('trainer_profiles').select('id, full_name').in('id', trainerIds) : { data: [] },
+          customerIds.length > 0 ? sb.from('customers').select('id, first_name, last_name, full_name').in('id', customerIds) : { data: [] },
+        ]);
+
+        const trainerNames = {};
+        (trainerRes.data || []).forEach(t => { trainerNames[t.id] = t.full_name || '–'; });
+        const customerNames = {};
+        (customerRes.data || []).forEach(c => {
+          customerNames[c.id] = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || '–';
+        });
+
+        tbody.innerHTML = bookings.map(b => `
           <tr>
-            <td>${b.customer_name || b.customer_id || '–'}</td>
-            <td>${b.trainer_name || '–'}</td>
-            <td>${formatDate(b.session_date)}</td>
+            <td>${customerNames[b.customer_id] || '–'}</td>
+            <td>${trainerNames[b.trainer_id] || '–'}</td>
+            <td>${formatDate(b.scheduled_date)}</td>
             <td>${statusBadge(b.status)}</td>
             <td class="text-accent">${formatEuro(b.price_cents)}</td>
           </tr>
