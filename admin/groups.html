@@ -62,6 +62,9 @@
     </div>
     <div class="modal-body">
       <form id="group-form">
+        <div id="duplicate-hint" style="display:none;background:rgba(232,147,10,0.1);border:1px solid rgba(232,147,10,0.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#e8930a">
+          &#9888; Kurs dupliziert — bitte neues Datum eintragen
+        </div>
 
         <div class="two-col">
           <div class="form-group">
@@ -113,8 +116,8 @@
         </div>
         <div class="two-col">
           <div class="form-group">
-            <label>Preis pro Person (EUR)</label>
-            <input class="form-control" type="number" id="f-price" placeholder="15.00" step="0.01" min="0">
+            <label>Preis pro Person (EUR) *</label>
+            <input class="form-control" type="number" id="f-price" placeholder="Preis in EUR eingeben" step="0.01" min="0.01" required>
           </div>
           <div class="form-group" style="display:flex;align-items:center;padding-top:24px">
             <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -267,6 +270,7 @@
           <td>
             <div class="action-cell">
               <button class="btn btn-secondary btn-sm" onclick="editGroup('${g.id}')">Bearbeiten</button>
+              <button class="btn btn-ghost btn-sm" onclick="duplicateGroup('${g.id}')" title="Kurs duplizieren">Duplizieren</button>
               <button class="btn btn-ghost btn-sm" onclick="showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')">Teilnehmer</button>
               <button class="btn btn-sm ${g.is_active ? 'btn-danger' : 'btn-success'}"
                 onclick="toggleActive('${g.id}', ${!g.is_active})">
@@ -290,6 +294,28 @@
     document.getElementById('group-form').reset();
     document.getElementById('f-active').checked = true;
     document.getElementById('modal-participants-section').style.display = 'none';
+    document.getElementById('duplicate-hint').style.display = 'none';
+    document.getElementById('group-modal').classList.add('open');
+  }
+
+  function duplicateGroup(id) {
+    const g = allGroups.find(x => x.id === id);
+    if (!g) return;
+    editingGroupId = null; // Neuer Kurs, nicht bearbeiten
+    document.getElementById('modal-title').textContent = 'Gruppentraining duplizieren';
+    document.getElementById('f-name').value = g.name || '';
+    document.getElementById('f-trainer').value = g.trainer_id || '';
+    document.getElementById('f-city').value = g.city || '';
+    document.getElementById('f-location-name').value = g.location_name || '';
+    document.getElementById('f-location-address').value = g.location_address || '';
+    document.getElementById('f-date').value = ''; // Datum LEER — muss manuell eingetragen werden
+    document.getElementById('f-time').value = (g.scheduled_time || g.start_time || '').slice(0, 5);
+    document.getElementById('f-duration').value = g.duration_minutes || 60;
+    document.getElementById('f-max').value = g.max_participants || 12;
+    document.getElementById('f-price').value = g.price_per_person_cents ? (g.price_per_person_cents / 100).toFixed(2) : '';
+    document.getElementById('f-active').checked = true;
+    document.getElementById('modal-participants-section').style.display = 'none';
+    document.getElementById('duplicate-hint').style.display = 'block';
     document.getElementById('group-modal').classList.add('open');
   }
 
@@ -309,6 +335,7 @@
     document.getElementById('f-max').value = g.max_participants || 12;
     document.getElementById('f-price').value = g.price_per_person_cents ? (g.price_per_person_cents / 100).toFixed(2) : '';
     document.getElementById('f-active').checked = g.is_active !== false;
+    document.getElementById('duplicate-hint').style.display = 'none';
     document.getElementById('group-modal').classList.add('open');
     const section = document.getElementById('modal-participants-section');
     section.style.display = 'block';
@@ -381,6 +408,12 @@
     }
 
     const priceEur = parseFloat(document.getElementById('f-price').value);
+    if (!priceEur || priceEur <= 0) {
+      alert('Bitte Preis pro Person eingeben (muss größer als 0 sein).');
+      document.getElementById('f-price').focus();
+      return;
+    }
+
     const payload = {
       name,
       trainer_id: trainerId,
@@ -392,7 +425,7 @@
       start_time: scheduledTime + ':00',
       duration_minutes: parseInt(document.getElementById('f-duration').value) || 60,
       max_participants: parseInt(document.getElementById('f-max').value) || 12,
-      price_per_person_cents: priceEur ? Math.round(priceEur * 100) : null,
+      price_per_person_cents: Math.round(priceEur * 100),
       is_active: document.getElementById('f-active').checked,
     };
 
