@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kalender – Projekt Fit Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ─── Calendar-Specific Styles ─────────────────────────────────── */
+    .cal-toolbar {
+      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .cal-toolbar select, .cal-toolbar button {
+      font-family: inherit; font-size: 14px;
+    }
+    .cal-toolbar select {
+      background: var(--bg-input); color: var(--text); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px; min-width: 180px;
+    }
+    .cal-week-label {
+      font-size: 15px; font-weight: 600; color: var(--text); min-width: 240px; text-align: center;
+    }
+    .cal-grid {
+      display: grid;
+      grid-template-columns: 60px repeat(7, 1fr);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--bg-card);
+    }
+    .cal-header {
+      background: #222; font-weight: 600; font-size: 13px;
+      padding: 10px 6px; text-align: center; border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .cal-header.today { color: var(--accent); }
+    .cal-time {
+      font-size: 12px; color: var(--text-muted); padding: 6px 8px;
+      text-align: right; border-right: 1px solid var(--border);
+      border-bottom: 1px solid rgba(42,42,42,.4);
+      display: flex; align-items: center; justify-content: flex-end;
+    }
+    .cal-cell {
+      min-height: 38px; border-bottom: 1px solid rgba(42,42,42,.4);
+      border-right: 1px solid rgba(42,42,42,.15);
+      cursor: pointer; position: relative; transition: filter .15s;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 500; color: #fff;
+    }
+    .cal-cell:hover { filter: brightness(1.25); }
+
+    /* Farbcodierung */
+    .cal-cell.available   { background: rgba(39,174,96,.22); }
+    .cal-cell.pending     { background: rgba(243,156,18,.35); }
+    .cal-cell.confirmed   { background: rgba(52,152,219,.4); }
+    .cal-cell.gt          { background: rgba(155,89,182,.4); }
+    .cal-cell.cancelled   { background: rgba(231,76,60,.2); text-decoration: line-through; color: var(--error); }
+    .cal-cell.empty       { background: transparent; }
+
+    .cal-cell .cell-label {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      padding: 0 4px; max-width: 100%;
+    }
+
+    /* ─── Legende ──────────────────────────────────────────────────── */
+    .cal-legend {
+      display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 13px;
+    }
+    .cal-legend span { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+    .legend-dot {
+      width: 14px; height: 14px; border-radius: 4px; display: inline-block;
+    }
+
+    /* ─── Detail Modal ─────────────────────────────────────────────── */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.65);
+      z-index: 200; align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 16px; width: 480px; max-width: 94vw; max-height: 85vh;
+      overflow-y: auto;
+    }
+    .modal-header {
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      font-size: 16px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-body { padding: 20px 24px; }
+    .modal-body .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(42,42,42,.4); font-size: 14px; }
+    .modal-body .row .label { color: var(--text-secondary); }
+    .modal-body .row .value { color: var(--text); font-weight: 500; text-align: right; }
+    .modal-body .status-cancelled { color: var(--error); font-weight: 700; }
+    .modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); text-align: right; }
+    .close-btn {
+      background: none; border: none; color: var(--text-secondary); font-size: 22px; cursor: pointer;
+    }
+    .close-btn:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <!-- Toolbar -->
+      <div class="cal-toolbar">
+        <select id="trainer-filter"><option value="">Alle Trainer</option></select>
+        <select id="city-filter"><option value="">Alle Städte</option></select>
+        <button class="btn btn-ghost btn-sm" id="prev-week">&larr; Vorherige</button>
+        <div class="cal-week-label" id="week-label"></div>
+        <button class="btn btn-ghost btn-sm" id="next-week">Nächste &rarr;</button>
+        <button class="btn btn-secondary btn-sm" id="today-btn">Heute</button>
+      </div>
+
+      <!-- Grid -->
+      <div class="cal-grid" id="cal-grid"></div>
+
+      <!-- Legende -->
+      <div class="cal-legend">
+        <span><span class="legend-dot" style="background:rgba(39,174,96,.5)"></span> Verfügbar</span>
+        <span><span class="legend-dot" style="background:rgba(243,156,18,.6)"></span> PT Ausstehend</span>
+        <span><span class="legend-dot" style="background:rgba(52,152,219,.65)"></span> PT Bestätigt</span>
+        <span><span class="legend-dot" style="background:rgba(155,89,182,.6)"></span> Gruppentraining</span>
+        <span><span class="legend-dot" style="background:rgba(231,76,60,.45)"></span> Storniert</span>
+        <span><span class="legend-dot" style="background:transparent;border:1px solid var(--border)"></span> Nicht verfügbar</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <span id="modal-title">Details</span>
+      <button class="close-btn" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+(async () => {
+  const user = await checkAdminAuth();
+  if (!user) return;
+  document.getElementById('sidebar').innerHTML = renderSidebar('calendar');
+  document.getElementById('header').innerHTML  = renderHeader('Kalender');
+
+  const sb = getSupabase();
+
+  // ─── State ──────────────────────────────────────────────────────
+  let weekOffset = 0;
+  let trainers = [];
+  let allAvailability = [];
+  let allBookings = [];
+  let allGT = [];
+
+  const HOURS_START = 6;
+  const HOURS_END   = 22;
+  const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+  // ─── Helpers ────────────────────────────────────────────────────
+  function getWeekDates(offset) {
+    const now = new Date();
+    const day = now.getDay();                       // 0=So
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Montag
+    const monday = new Date(now.getFullYear(), now.getMonth(), diff + offset * 7);
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      dates.push(d);
+    }
+    return dates;
+  }
+
+  function fmt(d) { return d.toISOString().split('T')[0]; }
+
+  function fmtDE(d) {
+    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  }
+
+  function jsDayToIso(jsDay) {
+    // JS: 0=So,1=Mo..6=Sa  →  ISO: 1=Mo..7=So
+    return jsDay === 0 ? 7 : jsDay;
+  }
+
+  // ─── Load Trainers ─────────────────────────────────────────────
+  async function loadTrainers() {
+    const { data } = await sb.from('trainer_profiles')
+      .select('id, full_name, city, status')
+      .eq('status', 'active')
+      .order('full_name');
+    trainers = data || [];
+    const sel = document.getElementById('trainer-filter');
+    const citySel = document.getElementById('city-filter');
+    const cities = new Set();
+    trainers.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id; opt.textContent = t.full_name + (t.city ? ` (${t.city})` : '');
+      sel.appendChild(opt);
+      if (t.city) cities.add(t.city);
+    });
+    [...cities].sort().forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      citySel.appendChild(opt);
+    });
+  }
+
+  // ─── Load Week Data ─────────────────────────────────────────────
+  async function loadWeekData() {
+    const dates = getWeekDates(weekOffset);
+    const weekStart = fmt(dates[0]);
+    const weekEnd   = fmt(dates[6]);
+    const trainerId = document.getElementById('trainer-filter').value;
+    const city      = document.getElementById('city-filter').value;
+
+    // Filter trainer IDs by city
+    let trainerIds = trainers.map(t => t.id);
+    if (city) trainerIds = trainers.filter(t => t.city === city).map(t => t.id);
+    if (trainerId) trainerIds = [trainerId];
+    if (trainerIds.length === 0) { allAvailability = []; allBookings = []; allGT = []; return; }
+
+    // Availability
+    const { data: avail } = await sb.from('trainer_availability')
+      .select('trainer_id, day_of_week, start_hour, end_hour, is_active')
+      .in('trainer_id', trainerIds)
+      .eq('is_active', true);
+    allAvailability = avail || [];
+
+    // Bookings (ALLE Status laden, Farbe nach Status)
+    const { data: bookings } = await sb.from('bookings')
+      .select('id, trainer_id, customer_id, scheduled_date, scheduled_time, status, price_cents, trainer_payout_cents, booking_type')
+      .in('trainer_id', trainerIds)
+      .gte('scheduled_date', weekStart)
+      .lte('scheduled_date', weekEnd);
+    allBookings = bookings || [];
+
+    // Group classes
+    const { data: gt } = await sb.from('group_classes')
+      .select('id, trainer_id, title, scheduled_date, scheduled_time, start_time, day_of_week, is_active, price_per_person_cents, max_participants, current_participants')
+      .in('trainer_id', trainerIds)
+      .eq('is_active', true);
+    allGT = gt || [];
+  }
+
+  // ─── Render Grid ────────────────────────────────────────────────
+  function renderGrid() {
+    const dates = getWeekDates(weekOffset);
+    const today = fmt(new Date());
+    const grid = document.getElementById('cal-grid');
+
+    // Week label
+    document.getElementById('week-label').textContent =
+      `${fmtDE(dates[0])} – ${fmtDE(dates[6])} ${dates[0].getFullYear()}`;
+
+    // Header row
+    let html = '<div class="cal-header"></div>'; // top-left corner
+    dates.forEach((d, i) => {
+      const isToday = fmt(d) === today;
+      html += `<div class="cal-header${isToday ? ' today' : ''}">${DAYS[i]}<br>${fmtDE(d)}</div>`;
+    });
+
+    // Hour rows
+    for (let h = HOURS_START; h <= HOURS_END; h++) {
+      html += `<div class="cal-time">${String(h).padStart(2,'0')}:00</div>`;
+
+      dates.forEach((d) => {
+        const dateStr = fmt(d);
+        const jsDay = d.getDay();
+        const isoDay = jsDayToIso(jsDay);
+
+        // 1. Check availability for this hour
+        const isAvail = allAvailability.some(a =>
+          a.day_of_week === isoDay && h >= a.start_hour && h < a.end_hour
+        );
+
+        // 2. Check bookings for this cell
+        const cellBookings = allBookings.filter(b =>
+          b.scheduled_date === dateStr && b.scheduled_time &&
+          parseInt(b.scheduled_time.split(':')[0], 10) === h
+        );
+
+        // 3. Check GT for this cell (by exact date OR recurring day)
+        const cellGT = allGT.filter(gc => {
+          const t = gc.scheduled_time || gc.start_time;
+          if (!t) return false;
+          const gcHour = parseInt(t.split(':')[0], 10);
+          if (gcHour !== h) return false;
+          return gc.scheduled_date === dateStr || (!gc.scheduled_date && gc.day_of_week === isoDay);
+        });
+
+        // Determine cell class & label
+        let cls = 'empty';
+        let label = '';
+        let dataAttr = '';
+
+        // Priority: Booking > GT > Available > Empty
+        const activeBooking = cellBookings.find(b => ['pending','confirmed','checked_in'].includes(b.status));
+        const cancelledBooking = cellBookings.find(b => ['cancelled','cancelled_by_trainer','cancelled_by_customer'].includes(b.status));
+
+        if (activeBooking) {
+          cls = activeBooking.status === 'pending' ? 'pending' : 'confirmed';
+          label = activeBooking.status === 'pending' ? 'PT ⏳' : 'PT ✓';
+          dataAttr = `data-booking-id="${activeBooking.id}"`;
+        } else if (cellGT.length > 0) {
+          cls = 'gt';
+          label = 'GT';
+          dataAttr = `data-gt-id="${cellGT[0].id}"`;
+        } else if (cancelledBooking) {
+          cls = 'cancelled';
+          label = 'Storno';
+          dataAttr = `data-booking-id="${cancelledBooking.id}"`;
+        } else if (isAvail) {
+          cls = 'available';
+          label = '';
+          dataAttr = `data-avail="1"`;
+        }
+
+        html += `<div class="cal-cell ${cls}" data-date="${dateStr}" data-hour="${h}" ${dataAttr}>
+          <span class="cell-label">${label}</span>
+        </div>`;
+      });
+    }
+
+    grid.innerHTML = html;
+
+    // Click handlers
+    grid.querySelectorAll('.cal-cell').forEach(cell => {
+      cell.addEventListener('click', () => onCellClick(cell));
+    });
+  }
+
+  // ─── Cell Click → Modal ─────────────────────────────────────────
+  async function onCellClick(cell) {
+    const bookingId = cell.dataset.bookingId;
+    const gtId      = cell.dataset.gtId;
+    const dateStr   = cell.dataset.date;
+    const hour      = cell.dataset.hour;
+
+    const modal = document.getElementById('detail-modal');
+    const body  = document.getElementById('modal-body');
+    const title = document.getElementById('modal-title');
+
+    if (bookingId) {
+      const booking = allBookings.find(b => b.id === bookingId);
+      if (!booking) return;
+
+      // Load customer + trainer names
+      const [custRes, trainerRes] = await Promise.all([
+        sb.from('customers').select('full_name, email, phone').eq('id', booking.customer_id).single(),
+        sb.from('trainer_profiles').select('full_name, phone').eq('id', booking.trainer_id).single()
+      ]);
+      const cust = custRes.data || {};
+      const trainer = trainerRes.data || {};
+
+      // Load health info
+      let healthNote = '–';
+      const { data: hd } = await sb.from('customer_health_data')
+        .select('health_notes, limitations')
+        .eq('customer_id', booking.customer_id)
+        .single();
+      if (hd) {
+        const parts = [];
+        if (hd.health_notes) parts.push(hd.health_notes);
+        if (hd.limitations) parts.push(hd.limitations);
+        if (parts.length) healthNote = parts.join(' | ');
+      }
+
+      const isCancelled = ['cancelled','cancelled_by_trainer','cancelled_by_customer'].includes(booking.status);
+
+      title.textContent = isCancelled ? 'Buchung – STORNIERT' : 'Buchungsdetails';
+      body.innerHTML = `
+        ${isCancelled ? '<div style="text-align:center;padding:10px 0"><span class="status-cancelled" style="font-size:18px">STORNIERT</span></div>' : ''}
+        <div class="row"><span class="label">Datum</span><span class="value">${formatDate(booking.scheduled_date)}</span></div>
+        <div class="row"><span class="label">Uhrzeit</span><span class="value">${booking.scheduled_time || '–'} Uhr</span></div>
+        <div class="row"><span class="label">Status</span><span class="value">${statusBadge(booking.status)}</span></div>
+        <div class="row"><span class="label">Typ</span><span class="value">${booking.booking_type || 'PT'}</span></div>
+        <div class="row"><span class="label">Kunde</span><span class="value">${cust.full_name || '–'}</span></div>
+        <div class="row"><span class="label">Kunde Tel.</span><span class="value">${cust.phone || '–'}</span></div>
+        <div class="row"><span class="label">Kunde E-Mail</span><span class="value">${cust.email || '–'}</span></div>
+        <div class="row"><span class="label">Trainer</span><span class="value">${trainer.full_name || '–'}</span></div>
+        <div class="row"><span class="label">Trainer Tel.</span><span class="value">${trainer.phone || '–'}</span></div>
+        <div class="row"><span class="label">Kundenpreis</span><span class="value">${isCancelled ? '0,00 €' : formatEuro(booking.price_cents)}</span></div>
+        <div class="row"><span class="label">Trainer-Vergütung</span><span class="value">${isCancelled ? '0,00 €' : formatEuro(booking.trainer_payout_cents)}</span></div>
+        <div class="row"><span class="label">Gesundheitshinweise</span><span class="value">${healthNote}</span></div>
+      `;
+    } else if (gtId) {
+      const gc = allGT.find(g => g.id === gtId);
+      if (!gc) return;
+      const trainerRes = await sb.from('trainer_profiles').select('full_name').eq('id', gc.trainer_id).single();
+      const trainerName = trainerRes.data?.full_name || '–';
+
+      title.textContent = 'Gruppentraining';
+      body.innerHTML = `
+        <div class="row"><span class="label">Kurs</span><span class="value">${gc.title || '–'}</span></div>
+        <div class="row"><span class="label">Datum</span><span class="value">${gc.scheduled_date ? formatDate(gc.scheduled_date) : 'Wiederkehrend'}</span></div>
+        <div class="row"><span class="label">Uhrzeit</span><span class="value">${gc.scheduled_time || gc.start_time || '–'} Uhr</span></div>
+        <div class="row"><span class="label">Trainer</span><span class="value">${trainerName}</span></div>
+        <div class="row"><span class="label">Preis/Person</span><span class="value">${formatEuro(gc.price_per_person_cents)}</span></div>
+        <div class="row"><span class="label">Teilnehmer</span><span class="value">${gc.current_participants || 0} / ${gc.max_participants || '–'}</span></div>
+      `;
+    } else {
+      // Available or empty
+      const isAvail = cell.dataset.avail === '1';
+      title.textContent = isAvail ? 'Verfügbar' : 'Nicht verfügbar';
+      body.innerHTML = `
+        <div class="row"><span class="label">Datum</span><span class="value">${formatDate(dateStr)}</span></div>
+        <div class="row"><span class="label">Uhrzeit</span><span class="value">${String(hour).padStart(2,'0')}:00 Uhr</span></div>
+        <div class="row"><span class="label">Status</span><span class="value">${isAvail ? 'Verfügbar, keine Buchung' : 'Keine Verfügbarkeit eingetragen'}</span></div>
+      `;
+    }
+
+    modal.classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('detail-modal').classList.remove('show');
+  }
+
+  // Close modal on overlay click
+  document.getElementById('detail-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  // ─── Events ─────────────────────────────────────────────────────
+  document.getElementById('prev-week').addEventListener('click', () => { weekOffset--; refresh(); });
+  document.getElementById('next-week').addEventListener('click', () => { weekOffset++; refresh(); });
+  document.getElementById('today-btn').addEventListener('click', () => { weekOffset = 0; refresh(); });
+  document.getElementById('trainer-filter').addEventListener('change', refresh);
+  document.getElementById('city-filter').addEventListener('change', () => {
+    // Reset trainer filter when city changes
+    const city = document.getElementById('city-filter').value;
+    const tSel = document.getElementById('trainer-filter');
+    tSel.innerHTML = '<option value="">Alle Trainer</option>';
+    const filtered = city ? trainers.filter(t => t.city === city) : trainers;
+    filtered.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id; opt.textContent = t.full_name + (t.city ? ` (${t.city})` : '');
+      tSel.appendChild(opt);
+    });
+    refresh();
+  });
+
+  async function refresh() {
+    await loadWeekData();
+    renderGrid();
+  }
+
+  // ─── Init ───────────────────────────────────────────────────────
+  await loadTrainers();
+  await refresh();
+})();
+</script>
+</body>
+</html>
