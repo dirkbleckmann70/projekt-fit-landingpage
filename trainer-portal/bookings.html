@@ -441,12 +441,55 @@
     document.getElementById('detail-modal').classList.add('open');
   }
 
-  function showDetail(bookingId) {
+  const HEALTH_LABELS = {
+    heart_disease: 'Herz-Kreislauf-Erkrankungen',
+    joint_problems: 'Gelenkprobleme / Rückenbeschwerden',
+    respiratory: 'Atemwegserkrankungen',
+    medical_treatment: 'In ärztlicher Behandlung',
+    medication: 'Regelmäßige Medikamente',
+    recent_surgery: 'OP in den letzten 6 Monaten',
+    pregnant: 'Schwangerschaft',
+    other_conditions: 'Sonstige Einschränkungen',
+  };
+
+  function renderHealthSection(hd) {
+    if (!hd) return '<div style="padding:12px;border-radius:10px;background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.25);margin-bottom:16px"><span style="color:#40916C;font-weight:700">✅ Keine besonderen Gesundheitshinweise</span></div>';
+
+    const concerns = Object.entries(HEALTH_LABELS).filter(([k]) => hd[k] === true).map(([,v]) => v);
+    const notes = typeof hd.additional_notes === 'string' && hd.additional_notes.trim() ? hd.additional_notes.trim() : null;
+
+    if (concerns.length === 0 && !notes) {
+      return '<div style="padding:12px;border-radius:10px;background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.25);margin-bottom:16px"><span style="color:#40916C;font-weight:700">✅ Keine besonderen Gesundheitshinweise</span></div>';
+    }
+
+    let html = '<div style="padding:12px;border-radius:10px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.25);margin-bottom:16px">';
+    html += '<div style="color:#E05555;font-weight:700;margin-bottom:8px">⚠️ Gesundheitshinweise</div>';
+    html += '<ul style="margin:0;padding-left:18px;color:#f0f0f5;font-size:13px;line-height:1.8">';
+    concerns.forEach(c => { html += `<li>${c}</li>`; });
+    html += '</ul>';
+    if (notes) html += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:13px;color:#8888a0"><strong>Ergänzung:</strong> ${notes}</div>`;
+    html += '</div>';
+    return html;
+  }
+
+  async function showDetail(bookingId) {
     const b = allBookings.find(x => x.id === bookingId);
     if (!b) return;
 
-    const vergütung = calcRevenue(b).replace(/<[^>]+>/g, ''); // Strip HTML for modal
+    const vergütung = calcRevenue(b).replace(/<[^>]+>/g, '');
     const hasRating = b.rating && b.rating > 0;
+
+    // Gesundheitsdaten des Kunden laden
+    let healthHtml = '';
+    if (b.customer_id) {
+      try {
+        const sb = getSupabase();
+        const { data: cust } = await sb.from('customers').select('health_declaration').eq('id', b.customer_id).single();
+        healthHtml = renderHealthSection(cust?.health_declaration);
+      } catch {
+        healthHtml = '';
+      }
+    }
 
     document.getElementById('detail-modal-body').innerHTML = `
       <div class="detail-row">
@@ -465,6 +508,7 @@
         <div class="detail-field"><label>Vergütung</label><div class="dv" style="color:var(--accent);font-weight:700">${vergütung}</div></div>
         ${hasRating ? `<div class="detail-field"><label>Bewertung</label><div class="dv">⭐ ${b.rating}/5${b.review_comment ? '<br><span style="font-size:13px;color:#8888a0">„' + b.review_comment + '"</span>' : ''}</div></div>` : '<div></div>'}
       </div>
+      ${healthHtml}
       ${b.notes ? `<div class="detail-field" style="margin-bottom:16px"><label>Notizen</label><div class="dv" style="font-size:14px;color:#8888a0">${b.notes}</div></div>` : ''}
       <div class="detail-id">Buchungs-ID: ${b.id}</div>
     `;
