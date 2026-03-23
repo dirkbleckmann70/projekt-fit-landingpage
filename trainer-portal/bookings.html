@@ -479,13 +479,24 @@
     const vergütung = calcRevenue(b).replace(/<[^>]+>/g, '');
     const hasRating = b.rating && b.rating > 0;
 
-    // Gesundheitsdaten des Kunden laden
+    // Kundendaten laden (Gesundheit + Telefon)
     let healthHtml = '';
+    let contactHtml = '';
     if (b.customer_id) {
       try {
         const sb = getSupabase();
-        const { data: cust } = await sb.from('customers').select('health_declaration').eq('id', b.customer_id).single();
+        const { data: cust } = await sb.from('customers').select('health_declaration, phone').eq('id', b.customer_id).single();
         healthHtml = renderHealthSection(cust?.health_declaration);
+
+        // Telefonnummer nur bei confirmed/checked_in anzeigen
+        const showContact = ['confirmed', 'checked_in', 'checked_in_trainer'].includes(b.status);
+        if (showContact && cust?.phone) {
+          contactHtml = `<div style="padding:12px;border-radius:10px;background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.25);margin-bottom:16px">
+            <div style="font-size:11px;font-weight:600;color:#8888a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Kontakt zum Kunden</div>
+            <a href="tel:${cust.phone}" style="color:#40916C;font-size:16px;font-weight:700;text-decoration:none">📞 ${cust.phone}</a>
+            <div style="font-size:12px;color:#55556a;margin-top:4px">Bei Verspätung oder Fragen zum Treffpunkt</div>
+          </div>`;
+        }
       } catch {
         healthHtml = '';
       }
@@ -508,6 +519,7 @@
         <div class="detail-field"><label>Vergütung</label><div class="dv" style="color:var(--accent);font-weight:700">${vergütung}</div></div>
         ${hasRating ? `<div class="detail-field"><label>Bewertung</label><div class="dv">⭐ ${b.rating}/5${b.review_comment ? '<br><span style="font-size:13px;color:#8888a0">„' + b.review_comment + '"</span>' : ''}</div></div>` : '<div></div>'}
       </div>
+      ${contactHtml}
       ${healthHtml}
       ${b.notes ? `<div class="detail-field" style="margin-bottom:16px"><label>Notizen</label><div class="dv" style="font-size:14px;color:#8888a0">${b.notes}</div></div>` : ''}
       <div class="detail-id">Buchungs-ID: ${b.id}</div>

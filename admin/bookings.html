@@ -321,11 +321,15 @@
         </div>
       </div>
       ${b.notes ? `<div class="form-group"><label>Notizen</label><textarea class="form-control" disabled>${b.notes}</textarea></div>` : ''}
+      <div id="admin-contact-section"></div>
       <p class="text-muted mt-1" style="font-size:12px">Erstellt: ${formatDateTime(b.created_at)} · ID: ${b.id}</p>
       </form>
     `;
 
     document.getElementById('detail-modal').classList.add('open');
+
+    // Kontaktdaten asynchron nachladen (Admin sieht immer beide)
+    loadAdminContacts(b);
 
     if (window._bookingDirty) window._bookingDirty.destroy();
     window._bookingDirty = initFormDirty({
@@ -333,6 +337,36 @@
       saveBtnId: 'modal-save-btn',
       onSave: saveBookingStatus,
     });
+  }
+
+  async function loadAdminContacts(b) {
+    const el = document.getElementById('admin-contact-section');
+    if (!el) return;
+    try {
+      const sb = getSupabase();
+      let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)">';
+
+      // Kunden-Telefon
+      if (b.customer_id) {
+        const { data: cust } = await sb.from('customers').select('phone').eq('id', b.customer_id).single();
+        html += `<div class="form-group"><label>Kunde Tel.</label><input class="form-control" value="${cust?.phone || '–'}" disabled style="${cust?.phone ? 'color:#40916C;font-weight:600' : ''}"></div>`;
+      } else {
+        html += '<div class="form-group"><label>Kunde Tel.</label><input class="form-control" value="–" disabled></div>';
+      }
+
+      // Trainer-Telefon
+      if (b.trainer_id) {
+        const { data: trainer } = await sb.from('trainer_profiles').select('phone').eq('id', b.trainer_id).single();
+        html += `<div class="form-group"><label>Trainer Tel.</label><input class="form-control" value="${trainer?.phone || '–'}" disabled style="${trainer?.phone ? 'color:#40916C;font-weight:600' : ''}"></div>`;
+      } else {
+        html += '<div class="form-group"><label>Trainer Tel.</label><input class="form-control" value="–" disabled></div>';
+      }
+
+      html += '</div>';
+      el.innerHTML = html;
+    } catch {
+      el.innerHTML = '';
+    }
   }
 
   async function saveBookingStatus() {
