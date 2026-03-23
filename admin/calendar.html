@@ -192,8 +192,9 @@
     return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
   }
 
-  function jsDayToIso(jsDay) {
-    // JS: 0=So,1=Mo..6=Sa  →  ISO: 1=Mo..7=So
+  function toISODay(jsDay) {
+    // JS getDay(): 0=So,1=Mo..6=Sa  →  ISO 8601: 1=Mo..7=So
+    // DB trainer_availability.day_of_week ist jetzt auch ISO (1-7)
     return jsDay === 0 ? 7 : jsDay;
   }
 
@@ -281,7 +282,7 @@
       dates.forEach((d) => {
         const dateStr = fmt(d);
         const jsDay = d.getDay();
-        const isoDay = jsDayToIso(jsDay);
+        const isoDay = toISODay(jsDay);
 
         // 1. Check availability for this hour
         const isAvail = allAvailability.some(a =>

@@ -165,7 +165,10 @@
   let activeTrainers = [];
   let editingGroupId = null;
   let tableFilter;
-  const dayNames = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  // JS getDay() Array (0=So) für scheduled_date Anzeige
+  const dayNamesJS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  // ISO 8601 (1=Mo, ..., 7=So) für DB day_of_week
+  const dayNamesISO = { 1: 'Montag', 2: 'Dienstag', 3: 'Mittwoch', 4: 'Donnerstag', 5: 'Freitag', 6: 'Samstag', 7: 'Sonntag' };
 
   (async () => {
     const user = await checkAdminAuth();
@@ -231,9 +234,9 @@
   function getDayName(group) {
     if (group.scheduled_date) {
       const d = new Date(group.scheduled_date + 'T00:00:00');
-      return dayNames[d.getDay()] || '–';
+      return dayNamesJS[d.getDay()] || '–'; // JS getDay() für Datums-Konvertierung
     }
-    if (group.day_of_week != null) return dayNames[group.day_of_week] || '–';
+    if (group.day_of_week != null) return dayNamesISO[group.day_of_week] || '–'; // DB ist ISO
     return '–';
   }
 

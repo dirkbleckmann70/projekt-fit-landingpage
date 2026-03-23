@@ -51,18 +51,21 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-check.js"></script>
 <script>
-  // 0=Sonntag (JavaScript Standard, konsistent mit Date.getDay() und Admin-Backend)
-  const DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
-  const DAY_NAMES = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+  // ISO 8601: 1=Mo, 2=Di, 3=Mi, 4=Do, 5=Fr, 6=Sa, 7=So
+  const DAYS = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr', 6: 'Sa', 7: 'So' };
+  const DAY_NAMES = { 1: 'Montag', 2: 'Dienstag', 3: 'Mittwoch', 4: 'Donnerstag', 5: 'Freitag', 6: 'Samstag', 7: 'Sonntag' };
   const HOURS = [];
   for (let h = 5; h <= 22; h++) HOURS.push(h); // 5:00 - 22:00 (letzter Block = 22:00-23:00)
 
-  // Anzeige-Reihenfolge: Mo-So (UX-freundlich), intern 0=So (JS Standard)
-  const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mo, Di, Mi, Do, Fr, Sa, So
+  // Anzeige-Reihenfolge: Mo-So (ISO 1-7)
+  const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 7]; // Mo, Di, Mi, Do, Fr, Sa, So
+
+  // Helper: JS getDay() → ISO day
+  function toISODay(d) { return d.getDay() === 0 ? 7 : d.getDay(); }
 
   // State: { "Mo": [8, 9, 10, 16, 17, 18, 19], "Di": [...], ... }
   let availState = {};
-  DAYS.forEach(d => availState[d] = []);
+  Object.values(DAYS).forEach(d => availState[d] = []);
 
   let isMouseDown = false;
   let paintMode = true; // true = activate, false = deactivate
@@ -147,10 +150,10 @@
         throw error;
       }
 
-      // Parse availability data into state
+      // Parse availability data into state (ISO: 1=Mo, ..., 7=So)
       (data || []).forEach(row => {
-        const dayIndex = row.day_of_week; // 0=So, 1=Mo, ..., 6=Sa (JS Standard)
-        if (dayIndex >= 0 && dayIndex < 7) {
+        const dayIndex = row.day_of_week; // ISO: 1=Mo, ..., 7=So
+        if (dayIndex >= 1 && dayIndex <= 7) {
           const dayKey = DAYS[dayIndex];
           const startHour = row.start_hour;
           const endHour = row.end_hour;
@@ -172,8 +175,8 @@
   function renderGrid() {
     const grid = document.getElementById('avail-grid');
 
-    grid.innerHTML = DISPLAY_ORDER.map(di => {
-      const day = DAYS[di];
+    grid.innerHTML = DISPLAY_ORDER.map(isoDay => {
+      const day = DAYS[isoDay];
       return `
       <div class="avail-day-row">
         <div class="avail-day-label">${day}</div>
@@ -260,9 +263,10 @@
         throw delError;
       }
 
-      // Zeitblöcke aus State zusammenfassen
+      // Zeitblöcke aus State zusammenfassen (ISO: 1=Mo, ..., 7=So)
       const rows = [];
-      DAYS.forEach((day, dayIndex) => {
+      DISPLAY_ORDER.forEach(isoDay => {
+        const day = DAYS[isoDay];
         const hours = availState[day].sort((a, b) => a - b);
         if (hours.length === 0) return;
 
@@ -274,7 +278,7 @@
           if (i === hours.length || hours[i] !== prev + 1) {
             rows.push({
               trainer_id: trainerId,
-              day_of_week: dayIndex,
+              day_of_week: isoDay,
               start_hour: blockStart,
               end_hour: prev + 1,
               is_active: true,

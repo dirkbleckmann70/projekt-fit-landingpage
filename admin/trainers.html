@@ -528,7 +528,8 @@
 
   // ─── Availability Grid ────────────────────────────────────────────────────
 
-  const AVAIL_DAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
+  // ISO 8601: 1=Mo, ..., 7=So
+  const AVAIL_DAYS = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr', 6: 'Sa', 7: 'So' };
   const AVAIL_HOURS_START = 5;
   const AVAIL_HOURS_END = 23;
   let availabilitySlots = {}; // key: "day-hour" → true/false
@@ -570,11 +571,10 @@
     }
     html += '</tr>';
 
-    // Day rows
-    for (let d = 1; d <= 6; d++) { // Mo-Sa first
+    // Day rows (ISO: 1=Mo, ..., 7=So)
+    for (let d = 1; d <= 7; d++) {
       html += renderAvailDayRow(d);
     }
-    html += renderAvailDayRow(0); // So last
 
     html += '</table></div>';
     html += '<div style="font-size:11px;color:#8888A0;margin-top:8px">Klicke auf Zeitslots um sie zu aktivieren/deaktivieren</div>';
@@ -617,9 +617,9 @@
     status.textContent = 'Wird gespeichert...';
     status.style.color = '#8888A0';
 
-    // Convert grid slots to consecutive hour ranges per day
+    // Convert grid slots to consecutive hour ranges per day (ISO: 1=Mo, ..., 7=So)
     const slots = [];
-    for (let d = 0; d <= 6; d++) {
+    for (let d = 1; d <= 7; d++) {
       let startHour = null;
       for (let h = AVAIL_HOURS_START; h <= AVAIL_HOURS_END; h++) {
         const active = !!availabilitySlots[`${d}-${h}`];
