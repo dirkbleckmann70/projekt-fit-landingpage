@@ -37,6 +37,7 @@ const BOOKING_STATUS = Object.freeze({
   REPLACEMENT_PENDING:  'replacement_pending',
   BOOKED:               'booked',
   RESCHEDULE_PROPOSED:  'reschedule_proposed',
+  LOCATION_PROPOSED:    'location_proposed',
   AWAITING_CHECKOUT:    'awaiting_checkout',
 });
 
@@ -65,6 +66,7 @@ const STATUS_LABELS = Object.freeze({
   [BOOKING_STATUS.REPLACEMENT_PENDING]:  'Warte auf Ersatztrainer',
   [BOOKING_STATUS.BOOKED]:               'Gebucht',
   [BOOKING_STATUS.RESCHEDULE_PROPOSED]:  'Terminänderung vorgeschlagen',
+  [BOOKING_STATUS.LOCATION_PROPOSED]:    'Treffpunkt vorgeschlagen',
   [BOOKING_STATUS.AWAITING_CHECKOUT]:    'Warte auf Abschluss',
 });
 
@@ -93,6 +95,7 @@ const STATUS_BADGE_CLASS = Object.freeze({
   [BOOKING_STATUS.REPLACEMENT_PENDING]:  'badge-pending',
   [BOOKING_STATUS.BOOKED]:               'badge-pending',
   [BOOKING_STATUS.RESCHEDULE_PROPOSED]:  'badge-pending',
+  [BOOKING_STATUS.LOCATION_PROPOSED]:    'badge-warning',
   [BOOKING_STATUS.AWAITING_CHECKOUT]:    'badge-warning',
 });
 
@@ -114,6 +117,7 @@ const ACTIVE_STATUSES = Object.freeze([
   BOOKING_STATUS.CHECKED_IN_TRAINER,
   BOOKING_STATUS.PENDING_CUSTOMER,
   BOOKING_STATUS.RESCHEDULE_PROPOSED,
+  BOOKING_STATUS.LOCATION_PROPOSED,
   BOOKING_STATUS.AWAITING_CHECKOUT,
 ]);
 
