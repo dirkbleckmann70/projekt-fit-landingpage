@@ -103,6 +103,20 @@
     .reschedule-modal .time-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #2a2a2a; background: #1a1a1a; color: #8888a0; cursor: pointer; font-weight: 600; }
     .reschedule-modal .time-btn:hover { border-color: #F4A940; color: #F4A940; }
     .reschedule-modal .time-btn.selected { background: #40916C; border-color: #40916C; color: white; }
+
+    /* Location select modal */
+    .location-proposal-card {
+      padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2a2a;
+      background: rgba(255,255,255,0.02); cursor: pointer; margin-bottom: 8px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .location-proposal-card:hover { border-color: #40916C; background: rgba(64,145,108,0.06); }
+    .location-proposal-card.selected { border-color: #40916C; background: rgba(64,145,108,0.12); }
+    .location-proposal-card .lp-name { font-size: 14px; font-weight: 600; color: #f0f0f5; }
+    .location-proposal-card .lp-addr { font-size: 12px; color: #8888a0; margin-top: 3px; }
+    .alt-location-form label { display: block; font-size: 11px; font-weight: 600; color: #8888a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 12px; }
+    .alt-location-form input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #2a2a2a; background: #0d0d15; color: #f0f0f5; font-size: 13px; box-sizing: border-box; }
+    .alt-location-form input:focus { outline: none; border-color: #40916C; }
   </style>
 </head>
 <body>
@@ -155,6 +169,46 @@
     <div class="modal-body" id="detail-modal-body"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost btn-sm" onclick="closeDetailModal()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Location Select Modal -->
+<div class="modal-overlay" id="location-select-modal" style="display:none">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-header">
+      <div class="modal-title">Treffpunkt wählen</div>
+      <button class="modal-close" onclick="closeLocationSelectModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:rgba(255,255,255,0.6);margin-bottom:12px">Wähle einen der Kunden-Vorschläge:</p>
+      <div id="location-proposals-list"></div>
+      <!-- "Anderen Treffpunkt" section, shown only if > 24h until appointment -->
+      <div id="trainer-alt-location" style="display:none;margin-top:16px" class="alt-location-form">
+        <div style="font-size:12px;font-weight:600;color:#8888a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Alternativer Treffpunkt</div>
+        <label>Name / Bezeichnung</label>
+        <input type="text" id="alt-loc-name" placeholder="z.B. Stadtpark Haupteingang">
+        <label>Straße &amp; Hausnummer</label>
+        <input type="text" id="alt-loc-street" placeholder="z.B. Musterstraße 12">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label>PLZ</label>
+            <input type="text" id="alt-loc-plz" placeholder="12345" maxlength="5">
+          </div>
+          <div>
+            <label>Stadt</label>
+            <input type="text" id="alt-loc-city" placeholder="München">
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(244,169,64,0.08);border:1px solid rgba(244,169,64,0.25);font-size:12px;color:#F4A940">
+          Hinweis: Der Kunde wird über den neuen Vorschlag benachrichtigt.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" style="gap:10px">
+      <button class="btn btn-ghost btn-sm" onclick="closeLocationSelectModal()">Abbrechen</button>
+      <button class="btn btn-sm btn-reschedule" id="btn-alt-location" onclick="toggleTrainerLocation()" style="display:none">Anderen Treffpunkt</button>
+      <button class="btn btn-sm btn-confirm" onclick="submitLocationChoice()">Bestätigen</button>
     </div>
   </div>
 </div>
@@ -413,7 +467,7 @@
     const revenue = calcRevenue(b);
     let actions;
     if (b.status === BOOKING_STATUS.PENDING) {
-      actions = `<button class="btn btn-sm btn-confirm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CONFIRMED)">Bestätigen</button>
+      actions = `<button class="btn btn-sm btn-confirm" onclick="openLocationSelectModal('${b.id}')">Bestätigen</button>
          <button class="btn btn-sm btn-reschedule" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
          <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)">Ablehnen</button>`;
     } else if (b.status === BOOKING_STATUS.CONFIRMED) {
@@ -579,6 +633,7 @@
   document.addEventListener('click', e => {
     if (e.target === document.getElementById('detail-modal')) closeDetailModal();
     if (e.target === document.getElementById('reschedule-modal')) closeRescheduleModal();
+    if (e.target === document.getElementById('location-select-modal')) closeLocationSelectModal();
   });
 
   let rescheduleBookingId = null;
@@ -707,6 +762,156 @@
       showAlert(status === BOOKING_STATUS.CONFIRMED ? 'Buchung bestätigt!' : 'Buchung abgelehnt.', 'success');
       await loadBookings();
     }
+  }
+
+  // ─── Location Select Modal ─────────────────────────────────────────────────
+
+  let locationBookingId    = null;
+  let locationProposals    = [];
+  let selectedProposalId   = null;
+  let locationAltVisible   = false;
+  let locationBookingOver24h = false;
+
+  async function openLocationSelectModal(bookingId) {
+    locationBookingId  = bookingId;
+    selectedProposalId = null;
+    locationAltVisible = false;
+    locationBookingOver24h = false;
+
+    const b = allBookings.find(x => x.id === bookingId);
+
+    // Check if appointment is > 24h away (alt-location only possible then)
+    if (b && b.scheduled_date && b.scheduled_time) {
+      const appt = new Date(`${b.scheduled_date}T${b.scheduled_time}`);
+      locationBookingOver24h = (appt - Date.now()) > 24 * 60 * 60 * 1000;
+    }
+
+    // Reset alt-location UI
+    document.getElementById('trainer-alt-location').style.display = 'none';
+    document.getElementById('btn-alt-location').style.display = locationBookingOver24h ? '' : 'none';
+    ['alt-loc-name','alt-loc-street','alt-loc-plz','alt-loc-city'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+
+    // Load booking_locations from API
+    try {
+      const resp = await fetch(`/api/admin?action=data&type=booking_locations&bookingId=${bookingId}`);
+      const result = await resp.json();
+      locationProposals = Array.isArray(result.data) ? result.data : [];
+    } catch {
+      locationProposals = [];
+    }
+
+    // Backward compat: if no proposals → confirm directly without modal
+    if (locationProposals.length === 0) {
+      await updateBooking(bookingId, BOOKING_STATUS.CONFIRMED);
+      return;
+    }
+
+    // Render proposals
+    const list = document.getElementById('location-proposals-list');
+    list.innerHTML = locationProposals.map(p => `
+      <div class="location-proposal-card" id="lp-${p.id}" onclick="selectProposal('${p.id}')">
+        <div class="lp-name">${p.name || p.location_name || 'Treffpunkt'}</div>
+        <div class="lp-addr">${[p.street, p.zip_code, p.city].filter(Boolean).join(', ') || p.address || '–'}</div>
+      </div>
+    `).join('');
+
+    // Pre-select first proposal
+    if (locationProposals.length > 0) {
+      selectProposal(locationProposals[0].id);
+    }
+
+    document.getElementById('location-select-modal').style.display = 'flex';
+  }
+
+  function selectProposal(id) {
+    selectedProposalId = id;
+    // Deselect alt-location mode when a proposal is clicked
+    if (locationAltVisible) toggleTrainerLocation();
+    document.querySelectorAll('.location-proposal-card').forEach(card => {
+      card.classList.toggle('selected', card.id === 'lp-' + id);
+    });
+  }
+
+  function toggleTrainerLocation() {
+    locationAltVisible = !locationAltVisible;
+    document.getElementById('trainer-alt-location').style.display = locationAltVisible ? '' : 'none';
+    document.getElementById('btn-alt-location').textContent = locationAltVisible ? 'Vorschlag wählen' : 'Anderen Treffpunkt';
+    if (locationAltVisible) {
+      // Deselect all proposal cards
+      selectedProposalId = null;
+      document.querySelectorAll('.location-proposal-card').forEach(c => c.classList.remove('selected'));
+    } else {
+      // Re-select first proposal
+      if (locationProposals.length > 0) selectProposal(locationProposals[0].id);
+    }
+  }
+
+  async function submitLocationChoice() {
+    if (!locationBookingId) return;
+
+    let body;
+
+    if (locationAltVisible) {
+      // Trainer proposes a different location
+      const name   = document.getElementById('alt-loc-name').value.trim();
+      const street = document.getElementById('alt-loc-street').value.trim();
+      const plz    = document.getElementById('alt-loc-plz').value.trim();
+      const city   = document.getElementById('alt-loc-city').value.trim();
+
+      if (!name) {
+        showAlert('Bitte einen Namen für den Treffpunkt angeben.', 'error');
+        return;
+      }
+
+      body = {
+        bookingId: locationBookingId,
+        status: 'location_proposed',
+        trainer_location: { name, street, zip_code: plz, city },
+      };
+    } else {
+      if (!selectedProposalId) {
+        showAlert('Bitte einen Treffpunkt auswählen.', 'error');
+        return;
+      }
+      const chosen = locationProposals.find(p => p.id === selectedProposalId);
+      body = {
+        bookingId: locationBookingId,
+        status: BOOKING_STATUS.CONFIRMED,
+        confirmed_location_id: selectedProposalId,
+        confirmed_location: chosen || null,
+      };
+    }
+
+    try {
+      const resp = await fetch('/api/admin?action=bookings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await resp.json();
+      if (!result.success) throw new Error(result.error || 'Fehler');
+
+      closeLocationSelectModal();
+      showAlert(
+        locationAltVisible
+          ? 'Treffpunkt-Vorschlag gesendet! Der Kunde wird benachrichtigt.'
+          : 'Buchung bestätigt!',
+        'success'
+      );
+      await loadBookings();
+    } catch (err) {
+      showAlert('Fehler: ' + err.message, 'error');
+    }
+  }
+
+  function closeLocationSelectModal() {
+    document.getElementById('location-select-modal').style.display = 'none';
+    locationBookingId  = null;
+    locationProposals  = [];
+    selectedProposalId = null;
+    locationAltVisible = false;
   }
 </script>
 
