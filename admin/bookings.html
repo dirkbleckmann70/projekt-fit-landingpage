@@ -68,13 +68,14 @@
     <div class="modal-body" id="modal-body"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost" onclick="closeModal()">Schließen</button>
-      <button class="btn btn-primary" id="modal-save-btn" onclick="saveBookingStatus()">Status speichern</button>
+      <button class="btn btn-primary" id="modal-save-btn" onclick="saveBookingStatus()">Speichern</button>
     </div>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
+<script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/form-dirty.js"></script>
 <script>
@@ -133,7 +134,7 @@
       return detailBtn;
     }
     // EXPIRED → Details + Klären
-    if (s === 'EXPIRED') {
+    if (s === BOOKING_STATUS.EXPIRED.toUpperCase()) {
       return `${detailBtn} <button class="btn btn-ghost btn-sm" style="color:#f39c12;border-color:rgba(243,156,18,0.4)" onclick="openDetail('${id}')">Klären</button>`;
     }
     // In Bearbeitung → nur Details
@@ -141,34 +142,36 @@
       return detailBtn;
     }
     // PENDING → Details + Bestätigen + Stornieren
-    if (s === 'PENDING') {
+    if (s === BOOKING_STATUS.PENDING.toUpperCase()) {
       return `
         ${detailBtn}
-        <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}','confirmed')">Bestätigen</button>
-        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}','cancelled')">Stornieren</button>`;
+        <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}',BOOKING_STATUS.CONFIRMED)">Bestätigen</button>
+        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}',BOOKING_STATUS.CANCELLED)">Stornieren</button>`;
     }
     // CONFIRMED → Details + Abschließen + Stornieren
-    if (s === 'CONFIRMED') {
+    if (s === BOOKING_STATUS.CONFIRMED.toUpperCase()) {
       return `
         ${detailBtn}
-        <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}','completed')">Abschließen</button>
-        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}','cancelled')">Stornieren</button>`;
+        <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}',BOOKING_STATUS.COMPLETED)">Abschließen</button>
+        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}',BOOKING_STATUS.CANCELLED)">Stornieren</button>`;
     }
     // Fallback
     return detailBtn;
   }
 
-  const CANCELLED_STATUSES = ['CANCELLED', 'CANCELLED_BY_TRAINER', 'REFUNDED'];
+  // Nutzt CANCELLED_STATUSES aus shared/constants.js (lowercase)
+  // effectivePrice/effectiveCost vergleichen mit .toUpperCase(), daher uppercase-Kopie
+  const CANCELLED_STATUSES_UC = CANCELLED_STATUSES.map(s => s.toUpperCase());
 
   function effectivePrice(b) {
     const st = (b.status || '').toUpperCase();
-    if (CANCELLED_STATUSES.includes(st)) return 0;
+    if (CANCELLED_STATUSES_UC.includes(st)) return 0;
     return b.price_cents || b.final_price_cents || 0;
   }
 
   function effectiveCost(b) {
     const st = (b.status || '').toUpperCase();
-    if (CANCELLED_STATUSES.includes(st)) return 0;
+    if (CANCELLED_STATUSES_UC.includes(st)) return 0;
     if (st === 'EXPIRED') return 0; // Trainer bekommt nichts bis Klärung
     // Buchungseigenes Feld bevorzugen, sonst Trainer-Rate aus trainer_profiles
     return b.payout_cents || b.trainer_cost_cents || b.cost_cents || b.trainer_rate_cents || 0;
@@ -222,23 +225,23 @@
   function getPaymentLabel(b) {
     const ps = (b.payment_status || '').toLowerCase();
     const st = (b.status || '').toUpperCase();
-    if (ps === 'paid'     || b.paid === true || st === 'COMPLETED') return 'Bezahlt';
-    if (ps === 'refunded')                                          return 'Erstattet';
-    if (ps === 'failed')                                            return 'Fehlgeschlagen';
-    if (ps === 'pending'  || st === 'CONFIRMED' || st === 'PENDING') return 'Ausstehend';
+    if (ps === 'paid'     || b.paid === true || st === BOOKING_STATUS.COMPLETED.toUpperCase()) return STATUS_LABELS[BOOKING_STATUS.PAID];
+    if (ps === BOOKING_STATUS.REFUNDED)                              return STATUS_LABELS[BOOKING_STATUS.REFUNDED];
+    if (ps === 'failed')                                             return 'Fehlgeschlagen';
+    if (ps === BOOKING_STATUS.PENDING || st === BOOKING_STATUS.CONFIRMED.toUpperCase() || st === BOOKING_STATUS.PENDING.toUpperCase()) return 'Ausstehend';
     return 'Keine';
   }
 
   function paymentBadge(b) {
     const ps = (b.payment_status || '').toLowerCase();
     const st = (b.status || '').toUpperCase();
-    if (ps === 'paid'     || b.paid === true || st === 'COMPLETED')
+    if (ps === 'paid'     || b.paid === true || st === BOOKING_STATUS.COMPLETED.toUpperCase())
       return '<span style="color:#27AE60;white-space:nowrap">\u2705 Bezahlt</span>';
-    if (ps === 'refunded')
+    if (ps === BOOKING_STATUS.REFUNDED)
       return '<span style="color:#E07A3A;white-space:nowrap">\u21A9\uFE0F Erstattet</span>';
     if (ps === 'failed')
       return '<span style="color:#E74C3C;white-space:nowrap">\u274C Fehlgeschlagen</span>';
-    if (ps === 'pending'  || st === 'CONFIRMED' || st === 'PENDING')
+    if (ps === BOOKING_STATUS.PENDING || st === BOOKING_STATUS.CONFIRMED.toUpperCase() || st === BOOKING_STATUS.PENDING.toUpperCase())
       return '<span style="color:#F39C12;white-space:nowrap">\u23F3 Ausstehend</span>';
     return '<span style="color:#55556A;white-space:nowrap">\u2013 Keine</span>';
   }
@@ -278,13 +281,23 @@
       <div class="two-col">
         <div class="form-group">
           <label>Datum</label>
-          <input class="form-control" value="${formatDate(b.scheduled_date)}" disabled>
+          <input class="form-control" type="date" id="edit-booking-date" value="${b.scheduled_date || ''}">
         </div>
         <div class="form-group">
           <label>Uhrzeit</label>
-          <input class="form-control" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}" disabled>
+          <input class="form-control" type="time" id="edit-booking-time" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : ''}">
         </div>
       </div>
+      ${b.proposed_date ? `<div class="two-col" style="background:rgba(244,169,64,0.08);border:1px solid rgba(244,169,64,0.25);border-radius:10px;padding:12px;margin-bottom:12px">
+        <div class="form-group" style="margin:0">
+          <label style="color:#F4A940">Vorgeschlagenes Datum</label>
+          <input class="form-control" value="${formatDate(b.proposed_date)}" disabled style="color:#F4A940;font-weight:700">
+        </div>
+        <div class="form-group" style="margin:0">
+          <label style="color:#F4A940">Vorgeschlagene Uhrzeit</label>
+          <input class="form-control" value="${b.proposed_time ? b.proposed_time.slice(0,5) + ' Uhr' : '–'}" disabled style="color:#F4A940;font-weight:700">
+        </div>
+      </div>` : ''}
       <div class="two-col">
         <div class="form-group">
           <label>Ort</label>
@@ -297,8 +310,18 @@
       </div>
       <div class="two-col">
         <div class="form-group">
-          <label>Preis</label>
-          <input class="form-control" value="${formatEuro(b.price_cents || b.final_price_cents)}" disabled>
+          <label>Kundenpreis (EUR)</label>
+          <input class="form-control" type="number" step="0.01" min="0" id="edit-booking-price" value="${b.price_cents ? (b.price_cents / 100).toFixed(2) : '0.00'}">
+        </div>
+        <div class="form-group">
+          <label>Endpreis (EUR)</label>
+          <input class="form-control" type="number" step="0.01" min="0" id="edit-booking-final-price" value="${(b.final_price_cents || b.price_cents) ? ((b.final_price_cents || b.price_cents) / 100).toFixed(2) : '0.00'}">
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>Trainer-Verguetung (EUR)</label>
+          <input class="form-control" type="number" step="0.01" min="0" id="edit-booking-payout" value="${b.trainer_payout_cents ? (b.trainer_payout_cents / 100).toFixed(2) : '0.00'}">
         </div>
         <div class="form-group">
           <label>Zahlung</label>
@@ -311,16 +334,19 @@
           <input class="form-control" value="${b.discount_code || '–'}" disabled>
         </div>
         <div class="form-group">
-          <label>Status ändern</label>
+          <label>Status</label>
           <select class="form-control" id="edit-booking-status">
-            <option value="pending"   ${b.status === 'pending'   ? 'selected' : ''}>pending</option>
-            <option value="confirmed" ${b.status === 'confirmed' ? 'selected' : ''}>confirmed</option>
-            <option value="completed" ${b.status === 'completed' ? 'selected' : ''}>completed</option>
-            <option value="cancelled" ${b.status === 'cancelled' ? 'selected' : ''}>cancelled</option>
+            ${ADMIN_EDITABLE_STATUSES.map(s =>
+              `<option value="${s}" ${b.status === s ? 'selected' : ''}>${STATUS_LABELS[s] || s}</option>`
+            ).join('')}
           </select>
         </div>
       </div>
-      ${b.notes ? `<div class="form-group"><label>Notizen</label><textarea class="form-control" disabled>${b.notes}</textarea></div>` : ''}
+      <div class="form-group">
+        <label>Admin-Notiz (optional, wird als Audit-Log gespeichert)</label>
+        <input class="form-control" id="edit-booking-admin-note" placeholder="Grund fuer Aenderung...">
+      </div>
+      ${b.notes ? `<div class="form-group"><label>Bisherige Notizen</label><textarea class="form-control" disabled style="min-height:60px">${b.notes}</textarea></div>` : ''}
       <div id="admin-contact-section"></div>
       <p class="text-muted mt-1" style="font-size:12px">Erstellt: ${formatDateTime(b.created_at)} · ID: ${b.id}</p>
       </form>
@@ -371,25 +397,47 @@
 
   async function saveBookingStatus() {
     if (!editingBookingId) return;
-    const newStatus = document.getElementById('edit-booking-status').value;
     const btn = document.getElementById('modal-save-btn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>';
 
+    const payload = { bookingId: editingBookingId };
+
+    // Status
+    payload.status = document.getElementById('edit-booking-status').value;
+
+    // Termin
+    const dateVal = document.getElementById('edit-booking-date').value;
+    if (dateVal) payload.scheduled_date = dateVal;
+    const timeVal = document.getElementById('edit-booking-time').value;
+    if (timeVal) payload.scheduled_time = timeVal;
+
+    // Preise (EUR → Cent)
+    const priceVal = document.getElementById('edit-booking-price').value;
+    if (priceVal !== '') payload.price_cents = Math.round(parseFloat(priceVal) * 100);
+    const finalVal = document.getElementById('edit-booking-final-price').value;
+    if (finalVal !== '') payload.final_price_cents = Math.round(parseFloat(finalVal) * 100);
+    const payoutVal = document.getElementById('edit-booking-payout').value;
+    if (payoutVal !== '') payload.trainer_payout_cents = Math.round(parseFloat(payoutVal) * 100);
+
+    // Admin-Notiz
+    const note = document.getElementById('edit-booking-admin-note').value.trim();
+    if (note) payload.admin_note = note;
+
     try {
       await adminApi('/api/admin?action=bookings', {
         method: 'PUT',
-        body: JSON.stringify({ bookingId: editingBookingId, status: newStatus }),
+        body: JSON.stringify(payload),
       });
       if (window._bookingDirty) window._bookingDirty.reset();
       closeModal();
-      showAlert('alert-box', 'Status aktualisiert!', 'success');
+      showAlert('alert-box', 'Buchung aktualisiert!', 'success');
       await loadBookings();
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Status speichern';
+      btn.textContent = 'Speichern';
     }
   }
 
