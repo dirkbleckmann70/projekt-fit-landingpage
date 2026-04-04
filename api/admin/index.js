@@ -289,6 +289,34 @@ export default async function handler(req, res) {
         return res.json({ url: signedData.signedUrl });
       }
 
+      // ═══════════════════════════════════════════════════════════════════
+      // LOCATION_DETAILS – GET + POST + PUT + DELETE
+      // ═══════════════════════════════════════════════════════════════════
+      case 'location_details':
+        return handleLocationDetails(req, res, supabase)
+
+      // ═══════════════════════════════════════════════════════════════════
+      // UPLOAD_LOCATION_IMAGE – POST (Base64 → Supabase Storage)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'upload_location_image':
+        return handleUploadLocationImage(req, res, supabase)
+
+      // ═══════════════════════════════════════════════════════════════════
+      // LOCATION-ACCEPT – PUT (Kunde nimmt Trainer-Treffpunkt an)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'location-accept': {
+        if (req.method !== 'PUT') return res.status(405).json({ success: false, error: 'PUT only' });
+        return handleLocationAccept(req, res, supabase)
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // LOCATION-REJECT – PUT (Kunde lehnt Trainer-Treffpunkt ab)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'location-reject': {
+        if (req.method !== 'PUT') return res.status(405).json({ success: false, error: 'PUT only' });
+        return handleLocationReject(req, res, supabase)
+      }
+
       default:
         return res.status(404).json({ error: `Unbekannte Action: ${action}` });
     }
@@ -831,6 +859,14 @@ async function handleData(req, res, supabase) {
         throw error;
       }
       return res.json({ data: data || [] });
+    }
+
+    case 'booking_locations': {
+      const bookingId = req.query?.bookingId
+      if (!bookingId) return res.status(400).json({ success: false, error: 'bookingId required' })
+      const { data, error } = await supabase.from('booking_locations').select('*').eq('booking_id', bookingId).order('sort_order')
+      if (error) return res.status(500).json({ success: false, error: error.message })
+      return res.json({ success: true, data })
     }
 
     default:
@@ -1901,4 +1937,124 @@ async function handleRescheduleReject(req, res, supabase) {
 
   if (error) throw error;
   return res.json({ success: true });
+}
+
+// ─── ACTION: location_details ─────────────────────────────────────────────────
+
+async function handleLocationDetails(req, res, supabase) {
+  // GET: All locations (optionally filtered by cityId query param)
+  if (req.method === 'GET') {
+    const cityId = req.query?.cityId
+    let query = supabase.from('service_location_details').select('*').order('sort_order', { ascending: true })
+    if (cityId) query = query.eq('city_id', cityId)
+    const { data, error } = await query
+    if (error) return res.status(500).json({ success: false, error: error.message })
+    return res.json({ success: true, data })
+  }
+
+  const body = await getBody(req)
+
+  // POST: New location
+  if (req.method === 'POST') {
+    const { city_id, name, street, zip_code, city_name, latitude, longitude, description, image_url, is_active, sort_order } = body
+    if (!city_id || !name || latitude == null || longitude == null) {
+      return res.status(400).json({ success: false, error: 'city_id, name, latitude und longitude sind Pflicht' })
+    }
+    const { data, error } = await supabase.from('service_location_details')
+      .insert({ city_id, name, street: street||null, zip_code: zip_code||null, city_name: city_name||null, latitude, longitude, description: description||null, image_url: image_url||null, is_active: is_active !== false, sort_order: sort_order ?? 0 })
+      .select()
+    if (error) return res.status(500).json({ success: false, error: error.message })
+    return res.json({ success: true, data: data?.[0] })
+  }
+
+  // PUT: Edit location
+  if (req.method === 'PUT') {
+    const { id, ...fields } = body
+    if (!id) return res.status(400).json({ success: false, error: 'id ist Pflicht' })
+    const allowed = ['name', 'street', 'zip_code', 'city_name', 'latitude', 'longitude', 'description', 'image_url', 'is_active', 'sort_order']
+    const update = {}
+    for (const key of allowed) { if (key in fields) update[key] = fields[key] }
+    const { error } = await supabase.from('service_location_details').update(update).eq('id', id)
+    if (error) return res.status(500).json({ success: false, error: error.message })
+    return res.json({ success: true })
+  }
+
+  // DELETE
+  if (req.method === 'DELETE') {
+    const { id } = body
+    if (!id) return res.status(400).json({ success: false, error: 'id ist Pflicht' })
+    const { error } = await supabase.from('service_location_details').delete().eq('id', id)
+    if (error) return res.status(500).json({ success: false, error: error.message })
+    return res.json({ success: true })
+  }
+
+  return res.status(405).json({ success: false, error: 'Method not allowed' })
+}
+
+// ─── ACTION: upload_location_image ───────────────────────────────────────────
+
+async function handleUploadLocationImage(req, res, supabase) {
+  if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'POST only' })
+  const body = await getBody(req)
+  const { locationId, imageBase64, fileName } = body
+  if (!locationId || !imageBase64 || !fileName) {
+    return res.status(400).json({ success: false, error: 'locationId, imageBase64 und fileName sind Pflicht' })
+  }
+  const buffer = Buffer.from(imageBase64, 'base64')
+  const filePath = `locations/${locationId}/${fileName}`
+  const { error: uploadError } = await supabase.storage.from('location-images').upload(filePath, buffer, {
+    contentType: fileName.endsWith('.png') ? 'image/png' : 'image/jpeg',
+    upsert: true,
+  })
+  if (uploadError) return res.status(500).json({ success: false, error: uploadError.message })
+  const { data: urlData } = supabase.storage.from('location-images').getPublicUrl(filePath)
+  const { error: updateError } = await supabase.from('service_location_details').update({ image_url: urlData.publicUrl }).eq('id', locationId)
+  if (updateError) return res.status(500).json({ success: false, error: updateError.message })
+  return res.json({ success: true, imageUrl: urlData.publicUrl })
+}
+
+// ─── ACTION: location-accept ──────────────────────────────────────────────────
+
+async function handleLocationAccept(req, res, supabase) {
+  const body = await getBody(req)
+  const { bookingId } = body
+  if (!bookingId) return res.status(400).json({ success: false, error: 'bookingId ist Pflicht' })
+
+  const { data: booking } = await supabase.from('bookings').select('selected_location_id, notes').eq('id', bookingId).single()
+  if (!booking?.selected_location_id) return res.status(400).json({ success: false, error: 'Kein Location-Vorschlag gefunden' })
+
+  const { data: loc } = await supabase.from('booking_locations').select('*').eq('id', booking.selected_location_id).single()
+  if (!loc) return res.status(404).json({ success: false, error: 'Location nicht gefunden' })
+
+  const auditNote = `[Location ${new Date().toISOString()}] Kunde hat Trainer-Treffpunkt akzeptiert: ${loc.name}`
+  const newNotes = booking.notes ? `${booking.notes}\n${auditNote}` : auditNote
+
+  const { error } = await supabase.from('bookings').update({
+    status: 'confirmed', location_name: loc.name, location_address: loc.address,
+    location_lat: loc.latitude, location_lng: loc.longitude,
+    location_proposed_by: null, location_proposed_at: null, notes: newNotes, updated_at: new Date().toISOString(),
+  }).eq('id', bookingId)
+
+  if (error) return res.status(500).json({ success: false, error: error.message })
+  return res.json({ success: true })
+}
+
+// ─── ACTION: location-reject ──────────────────────────────────────────────────
+
+async function handleLocationReject(req, res, supabase) {
+  const body = await getBody(req)
+  const { bookingId } = body
+  if (!bookingId) return res.status(400).json({ success: false, error: 'bookingId ist Pflicht' })
+
+  const { data: booking } = await supabase.from('bookings').select('notes').eq('id', bookingId).single()
+  const auditNote = `[Location ${new Date().toISOString()}] Kunde hat Trainer-Treffpunkt abgelehnt. Buchung storniert.`
+  const newNotes = booking?.notes ? `${booking.notes}\n${auditNote}` : auditNote
+
+  const { error } = await supabase.from('bookings').update({
+    status: 'cancelled_by_trainer', cancellation_reason: 'Treffpunkt-Vorschlag abgelehnt',
+    location_proposed_by: null, location_proposed_at: null, notes: newNotes, updated_at: new Date().toISOString(),
+  }).eq('id', bookingId)
+
+  if (error) return res.status(500).json({ success: false, error: error.message })
+  return res.json({ success: true })
 }
