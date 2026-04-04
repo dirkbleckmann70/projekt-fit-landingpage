@@ -94,6 +94,15 @@
     .detail-field label { display: block; font-size: 12px; font-weight: 600; color: #8888a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
     .detail-field .dv   { font-size: 15px; color: #f0f0f5; }
     .detail-id    { font-size: 11px; color: #55556a; margin-top: 16px; padding-top: 16px; border-top: 1px solid #2a2a2a; }
+
+    .btn-reschedule { color: #F4A940; border: 1px solid rgba(244,169,64,0.5); background: rgba(244,169,64,0.08); }
+    .btn-reschedule:hover { background: rgba(244,169,64,0.18); }
+    .badge-reschedule { background: rgba(244,169,64,0.15); color: #F4A940; border: 1px solid rgba(244,169,64,0.4); }
+
+    .reschedule-modal .time-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+    .reschedule-modal .time-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #2a2a2a; background: #1a1a1a; color: #8888a0; cursor: pointer; font-weight: 600; }
+    .reschedule-modal .time-btn:hover { border-color: #F4A940; color: #F4A940; }
+    .reschedule-modal .time-btn.selected { background: #40916C; border-color: #40916C; color: white; }
   </style>
 </head>
 <body>
@@ -150,22 +159,48 @@
   </div>
 </div>
 
+<!-- Reschedule Modal -->
+<div class="modal-overlay" id="reschedule-modal">
+  <div class="modal reschedule-modal" style="max-width:460px">
+    <div class="modal-header">
+      <div class="modal-title">Termin ändern</div>
+      <button class="modal-close" onclick="closeRescheduleModal()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="reschedule-current" style="margin-bottom:16px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid #2a2a2a">
+        <div style="font-size:11px;font-weight:600;color:#8888a0;text-transform:uppercase;margin-bottom:4px">Aktueller Termin</div>
+        <div id="reschedule-current-date" style="font-size:15px;color:#f0f0f5;font-weight:600"></div>
+      </div>
+      <label style="display:block;font-size:12px;font-weight:600;color:#8888a0;text-transform:uppercase;margin-bottom:6px">Neues Datum</label>
+      <input type="date" id="reschedule-date" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2a2a2a;background:#0d0d15;color:#f0f0f5;font-size:14px;margin-bottom:16px" />
+      <label style="display:block;font-size:12px;font-weight:600;color:#8888a0;text-transform:uppercase;margin-bottom:6px">Neue Uhrzeit</label>
+      <div id="reschedule-time-grid" class="time-grid"></div>
+      <div id="reschedule-no-slots" style="display:none;color:#E05555;font-size:13px;margin:8px 0">Keine verfügbaren Zeiten an diesem Tag</div>
+    </div>
+    <div class="modal-footer" style="gap:10px">
+      <button class="btn btn-ghost btn-sm" onclick="closeRescheduleModal()">Abbrechen</button>
+      <button class="btn btn-sm btn-confirm" id="reschedule-submit" onclick="submitReschedule()">Vorschlagen</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-check.js"></script>
+<script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script>
   let allBookings  = [];
   let allGTClasses = [];
   let tableFilter;
 
-  const CANCELLED = ['cancelled', 'cancelled_by_trainer', 'refunded'];
+  const CANCELLED = [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.CANCELLED_BY_TRAINER, BOOKING_STATUS.REFUNDED];
 
   // Sortier-Priorität: pending=0, confirmed=1, completed=2, cancelled+=3
   function statusPriority(item) {
     if (item._type === 'gt') return item.is_active ? 1 : 3;
-    if (item.status === 'pending')            return 0;
-    if (item.status === 'confirmed')          return 1;
-    if (item.status === 'completed')          return 2;
+    if (item.status === BOOKING_STATUS.PENDING)            return 0;
+    if (item.status === BOOKING_STATUS.CONFIRMED)          return 1;
+    if (item.status === BOOKING_STATUS.COMPLETED)          return 2;
     return 3;
   }
 
@@ -188,21 +223,22 @@
         : '<span class="badge badge-storniert">Inaktiv</span>';
     }
     switch (item.status) {
-      case 'pending':            return '<span class="badge badge-neue-anfrage">Neue Anfrage</span>';
-      case 'confirmed':          return '<span class="badge badge-bestaetigt">Bestätigt</span>';
-      case 'completed':          return '<span class="badge badge-erledigt">Erledigt</span>';
-      case 'expired':            return '<span class="badge badge-expired" style="background:rgba(243,156,18,0.15);color:#f39c12;border:1px solid rgba(243,156,18,0.4)">Abgelaufen</span>';
-      case 'cancelled':
-      case 'cancelled_by_trainer':
-      case 'refunded':           return '<span class="badge badge-storniert">Storniert</span>';
+      case BOOKING_STATUS.PENDING:            return '<span class="badge badge-neue-anfrage">Neue Anfrage</span>';
+      case BOOKING_STATUS.CONFIRMED:          return '<span class="badge badge-bestaetigt">Bestätigt</span>';
+      case BOOKING_STATUS.COMPLETED:          return '<span class="badge badge-erledigt">Erledigt</span>';
+      case BOOKING_STATUS.EXPIRED:            return '<span class="badge badge-expired" style="background:rgba(243,156,18,0.15);color:#f39c12;border:1px solid rgba(243,156,18,0.4)">Abgelaufen</span>';
+      case BOOKING_STATUS.CANCELLED:
+      case BOOKING_STATUS.CANCELLED_BY_TRAINER:
+      case BOOKING_STATUS.REFUNDED:           return '<span class="badge badge-storniert">Storniert</span>';
+      case 'reschedule_proposed': return '<span class="badge badge-reschedule">Terminänderung</span>';
       default:                   return `<span class="badge badge-erledigt">${item.status}</span>`;
     }
   }
 
   function rowClass(item) {
     if (item._type === 'gt') return item.is_active ? '' : 'row-done';
-    if (item.status === 'pending') return 'row-pending';
-    if (item.status === 'completed' || item.status === 'expired' || CANCELLED.includes(item.status)) return 'row-done';
+    if (item.status === BOOKING_STATUS.PENDING) return 'row-pending';
+    if (item.status === BOOKING_STATUS.COMPLETED || item.status === BOOKING_STATUS.EXPIRED || CANCELLED.includes(item.status)) return 'row-done';
     return '';
   }
 
@@ -214,8 +250,8 @@
       return share ? formatEuro(share) : '–';
     }
     if (CANCELLED.includes(item.status)) return '<span style="color:var(--text-muted)">0,00 €</span>';
-    if (item.status === 'expired') return '<span style="color:var(--text-muted)">0,00 € (ausstehend)</span>';
-    if (item.status === 'pending') return '–';
+    if (item.status === BOOKING_STATUS.EXPIRED) return '<span style="color:var(--text-muted)">0,00 € (ausstehend)</span>';
+    if (item.status === BOOKING_STATUS.PENDING) return '–';
     const payout = item.payout_cents ?? rate;
     return payout ? formatEuro(payout) : '–';
   }
@@ -236,7 +272,7 @@
     tableFilter = initSortableTable('bookings-table', [
       { key: 'status',   type: 'select', getValue: item => {
           if (item._type === 'gt') return item.is_active ? 'Aktiv' : 'Inaktiv';
-          const map = { pending: 'Neue Anfrage', confirmed: 'Bestätigt', completed: 'Erledigt', cancelled: 'Storniert', cancelled_by_trainer: 'Storniert', refunded: 'Storniert' };
+          const map = { [BOOKING_STATUS.PENDING]: 'Neue Anfrage', [BOOKING_STATUS.CONFIRMED]: STATUS_LABELS[BOOKING_STATUS.CONFIRMED], [BOOKING_STATUS.COMPLETED]: STATUS_LABELS[BOOKING_STATUS.COMPLETED], [BOOKING_STATUS.CANCELLED]: STATUS_LABELS[BOOKING_STATUS.CANCELLED], [BOOKING_STATUS.CANCELLED_BY_TRAINER]: STATUS_LABELS[BOOKING_STATUS.CANCELLED], [BOOKING_STATUS.REFUNDED]: STATUS_LABELS[BOOKING_STATUS.CANCELLED] };
           return map[item.status] || item.status;
         } },
       { key: 'date',     type: 'date',   getValue: item => item.scheduled_date || '' },
@@ -248,7 +284,7 @@
       { key: 'revenue',  type: 'number', getValue: item => {
           const rate = window.currentTrainer?.payout_cents ?? 0;
           if (item._type === 'gt') return item.is_active ? rate / 100 : 0;
-          if (CANCELLED.includes(item.status) || item.status === 'pending') return 0;
+          if (CANCELLED.includes(item.status) || item.status === BOOKING_STATUS.PENDING) return 0;
           return (item.payout_cents ?? rate) / 100;
         } },
       null,
@@ -311,7 +347,7 @@
           .from('group_participants')
           .select('group_class_id, status')
           .in('group_class_id', classIds)
-          .neq('status', 'cancelled');
+          .neq('status', BOOKING_STATUS.CANCELLED);
 
         const pcMap = {};
         (ptcps || []).forEach(p => {
@@ -346,7 +382,7 @@
       if (item._type === 'gt') {
         return item.is_active ? sum + rate : sum;
       }
-      if (item.status === 'confirmed' || item.status === 'completed') {
+      if (item.status === BOOKING_STATUS.CONFIRMED || item.status === BOOKING_STATUS.COMPLETED) {
         return sum + (item.payout_cents ?? rate ?? 0);
       }
       return sum;
@@ -375,10 +411,19 @@
   function renderPTRow(b) {
     const city    = b.city || b.location_name || b.location || '–';
     const revenue = calcRevenue(b);
-    const actions = b.status === 'pending'
-      ? `<button class="btn btn-sm btn-confirm" onclick="updateBooking('${b.id}','confirmed')">Bestätigen</button>
-         <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}','cancelled_by_trainer')">Ablehnen</button>`
-      : `<button class="btn btn-ghost btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
+    let actions;
+    if (b.status === BOOKING_STATUS.PENDING) {
+      actions = `<button class="btn btn-sm btn-confirm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CONFIRMED)">Bestätigen</button>
+         <button class="btn btn-sm btn-reschedule" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
+         <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)">Ablehnen</button>`;
+    } else if (b.status === BOOKING_STATUS.CONFIRMED) {
+      actions = `<button class="btn btn-sm btn-reschedule" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
+         <button class="btn btn-ghost btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
+    } else if (b.status === 'reschedule_proposed') {
+      actions = `<span class="badge badge-reschedule">Warte auf Kunden</span>`;
+    } else {
+      actions = `<button class="btn btn-ghost btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
+    }
     return `
       <tr class="${rowClass(b)}">
         <td>${statusBadgeBK(b)}</td>
@@ -489,7 +534,7 @@
         healthHtml = renderHealthSection(cust?.health_declaration);
 
         // Telefonnummer nur bei confirmed/checked_in anzeigen
-        const showContact = ['confirmed', 'checked_in', 'checked_in_trainer'].includes(b.status);
+        const showContact = [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.CHECKED_IN, BOOKING_STATUS.CHECKED_IN_TRAINER].includes(b.status);
         if (showContact && cust?.phone) {
           contactHtml = `<div style="padding:12px;border-radius:10px;background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.25);margin-bottom:16px">
             <div style="font-size:11px;font-weight:600;color:#8888a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Kontakt zum Kunden</div>
@@ -533,15 +578,133 @@
 
   document.addEventListener('click', e => {
     if (e.target === document.getElementById('detail-modal')) closeDetailModal();
+    if (e.target === document.getElementById('reschedule-modal')) closeRescheduleModal();
   });
+
+  let rescheduleBookingId = null;
+  let rescheduleSelectedHour = null;
+  let rescheduleAvailability = [];
+
+  async function openRescheduleModal(bookingId) {
+    rescheduleBookingId = bookingId;
+    const b = allBookings.find(x => x.id === bookingId);
+    if (!b) return;
+
+    document.getElementById('reschedule-current-date').textContent =
+      `${formatDate(b.scheduled_date)} · ${(b.scheduled_time || '').slice(0,5)} Uhr`;
+
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    document.getElementById('reschedule-date').min = tomorrow.toISOString().split('T')[0];
+    document.getElementById('reschedule-date').value = tomorrow.toISOString().split('T')[0];
+
+    const sb = getSupabase();
+    const trainerId = window.currentTrainer.id;
+    const { data } = await sb
+      .from('trainer_availability')
+      .select('day_of_week, start_hour, end_hour, is_active')
+      .eq('trainer_id', trainerId)
+      .eq('is_active', true);
+    rescheduleAvailability = data || [];
+
+    updateTimeGrid(tomorrow);
+    document.getElementById('reschedule-date').onchange = function() {
+      updateTimeGrid(new Date(this.value + 'T00:00:00'));
+    };
+    document.getElementById('reschedule-modal').classList.add('open');
+  }
+
+  function updateTimeGrid(date) {
+    const jsDay = date.getDay();
+    const isoDay = jsDay === 0 ? 7 : jsDay;
+    const slots = rescheduleAvailability.filter(s => s.day_of_week === isoDay);
+
+    const hours = [];
+    for (const slot of slots) {
+      for (let h = slot.start_hour; h < slot.end_hour; h++) {
+        if (!hours.includes(h)) hours.push(h);
+      }
+    }
+    hours.sort((a, b) => a - b);
+
+    const grid = document.getElementById('reschedule-time-grid');
+    const noSlots = document.getElementById('reschedule-no-slots');
+
+    if (hours.length === 0) {
+      grid.innerHTML = '';
+      noSlots.style.display = '';
+      rescheduleSelectedHour = null;
+      return;
+    }
+
+    noSlots.style.display = 'none';
+    rescheduleSelectedHour = hours[0];
+
+    grid.innerHTML = hours.map(h =>
+      `<button class="time-btn${h === rescheduleSelectedHour ? ' selected' : ''}" onclick="selectRescheduleHour(${h})">${String(h).padStart(2,'0')}:00</button>`
+    ).join('');
+  }
+
+  function selectRescheduleHour(h) {
+    rescheduleSelectedHour = h;
+    document.querySelectorAll('#reschedule-time-grid .time-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.textContent.startsWith(String(h).padStart(2,'0')));
+    });
+  }
+
+  function closeRescheduleModal() {
+    document.getElementById('reschedule-modal').classList.remove('open');
+    rescheduleBookingId = null;
+  }
+
+  async function submitReschedule() {
+    if (!rescheduleBookingId || rescheduleSelectedHour === null) return;
+
+    const dateVal = document.getElementById('reschedule-date').value;
+    const timeVal = String(rescheduleSelectedHour).padStart(2, '0') + ':00';
+
+    const btn = document.getElementById('reschedule-submit');
+    btn.disabled = true;
+    btn.textContent = 'Sende...';
+
+    try {
+      const resp = await fetch('/api/admin?action=bookings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: rescheduleBookingId,
+          reschedule: { proposed_date: dateVal, proposed_time: timeVal },
+        }),
+      });
+      const result = await resp.json();
+      if (!result.success) throw new Error(result.error || 'Fehler');
+
+      closeRescheduleModal();
+      showAlert('Terminvorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
+      await loadBookings();
+    } catch (err) {
+      showAlert('Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Vorschlagen';
+    }
+  }
+
+  function showAlert(msg, type) {
+    const box = document.getElementById('alert-box');
+    box.textContent = msg;
+    box.className = 'alert alert-' + type;
+    box.style.display = '';
+    setTimeout(() => { box.style.display = 'none'; }, 5000);
+  }
 
   async function updateBooking(bookingId, status) {
     const sb = getSupabase();
     const { error } = await sb.from('bookings').update({ status }).eq('id', bookingId);
     if (error) {
-      showAlert('alert-box', 'Fehler: ' + error.message, 'error');
+      showAlert('Fehler: ' + error.message, 'error');
     } else {
-      showAlert('alert-box', status === 'confirmed' ? 'Buchung bestätigt!' : 'Buchung abgelehnt.', 'success');
+      showAlert(status === BOOKING_STATUS.CONFIRMED ? 'Buchung bestätigt!' : 'Buchung abgelehnt.', 'success');
       await loadBookings();
     }
   }
