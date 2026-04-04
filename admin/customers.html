@@ -6,16 +6,20 @@
   <title>Kunden – Projekt Fit Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <div id="alert-box" class="alert"></div>
 
@@ -23,15 +27,15 @@
         Kundendaten werden über die App erfasst. Hier kannst du Kunden einsehen und verwalten.
       </p>
 
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Kunden-Verwaltung</div>
-          <div class="table-actions">
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Kunden-Verwaltung</h3>
+          <div>
             <button class="btn btn-primary" onclick="openNewModal()">+ Kunde anlegen</button>
           </div>
         </div>
-        <div style="overflow-x:auto">
-          <table id="customers-table">
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table" id="customers-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -47,7 +51,7 @@
               </tr>
             </thead>
             <tbody id="customers-body">
-              <tr><td colspan="10" class="loading-overlay"><span class="spinner"></span> Kunden werden geladen...</td></tr>
+              <tr><td colspan="10" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Kunden werden geladen...</td></tr>
             </tbody>
           </table>
         </div>
@@ -58,85 +62,93 @@
 </div>
 
 <!-- New Customer Modal -->
-<div class="modal-overlay" id="new-modal">
-  <div class="modal" style="max-width:600px">
-    <div class="modal-header">
-      <div class="modal-title">Neuen Kunden anlegen</div>
-      <button class="modal-close" onclick="closeNewModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="new-customer-form">
-        <div class="two-col">
-          <div class="form-group">
-            <label>Vorname *</label>
-            <input class="form-control" id="new-firstname" required>
+<div class="modal modal-blur fade" id="new-modal" tabindex="-1">
+  <div class="modal-dialog" style="max-width:600px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Neuen Kunden anlegen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="new-customer-form">
+          <div class="two-col">
+            <div class="form-group">
+              <label>Vorname *</label>
+              <input class="form-control" id="new-firstname" required>
+            </div>
+            <div class="form-group">
+              <label>Nachname *</label>
+              <input class="form-control" id="new-lastname" required>
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="form-group">
+              <label>E-Mail *</label>
+              <input class="form-control" type="email" id="new-email" required>
+            </div>
+            <div class="form-group">
+              <label>Telefon</label>
+              <input class="form-control" id="new-phone">
+            </div>
           </div>
           <div class="form-group">
-            <label>Nachname *</label>
-            <input class="form-control" id="new-lastname" required>
+            <label>Straße und Hausnummer</label>
+            <input class="form-control" id="new-street">
           </div>
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>E-Mail *</label>
-            <input class="form-control" type="email" id="new-email" required>
-          </div>
-          <div class="form-group">
-            <label>Telefon</label>
-            <input class="form-control" id="new-phone">
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Straße und Hausnummer</label>
-          <input class="form-control" id="new-street">
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>PLZ</label>
-            <input class="form-control" id="new-postal">
+          <div class="two-col">
+            <div class="form-group">
+              <label>PLZ</label>
+              <input class="form-control" id="new-postal">
+            </div>
+            <div class="form-group">
+              <label>Ort</label>
+              <input class="form-control" id="new-city">
+            </div>
           </div>
           <div class="form-group">
-            <label>Ort</label>
-            <input class="form-control" id="new-city">
+            <label>Geburtsdatum</label>
+            <input class="form-control" type="date" id="new-dob">
           </div>
-        </div>
-        <div class="form-group">
-          <label>Geburtsdatum</label>
-          <input class="form-control" type="date" id="new-dob">
-        </div>
-        <div class="form-group">
-          <label>Notizen</label>
-          <textarea class="form-control" id="new-notes" rows="3"></textarea>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeNewModal()">Abbrechen</button>
-      <button class="btn btn-primary" id="new-save-btn" onclick="createCustomer()">Anlegen</button>
+          <div class="form-group">
+            <label>Notizen</label>
+            <textarea class="form-control" id="new-notes" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" id="new-save-btn" onclick="createCustomer()">Anlegen</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Customer Detail Modal -->
-<div class="modal-overlay" id="detail-modal">
-  <div class="modal" style="max-width:700px">
-    <div class="modal-header">
-      <div class="modal-title" id="detail-title">Kunden-Details</div>
-      <button class="modal-close" onclick="closeDetailModal()">&times;</button>
-    </div>
-    <div class="modal-body" id="detail-body"></div>
-    <div class="modal-footer" id="detail-footer">
-      <button class="btn btn-danger" id="detail-delete-btn" onclick="deleteCustomer()">Löschen</button>
-      <div style="flex:1"></div>
-      <button class="btn btn-ghost" onclick="closeDetailModal()">Schließen</button>
-      <button class="btn btn-primary" id="detail-save-btn" onclick="saveCustomer()">Speichern</button>
+<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+  <div class="modal-dialog" style="max-width:700px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="detail-title">Kunden-Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="detail-body"></div>
+      <div class="modal-footer" id="detail-footer">
+        <button class="btn btn-danger" id="detail-delete-btn" onclick="deleteCustomer()">Löschen</button>
+        <div style="flex:1"></div>
+        <button class="btn btn-ghost-secondary" onclick="closeDetailModal()">Schließen</button>
+        <button class="btn btn-primary" id="detail-save-btn" onclick="saveCustomer()">Speichern</button>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-guard.js"></script>
+<script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-guard.js"></script>
 <script src="../shared/form-dirty.js"></script>
 <script>
   let allCustomers = [];
@@ -153,8 +165,9 @@
     const user = await checkAdminAuth();
     if (!user) return;
 
-    document.getElementById('sidebar').innerHTML = renderSidebar('customers');
-    document.getElementById('header').innerHTML = renderHeader('Kunden');
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('customers');
+    document.getElementById('header').innerHTML = renderAdminHeader('Kunden', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
 
     await loadCustomers();
 
@@ -227,10 +240,10 @@
   // New Customer
   function openNewModal() {
     document.getElementById('new-customer-form').reset();
-    document.getElementById('new-modal').classList.add('open');
+    new bootstrap.Modal(document.getElementById('new-modal')).show();
   }
   function closeNewModal() {
-    document.getElementById('new-modal').classList.remove('open');
+    bootstrap.Modal.getInstance(document.getElementById('new-modal')).hide();
   }
 
   async function createCustomer() {
@@ -245,7 +258,7 @@
 
     const btn = document.getElementById('new-save-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
+    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
 
     try {
       await adminApi('/api/admin?action=customers', {
@@ -411,11 +424,11 @@
 
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Buchungshistorie</h3>
-      <div id="customer-bookings"><div class="loading-overlay"><span class="spinner"></span> Laden...</div></div>
+      <div id="customer-bookings"><div class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</div></div>
     `;
 
     document.getElementById('detail-body').innerHTML = html;
-    document.getElementById('detail-modal').classList.add('open');
+    new bootstrap.Modal(document.getElementById('detail-modal')).show();
 
     if (window._customerDirty) window._customerDirty.destroy();
     window._customerDirty = initFormDirty({
@@ -434,7 +447,7 @@
         bookingsEl.innerHTML = '<p class="text-muted text-center" style="padding:12px">Keine Buchungen vorhanden.</p>';
       } else {
         bookingsEl.innerHTML = `
-          <table>
+          <table class="table table-vcenter">
             <thead><tr>
               <th>Datum</th>
               <th>Trainer</th>
@@ -464,12 +477,12 @@
     if (window._customerDirty && window._customerDirty.isDirty()) {
       window._customerDirty.confirmDiscard(function () {
         window._customerDirty = null;
-        document.getElementById('detail-modal').classList.remove('open');
+        bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();
       });
       return;
     }
     if (window._customerDirty) { window._customerDirty.destroy(); window._customerDirty = null; }
-    document.getElementById('detail-modal').classList.remove('open');
+    bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();
   }
 
   // Document helpers
@@ -582,7 +595,7 @@
     if (!currentDetailId) return;
     const btn = document.getElementById('detail-save-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
+    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
 
     try {
       await adminApi('/api/admin?action=customers', {
@@ -618,7 +631,7 @@
 
     const btn = document.getElementById('detail-delete-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
+    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
 
     try {
       await adminApi('/api/admin?action=customers', {
@@ -635,19 +648,6 @@
       btn.textContent = 'Löschen';
     }
   }
-
-  // Modal overlay clicks
-  document.querySelectorAll('.modal-overlay').forEach(o => {
-    o.addEventListener('click', e => {
-      if (e.target === o) {
-        if (o.id === 'detail-modal') {
-          closeDetailModal();
-        } else {
-          o.classList.remove('open');
-        }
-      }
-    });
-  });
 </script>
 
 </body>
