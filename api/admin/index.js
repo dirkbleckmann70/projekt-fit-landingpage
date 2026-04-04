@@ -12,9 +12,21 @@ import { readFileSync } from 'fs';
 // Documents-Action braucht bodyParser: false → wird per config gesteuert
 export const config = { api: { bodyParser: false } };
 
+const ALLOWED_ORIGINS = [
+  'https://projektfit.net',
+  'https://www.projektfit.net',
+  'http://localhost:3000',
+  'http://localhost:5500',
+];
+
+function getCorsOrigin(req) {
+  const origin = req.headers?.origin || '';
+  return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+}
+
 export default async function handler(req, res) {
   // ── CORS ──
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', getCorsOrigin(req));
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
@@ -26,12 +38,8 @@ export default async function handler(req, res) {
   }
 
   // ── Auth Check (einmal für alle Actions) ──
-  // activate-trainer hat eigene Legacy-Auth (x-admin-secret), rest nutzt Bearer
-  let adminAuthError = null;
-  if (action !== 'activate-trainer') {
-    adminAuthError = await verifyAdmin(req);
-    if (adminAuthError) return res.status(401).json({ error: adminAuthError });
-  }
+  const adminAuthError = await verifyAdmin(req);
+  if (adminAuthError) return res.status(401).json({ error: adminAuthError });
 
   const supabase = getServiceClient();
 
@@ -60,12 +68,6 @@ export default async function handler(req, res) {
       // ═══════════════════════════════════════════════════════════════════
       case 'activate-trainer': {
         if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-        // Legacy auth: x-admin-secret OR Bearer token
-        const adminSecret = process.env.ADMIN_SECRET;
-        if (adminSecret && req.headers['x-admin-secret'] !== adminSecret) {
-          const bearerErr = await verifyAdmin(req);
-          if (bearerErr) return res.status(401).json({ error: bearerErr });
-        }
         return await handleActivateTrainer(req, res, supabase);
       }
 

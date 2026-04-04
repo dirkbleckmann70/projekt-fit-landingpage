@@ -178,4 +178,23 @@ const ADMIN_EDITABLE_STATUSES = Object.freeze([
   BOOKING_STATUS.REJECTED,
   BOOKING_STATUS.DISPUTED,
   BOOKING_STATUS.RESCHEDULE_PROPOSED,
+  BOOKING_STATUS.LOCATION_PROPOSED,
+  BOOKING_STATUS.AWAITING_CHECKOUT,
 ]);
+
+// ─── Überfällig-Erkennung ─────────────────────────────────────────────────
+
+function isOverdue(booking) {
+  if (!booking.scheduled_date) return false;
+  const ACTIVE = ['pending', 'confirmed', 'checked_in_trainer', 'checked_in'];
+  if (!ACTIVE.includes(booking.status)) return false;
+  const scheduled = new Date(booking.scheduled_date + 'T23:59:59');
+  return scheduled < new Date();
+}
+
+function overdueDays(booking) {
+  if (!booking.scheduled_date) return 0;
+  const scheduled = new Date(booking.scheduled_date);
+  const now = new Date();
+  return Math.floor((now - scheduled) / (1000 * 60 * 60 * 24));
+}

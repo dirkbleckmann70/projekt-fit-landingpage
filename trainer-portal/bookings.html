@@ -276,21 +276,14 @@
         ? '<span class="badge badge-bestaetigt">Aktiv</span>'
         : '<span class="badge badge-storniert">Inaktiv</span>';
     }
-    switch (item.status) {
-      case BOOKING_STATUS.PENDING:            return '<span class="badge badge-neue-anfrage">Neue Anfrage</span>';
-      case BOOKING_STATUS.CONFIRMED:          return '<span class="badge badge-bestaetigt">Bestätigt</span>';
-      case BOOKING_STATUS.COMPLETED:          return '<span class="badge badge-erledigt">Erledigt</span>';
-      case BOOKING_STATUS.EXPIRED:            return '<span class="badge badge-expired" style="background:rgba(243,156,18,0.15);color:#f39c12;border:1px solid rgba(243,156,18,0.4)">Abgelaufen</span>';
-      case BOOKING_STATUS.CANCELLED:
-      case BOOKING_STATUS.CANCELLED_BY_TRAINER:
-      case BOOKING_STATUS.REFUNDED:           return '<span class="badge badge-storniert">Storniert</span>';
-      case 'reschedule_proposed': return '<span class="badge badge-reschedule">Terminänderung</span>';
-      default:                   return `<span class="badge badge-erledigt">${item.status}</span>`;
-    }
+    const label = (typeof STATUS_LABELS !== 'undefined' && STATUS_LABELS[item.status]) || item.status;
+    const badgeClass = (typeof STATUS_BADGE_CLASS !== 'undefined' && STATUS_BADGE_CLASS[item.status]) || 'badge-erledigt';
+    return `<span class="badge ${badgeClass}">${label}</span>`;
   }
 
   function rowClass(item) {
     if (item._type === 'gt') return item.is_active ? '' : 'row-done';
+    if (isOverdue(item)) return 'row-overdue';
     if (item.status === BOOKING_STATUS.PENDING) return 'row-pending';
     if (item.status === BOOKING_STATUS.COMPLETED || item.status === BOOKING_STATUS.EXPIRED || CANCELLED.includes(item.status)) return 'row-done';
     return '';
@@ -480,7 +473,7 @@
     }
     return `
       <tr class="${rowClass(b)}">
-        <td>${statusBadgeBK(b)}</td>
+        <td>${statusBadgeBK(b)}${isOverdue(b) ? `<span class="badge badge-overdue">${overdueDays(b)}d überfällig</span>` : ''}</td>
         <td style="white-space:nowrap">${b.scheduled_date ? formatDate(b.scheduled_date) : '–'}</td>
         <td style="white-space:nowrap;color:var(--text-secondary)">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
         <td>${b.customer_name || 'Kunde'}</td>

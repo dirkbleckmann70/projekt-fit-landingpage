@@ -568,3 +568,19 @@ textarea.form-control { resize: vertical; min-height: 80px; }
   .content { padding: 16px; }
   .table-wrap { overflow-x: auto; }
 }
+
+/* Überfällig-Buchungen */
+.badge-overdue {
+  background: rgba(231, 76, 60, 0.2);
+  color: #e74c3c;
+  border: 1px solid rgba(231, 76, 60, 0.5);
+  animation: pulse-overdue 2s infinite;
+  margin-left: 6px;
+  font-size: 0.75rem;
+}
+.row-overdue { background: rgba(231, 76, 60, 0.05) !important; }
+
+@keyframes pulse-overdue {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
