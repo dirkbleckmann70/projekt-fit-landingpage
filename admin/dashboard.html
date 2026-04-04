@@ -6,93 +6,122 @@
   <title>Dashboard – Projekt Fit Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <!-- KPI Cards -->
-      <div class="kpi-grid" id="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">Aktive Trainer</div>
-          <div class="kpi-value" id="kpi-trainers"><span class="spinner"></span></div>
+      <div class="row row-deck row-cards mb-3">
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Aktive Trainer</div>
+              <div class="kpi-value" id="kpi-trainers"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Offene Bewerbungen</div>
-          <div class="kpi-value" id="kpi-pending"><span class="spinner"></span></div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Offene Bewerbungen</div>
+              <div class="kpi-value" id="kpi-pending"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Buchungen diese Woche</div>
-          <div class="kpi-value" id="kpi-bookings"><span class="spinner"></span></div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Buchungen diese Woche</div>
+              <div class="kpi-value" id="kpi-bookings"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Umsatz diesen Monat</div>
-          <div class="kpi-value" id="kpi-revenue"><span class="spinner"></span></div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Umsatz diesen Monat</div>
+              <div class="kpi-value" id="kpi-revenue"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Recent Trainers -->
-      <div class="table-wrap mb-2">
-        <div class="table-header">
-          <div class="table-title">Neueste Bewerbungen</div>
-          <a href="/admin/trainers.html" class="btn btn-ghost btn-sm">Alle anzeigen</a>
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Neueste Bewerbungen</h3>
+          <a href="/admin/trainers.html" class="btn btn-ghost-secondary btn-sm">Alle anzeigen</a>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>E-Mail</th>
-              <th>Stadt</th>
-              <th>Status</th>
-              <th>Datum</th>
-            </tr>
-          </thead>
-          <tbody id="recent-trainers">
-            <tr><td colspan="5" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>E-Mail</th>
+                <th>Stadt</th>
+                <th>Status</th>
+                <th>Datum</th>
+              </tr>
+            </thead>
+            <tbody id="recent-trainers">
+              <tr><td colspan="5" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- Recent Bookings -->
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Letzte Buchungen</div>
-          <a href="/admin/bookings.html" class="btn btn-ghost btn-sm">Alle anzeigen</a>
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Letzte Buchungen</h3>
+          <a href="/admin/bookings.html" class="btn btn-ghost-secondary btn-sm">Alle anzeigen</a>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>Kunde</th>
-              <th>Trainer</th>
-              <th>Datum</th>
-              <th>Status</th>
-              <th>Preis</th>
-            </tr>
-          </thead>
-          <tbody id="recent-bookings">
-            <tr><td colspan="5" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
+            <thead>
+              <tr>
+                <th>Kunde</th>
+                <th>Trainer</th>
+                <th>Datum</th>
+                <th>Status</th>
+                <th>Preis</th>
+              </tr>
+            </thead>
+            <tbody id="recent-bookings">
+              <tr><td colspan="5" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
 <script>
   (async () => {
     const user = await checkAdminAuth();
     if (!user) return;
 
-    document.getElementById('sidebar').innerHTML = renderSidebar('dashboard');
-    document.getElementById('header').innerHTML = renderHeader('Dashboard');
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('dashboard');
+    document.getElementById('header').innerHTML = renderAdminHeader('Dashboard', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
 
     // ─── KPIs laden (über Admin-API) ──────────────────────────
 

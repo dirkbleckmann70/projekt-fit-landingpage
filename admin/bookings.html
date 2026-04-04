@@ -6,26 +6,30 @@
   <title>Buchungen – Projekt Fit Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <div id="alert-box" class="alert"></div>
 
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Alle Buchungen</div>
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Alle Buchungen</h3>
           <div class="table-actions"></div>
         </div>
-        <div style="overflow-x:auto">
-          <table id="bookings-table">
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table" id="bookings-table">
             <thead>
               <tr id="bookings-tfoot" style="display:none;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
                 <td colspan="7" style="padding:6px 12px;text-align:right;font-style:italic" id="bookings-count-cell"></td>
@@ -48,7 +52,7 @@
               </tr>
             </thead>
             <tbody id="bookings-body">
-              <tr><td colspan="11" class="loading-overlay"><span class="spinner"></span> Buchungen werden geladen...</td></tr>
+              <tr><td colspan="11" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Buchungen werden geladen...</td></tr>
             </tbody>
           </table>
         </div>
@@ -59,24 +63,29 @@
 </div>
 
 <!-- Booking Detail Modal -->
-<div class="modal-overlay" id="detail-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Buchungs-Details</div>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Schließen</button>
-      <button class="btn btn-primary" id="modal-save-btn" onclick="saveBookingStatus()">Speichern</button>
+<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Buchungs-Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schließen</button>
+        <button class="btn btn-primary" id="modal-save-btn" onclick="saveBookingStatus()">Speichern</button>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-guard.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-guard.js"></script>
 <script src="../shared/form-dirty.js"></script>
 <script>
   let allBookings = [];
@@ -87,8 +96,9 @@
     const user = await checkAdminAuth();
     if (!user) return;
 
-    document.getElementById('sidebar').innerHTML = renderSidebar('bookings');
-    document.getElementById('header').innerHTML = renderHeader('Buchungen');
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('bookings');
+    document.getElementById('header').innerHTML = renderAdminHeader('Buchungen', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
 
     await loadBookings();
 
@@ -135,7 +145,7 @@
     }
     // EXPIRED → Details + Klären
     if (s === BOOKING_STATUS.EXPIRED.toUpperCase()) {
-      return `${detailBtn} <button class="btn btn-ghost btn-sm" style="color:#f39c12;border-color:rgba(243,156,18,0.4)" onclick="openDetail('${id}')">Klären</button>`;
+      return `${detailBtn} <button class="btn btn-ghost-secondary btn-sm" style="color:#f39c12;border-color:rgba(243,156,18,0.4)" onclick="openDetail('${id}')">Klären</button>`;
     }
     // In Bearbeitung → nur Details
     if (['CHECKED_IN', 'IN_PROGRESS'].includes(s)) {
@@ -353,7 +363,7 @@
       </form>
     `;
 
-    document.getElementById('detail-modal').classList.add('open');
+    new bootstrap.Modal(document.getElementById('detail-modal')).show();
 
     // Kontaktdaten asynchron nachladen (Admin sieht immer beide)
     loadAdminContacts(b);
@@ -442,7 +452,7 @@
     if (!editingBookingId) return;
     const btn = document.getElementById('modal-save-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
+    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
 
     const payload = { bookingId: editingBookingId };
 
@@ -489,18 +499,15 @@
       window._bookingDirty.confirmDiscard(function () {
         window._bookingDirty = null;
         editingBookingId = null;
-        document.getElementById('detail-modal').classList.remove('open');
+        bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();
       });
       return;
     }
     if (window._bookingDirty) { window._bookingDirty.destroy(); window._bookingDirty = null; }
-    document.getElementById('detail-modal').classList.remove('open');
+    const modal = bootstrap.Modal.getInstance(document.getElementById('detail-modal'));
+    if (modal) modal.hide();
     editingBookingId = null;
   }
-
-  document.querySelectorAll('.modal-overlay').forEach(o => {
-    o.addEventListener('click', e => { if (e.target === o) closeModal(); });
-  });
 </script>
 
 </body>
