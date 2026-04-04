@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gutschriften – Trainer-Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Seiten-Wrapper ───────────────────────────────────────────── */
+    .inv-page  { padding: 20px 24px 4px; }
+    .inv-outer { padding: 0 24px 24px; }
+    @media (max-width: 768px) {
+      .inv-page  { padding: 16px 16px 4px; }
+      .inv-outer { padding: 0 16px 16px; }
+    }
+
+    /* ── Stripe Onboarding Banner ─────────────────────────────────── */
+    .stripe-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    .stripe-banner.pending {
+      background: rgba(224, 122, 58, 0.12);
+      border: 1px solid rgba(224, 122, 58, 0.35);
+      color: #E07A3A;
+    }
+    .stripe-banner.active {
+      background: rgba(64, 145, 108, 0.12);
+      border: 1px solid rgba(64, 145, 108, 0.35);
+      color: #40916C;
+    }
+    .stripe-banner-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .stripe-banner svg { flex-shrink: 0; }
+    .stripe-banner-btn {
+      background: #E07A3A;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+    }
+    .stripe-banner-btn:hover { opacity: 0.85; }
+    .stripe-banner-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Fehlende Klassen ─────────────────────────────────────────── */
+    .table-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .table-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .table-title { font-size: 16px; font-weight: 700; }
+    .loading-overlay {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      gap: 12px;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+
+    /* ── Filter-Leiste ────────────────────────────────────────────── */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filter-bar select,
+    .filter-bar .form-control {
+      background: #161625;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #F0F0F5;
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+    }
+    .filter-bar select:focus { border-color: #40916C; }
+
+    /* ── Typ-Badges ───────────────────────────────────────────────── */
+    .badge-pt {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(46,117,182,0.12);
+      color: #5BB8FF;
+      border: 1px solid rgba(91,184,255,0.25);
+    }
+    .badge-gt {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(107,52,168,0.15);
+      color: #C084FC;
+      border: 1px solid rgba(192,132,252,0.25);
+    }
+    .badge-storno {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(231,76,60,0.12);
+      color: #e74c3c;
+      border: 1px solid rgba(231,76,60,0.25);
+    }
+
+    /* ── Storno-Zeilen ────────────────────────────────────────────── */
+    tr.storno-row td { color: #e74c3c !important; }
+    tr.storno-row td.amount-cell { color: #e74c3c !important; font-weight: 600; }
+
+    /* ── Summen-Zeile ─────────────────────────────────────────────── */
+    .sum-row td {
+      font-weight: 700;
+      border-top: 2px solid rgba(255,255,255,0.12) !important;
+      color: #F0F0F5;
+      padding-top: 12px !important;
+      padding-bottom: 12px !important;
+    }
+
+    /* ── Icon-Buttons ─────────────────────────────────────────────── */
+    .icon-btn {
+      background: none;
+      border: none;
+      color: #55556A;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: color 0.15s, background 0.15s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-btn:hover { color: #F0F0F5; background: rgba(255,255,255,0.06); }
+    .icon-btn svg { width: 16px; height: 16px; }
+
+    /* ── KPI-Leiste ───────────────────────────────────────────────── */
+    .inv-kpi-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .inv-kpi-card {
+      flex: 1;
+      background: #161625;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px;
+      padding: 16px 18px;
+      min-width: 0;
+    }
+    .inv-kpi-label {
+      font-size: 11px;
+      color: #55556A;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 8px;
+      white-space: nowrap;
+    }
+    .inv-kpi-value {
+      font-size: 20px;
+      font-weight: 700;
+      color: #F0F0F5;
+      letter-spacing: -0.4px;
+      white-space: nowrap;
+    }
+    @media (max-width: 600px) {
+      .inv-kpi-bar { flex-wrap: wrap; }
+      .inv-kpi-card { flex: 1 1 calc(50% - 6px); }
+    }
+  </style>
+</head>
+<body>
+
+<header class="top-header" id="top-header"></header>
+
+<div class="inv-page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+    <h1 class="page-title" style="margin:0">Gutschriften</h1>
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV Export</button>
+  </div>
+
+  <!-- Stripe Onboarding Banner -->
+  <div id="stripe-banner" style="display:none"></div>
+
+  <!-- KPI-Leiste -->
+  <div class="inv-kpi-bar">
+    <div class="inv-kpi-card">
+      <div class="inv-kpi-label">Gutschriften</div>
+      <div class="inv-kpi-value" id="kpi-count"><span class="spinner"></span></div>
+    </div>
+    <div class="inv-kpi-card">
+      <div class="inv-kpi-label">Gesamt Netto</div>
+      <div class="inv-kpi-value" id="kpi-netto"><span class="spinner"></span></div>
+    </div>
+    <div class="inv-kpi-card">
+      <div class="inv-kpi-label">MwSt</div>
+      <div class="inv-kpi-value" id="kpi-mwst"><span class="spinner"></span></div>
+    </div>
+    <div class="inv-kpi-card">
+      <div class="inv-kpi-label">Gesamt Brutto</div>
+      <div class="inv-kpi-value" style="color:#40916C" id="kpi-brutto"><span class="spinner"></span></div>
+    </div>
+  </div>
+</div>
+
+<div class="inv-outer">
+
+  <!-- Tabelle -->
+  <div class="table-wrap">
+    <div class="table-header">
+      <div class="table-title">Gutschriften &amp; Stornobelege</div>
+      <div class="filter-bar">
+        <select id="year-select" onchange="applyFilters()"></select>
+        <select id="month-select" onchange="applyFilters()">
+          <option value="">Alle Monate</option>
+          <option value="01">Januar</option>
+          <option value="02">Februar</option>
+          <option value="03">März</option>
+          <option value="04">April</option>
+          <option value="05">Mai</option>
+          <option value="06">Juni</option>
+          <option value="07">Juli</option>
+          <option value="08">August</option>
+          <option value="09">September</option>
+          <option value="10">Oktober</option>
+          <option value="11">November</option>
+          <option value="12">Dezember</option>
+        </select>
+        <select id="type-select" onchange="applyFilters()">
+          <option value="">Alle Typen</option>
+          <option value="pt">PT</option>
+          <option value="gt">GT</option>
+          <option value="storno">Storno</option>
+        </select>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table id="invoices-table">
+        <thead>
+          <tr>
+            <th>Nr.</th>
+            <th>Datum</th>
+            <th>Typ</th>
+            <th>Teilnehmer / Kunde</th>
+            <th style="text-align:right">Netto</th>
+            <th style="text-align:right">MwSt</th>
+            <th style="text-align:right">Brutto</th>
+            <th style="text-align:center">PDF</th>
+            <th style="text-align:center">Druck</th>
+          </tr>
+        </thead>
+        <tbody id="invoices-body">
+          <tr><td colspan="9" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+        </tbody>
+        <tfoot id="invoices-foot" style="display:none">
+          <tr class="sum-row">
+            <td colspan="4" style="padding-left:12px;color:#8888A0;font-size:13px" id="sum-label">Gesamt</td>
+            <td style="text-align:right" id="sum-netto"></td>
+            <td style="text-align:right;color:#8888A0" id="sum-mwst"></td>
+            <td style="text-align:right;color:#40916C" id="sum-brutto"></td>
+            <td></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<nav class="bottom-nav" id="bottom-nav"></nav>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-check.js"></script>
+<script>
+  let allInvoices  = [];
+  let trainerId    = null;
+  let selectedYear = new Date().getFullYear();
+
+  // ── Hilfsfunktionen ───────────────────────────────────────────────────────
+  function f(cents) {
+    return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+  }
+
+  function fSigned(cents) {
+    const val = cents / 100;
+    const formatted = Math.abs(val).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+    return cents < 0 ? '−' + formatted : formatted;
+  }
+
+  function isStorno(inv) {
+    return (inv.type || '').toLowerCase() === 'stornobeleg';
+  }
+
+  function getBookingType(inv) {
+    const bt = (inv.booking_type || inv.session_type || '').toLowerCase();
+    if (bt === 'group' || bt === 'gt') return 'gt';
+    return 'pt';
+  }
+
+  // ── Stripe Onboarding Banner ──────────────────────────────────────────────
+  async function loadStripeStatus(userId) {
+    const sb = getSupabase();
+    const { data: profile } = await sb
+      .from('trainer_profiles')
+      .select('stripe_onboarding_complete, stripe_account_id')
+      .eq('auth_user_id', userId)
+      .single();
+
+    const banner = document.getElementById('stripe-banner');
+    if (!profile) { banner.style.display = 'none'; return; }
+
+    if (profile.stripe_onboarding_complete) {
+      banner.className = 'stripe-banner active';
+      banner.innerHTML = `
+        <div class="stripe-banner-left">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          Auszahlung aktiv – Stripe Connect verbunden
+        </div>
+      `;
+    } else {
+      banner.className = 'stripe-banner pending';
+      banner.innerHTML = `
+        <div class="stripe-banner-left">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          Auszahlung noch nicht eingerichtet – verbinde jetzt dein Stripe-Konto
+        </div>
+        <button class="stripe-banner-btn" id="stripe-onboard-btn" onclick="startStripeOnboarding()">
+          Auszahlung einrichten
+        </button>
+      `;
+    }
+    banner.style.display = 'flex';
+  }
+
+  async function startStripeOnboarding() {
+    const btn = document.getElementById('stripe-onboard-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Wird geladen...'; }
+    const sb = getSupabase();
+    try {
+      const { data, error } = await sb.functions.invoke('stripe-connect-onboard', {
+        body: { trainer_id: trainerId },
+      });
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      } else {
+        alert('Fehler: Keine Redirect-URL erhalten.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Auszahlung einrichten'; }
+      }
+    } catch (err) {
+      alert('Fehler beim Stripe Onboarding: ' + err.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Auszahlung einrichten'; }
+    }
+  }
+
+  // ── Onboarding-Rückkehrer ─────────────────────────────────────────────────
+  function handleOnboardingReturn() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('onboarding') === 'complete') {
+      const banner = document.getElementById('stripe-banner');
+      if (banner) {
+        banner.className = 'stripe-banner active';
+        banner.innerHTML = `
+          <div class="stripe-banner-left">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            Stripe-Onboarding abgeschlossen – Auszahlung ist jetzt aktiv
+          </div>
+        `;
+        banner.style.display = 'flex';
+      }
+    } else if (params.get('onboarding') === 'refresh') {
+      const banner = document.getElementById('stripe-banner');
+      if (banner) {
+        banner.className = 'stripe-banner pending';
+        banner.innerHTML = `
+          <div class="stripe-banner-left">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Onboarding nicht abgeschlossen – bitte versuche es erneut
+          </div>
+          <button class="stripe-banner-btn" id="stripe-onboard-btn" onclick="startStripeOnboarding()">
+            Erneut versuchen
+          </button>
+        `;
+        banner.style.display = 'flex';
+      }
+    }
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  (async () => {
+    const trainer = await checkTrainerAuth();
+    if (!trainer) return;
+
+    document.getElementById('top-header').innerHTML = renderTopHeader();
+    document.getElementById('bottom-nav').innerHTML  = renderNav('invoices');
+
+    handleOnboardingReturn();
+
+    if (!trainer.id) {
+      ['kpi-count','kpi-netto','kpi-mwst','kpi-brutto'].forEach(id =>
+        document.getElementById(id).textContent = '–');
+      document.getElementById('invoices-body').innerHTML =
+        '<tr><td colspan="9" class="text-muted" style="padding:16px;text-align:center">Kein Trainer-Profil verknüpft.</td></tr>';
+      return;
+    }
+
+    trainerId = trainer.id;
+
+    // Stripe Status laden (parallel zu Rechnungen)
+    const sbUser = getSupabase();
+    const { data: { session } } = await sbUser.auth.getSession();
+    loadStripeStatus(session.user.id);
+
+    await loadInvoices(trainerId);
+  })();
+
+  // ── Daten laden ───────────────────────────────────────────────────────────
+  async function loadInvoices(tid) {
+    const sb = getSupabase();
+    const year = selectedYear;
+
+    try {
+      const { data, error } = await sb
+        .from('invoices')
+        .select('*')
+        .eq('trainer_id', tid)
+        .in('type', ['gutschrift', 'stornobeleg'])
+        .gte('issued_at', `${year}-01-01`)
+        .lte('issued_at', `${year}-12-31`)
+        .order('issued_at', { ascending: false });
+
+      if (error) throw error;
+
+      allInvoices = data || [];
+
+      // Jahres-Dropdown befüllen
+      const { data: yearRows } = await sb
+        .from('invoices')
+        .select('issued_at')
+        .eq('trainer_id', tid)
+        .in('type', ['gutschrift', 'stornobeleg'])
+        .order('issued_at', { ascending: false });
+
+      const years = [...new Set((yearRows || []).map(r => (r.issued_at || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+      if (!years.includes(String(selectedYear))) years.unshift(String(selectedYear));
+
+      const sel = document.getElementById('year-select');
+      sel.innerHTML = years.map(y =>
+        `<option value="${y}"${y == selectedYear ? ' selected' : ''}>${y}</option>`
+      ).join('');
+
+      applyFilters();
+    } catch (err) {
+      document.getElementById('invoices-body').innerHTML =
+        `<tr><td colspan="9" style="padding:20px;color:#e74c3c;text-align:center">Fehler: ${err.message}</td></tr>`;
+      ['kpi-count','kpi-netto','kpi-mwst','kpi-brutto'].forEach(id =>
+        document.getElementById(id).textContent = '–');
+    }
+  }
+
+  // ── Filter anwenden ───────────────────────────────────────────────────────
+  function applyFilters() {
+    const yearVal  = document.getElementById('year-select').value  || String(selectedYear);
+    const monthVal = document.getElementById('month-select').value;
+    const typeVal  = document.getElementById('type-select').value;
+
+    selectedYear = parseInt(yearVal);
+
+    let filtered = allInvoices.filter(inv => {
+      const d = inv.issued_at || '';
+      if (!d.startsWith(yearVal)) return false;
+      if (monthVal && !d.startsWith(`${yearVal}-${monthVal}`)) return false;
+      if (typeVal === 'storno' && !isStorno(inv)) return false;
+      if (typeVal === 'pt' && (isStorno(inv) || getBookingType(inv) !== 'pt')) return false;
+      if (typeVal === 'gt' && (isStorno(inv) || getBookingType(inv) !== 'gt')) return false;
+      return true;
+    });
+
+    renderTable(filtered);
+    updateKPIs(filtered);
+  }
+
+  // ── Tabelle rendern ───────────────────────────────────────────────────────
+  function renderTable(data) {
+    const tbody = document.getElementById('invoices-body');
+    const tfoot = document.getElementById('invoices-foot');
+
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="padding:32px;text-align:center;color:#55556A">Keine Gutschriften gefunden</td></tr>';
+      tfoot.style.display = 'none';
+      return;
+    }
+
+    tbody.innerHTML = data.map(inv => {
+      const storno     = isStorno(inv);
+      const bt         = getBookingType(inv);
+      const bruttoCents = storno ? -(Math.abs(inv.amount_gross_cents || 0)) : (inv.amount_gross_cents || 0);
+      const nettoCents  = storno ? -(Math.abs(inv.amount_net_cents  || 0)) : (inv.amount_net_cents  || 0);
+      const mwstCents   = bruttoCents - nettoCents;
+      const rowClass   = storno ? ' class="storno-row"' : '';
+
+      const typeBadge  = storno
+        ? '<span class="badge-storno">Storno</span>'
+        : bt === 'gt'
+          ? '<span class="badge-gt">GT</span>'
+          : '<span class="badge-pt">PT</span>';
+
+      const kundenName = inv.customer_name || inv.recipient_name || '–';
+      const nummer     = inv.invoice_number || inv.number || '–';
+      const datum      = formatDate(inv.issued_at);
+
+      const bruttoCell = storno
+        ? `<td style="text-align:right;font-weight:700;color:#e74c3c">${fSigned(bruttoCents)}</td>`
+        : `<td style="text-align:right;font-weight:700;color:#40916C">${fSigned(bruttoCents)}</td>`;
+
+      return `<tr${rowClass}>
+        <td style="font-size:12px;color:#8888A0;white-space:nowrap">${nummer}</td>
+        <td style="white-space:nowrap">${datum}</td>
+        <td>${typeBadge}</td>
+        <td>${kundenName}</td>
+        <td style="text-align:right">${fSigned(nettoCents)}</td>
+        <td style="text-align:right;color:#8888A0;font-size:13px">${fSigned(mwstCents)}</td>
+        ${bruttoCell}
+        <td style="text-align:center">
+          ${inv.pdf_path
+            ? `<button class="icon-btn" onclick="downloadPdf('${inv.pdf_path}')" title="PDF herunterladen">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+               </button>`
+            : '<span style="color:#33334A;font-size:12px">–</span>'
+          }
+        </td>
+        <td style="text-align:center">
+          <button class="icon-btn" onclick="printInvoice('${inv.id}')" title="Drucken">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // Summen
+    const sumNetto  = data.reduce((s, inv) => {
+      const storno = isStorno(inv);
+      return s + (storno ? -(Math.abs(inv.amount_net_cents || 0)) : (inv.amount_net_cents || 0));
+    }, 0);
+    const sumBrutto = data.reduce((s, inv) => {
+      const storno = isStorno(inv);
+      return s + (storno ? -(Math.abs(inv.amount_gross_cents || 0)) : (inv.amount_gross_cents || 0));
+    }, 0);
+    const sumMwst   = sumBrutto - sumNetto;
+
+    document.getElementById('sum-label').textContent = `Gesamt (${data.length} Belege)`;
+    document.getElementById('sum-netto').textContent  = fSigned(sumNetto);
+    document.getElementById('sum-mwst').textContent   = fSigned(sumMwst);
+    document.getElementById('sum-brutto').textContent = fSigned(sumBrutto);
+    tfoot.style.display = '';
+  }
+
+  // ── KPIs aktualisieren ────────────────────────────────────────────────────
+  function updateKPIs(data) {
+    const gutschriften = data.filter(inv => !isStorno(inv));
+    const sumBrutto = data.reduce((s, inv) => {
+      return s + (isStorno(inv) ? -(Math.abs(inv.amount_gross_cents || 0)) : (inv.amount_gross_cents || 0));
+    }, 0);
+    const sumNetto = data.reduce((s, inv) => {
+      return s + (isStorno(inv) ? -(Math.abs(inv.amount_net_cents || 0)) : (inv.amount_net_cents || 0));
+    }, 0);
+    const sumMwst = sumBrutto - sumNetto;
+
+    document.getElementById('kpi-count').textContent  = gutschriften.length;
+    document.getElementById('kpi-netto').textContent  = fSigned(sumNetto);
+    document.getElementById('kpi-mwst').textContent   = fSigned(sumMwst);
+    document.getElementById('kpi-brutto').textContent = fSigned(sumBrutto);
+  }
+
+  // ── PDF Download ──────────────────────────────────────────────────────────
+  async function downloadPdf(pdfPath) {
+    const sb = getSupabase();
+    try {
+      const { data, error } = await sb.storage.from('invoices').createSignedUrl(pdfPath, 3600);
+      if (error) throw error;
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      } else {
+        alert('PDF konnte nicht geladen werden.');
+      }
+    } catch (err) {
+      alert('Fehler beim Laden der PDF: ' + err.message);
+    }
+  }
+
+  // ── Drucken ───────────────────────────────────────────────────────────────
+  async function printInvoice(invoiceId) {
+    const inv = allInvoices.find(x => x.id === invoiceId);
+    if (!inv) return;
+
+    // Falls PDF vorhanden: zuerst versuchen
+    if (inv.pdf_path) {
+      const sb = getSupabase();
+      try {
+        const { data } = await sb.storage.from('invoices').createSignedUrl(inv.pdf_path, 3600);
+        if (data?.signedUrl) {
+          const w = window.open(data.signedUrl, '_blank');
+          // Kurze Verzögerung dann drucken
+          if (w) { setTimeout(() => { try { w.print(); } catch(e) {} }, 1500); }
+          return;
+        }
+      } catch(e) {}
+    }
+
+    // Fallback: Browser-Druckdialog für aktuelle Seite
+    window.print();
+  }
+
+  // ── CSV Export ────────────────────────────────────────────────────────────
+  function exportCSV() {
+    const yearVal  = document.getElementById('year-select').value  || String(selectedYear);
+    const monthVal = document.getElementById('month-select').value;
+    const typeVal  = document.getElementById('type-select').value;
+
+    let filtered = allInvoices.filter(inv => {
+      const d = inv.issued_at || '';
+      if (!d.startsWith(yearVal)) return false;
+      if (monthVal && !d.startsWith(`${yearVal}-${monthVal}`)) return false;
+      if (typeVal === 'storno' && !isStorno(inv)) return false;
+      if (typeVal === 'pt' && (isStorno(inv) || getBookingType(inv) !== 'pt')) return false;
+      if (typeVal === 'gt' && (isStorno(inv) || getBookingType(inv) !== 'gt')) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) { alert('Keine Daten für den gewählten Filter.'); return; }
+
+    const headers = ['Nr.','Datum','Typ','Kunde','Netto (EUR)','MwSt (EUR)','Brutto (EUR)'];
+    const rows = filtered.map(inv => {
+      const storno      = isStorno(inv);
+      const bruttoCents = storno ? -(Math.abs(inv.amount_gross_cents || 0)) : (inv.amount_gross_cents || 0);
+      const nettoCents  = storno ? -(Math.abs(inv.amount_net_cents  || 0)) : (inv.amount_net_cents  || 0);
+      const mwstCents   = bruttoCents - nettoCents;
+      return [
+        inv.invoice_number || inv.number || '',
+        inv.issued_at ? inv.issued_at.slice(0, 10) : '',
+        storno ? 'Storno' : (getBookingType(inv) === 'gt' ? 'GT' : 'PT'),
+        inv.customer_name || inv.recipient_name || '',
+        (nettoCents  / 100).toFixed(2).replace('.', ','),
+        (mwstCents   / 100).toFixed(2).replace('.', ','),
+        (bruttoCents / 100).toFixed(2).replace('.', ','),
+      ];
+    });
+
+    let csv = '\uFEFF' + headers.join(';') + '\n';
+    rows.forEach(r => { csv += r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';') + '\n'; });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `trainer-gutschriften-${yearVal}${monthVal ? '-' + monthVal : ''}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+
+</body>
+</html>

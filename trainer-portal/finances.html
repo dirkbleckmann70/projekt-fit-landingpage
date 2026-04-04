@@ -116,6 +116,7 @@
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
     <h1 class="page-title" style="margin:0">Finanzen</h1>
     <div style="display:flex;align-items:center;gap:10px">
+      <a href="/trainer-portal/invoices.html" class="btn btn-ghost btn-sm" style="text-decoration:none">Gutschriften</a>
       <select id="year-select" class="form-control" style="width:auto;padding:6px 14px;font-size:14px" onchange="onYearChange()"></select>
       <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV Export</button>
     </div>
@@ -127,7 +128,7 @@
   <!-- Ebene 1: Jahres-KPIs -->
   <div class="fin-kpi-bar">
     <div class="fin-kpi-card"><div class="fin-kpi-label">Vergütung brutto</div><div class="fin-kpi-value" id="kpi-brutto"><span class="spinner"></span></div></div>
-    <div class="fin-kpi-card"><div class="fin-kpi-label">MwSt 19%</div><div class="fin-kpi-value" id="kpi-mwst"><span class="spinner"></span></div></div>
+    <div class="fin-kpi-card"><div class="fin-kpi-label" id="kpi-mwst-label">MwSt 19%</div><div class="fin-kpi-value" id="kpi-mwst"><span class="spinner"></span></div></div>
     <div class="fin-kpi-card"><div class="fin-kpi-label">Vergütung netto</div><div class="fin-kpi-value" id="kpi-netto"><span class="spinner"></span></div></div>
     <div class="fin-kpi-card"><div class="fin-kpi-label">Abzüge</div><div class="fin-kpi-value" id="kpi-abzuege"><span class="spinner"></span></div></div>
     <div class="fin-kpi-card"><div class="fin-kpi-label">Auszahlung</div><div class="fin-kpi-value" style="color:#27ae60" id="kpi-auszahlung"><span class="spinner"></span></div></div>
@@ -214,6 +215,7 @@
   let tableFilter  = null;
   let selectedYear = new Date().getFullYear();
   let _trainerRate = 0;
+  let _mwstSatz    = 19; // Default 19%, wird aus Trainer-Profil geladen
 
   const FIN_CANCELLED = ['cancelled', 'refunded', 'cancelled_by_trainer'];
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August',
@@ -221,7 +223,7 @@
 
   // ── Berechnungen ──────────────────────────────────────────────────────────
   function effBrutto(b)     { return b.status === 'completed' ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
-  function effNetto(b)      { return Math.round(effBrutto(b) / 1.19); }
+  function effNetto(b)      { return _mwstSatz > 0 ? Math.round(effBrutto(b) / (1 + _mwstSatz / 100)) : effBrutto(b); }
   function effMwSt(b)       { return effBrutto(b) - effNetto(b); }
   function effAuszahlung(b) { return effNetto(b); } // Abzüge = 0
 
@@ -257,6 +259,7 @@
     }
 
     _trainerRate = trainer.payout_cents || 0;
+    _mwstSatz    = trainer.mwst_satz ?? 19;
     await loadFinances(trainer.id);
   })();
 
@@ -336,9 +339,10 @@
   // ── Ebene 1: KPIs ─────────────────────────────────────────────────────────
   function updateKPIs() {
     const brutto  = yearData.reduce((s, b) => s + effBrutto(b), 0);
-    const netto   = Math.round(brutto / 1.19);
+    const netto   = _mwstSatz > 0 ? Math.round(brutto / (1 + _mwstSatz / 100)) : brutto;
     const mwst    = brutto - netto;
     document.getElementById('kpi-brutto').textContent    = f(brutto);
+    document.getElementById('kpi-mwst-label').textContent = `MwSt ${_mwstSatz}%`;
     document.getElementById('kpi-mwst').textContent      = f(mwst);
     document.getElementById('kpi-netto').textContent     = f(netto);
     document.getElementById('kpi-abzuege').textContent   = f(0);
@@ -356,7 +360,7 @@
       const mb     = yearData.filter(b => (b.scheduled_date || '').startsWith(prefix));
       const count  = mb.length;
       const brutto = mb.reduce((s, b) => s + effBrutto(b), 0);
-      const netto  = Math.round(brutto / 1.19);
+      const netto  = _mwstSatz > 0 ? Math.round(brutto / (1 + _mwstSatz / 100)) : brutto;
       const mwst   = brutto - netto;
       totCount += count; totB += brutto; totM += mwst; totN += netto;
 
@@ -471,7 +475,7 @@
       </div>
       <div class="detail-row">
         <div class="detail-field"><label>Vergütung brutto</label><div class="dv" style="color:var(--accent);font-weight:700">${f(brutto)}</div></div>
-        <div class="detail-field"><label>MwSt (19%)</label><div class="dv" style="color:var(--text-secondary)">${f(mwst)}</div></div>
+        <div class="detail-field"><label>MwSt (${_mwstSatz}%)</label><div class="dv" style="color:var(--text-secondary)">${f(mwst)}</div></div>
       </div>
       <div class="detail-row">
         <div class="detail-field"><label>Vergütung netto</label><div class="dv" style="font-weight:600">${f(netto)}</div></div>

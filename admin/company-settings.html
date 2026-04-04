@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firmendaten – Projekt Fit Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .settings-card {
+      background: #1a1a24;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+    }
+    .settings-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #40916C;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(64,145,108,0.2);
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 24px;
+    }
+    .form-grid.cols-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+    @media (max-width: 700px) {
+      .form-grid, .form-grid.cols-3 { grid-template-columns: 1fr; }
+    }
+    .form-group-full { grid-column: 1 / -1; }
+
+    .details-summary {
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #40916C;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(64,145,108,0.2);
+      margin-bottom: 20px;
+      user-select: none;
+    }
+    .details-summary::before {
+      content: '&#9654;';
+      font-size: 10px;
+      transition: transform 0.2s;
+    }
+    details[open] .details-summary::before { transform: rotate(90deg); }
+    details summary::-webkit-details-marker { display: none; }
+
+    .save-bar {
+      position: sticky;
+      bottom: 0;
+      background: linear-gradient(to top, #0D0D15 80%, transparent);
+      padding: 16px 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      z-index: 10;
+    }
+    .save-bar .status-text {
+      font-size: 13px;
+      color: #40916C;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+    .save-bar .status-text.show { opacity: 1; }
+    .save-bar .status-text.error { color: #e74c3c; }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <div id="alert-box" class="alert"></div>
+
+      <form id="settings-form" novalidate>
+
+        <!-- Unternehmen -->
+        <div class="settings-card">
+          <div class="settings-card-title">Unternehmen</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Firmenname</label>
+              <input class="form-control" type="text" id="company_name" placeholder="Projekt Fit GmbH">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Rechtsform</label>
+              <select class="form-control" id="legal_form">
+                <option value="">– Bitte wählen –</option>
+                <option value="Einzelunternehmen">Einzelunternehmen</option>
+                <option value="GmbH">GmbH</option>
+                <option value="UG">UG (haftungsbeschränkt)</option>
+                <option value="GbR">GbR</option>
+                <option value="KG">KG</option>
+                <option value="OHG">OHG</option>
+                <option value="AG">AG</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Inhaber / Geschäftsführer</label>
+              <input class="form-control" type="text" id="owner_name" placeholder="Max Mustermann">
+            </div>
+          </div>
+        </div>
+
+        <!-- Adresse -->
+        <div class="settings-card">
+          <div class="settings-card-title">Adresse</div>
+          <div class="form-grid">
+            <div class="form-group form-group-full">
+              <label class="form-label">Straße + Hausnummer</label>
+              <input class="form-control" type="text" id="street" placeholder="Musterstraße 42">
+            </div>
+            <div class="form-group">
+              <label class="form-label">PLZ</label>
+              <input class="form-control" type="text" id="postal_code" placeholder="10115">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Stadt</label>
+              <input class="form-control" type="text" id="city" placeholder="Berlin">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Land</label>
+              <input class="form-control" type="text" id="country" placeholder="Deutschland" value="Deutschland">
+            </div>
+          </div>
+        </div>
+
+        <!-- Steuer -->
+        <div class="settings-card">
+          <div class="settings-card-title">Steuer</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Steuernummer</label>
+              <input class="form-control" type="text" id="tax_number" placeholder="12/345/67890">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Umsatzsteuer-ID</label>
+              <input class="form-control" type="text" id="vat_id" placeholder="DE123456789">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Standard MwSt-Satz (%)</label>
+              <input class="form-control" type="number" id="default_vat_rate" placeholder="19" min="0" max="100" step="0.1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Kontakt -->
+        <div class="settings-card">
+          <div class="settings-card-title">Kontakt</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">E-Mail</label>
+              <input class="form-control" type="email" id="email" placeholder="info@projektfit.net">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Telefon</label>
+              <input class="form-control" type="tel" id="phone" placeholder="+49 30 12345678">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Website</label>
+              <input class="form-control" type="url" id="website" placeholder="https://projektfit.net">
+            </div>
+          </div>
+        </div>
+
+        <!-- Bankverbindung -->
+        <div class="settings-card">
+          <div class="settings-card-title">Bankverbindung</div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">Bank</label>
+              <input class="form-control" type="text" id="bank_name" placeholder="Sparkasse Berlin">
+            </div>
+            <div class="form-group">
+              <label class="form-label">IBAN</label>
+              <input class="form-control" type="text" id="iban" placeholder="DE89 3704 0044 0532 0130 00">
+            </div>
+            <div class="form-group">
+              <label class="form-label">BIC</label>
+              <input class="form-control" type="text" id="bic" placeholder="COBADEFFXXX">
+            </div>
+          </div>
+        </div>
+
+        <!-- Erweitert (aufklappbar) -->
+        <div class="settings-card">
+          <details id="advanced-section">
+            <summary class="details-summary">Erweiterte Angaben</summary>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Handelsregisternummer</label>
+                <input class="form-control" type="text" id="handelsregister_nr" placeholder="HRB 12345">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Registergericht</label>
+                <input class="form-control" type="text" id="registergericht" placeholder="Amtsgericht Berlin">
+              </div>
+              <div class="form-group form-group-full">
+                <label class="form-label">Geschäftsführer (kommagetrennt)</label>
+                <input class="form-control" type="text" id="geschaeftsfuehrer" placeholder="Max Mustermann, Erika Musterfrau">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Rechnungs-Präfix</label>
+                <input class="form-control" type="text" id="invoice_prefix" placeholder="PF-">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nächste Rechnungsnummer</label>
+                <input class="form-control" type="number" id="next_invoice_number" placeholder="1001" min="1">
+              </div>
+              <div class="form-group form-group-full">
+                <label class="form-label">Rechnungs-Fußtext</label>
+                <textarea class="form-control" id="invoice_footer_text" rows="3" placeholder="Vielen Dank für Ihr Vertrauen..."></textarea>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <!-- Speichern-Leiste -->
+        <div class="save-bar">
+          <button type="submit" class="btn btn-primary" id="save-btn">Firmendaten speichern</button>
+          <span class="status-text" id="save-status"></span>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  // Felder die aus/in DB gemappt werden
+  const FIELDS = [
+    'company_name', 'legal_form', 'owner_name',
+    'street', 'postal_code', 'city', 'country',
+    'tax_number', 'vat_id', 'default_vat_rate',
+    'email', 'phone', 'website',
+    'bank_name', 'iban', 'bic',
+    'handelsregister_nr', 'registergericht', 'geschaeftsfuehrer',
+    'invoice_prefix', 'next_invoice_number', 'invoice_footer_text',
+  ];
+
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderSidebar('company-settings');
+    document.getElementById('header').innerHTML = renderHeader('Firmendaten');
+
+    await loadSettings();
+  })();
+
+  async function loadSettings() {
+    try {
+      const res = await adminApi('/api/admin?action=company-settings');
+      const data = res.data || {};
+      FIELDS.forEach(field => {
+        const el = document.getElementById(field);
+        if (!el) return;
+        if (data[field] != null) el.value = data[field];
+      });
+    } catch (err) {
+      showAlert('alert-box', 'Laden fehlgeschlagen: ' + err.message, 'error');
+    }
+  }
+
+  document.getElementById('settings-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('save-btn');
+    const statusEl = document.getElementById('save-status');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Wird gespeichert...';
+    statusEl.classList.remove('show', 'error');
+
+    const payload = {};
+    FIELDS.forEach(field => {
+      const el = document.getElementById(field);
+      if (!el) return;
+      const val = el.value.trim();
+      // Nur befüllte Felder senden, leere als null
+      payload[field] = val !== '' ? val : null;
+    });
+
+    // Numerische Felder konvertieren
+    if (payload.default_vat_rate != null)   payload.default_vat_rate   = parseFloat(payload.default_vat_rate);
+    if (payload.next_invoice_number != null) payload.next_invoice_number = parseInt(payload.next_invoice_number);
+
+    try {
+      await adminApi('/api/admin?action=company-settings', {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      statusEl.textContent = 'Gespeichert!';
+      statusEl.className = 'status-text show';
+      setTimeout(() => statusEl.classList.remove('show'), 4000);
+    } catch (err) {
+      statusEl.textContent = 'Fehler: ' + err.message;
+      statusEl.className = 'status-text show error';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Firmendaten speichern';
+    }
+  });
+</script>
+
+</body>
+</html>

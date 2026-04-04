@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Belege – Projekt Fit Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
+  <style>
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .filter-bar select,
+    .filter-bar input[type="text"] {
+      background: #1a1a24;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 13px;
+      padding: 7px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .filter-bar select:focus,
+    .filter-bar input[type="text"]:focus { border-color: #40916C; }
+    .filter-bar input[type="text"] { min-width: 200px; }
+
+    .badge-rg  { background: rgba(64,145,108,0.15); color: #40916C; border: 1px solid rgba(64,145,108,0.3); }
+    .badge-gs  { background: rgba(52,152,219,0.15); color: #52b3e8; border: 1px solid rgba(52,152,219,0.3); }
+    .badge-sb  { background: rgba(231,76,60,0.15);  color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
+    .badge-pt  { background: rgba(224,122,58,0.15); color: #E07A3A; border: 1px solid rgba(224,122,58,0.3); }
+    .badge-gt  { background: rgba(155,89,182,0.15); color: #bb8fe8; border: 1px solid rgba(155,89,182,0.3); }
+
+    .row-storno td { color: #e74c3c !important; opacity: 0.85; }
+
+    .sum-row td {
+      background: rgba(64,145,108,0.07);
+      font-weight: 700;
+      color: #fff;
+      border-top: 2px solid rgba(64,145,108,0.3);
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px 6px;
+      border-radius: 6px;
+      color: #888;
+      transition: color 0.15s, background 0.15s;
+      font-size: 16px;
+      line-height: 1;
+    }
+    .icon-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .icon-btn.download:hover { color: #40916C; }
+    .icon-btn.print:hover   { color: #E07A3A; }
+
+    .email-ok   { color: #27AE60; }
+    .email-pend { color: #F39C12; font-size: 12px; }
+
+    /* Detail Modal fields */
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px 20px;
+    }
+    @media (max-width: 600px) { .detail-grid { grid-template-columns: 1fr; } }
+    .detail-item label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+    }
+    .detail-item .val {
+      font-size: 14px;
+      color: #fff;
+    }
+    .detail-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #40916C;
+      margin: 20px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(64,145,108,0.2);
+    }
+  </style>
+</head>
+<body>
+
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="header" id="header"></header>
+    <div class="content">
+
+      <div id="alert-box" class="alert"></div>
+
+      <div class="table-wrap">
+        <div class="table-header">
+          <div class="table-title">Belege</div>
+          <div class="table-actions">
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV-Export</button>
+          </div>
+        </div>
+
+        <!-- Filter-Leiste -->
+        <div class="filter-bar">
+          <select id="filter-year" onchange="applyFilters()">
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+          </select>
+          <select id="filter-month" onchange="applyFilters()">
+            <option value="">Alle Monate</option>
+            <option value="01">Januar</option>
+            <option value="02">Februar</option>
+            <option value="03">März</option>
+            <option value="04">April</option>
+            <option value="05">Mai</option>
+            <option value="06">Juni</option>
+            <option value="07">Juli</option>
+            <option value="08">August</option>
+            <option value="09">September</option>
+            <option value="10">Oktober</option>
+            <option value="11">November</option>
+            <option value="12">Dezember</option>
+          </select>
+          <select id="filter-type" onchange="applyFilters()">
+            <option value="">Alle Typen</option>
+            <option value="invoice">Rechnungen</option>
+            <option value="credit_note">Gutschriften</option>
+            <option value="cancellation">Stornos</option>
+          </select>
+          <input type="text" id="filter-search" placeholder="Suche (Nr., Empfänger...)" oninput="applyFilters()">
+        </div>
+
+        <div style="overflow-x:auto">
+          <table id="invoices-table">
+            <thead>
+              <tr>
+                <th>Nr.</th>
+                <th>Typ</th>
+                <th>Training</th>
+                <th>Datum</th>
+                <th>Empfänger</th>
+                <th>Netto</th>
+                <th>MwSt</th>
+                <th>Brutto</th>
+                <th>E-Mail</th>
+                <th>PDF</th>
+              </tr>
+            </thead>
+            <tbody id="invoices-body">
+              <tr><td colspan="10" class="loading-overlay"><span class="spinner"></span> Belege werden geladen...</td></tr>
+            </tbody>
+            <tfoot id="invoices-tfoot" style="display:none">
+              <tr class="sum-row">
+                <td colspan="5" style="text-align:right;color:#888;font-size:12px" id="sum-label">Gesamt</td>
+                <td id="sum-netto"></td>
+                <td id="sum-mwst"></td>
+                <td id="sum-brutto"></td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Beleg-Details</div>
+      <button class="modal-close" onclick="closeModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal()">Schließen</button>
+      <button class="btn btn-secondary" id="modal-pdf-btn" onclick="openPdf(currentInvoiceId)">PDF öffnen</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/table-utils.js"></script>
+<script>
+  let allInvoices = [];
+  let filteredInvoices = [];
+  let currentInvoiceId = null;
+
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderSidebar('invoices');
+    document.getElementById('header').innerHTML = renderHeader('Belege');
+
+    // Jahr aus URL oder aktuelles Jahr
+    const urlYear = new URLSearchParams(window.location.search).get('year');
+    const currentYear = new Date().getFullYear();
+    const year = urlYear || String(currentYear);
+    document.getElementById('filter-year').value = year;
+
+    await loadInvoices(year);
+  })();
+
+  async function loadInvoices(year) {
+    try {
+      const res = await adminApi(`/api/admin?action=invoices&year=${year}`);
+      allInvoices = res.data || [];
+      applyFilters();
+    } catch (err) {
+      document.getElementById('invoices-body').innerHTML =
+        `<tr><td colspan="10" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+    }
+  }
+
+  function applyFilters() {
+    const year   = document.getElementById('filter-year').value;
+    const month  = document.getElementById('filter-month').value;
+    const type   = document.getElementById('filter-type').value;
+    const search = document.getElementById('filter-search').value.toLowerCase().trim();
+
+    // Neues Jahr laden wenn sich Jahr ändert
+    const loaded = allInvoices[0]?.issued_at?.slice(0, 4);
+    if (allInvoices.length === 0 || loaded !== year) {
+      loadInvoices(year);
+      return;
+    }
+
+    filteredInvoices = allInvoices.filter(inv => {
+      if (month && inv.issued_at?.slice(5, 7) !== month) return false;
+      if (type) {
+        const typeMap = { invoice: 'invoice', credit_note: 'credit_note', cancellation: 'cancellation' };
+        if (inv.invoice_type !== typeMap[type]) return false;
+      }
+      if (search) {
+        const haystack = [
+          inv.invoice_number, inv.recipient_name, inv.recipient_email,
+          inv.notes
+        ].join(' ').toLowerCase();
+        if (!haystack.includes(search)) return false;
+      }
+      return true;
+    });
+
+    renderInvoices();
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  function typeBadge(inv) {
+    const t = inv.invoice_type || 'invoice';
+    if (t === 'credit_note')  return '<span class="badge badge-gs">GS</span>';
+    if (t === 'cancellation') return '<span class="badge badge-sb">SB</span>';
+    return '<span class="badge badge-rg">RG</span>';
+  }
+
+  function typeLabel(inv) {
+    const t = inv.invoice_type || 'invoice';
+    if (t === 'credit_note')  return 'Gutschrift';
+    if (t === 'cancellation') return 'Storno';
+    return 'Rechnung';
+  }
+
+  function trainingBadge(inv) {
+    const t = (inv.training_type || '').toLowerCase();
+    if (t === 'group' || t === 'gruppentraining') return '<span class="badge badge-gt">GT</span>';
+    if (t === 'personal' || t === 'pt')           return '<span class="badge badge-pt">PT</span>';
+    return '<span style="color:#55556A">–</span>';
+  }
+
+  function emailBadge(inv) {
+    if (inv.email_sent_at) return `<span class="email-ok" title="Gesendet: ${formatDate(inv.email_sent_at)}">&#10003;</span>`;
+    return '<span class="email-pend">ausstehend</span>';
+  }
+
+  function isStorno(inv) {
+    return inv.invoice_type === 'cancellation';
+  }
+
+  function fmtCents(cents) {
+    if (cents == null) return '–';
+    return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+  }
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+
+  function renderInvoices() {
+    const tbody = document.getElementById('invoices-body');
+    const tfoot = document.getElementById('invoices-tfoot');
+
+    if (filteredInvoices.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:24px">Keine Belege gefunden</td></tr>';
+      tfoot.style.display = 'none';
+      return;
+    }
+
+    tbody.innerHTML = filteredInvoices.map(inv => {
+      const rowClass = isStorno(inv) ? 'row-storno' : '';
+      return `
+        <tr class="${rowClass}" style="cursor:pointer" onclick="openDetail('${inv.id}')">
+          <td><strong>${inv.invoice_number || '–'}</strong></td>
+          <td>${typeBadge(inv)}</td>
+          <td>${trainingBadge(inv)}</td>
+          <td>${formatDate(inv.issued_at)}</td>
+          <td>${inv.recipient_name || inv.recipient_email || '–'}</td>
+          <td>${fmtCents(inv.net_amount_cents)}</td>
+          <td>${fmtCents(inv.vat_amount_cents)}</td>
+          <td><strong>${fmtCents(inv.gross_amount_cents)}</strong></td>
+          <td>${emailBadge(inv)}</td>
+          <td onclick="event.stopPropagation()">
+            <button class="icon-btn download" title="PDF herunterladen" onclick="openPdf('${inv.id}')">&#8659;</button>
+            <button class="icon-btn print"    title="Drucken"           onclick="printPdf('${inv.id}')">&#9113;</button>
+          </td>
+        </tr>`;
+    }).join('');
+
+    // Summen
+    let sumNetto  = 0, sumMwst = 0, sumBrutto = 0;
+    filteredInvoices.forEach(inv => {
+      // Stornos subtrahieren
+      const sign = isStorno(inv) ? -1 : 1;
+      sumNetto  += sign * (inv.net_amount_cents   || 0);
+      sumMwst   += sign * (inv.vat_amount_cents   || 0);
+      sumBrutto += sign * (inv.gross_amount_cents || 0);
+    });
+
+    document.getElementById('sum-label').textContent   = `Gesamt (${filteredInvoices.length} Belege)`;
+    document.getElementById('sum-netto').textContent   = fmtCents(sumNetto);
+    document.getElementById('sum-mwst').textContent    = fmtCents(sumMwst);
+    document.getElementById('sum-brutto').textContent  = fmtCents(sumBrutto);
+    tfoot.style.display = '';
+  }
+
+  // ─── Detail Modal ──────────────────────────────────────────────────────────
+
+  function openDetail(id) {
+    const inv = allInvoices.find(x => x.id === id);
+    if (!inv) return;
+    currentInvoiceId = id;
+
+    document.getElementById('modal-title').textContent = `Beleg ${inv.invoice_number || id} – ${typeLabel(inv)}`;
+
+    document.getElementById('modal-body').innerHTML = `
+      <div class="detail-section-title">Beleg-Informationen</div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Belegnummer</label><div class="val">${inv.invoice_number || '–'}</div></div>
+        <div class="detail-item"><label>Typ</label><div class="val">${typeBadge(inv)} ${typeLabel(inv)}</div></div>
+        <div class="detail-item"><label>Ausstellungsdatum</label><div class="val">${formatDate(inv.issued_at)}</div></div>
+        <div class="detail-item"><label>Leistungsdatum</label><div class="val">${formatDate(inv.service_date)}</div></div>
+        <div class="detail-item"><label>Fälligkeitsdatum</label><div class="val">${formatDate(inv.due_date)}</div></div>
+        <div class="detail-item"><label>Trainingstyp</label><div class="val">${trainingBadge(inv)}</div></div>
+      </div>
+
+      <div class="detail-section-title">Empfänger</div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Name</label><div class="val">${inv.recipient_name || '–'}</div></div>
+        <div class="detail-item"><label>E-Mail</label><div class="val">${inv.recipient_email || '–'}</div></div>
+        <div class="detail-item"><label>Adresse</label><div class="val">${inv.recipient_address || '–'}</div></div>
+        <div class="detail-item"><label>USt-IdNr.</label><div class="val">${inv.recipient_vat_id || '–'}</div></div>
+      </div>
+
+      <div class="detail-section-title">Beträge</div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Nettobetrag</label><div class="val">${fmtCents(inv.net_amount_cents)}</div></div>
+        <div class="detail-item"><label>MwSt-Satz</label><div class="val">${inv.vat_rate != null ? inv.vat_rate + ' %' : '–'}</div></div>
+        <div class="detail-item"><label>MwSt-Betrag</label><div class="val">${fmtCents(inv.vat_amount_cents)}</div></div>
+        <div class="detail-item"><label>Bruttobetrag</label><div class="val" style="color:#40916C;font-weight:700">${fmtCents(inv.gross_amount_cents)}</div></div>
+      </div>
+
+      <div class="detail-section-title">Status & Versand</div>
+      <div class="detail-grid">
+        <div class="detail-item"><label>Zahlungsstatus</label><div class="val">${inv.payment_status || '–'}</div></div>
+        <div class="detail-item"><label>E-Mail gesendet</label><div class="val">${inv.email_sent_at ? formatDateTime(inv.email_sent_at) : '<span class="email-pend">Nein</span>'}</div></div>
+        <div class="detail-item"><label>PDF vorhanden</label><div class="val">${inv.pdf_path ? '<span class="email-ok">Ja</span>' : '<span style="color:#888">Nein</span>'}</div></div>
+        <div class="detail-item"><label>Erstellt am</label><div class="val">${formatDateTime(inv.created_at)}</div></div>
+      </div>
+
+      ${inv.notes ? `
+      <div class="detail-section-title">Notizen</div>
+      <div style="background:#111;border-radius:8px;padding:12px;font-size:13px;color:#ccc">${inv.notes}</div>
+      ` : ''}
+
+      <p class="text-muted mt-1" style="font-size:11px">ID: ${inv.id}</p>
+    `;
+
+    document.getElementById('modal-pdf-btn').style.display = inv.pdf_path ? '' : 'none';
+    document.getElementById('detail-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('detail-modal').classList.remove('open');
+    currentInvoiceId = null;
+  }
+
+  // ─── PDF ──────────────────────────────────────────────────────────────────
+
+  async function openPdf(id) {
+    if (!id) return;
+    try {
+      const res = await adminApi(`/api/admin?action=invoice-pdf&id=${id}`);
+      window.open(res.url, '_blank');
+    } catch (err) {
+      showAlert('alert-box', 'PDF-Fehler: ' + err.message, 'error');
+    }
+  }
+
+  async function printPdf(id) {
+    if (!id) return;
+    try {
+      const res = await adminApi(`/api/admin?action=invoice-pdf&id=${id}`);
+      const win = window.open(res.url, '_blank');
+      if (win) win.addEventListener('load', () => win.print(), { once: true });
+    } catch (err) {
+      showAlert('alert-box', 'PDF-Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── CSV-Export ───────────────────────────────────────────────────────────
+
+  function exportCSV() {
+    if (filteredInvoices.length === 0) {
+      showAlert('alert-box', 'Keine Daten zum Exportieren.', 'error');
+      return;
+    }
+
+    const header = ['Nr.','Typ','Trainingstyp','Datum','Empfänger','E-Mail','Netto','MwSt','Brutto','E-Mail gesendet','Zahlungsstatus'];
+    const rows = filteredInvoices.map(inv => [
+      inv.invoice_number || '',
+      typeLabel(inv),
+      inv.training_type || '',
+      inv.issued_at ? inv.issued_at.slice(0, 10) : '',
+      inv.recipient_name || '',
+      inv.recipient_email || '',
+      inv.net_amount_cents != null   ? (inv.net_amount_cents   / 100).toFixed(2) : '',
+      inv.vat_amount_cents != null   ? (inv.vat_amount_cents   / 100).toFixed(2) : '',
+      inv.gross_amount_cents != null ? (inv.gross_amount_cents / 100).toFixed(2) : '',
+      inv.email_sent_at ? inv.email_sent_at.slice(0, 10) : 'Nein',
+      inv.payment_status || '',
+    ]);
+
+    const csv = [header, ...rows]
+      .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `belege_${document.getElementById('filter-year').value}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ─── Modal-Overlay schliessen per Klick ───────────────────────────────────
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) closeModal(); });
+  });
+</script>
+
+</body>
+</html>

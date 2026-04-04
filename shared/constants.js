@@ -37,6 +37,7 @@ const BOOKING_STATUS = Object.freeze({
   REPLACEMENT_PENDING:  'replacement_pending',
   BOOKED:               'booked',
   RESCHEDULE_PROPOSED:  'reschedule_proposed',
+  AWAITING_CHECKOUT:    'awaiting_checkout',
 });
 
 // ─── Status Labels (deutsch) fuer Portal-Anzeige ───────────────────────────
@@ -64,6 +65,7 @@ const STATUS_LABELS = Object.freeze({
   [BOOKING_STATUS.REPLACEMENT_PENDING]:  'Warte auf Ersatztrainer',
   [BOOKING_STATUS.BOOKED]:               'Gebucht',
   [BOOKING_STATUS.RESCHEDULE_PROPOSED]:  'Terminänderung vorgeschlagen',
+  [BOOKING_STATUS.AWAITING_CHECKOUT]:    'Warte auf Abschluss',
 });
 
 // ─── Status Badge CSS-Klassen ──────────────────────────────────────────────
@@ -91,6 +93,7 @@ const STATUS_BADGE_CLASS = Object.freeze({
   [BOOKING_STATUS.REPLACEMENT_PENDING]:  'badge-pending',
   [BOOKING_STATUS.BOOKED]:               'badge-pending',
   [BOOKING_STATUS.RESCHEDULE_PROPOSED]:  'badge-pending',
+  [BOOKING_STATUS.AWAITING_CHECKOUT]:    'badge-warning',
 });
 
 // ─── Status-Gruppen ────────────────────────────────────────────────────────
@@ -111,6 +114,7 @@ const ACTIVE_STATUSES = Object.freeze([
   BOOKING_STATUS.CHECKED_IN_TRAINER,
   BOOKING_STATUS.PENDING_CUSTOMER,
   BOOKING_STATUS.RESCHEDULE_PROPOSED,
+  BOOKING_STATUS.AWAITING_CHECKOUT,
 ]);
 
 /** Abgeschlossene Status-Werte */
@@ -130,6 +134,7 @@ const BOOKING_FLOW_NORMAL = Object.freeze([
   BOOKING_STATUS.PENDING_CUSTOMER,
   BOOKING_STATUS.REVIEWING,
   BOOKING_STATUS.COMPLETED,
+  BOOKING_STATUS.AWAITING_CHECKOUT,
   BOOKING_STATUS.PAID,
 ]);
 

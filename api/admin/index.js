@@ -204,6 +204,91 @@ export default async function handler(req, res) {
         return await handleTesters(req, res, supabase);
       }
 
+      // ═══════════════════════════════════════════════════════════════════
+      // INVOICES – GET (Liste mit optionalem year/type Filter)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'invoices': {
+        if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+        let query = supabase
+          .from('invoices')
+          .select('*')
+          .order('issued_at', { ascending: false });
+        if (req.query.year) {
+          const y = parseInt(req.query.year);
+          query = query
+            .gte('issued_at', `${y}-01-01`)
+            .lt('issued_at', `${y + 1}-01-01`);
+        }
+        if (req.query.type && req.query.type !== 'all') {
+          query = query.eq('invoice_type', req.query.type);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        return res.json({ data });
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // COMPANY-SETTINGS – GET (laden) + PUT (speichern)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'company-settings': {
+        if (req.method === 'GET') {
+          const { data, error } = await supabase
+            .from('company_settings')
+            .select('*')
+            .single();
+          if (error && error.code !== 'PGRST116') throw error;
+          return res.json({ data: data || {} });
+        }
+        if (req.method === 'PUT') {
+          const body = await getBody(req);
+          const updateData = { ...body, updated_at: new Date().toISOString() };
+          // Prüfen ob bereits ein Eintrag existiert
+          const { data: existing } = await supabase
+            .from('company_settings')
+            .select('id')
+            .single();
+          let result;
+          if (existing?.id) {
+            result = await supabase
+              .from('company_settings')
+              .update(updateData)
+              .eq('id', existing.id)
+              .select()
+              .single();
+          } else {
+            result = await supabase
+              .from('company_settings')
+              .insert(updateData)
+              .select()
+              .single();
+          }
+          if (result.error) throw result.error;
+          return res.json({ data: result.data });
+        }
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // INVOICE-PDF – GET (signierte Storage URL)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'invoice-pdf': {
+        if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+        const { id } = req.query;
+        if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
+        const { data: invoice, error: invErr } = await supabase
+          .from('invoices')
+          .select('pdf_path')
+          .eq('id', id)
+          .single();
+        if (invErr) throw invErr;
+        if (!invoice?.pdf_path) return res.status(404).json({ error: 'Kein PDF verfügbar' });
+        const { data: signedData, error: signErr } = await supabase.storage
+          .from('invoices')
+          .createSignedUrl(invoice.pdf_path, 3600);
+        if (signErr) throw signErr;
+        return res.json({ url: signedData.signedUrl });
+      }
+
       default:
         return res.status(404).json({ error: `Unbekannte Action: ${action}` });
     }
