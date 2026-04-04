@@ -67,7 +67,7 @@
       <!-- Ebene 1: Jahres-KPIs -->
       <div class="fin-kpi-bar">
         <div class="fin-kpi-card"><div class="fin-kpi-label">Einnahmen brutto</div><div class="fin-kpi-value" id="kpi-brutto"><span class="spinner"></span></div></div>
-        <div class="fin-kpi-card"><div class="fin-kpi-label">MwSt 19%</div><div class="fin-kpi-value" id="kpi-mwst"><span class="spinner"></span></div></div>
+        <div class="fin-kpi-card"><div class="fin-kpi-label" id="kpi-mwst-label">MwSt</div><div class="fin-kpi-value" id="kpi-mwst"><span class="spinner"></span></div></div>
         <div class="fin-kpi-card"><div class="fin-kpi-label">Einnahmen netto</div><div class="fin-kpi-value" id="kpi-netto"><span class="spinner"></span></div></div>
         <div class="fin-kpi-card"><div class="fin-kpi-label">Trainer-Kosten</div><div class="fin-kpi-value" id="kpi-kosten"><span class="spinner"></span></div></div>
         <div class="fin-kpi-card"><div class="fin-kpi-label">Erlöse</div><div class="fin-kpi-value" id="kpi-erloese"><span class="spinner"></span></div></div>
@@ -189,8 +189,9 @@
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
   // ── Berechnungen ──────────────────────────────────────────────────────────
+  function mwstFaktor(b) { const satz = b.trainer_mwst_satz ?? 19; return satz / 100; }
   function effBrutto(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.price_cents || b.final_price_cents || 0); }
-  function effNetto(b)   { return Math.round(effBrutto(b) / 1.19); }
+  function effNetto(b)   { return Math.round(effBrutto(b) / (1 + mwstFaktor(b))); }
   function effMwSt(b)    { return effBrutto(b) - effNetto(b); }
   function effKosten(b)  { const s = (b.status||'').toLowerCase(); return (FIN_CANCELLED.includes(s) || s === 'expired') ? 0 : (b.payout_cents || b.trainer_rate_cents || 0); }
   function effErloese(b) { return effNetto(b) - effKosten(b); }
@@ -266,6 +267,10 @@
   function updateKPIs() {
     let brutto = 0, netto = 0, kosten = 0;
     yearData.forEach(b => { brutto += effBrutto(b); netto += effNetto(b); kosten += effKosten(b); });
+    // MwSt-Label: wenn alle Buchungen den gleichen Satz haben, diesen anzeigen
+    const saetze = [...new Set(yearData.map(b => b.trainer_mwst_satz ?? 19))];
+    const mwstLabel = saetze.length === 1 ? `MwSt ${saetze[0]}%` : 'MwSt (gemischt)';
+    document.getElementById('kpi-mwst-label').textContent = mwstLabel;
     document.getElementById('kpi-brutto').textContent  = f(brutto);
     document.getElementById('kpi-mwst').textContent    = f(brutto - netto);
     document.getElementById('kpi-netto').textContent   = f(netto);
@@ -389,7 +394,7 @@
   // ── CSV Export ────────────────────────────────────────────────────────────
   function exportCSV() {
     if (yearData.length === 0) { alert('Keine Daten für ' + selectedYear + '.'); return; }
-    const headers = ['Datum','Kunde','Trainer','Art','Status',
+    const headers = ['Datum','Kunde','Trainer','Art','Status','MwSt-Satz (%)',
       'Einnahmen brutto (EUR)','MwSt (EUR)','Einnahmen netto (EUR)','Kosten (EUR)','Erlöse (EUR)'];
     const rows = yearData.map(b => [
       b.scheduled_date || '',
@@ -397,6 +402,7 @@
       b.trainer_name   || '',
       b.booking_type === 'group' ? 'GT' : 'PT',
       b.status || '',
+      String(b.trainer_mwst_satz ?? 19),
       (effBrutto(b)  / 100).toFixed(2).replace('.', ','),
       (effMwSt(b)    / 100).toFixed(2).replace('.', ','),
       (effNetto(b)   / 100).toFixed(2).replace('.', ','),
@@ -446,7 +452,7 @@
       </div>
       <div class="two-col">
         <div class="form-group"><label>Einnahmen brutto</label><input class="form-control" value="${f(effBrutto(b))}" disabled></div>
-        <div class="form-group"><label>MwSt (19%)</label><input class="form-control" value="${f(effMwSt(b))}" disabled></div>
+        <div class="form-group"><label>MwSt (${b.trainer_mwst_satz ?? 19}%)</label><input class="form-control" value="${f(effMwSt(b))}" disabled></div>
       </div>
       <div class="two-col">
         <div class="form-group"><label>Einnahmen netto</label><input class="form-control" value="${f(effNetto(b))}" disabled></div>

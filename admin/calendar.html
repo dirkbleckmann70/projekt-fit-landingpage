@@ -158,8 +158,6 @@
   document.getElementById('sidebar').innerHTML = renderSidebar('calendar');
   document.getElementById('header').innerHTML  = renderHeader('Kalender');
 
-  const sb = getSupabase();
-
   // ─── State ──────────────────────────────────────────────────────
   let weekOffset = 0;
   let trainers = [];
@@ -193,17 +191,12 @@
   }
 
   function toISODay(jsDay) {
-    // JS getDay(): 0=So,1=Mo..6=Sa  →  ISO 8601: 1=Mo..7=So
-    // DB trainer_availability.day_of_week ist jetzt auch ISO (1-7)
     return jsDay === 0 ? 7 : jsDay;
   }
 
-  // ─── Load Trainers ─────────────────────────────────────────────
+  // ─── Load Trainers (über Admin-API) ───────────────────────────
   async function loadTrainers() {
-    const { data } = await sb.from('trainer_profiles')
-      .select('id, full_name, city, status')
-      .eq('status', 'active')
-      .order('full_name');
+    const { data } = await adminApi('/api/admin?action=data&type=calendar_trainers');
     trainers = data || [];
     const sel = document.getElementById('trainer-filter');
     const citySel = document.getElementById('city-filter');
@@ -221,7 +214,7 @@
     });
   }
 
-  // ─── Load Week Data ─────────────────────────────────────────────
+  // ─── Load Week Data (über Admin-API) ───────────────────────────
   async function loadWeekData() {
     const dates = getWeekDates(weekOffset);
     const weekStart = fmt(dates[0]);
@@ -235,27 +228,17 @@
     if (trainerId) trainerIds = [trainerId];
     if (trainerIds.length === 0) { allAvailability = []; allBookings = []; allGT = []; return; }
 
-    // Availability
-    const { data: avail } = await sb.from('trainer_availability')
-      .select('trainer_id, day_of_week, start_hour, end_hour, is_active')
-      .in('trainer_id', trainerIds)
-      .eq('is_active', true);
-    allAvailability = avail || [];
+    const idsParam = trainerIds.join(',');
 
-    // Bookings (ALLE Status laden, Farbe nach Status)
-    const { data: bookings } = await sb.from('bookings')
-      .select('id, trainer_id, customer_id, scheduled_date, scheduled_time, status, price_cents, trainer_payout_cents, booking_type')
-      .in('trainer_id', trainerIds)
-      .gte('scheduled_date', weekStart)
-      .lte('scheduled_date', weekEnd);
-    allBookings = bookings || [];
+    const [availRes, bookingsRes, gtRes] = await Promise.all([
+      adminApi(`/api/admin?action=data&type=calendar_availability&trainer_ids=${idsParam}`),
+      adminApi(`/api/admin?action=data&type=calendar_bookings&trainer_ids=${idsParam}&week_start=${weekStart}&week_end=${weekEnd}`),
+      adminApi(`/api/admin?action=data&type=calendar_groups&trainer_ids=${idsParam}`),
+    ]);
 
-    // Group classes
-    const { data: gt } = await sb.from('group_classes')
-      .select('id, trainer_id, title, scheduled_date, scheduled_time, start_time, day_of_week, is_active, price_per_person_cents, max_participants, current_participants')
-      .in('trainer_id', trainerIds)
-      .eq('is_active', true);
-    allGT = gt || [];
+    allAvailability = availRes.data || [];
+    allBookings = bookingsRes.data || [];
+    allGT = gtRes.data || [];
   }
 
   // ─── Render Grid ────────────────────────────────────────────────
@@ -345,7 +328,7 @@
     });
   }
 
-  // ─── Cell Click → Modal ─────────────────────────────────────────
+  // ─── Cell Click → Modal (über Admin-API) ────────────────────────
   async function onCellClick(cell) {
     const bookingId = cell.dataset.bookingId;
     const gtId      = cell.dataset.gtId;
@@ -360,24 +343,16 @@
       const booking = allBookings.find(b => b.id === bookingId);
       if (!booking) return;
 
-      // Load customer + trainer names
-      const [custRes, trainerRes] = await Promise.all([
-        sb.from('customers').select('full_name, email, phone').eq('id', booking.customer_id).single(),
-        sb.from('trainer_profiles').select('full_name, phone').eq('id', booking.trainer_id).single()
-      ]);
-      const cust = custRes.data || {};
-      const trainer = trainerRes.data || {};
+      // Load customer + trainer + health via single API call
+      const detail = await adminApi(`/api/admin?action=data&type=booking_detail&customer_id=${booking.customer_id}&trainer_id=${booking.trainer_id}`);
+      const cust = detail.customer || {};
+      const trainer = detail.trainer || {};
 
-      // Load health info
       let healthNote = '–';
-      const { data: hd } = await sb.from('customer_health_data')
-        .select('health_notes, limitations')
-        .eq('customer_id', booking.customer_id)
-        .single();
-      if (hd) {
+      if (detail.health) {
         const parts = [];
-        if (hd.health_notes) parts.push(hd.health_notes);
-        if (hd.limitations) parts.push(hd.limitations);
+        if (detail.health.health_notes) parts.push(detail.health.health_notes);
+        if (detail.health.limitations) parts.push(detail.health.limitations);
         if (parts.length) healthNote = parts.join(' | ');
       }
 
@@ -402,8 +377,8 @@
     } else if (gtId) {
       const gc = allGT.find(g => g.id === gtId);
       if (!gc) return;
-      const trainerRes = await sb.from('trainer_profiles').select('full_name').eq('id', gc.trainer_id).single();
-      const trainerName = trainerRes.data?.full_name || '–';
+      const detail = await adminApi(`/api/admin?action=data&type=booking_detail&trainer_id=${gc.trainer_id}`);
+      const trainerName = detail.trainer?.full_name || '–';
 
       title.textContent = 'Gruppentraining';
       body.innerHTML = `

@@ -90,7 +90,8 @@
           </div>
           <div class="form-group">
             <label>Stadt</label>
-            <input class="form-control" id="f-city" value="${t.city || ''}">
+            <input class="form-control" id="f-city" value="${t.city || ''}" disabled>
+            <div class="form-hint">Wird vom Projekt Fit Team festgelegt.</div>
           </div>
         </div>
       </div>
@@ -334,7 +335,6 @@
       bio: document.getElementById('f-bio').value.trim() || null,
       specializations: document.getElementById('f-spec').value.trim() || null,
       phone: document.getElementById('f-phone').value.trim() || null,
-      city: document.getElementById('f-city').value.trim() || null,
       street_address: document.getElementById('f-street').value.trim() || null,
       postal_code: document.getElementById('f-postal').value.trim() || null,
       steuernummer: document.getElementById('f-steuer').value.trim() || null,

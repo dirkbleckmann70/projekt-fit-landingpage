@@ -116,26 +116,19 @@
   document.getElementById('sidebar').innerHTML = renderSidebar('testers');
   document.getElementById('header').innerHTML = renderHeader('Tester & Admins');
 
-  const sb = getSupabase();
   let allTesters = [];
 
-  // ─── Daten laden ────────────────────────────────────────────────
+  // ─── Daten laden (über Admin-API) ─────────────────────────────
   async function loadTesters() {
-    const { data, error } = await sb
-      .from('test_users')
-      .select('*')
-      .order('is_active', { ascending: false })
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Tester laden fehlgeschlagen:', error.message);
-      showAlert('alert', 'Fehler beim Laden: ' + error.message, 'error');
-      return;
+    try {
+      const { data } = await adminApi('/api/admin?action=testers');
+      allTesters = data || [];
+      renderTable();
+      renderKpis();
+    } catch (err) {
+      console.error('Tester laden fehlgeschlagen:', err.message);
+      showAlert('alert', 'Fehler beim Laden: ' + err.message, 'error');
     }
-
-    allTesters = data || [];
-    renderTable();
-    renderKpis();
   }
 
   // ─── KPIs ───────────────────────────────────────────────────────
@@ -189,18 +182,17 @@
     }).join('');
   }
 
-  // ─── Toggle Feld (Checkbox/Status) ──────────────────────────────
+  // ─── Toggle Feld (Checkbox/Status) über Admin-API ───────────────
   window.toggleField = async function(id, field, value) {
-    const { error } = await sb
-      .from('test_users')
-      .update({ [field]: value })
-      .eq('id', id);
-
-    if (error) {
-      showAlert('alert', 'Fehler: ' + error.message, 'error');
-      return;
+    try {
+      await adminApi('/api/admin?action=testers', {
+        method: 'PUT',
+        body: JSON.stringify({ id, [field]: value }),
+      });
+      await loadTesters();
+    } catch (err) {
+      showAlert('alert', 'Fehler: ' + err.message, 'error');
     }
-    await loadTesters();
   };
 
   // ─── Bearbeiten ─────────────────────────────────────────────────
@@ -234,25 +226,20 @@
     document.getElementById('form-cancel-btn').style.display = 'none';
   };
 
-  // ─── Löschen ────────────────────────────────────────────────────
+  // ─── Löschen über Admin-API ─────────────────────────────────────
   window.deleteTester = async function(id, email) {
     if (!confirm(`Tester "${email}" wirklich löschen?\n\nDiese Aktion kann nicht rückgängig gemacht werden.`)) return;
 
-    const { error } = await sb
-      .from('test_users')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      showAlert('alert', 'Löschen fehlgeschlagen: ' + error.message, 'error');
-      return;
+    try {
+      await adminApi(`/api/admin?action=testers&id=${id}`, { method: 'DELETE' });
+      showAlert('alert', `${email} wurde gelöscht.`, 'success');
+      await loadTesters();
+    } catch (err) {
+      showAlert('alert', 'Löschen fehlgeschlagen: ' + err.message, 'error');
     }
-
-    showAlert('alert', `${email} wurde gelöscht.`, 'success');
-    await loadTesters();
   };
 
-  // ─── Formular Submit ────────────────────────────────────────────
+  // ─── Formular Submit über Admin-API ─────────────────────────────
   document.getElementById('tester-form').addEventListener('submit', async (e) => {
     e.preventDefault();
 
@@ -268,48 +255,43 @@
       return;
     }
 
-    if (editId) {
-      // UPDATE
-      const { error } = await sb
-        .from('test_users')
-        .update({
-          email,
-          premium_override: premium,
-          dev_tools: devtools,
-          notes: notes,
-        })
-        .eq('id', editId);
-
-      if (error) {
-        showAlert('alert', 'Speichern fehlgeschlagen: ' + error.message, 'error');
-        return;
-      }
-
-      showAlert('alert', `${email} wurde aktualisiert.`, 'success');
-    } else {
-      // INSERT — Duplikat prüfen
-      const exists = allTesters.some(t => t.email.toLowerCase() === email);
-      if (exists) {
-        showAlert('alert', `${email} ist bereits als Tester eingetragen.`, 'error');
-        return;
-      }
-
-      const { error } = await sb
-        .from('test_users')
-        .insert({
-          email,
-          is_active: true,
-          premium_override: premium,
-          dev_tools: devtools,
-          notes: notes,
+    try {
+      if (editId) {
+        // UPDATE
+        await adminApi('/api/admin?action=testers', {
+          method: 'PUT',
+          body: JSON.stringify({
+            id: editId,
+            email,
+            premium_override: premium,
+            dev_tools: devtools,
+            notes: notes,
+          }),
         });
+        showAlert('alert', `${email} wurde aktualisiert.`, 'success');
+      } else {
+        // INSERT — Duplikat prüfen (client-seitig)
+        const exists = allTesters.some(t => t.email.toLowerCase() === email);
+        if (exists) {
+          showAlert('alert', `${email} ist bereits als Tester eingetragen.`, 'error');
+          return;
+        }
 
-      if (error) {
-        showAlert('alert', 'Hinzufügen fehlgeschlagen: ' + error.message, 'error');
-        return;
+        await adminApi('/api/admin?action=testers', {
+          method: 'POST',
+          body: JSON.stringify({
+            email,
+            is_active: true,
+            premium_override: premium,
+            dev_tools: devtools,
+            notes: notes,
+          }),
+        });
+        showAlert('alert', `${email} wurde als Tester hinzugefügt.`, 'success');
       }
-
-      showAlert('alert', `${email} wurde als Tester hinzugefügt.`, 'success');
+    } catch (err) {
+      showAlert('alert', (editId ? 'Speichern' : 'Hinzufügen') + ' fehlgeschlagen: ' + err.message, 'error');
+      return;
     }
 
     resetForm();

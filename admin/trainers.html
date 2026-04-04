@@ -464,6 +464,13 @@
           <input class="form-control" type="number" id="edit-payout" step="0.01" min="0" value="${t.payout_cents ? (t.payout_cents / 100).toFixed(2) : ''}">
         </div>
       </div>
+      <div class="two-col">
+        <div class="form-group">
+          <label>MwSt-Satz (%)</label>
+          <input class="form-control" type="number" id="edit-mwst-satz" step="1" min="0" max="100" value="${t.mwst_satz ?? 19}">
+          <div class="form-hint">Standard 19. Kleinunternehmer (§19 UStG) = 0.</div>
+        </div>
+      </div>
 
       ${t.auth_user_id ? `<p class="text-muted mt-2" style="font-size:12px">Auth User ID: ${t.auth_user_id}</p>` : ''}
       </form>
@@ -831,6 +838,7 @@
       is_active: document.getElementById('edit-is-active').value === 'true',
       hourly_rate_cents: document.getElementById('edit-hourly-rate').value ? Math.round(parseFloat(document.getElementById('edit-hourly-rate').value) * 100) : null,
       payout_cents: document.getElementById('edit-payout').value ? Math.round(parseFloat(document.getElementById('edit-payout').value) * 100) : null,
+      mwst_satz: parseInt(document.getElementById('edit-mwst-satz').value) || 19,
     };
 
     try {
@@ -1016,6 +1024,7 @@
           is_kleinunternehmer: document.getElementById('new-kleinunternehmer').checked,
           hourly_rate_cents: document.getElementById('new-hourly-rate').value ? Math.round(parseFloat(document.getElementById('new-hourly-rate').value) * 100) : null,
           payout_cents: document.getElementById('new-payout').value ? Math.round(parseFloat(document.getElementById('new-payout').value) * 100) : null,
+          mwst_satz: parseInt(document.getElementById('new-mwst-satz')?.value) || 19,
           status: document.getElementById('new-status').value,
         }),
       });
