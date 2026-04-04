@@ -348,6 +348,7 @@
       </div>
       ${b.notes ? `<div class="form-group"><label>Bisherige Notizen</label><textarea class="form-control" disabled style="min-height:60px">${b.notes}</textarea></div>` : ''}
       <div id="admin-contact-section"></div>
+      <div id="location-proposals-section"></div>
       <p class="text-muted mt-1" style="font-size:12px">Erstellt: ${formatDateTime(b.created_at)} · ID: ${b.id}</p>
       </form>
     `;
@@ -356,6 +357,9 @@
 
     // Kontaktdaten asynchron nachladen (Admin sieht immer beide)
     loadAdminContacts(b);
+
+    // Standort-Vorschlaege asynchron nachladen
+    loadLocationProposals(b.id);
 
     if (window._bookingDirty) window._bookingDirty.destroy();
     window._bookingDirty = initFormDirty({
@@ -392,6 +396,45 @@
       el.innerHTML = html;
     } catch {
       el.innerHTML = '';
+    }
+  }
+
+  async function loadLocationProposals(bookingId) {
+    const el = document.getElementById('location-proposals-section');
+    if (!el) return;
+    try {
+      const res = await adminApi(`/api/admin?action=data&type=booking_locations&bookingId=${bookingId}`);
+      const proposals = res.data || [];
+      if (proposals.length === 0) return;
+
+      const rows = proposals.map(loc => {
+        const isSelected = loc.is_selected || loc.selected;
+        const isAdmin = loc.source === 'admin' || loc.location_id;
+        const typeLabel = isAdmin ? 'Admin-Ort' : 'Benutzerdefiniert';
+        const typeBadgeClass = isAdmin ? 'badge-confirmed' : 'badge-pending';
+        const selectedMark = isSelected
+          ? '<span style="color:#27AE60;font-weight:700;margin-left:6px">&#10003; Gewählt</span>'
+          : '';
+        const address = [loc.address, loc.city].filter(Boolean).join(', ') || '–';
+        return `
+          <div style="display:grid;grid-template-columns:1fr auto;align-items:start;gap:8px;padding:10px 12px;border-radius:8px;background:${isSelected ? 'rgba(64,145,108,0.08)' : 'rgba(255,255,255,0.03)'};border:1px solid ${isSelected ? 'rgba(64,145,108,0.3)' : 'rgba(255,255,255,0.07)'};margin-bottom:8px">
+            <div>
+              <div style="font-weight:600;color:${isSelected ? '#40916C' : 'var(--text-primary)'};margin-bottom:2px">${loc.name || loc.location_name || '–'}${selectedMark}</div>
+              <div style="font-size:12px;color:var(--text-secondary)">${address}</div>
+            </div>
+            <span class="badge ${typeBadgeClass}" style="font-size:11px;white-space:nowrap">${typeLabel}</span>
+          </div>`;
+      }).join('');
+
+      el.innerHTML = `
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:10px">
+            Standort-Vorschlaege (${proposals.length})
+          </div>
+          ${rows}
+        </div>`;
+    } catch {
+      // Fehler still ignorieren – Proposals sind optional
     }
   }
 

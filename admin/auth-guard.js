@@ -91,8 +91,10 @@ function formatEuro(cents) {
 }
 
 // Status Badge HTML
+// Nutzt STATUS_BADGE_CLASS und STATUS_LABELS aus shared/constants.js wenn verfuegbar
 function statusBadge(status) {
-  const map = {
+  // Fallback-Map fuer den Fall, dass constants.js noch nicht geladen ist
+  const fallbackMap = {
     pending: 'badge-pending',
     active: 'badge-active',
     pausiert: 'badge-paused',
@@ -103,20 +105,19 @@ function statusBadge(status) {
     completed: 'badge-completed',
     cancelled: 'badge-cancelled',
     expired: 'badge-expired',
-    PENDING: 'badge-pending',
-    CONFIRMED: 'badge-confirmed',
-    COMPLETED: 'badge-completed',
-    CANCELLED: 'badge-cancelled',
-    EXPIRED: 'badge-expired',
+    location_proposed: 'badge-warning',
+    reschedule_proposed: 'badge-pending',
+    awaiting_checkout: 'badge-warning',
   };
-  const labels = {
-    pending: 'pending', active: 'active', confirmed: 'confirmed',
-    completed: 'completed', cancelled: 'cancelled', expired: 'Abgelaufen',
-    PENDING: 'PENDING', CONFIRMED: 'CONFIRMED', COMPLETED: 'COMPLETED',
-    CANCELLED: 'CANCELLED', EXPIRED: 'Abgelaufen',
-  };
-  const cls = map[status] || 'badge-pending';
-  return `<span class="badge ${cls}">${labels[status] || status}</span>`;
+  // Shared constants bevorzugen (lowercase key)
+  const key = (status || '').toLowerCase();
+  const cls = (typeof STATUS_BADGE_CLASS !== 'undefined' && STATUS_BADGE_CLASS[key])
+    || fallbackMap[key]
+    || 'badge-pending';
+  const label = (typeof STATUS_LABELS !== 'undefined' && STATUS_LABELS[key])
+    || status
+    || '–';
+  return `<span class="badge ${cls}">${label}</span>`;
 }
 
 // Alert anzeigen

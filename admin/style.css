@@ -253,6 +253,7 @@ tbody td {
 .badge-completed { background: rgba(52,152,219,0.15); color: #3498db; }
 .badge-cancelled { background: rgba(231,76,60,0.15); color: #e74c3c; }
 .badge-expired  { background: rgba(243,156,18,0.15); color: #f39c12; }
+.badge-warning  { background: rgba(224,122,58,0.15);  color: #E07A3A; }
 
 /* ─── Buttons ────────────────────────────────────────────────────── */
 
