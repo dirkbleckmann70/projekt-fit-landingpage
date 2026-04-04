@@ -94,6 +94,22 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════════
+      // RESCHEDULE-ACCEPT – PUT (Kunde nimmt Terminvorschlag an)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'reschedule-accept': {
+        if (req.method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
+        return await handleRescheduleAccept(req, res, supabase);
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // RESCHEDULE-REJECT – PUT (Kunde lehnt Terminvorschlag ab)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'reschedule-reject': {
+        if (req.method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
+        return await handleRescheduleReject(req, res, supabase);
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
       // CUSTOMERS – GET (alle) + POST (erstellen) + PUT (aktualisieren) + DELETE (löschen)
       // ═══════════════════════════════════════════════════════════════════
       case 'customers': {
@@ -181,6 +197,13 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
       }
 
+      // ═══════════════════════════════════════════════════════════════════
+      // TESTERS – GET + POST + PUT + DELETE
+      // ═══════════════════════════════════════════════════════════════════
+      case 'testers': {
+        return await handleTesters(req, res, supabase);
+      }
+
       default:
         return res.status(404).json({ error: `Unbekannte Action: ${action}` });
     }
@@ -241,7 +264,7 @@ async function enrichBookings(supabase, bookings) {
   if (trainerIds.length > 0) {
     const { data: trainers } = await supabase
       .from('trainer_profiles')
-      .select('id, full_name, city, payout_cents')
+      .select('id, full_name, city, payout_cents, mwst_satz')
       .in('id', trainerIds);
     if (trainers) trainers.forEach(t => { trainerMap[t.id] = t; });
   }
@@ -265,6 +288,7 @@ async function enrichBookings(supabase, bookings) {
     ...b,
     trainer_name:      trainerMap[b.trainer_id]?.full_name || null,
     trainer_city:      trainerMap[b.trainer_id]?.city || null,
+    trainer_mwst_satz: trainerMap[b.trainer_id]?.mwst_satz ?? null,
     // Trainer-Auszahlungsrate aus trainer_profiles (überschreibt nicht das buchungseigene payout_cents)
     trainer_rate_cents: trainerMap[b.trainer_id]?.payout_cents ?? null,
     // payout_cents: Buchungseigenes Feld bevorzugen, sonst Trainer-Rate als Fallback
@@ -298,7 +322,7 @@ async function fetchGroupParticipantsAsBookings(supabase) {
   if (trainerIds.length > 0) {
     const { data: trainers } = await supabase
       .from('trainer_profiles')
-      .select('id, full_name, city, payout_cents')
+      .select('id, full_name, city, payout_cents, mwst_satz')
       .in('id', trainerIds);
     if (trainers) trainers.forEach(t => { trainerMap[t.id] = t; });
   }
@@ -327,6 +351,7 @@ async function fetchGroupParticipantsAsBookings(supabase) {
       trainer_id:         gc.trainer_id    || null,
       trainer_name:       trainer.full_name || null,
       trainer_city:       trainer.city || gc.city || null,
+      trainer_mwst_satz:  trainer.mwst_satz ?? null,
       scheduled_date:     gc.scheduled_date  || null,
       scheduled_time:     gc.scheduled_time  || null,
       status:             p.status || 'confirmed',
@@ -602,6 +627,127 @@ async function handleData(req, res, supabase) {
       return res.json({ data: enriched });
     }
 
+    // ─── Calendar: Trainer mit Stadt (für Filter) ───────────────────────
+    case 'calendar_trainers': {
+      const { data, error } = await supabase
+        .from('trainer_profiles')
+        .select('id, full_name, city, status')
+        .eq('status', 'active')
+        .order('full_name');
+      if (error) throw error;
+      return res.json({ data: data || [] });
+    }
+
+    // ─── Calendar: Availability für mehrere Trainer ───────────────────
+    case 'calendar_availability': {
+      const trainerIds = req.query.trainer_ids ? req.query.trainer_ids.split(',') : [];
+      if (trainerIds.length === 0) return res.json({ data: [] });
+      const { data, error } = await supabase
+        .from('trainer_availability')
+        .select('trainer_id, day_of_week, start_hour, end_hour, is_active')
+        .in('trainer_id', trainerIds)
+        .eq('is_active', true);
+      if (error) throw error;
+      return res.json({ data: data || [] });
+    }
+
+    // ─── Calendar: Bookings für Woche + Trainer ───────────────────────
+    case 'calendar_bookings': {
+      const trainerIds = req.query.trainer_ids ? req.query.trainer_ids.split(',') : [];
+      const weekStart = req.query.week_start;
+      const weekEnd = req.query.week_end;
+      if (trainerIds.length === 0 || !weekStart || !weekEnd) return res.json({ data: [] });
+      const { data, error } = await supabase
+        .from('bookings')
+        .select('id, trainer_id, customer_id, scheduled_date, scheduled_time, status, price_cents, trainer_payout_cents, booking_type')
+        .in('trainer_id', trainerIds)
+        .gte('scheduled_date', weekStart)
+        .lte('scheduled_date', weekEnd);
+      if (error) throw error;
+      return res.json({ data: data || [] });
+    }
+
+    // ─── Calendar: Group classes für Trainer ──────────────────────────
+    case 'calendar_groups': {
+      const trainerIds = req.query.trainer_ids ? req.query.trainer_ids.split(',') : [];
+      if (trainerIds.length === 0) return res.json({ data: [] });
+      const { data, error } = await supabase
+        .from('group_classes')
+        .select('id, trainer_id, title, scheduled_date, scheduled_time, start_time, day_of_week, is_active, price_per_person_cents, max_participants, current_participants')
+        .in('trainer_id', trainerIds)
+        .eq('is_active', true);
+      if (error) throw error;
+      return res.json({ data: data || [] });
+    }
+
+    // ─── Calendar Modal: Kunde + Trainer Details ──────────────────────
+    case 'booking_detail': {
+      const bookingCustomerId = req.query.customer_id;
+      const bookingTrainerId = req.query.trainer_id;
+      const result = {};
+
+      if (bookingCustomerId) {
+        const { data: cust } = await supabase
+          .from('customers')
+          .select('full_name, email, phone')
+          .eq('id', bookingCustomerId)
+          .single();
+        result.customer = cust || {};
+
+        const { data: hd } = await supabase
+          .from('customer_health_data')
+          .select('health_notes, limitations')
+          .eq('customer_id', bookingCustomerId)
+          .single();
+        result.health = hd || null;
+      }
+
+      if (bookingTrainerId) {
+        const { data: trainer } = await supabase
+          .from('trainer_profiles')
+          .select('full_name, phone')
+          .eq('id', bookingTrainerId)
+          .single();
+        result.trainer = trainer || {};
+      }
+
+      return res.json(result);
+    }
+
+    // ─── Dashboard KPIs (exakte Berechnungen) ─────────────────────────
+    case 'dashboard_kpis': {
+      const mondayISO = req.query.monday;
+      const monthISO = req.query.month_start;
+
+      const [trainersRes, pendingRes, weekBookingsRes, monthRevenueRes] = await Promise.all([
+        supabase.from('trainer_profiles').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+        supabase.from('trainer_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('bookings').select('id', { count: 'exact', head: true }).gte('scheduled_date', mondayISO).in('status', ['confirmed', 'completed']),
+        supabase.from('bookings').select('price_cents').eq('status', 'completed').gte('scheduled_date', monthISO),
+      ]);
+
+      return res.json({
+        active_trainers: trainersRes.count ?? 0,
+        pending_trainers: pendingRes.count ?? 0,
+        week_bookings: weekBookingsRes.count ?? 0,
+        month_revenue_cents: (monthRevenueRes.data || []).reduce((sum, b) => sum + (b.price_cents || 0), 0),
+      });
+    }
+
+    // ─── Testers: Alle laden ──────────────────────────────────────────
+    case 'all_testers': {
+      const { data, error } = await supabase
+        .from('test_users')
+        .select('*')
+        .order('is_active', { ascending: false })
+        .order('created_at', { ascending: false });
+      if (error) {
+        if (error.code === '42P01') return res.json({ data: [] });
+        throw error;
+      }
+      return res.json({ data: data || [] });
+    }
+
     default:
       return res.status(400).json({ error: `Unbekannter Datentyp: ${type}` });
   }
@@ -647,7 +793,7 @@ async function handleTrainersPut(req, res, supabase) {
 
   const allowed = [
     'full_name', 'email', 'phone', 'city', 'specializations', 'bio',
-    'steuernummer', 'is_kleinunternehmer', 'street_address', 'postal_code', 'wohnort',
+    'steuernummer', 'is_kleinunternehmer', 'mwst_satz', 'street_address', 'postal_code', 'wohnort',
     'status', 'is_active', 'hourly_rate_cents', 'payout_cents', 'contract_files', 'avatar_url',
   ];
 
@@ -877,16 +1023,16 @@ async function handleDeleteTrainer(req, res, supabase) {
 
 async function handleBookingsPut(req, res, supabase) {
   const body = await getBody(req);
-  const { bookingId, status, paid } = body;
+  const { bookingId, status, paid, scheduled_date, scheduled_time, price_cents, final_price_cents, trainer_payout_cents, admin_note } = body;
 
   if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
 
   const update = {};
 
   if (status !== undefined) {
-    const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+    const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'pending', 'confirmed', 'completed', 'cancelled', 'cancelled_by_trainer', 'expired', 'rejected', 'disputed', 'checked_in', 'paid', 'refunded', 'reschedule_proposed'];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: `Ungültiger Status. Erlaubt: ${validStatuses.join(', ')}` });
+      return res.status(400).json({ error: `Ungültiger Status: ${status}` });
     }
     update.status = status;
   }
@@ -895,9 +1041,144 @@ async function handleBookingsPut(req, res, supabase) {
     update.paid = !!paid;
   }
 
+  // NEU: Termin-Aenderung (Admin-Hoheit)
+  if (scheduled_date !== undefined) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduled_date)) {
+      return res.status(400).json({ error: 'scheduled_date muss YYYY-MM-DD Format haben' });
+    }
+    update.scheduled_date = scheduled_date;
+  }
+
+  if (scheduled_time !== undefined) {
+    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(scheduled_time)) {
+      return res.status(400).json({ error: 'scheduled_time muss HH:MM Format haben' });
+    }
+    update.scheduled_time = scheduled_time;
+  }
+
+  // NEU: Preis-Korrektur (Admin-Hoheit, mit Audit)
+  if (price_cents !== undefined) {
+    const val = parseInt(price_cents);
+    if (isNaN(val) || val < 0) return res.status(400).json({ error: 'price_cents muss >= 0 sein' });
+    update.price_cents = val;
+  }
+
+  if (final_price_cents !== undefined) {
+    const val = parseInt(final_price_cents);
+    if (isNaN(val) || val < 0) return res.status(400).json({ error: 'final_price_cents muss >= 0 sein' });
+    update.final_price_cents = val;
+  }
+
+  if (trainer_payout_cents !== undefined) {
+    const val = parseInt(trainer_payout_cents);
+    if (isNaN(val) || val < 0) return res.status(400).json({ error: 'trainer_payout_cents muss >= 0 sein' });
+    update.trainer_payout_cents = val;
+  }
+
+  // Admin-Notiz anfuegen (Audit-Trail)
+  if (admin_note) {
+    // Bestehende Notizen beibehalten, neue anfuegen
+    const { data: existing } = await supabase.from('bookings').select('notes').eq('id', bookingId).single();
+    const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    const newNote = `[Admin ${timestamp}] ${admin_note}`;
+    update.notes = existing?.notes ? `${existing.notes}\n${newNote}` : newNote;
+  }
+
+  // ─── Reschedule: Trainer schlaegt neuen Termin vor ─────────────────────
+  if (body.reschedule) {
+    const { proposed_date, proposed_time } = body.reschedule;
+
+    if (!proposed_date || !proposed_time) {
+      return res.status(400).json({ error: 'reschedule braucht proposed_date und proposed_time' });
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(proposed_date)) {
+      return res.status(400).json({ error: 'proposed_date muss YYYY-MM-DD Format haben' });
+    }
+    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(proposed_time)) {
+      return res.status(400).json({ error: 'proposed_time muss HH:MM Format haben' });
+    }
+
+    const { data: current, error: fetchErr } = await supabase
+      .from('bookings')
+      .select('status, scheduled_date, scheduled_time, trainer_id')
+      .eq('id', bookingId)
+      .single();
+
+    if (fetchErr || !current) {
+      return res.status(404).json({ error: 'Buchung nicht gefunden' });
+    }
+
+    if (!['pending', 'confirmed'].includes(current.status)) {
+      return res.status(400).json({ error: `Reschedule nur bei pending/confirmed moeglich, aktuell: ${current.status}` });
+    }
+
+    if (current.status === 'confirmed') {
+      const bookingDateTime = new Date(`${current.scheduled_date}T${current.scheduled_time}`);
+      const now = new Date();
+      const diffHours = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (diffHours < 24) {
+        return res.status(400).json({ error: 'Terminaenderung nur >= 24h vor dem Termin moeglich' });
+      }
+    }
+
+    const proposedDateTime = new Date(`${proposed_date}T${proposed_time}`);
+    if (proposedDateTime <= new Date()) {
+      return res.status(400).json({ error: 'Vorgeschlagener Termin muss in der Zukunft liegen' });
+    }
+
+    const { data: conflicts } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('trainer_id', current.trainer_id)
+      .eq('scheduled_date', proposed_date)
+      .eq('scheduled_time', proposed_time + ':00')
+      .in('status', ['pending', 'confirmed', 'reschedule_proposed', 'checked_in'])
+      .neq('id', bookingId);
+
+    if (conflicts && conflicts.length > 0) {
+      return res.status(409).json({ error: 'Trainer hat bereits einen Termin zu dieser Zeit' });
+    }
+
+    const dayOfWeek = (() => {
+      const jsDay = new Date(proposed_date + 'T00:00:00').getDay();
+      return jsDay === 0 ? 7 : jsDay;
+    })();
+    const proposedHour = parseInt(proposed_time.split(':')[0]);
+
+    const { data: availability } = await supabase
+      .from('trainer_availability')
+      .select('start_hour, end_hour')
+      .eq('trainer_id', current.trainer_id)
+      .eq('day_of_week', dayOfWeek)
+      .eq('is_active', true);
+
+    if (!availability || availability.length === 0) {
+      return res.status(400).json({ error: 'Trainer ist an diesem Tag nicht verfuegbar' });
+    }
+
+    const isInSlot = availability.some(s => proposedHour >= s.start_hour && proposedHour < s.end_hour);
+    if (!isInSlot) {
+      return res.status(400).json({ error: 'Trainer ist zu dieser Uhrzeit nicht verfuegbar' });
+    }
+
+    update.proposed_date = proposed_date;
+    update.proposed_time = proposed_time;
+    update.reschedule_proposed_at = new Date().toISOString();
+    update.status = 'reschedule_proposed';
+
+    const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    const oldDate = current.scheduled_date;
+    const oldTime = (current.scheduled_time || '').slice(0, 5);
+    const auditNote = `[Reschedule ${timestamp}] Trainer schlaegt vor: ${proposed_date} ${proposed_time} (vorher: ${oldDate} ${oldTime})`;
+    const { data: existingNotes } = await supabase.from('bookings').select('notes').eq('id', bookingId).single();
+    update.notes = existingNotes?.notes ? `${existingNotes.notes}\n${auditNote}` : auditNote;
+  }
+
   if (Object.keys(update).length === 0) {
     return res.status(400).json({ error: 'Keine aktualisierbaren Felder angegeben' });
   }
+
+  update.updated_at = new Date().toISOString();
 
   const { error } = await supabase.from('bookings').update(update).eq('id', bookingId);
   if (error) throw error;
@@ -1386,4 +1667,153 @@ async function handleTrainerAvatar(req, res, supabase) {
   }
 
   return res.status(405).json({ error: 'Method not allowed' });
+}
+
+// ─── ACTION: testers (CRUD) ─────────────────────────────────────────────────
+
+async function handleTesters(req, res, supabase) {
+  switch (req.method) {
+    case 'GET': {
+      const { data, error } = await supabase
+        .from('test_users')
+        .select('*')
+        .order('is_active', { ascending: false })
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return res.json({ data: data || [] });
+    }
+
+    case 'POST': {
+      const body = await getBody(req);
+      const { email, is_active, premium_override, dev_tools, notes } = body;
+      if (!email) return res.status(400).json({ error: 'E-Mail ist erforderlich' });
+
+      const { data, error } = await supabase
+        .from('test_users')
+        .insert({
+          email: email.trim().toLowerCase(),
+          is_active: is_active !== undefined ? is_active : true,
+          premium_override: premium_override !== undefined ? premium_override : true,
+          dev_tools: dev_tools !== undefined ? dev_tools : true,
+          notes: notes || null,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return res.json({ data });
+    }
+
+    case 'PUT': {
+      const body = await getBody(req);
+      const { id, ...updates } = body;
+      if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
+
+      if (updates.email) updates.email = updates.email.trim().toLowerCase();
+
+      const { data, error } = await supabase
+        .from('test_users')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return res.json({ data });
+    }
+
+    case 'DELETE': {
+      const id = req.query.id;
+      if (!id) return res.status(400).json({ error: 'id Query-Parameter ist erforderlich' });
+
+      const { error } = await supabase
+        .from('test_users')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      return res.json({ success: true });
+    }
+
+    default:
+      return res.status(405).json({ error: 'Method not allowed' });
+  }
+}
+
+// ─── ACTION: reschedule-accept ────────────────────────────────────────────
+
+async function handleRescheduleAccept(req, res, supabase) {
+  const body = await getBody(req);
+  const { bookingId } = body;
+
+  if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
+
+  const { data: booking, error: fetchErr } = await supabase
+    .from('bookings')
+    .select('status, proposed_date, proposed_time, scheduled_date, scheduled_time, notes')
+    .eq('id', bookingId)
+    .single();
+
+  if (fetchErr || !booking) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+  if (booking.status !== 'reschedule_proposed') {
+    return res.status(400).json({ error: `Status muss reschedule_proposed sein, ist: ${booking.status}` });
+  }
+
+  const oldDate = booking.scheduled_date;
+  const oldTime = (booking.scheduled_time || '').slice(0, 5);
+  const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  const auditNote = `[Reschedule ${timestamp}] Kunde hat angenommen. Termin geaendert von ${oldDate} ${oldTime} auf ${booking.proposed_date} ${(booking.proposed_time || '').slice(0, 5)}`;
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({
+      scheduled_date: booking.proposed_date,
+      scheduled_time: booking.proposed_time,
+      proposed_date: null,
+      proposed_time: null,
+      reschedule_proposed_at: null,
+      status: 'confirmed',
+      notes: booking.notes ? `${booking.notes}\n${auditNote}` : auditNote,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', bookingId);
+
+  if (error) throw error;
+  return res.json({ success: true, newDate: booking.proposed_date, newTime: booking.proposed_time });
+}
+
+// ─── ACTION: reschedule-reject ────────────────────────────────────────────
+
+async function handleRescheduleReject(req, res, supabase) {
+  const body = await getBody(req);
+  const { bookingId } = body;
+
+  if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
+
+  const { data: booking, error: fetchErr } = await supabase
+    .from('bookings')
+    .select('status, notes, scheduled_date, scheduled_time, proposed_date, proposed_time')
+    .eq('id', bookingId)
+    .single();
+
+  if (fetchErr || !booking) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+  if (booking.status !== 'reschedule_proposed') {
+    return res.status(400).json({ error: `Status muss reschedule_proposed sein, ist: ${booking.status}` });
+  }
+
+  const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+  const auditNote = `[Reschedule ${timestamp}] Kunde hat abgelehnt. Buchung storniert.`;
+
+  const { error } = await supabase
+    .from('bookings')
+    .update({
+      proposed_date: null,
+      proposed_time: null,
+      reschedule_proposed_at: null,
+      status: 'cancelled_by_trainer',
+      cancellation_reason: 'Terminaenderung abgelehnt',
+      notes: booking.notes ? `${booking.notes}\n${auditNote}` : auditNote,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', bookingId);
+
+  if (error) throw error;
+  return res.json({ success: true });
 }
