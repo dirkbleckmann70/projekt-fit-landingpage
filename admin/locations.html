@@ -8,6 +8,196 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBHIdnhJZ1xsND7PRXW4CnHe3fuPfhhtAI&callback=Function.prototype" async defer></script>
+  <style>
+    /* ─── Accordion / City List ─────────────────────────────────────── */
+    .cities-wrap {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .cities-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .cities-title { font-size: 16px; font-weight: 700; }
+
+    .city-row {
+      border-bottom: 1px solid var(--border);
+    }
+    .city-row:last-child { border-bottom: none; }
+
+    .city-summary {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 24px;
+      cursor: pointer;
+      transition: background 0.15s;
+      user-select: none;
+    }
+    .city-summary:hover { background: rgba(255,255,255,0.03); }
+
+    .city-arrow {
+      width: 18px;
+      height: 18px;
+      color: var(--text-muted);
+      transition: transform 0.2s;
+      flex-shrink: 0;
+    }
+    .city-row.open .city-arrow { transform: rotate(90deg); }
+
+    .city-name { font-weight: 600; font-size: 15px; flex: 1; }
+
+    .city-count {
+      font-size: 13px;
+      color: var(--text-secondary);
+      background: rgba(255,255,255,0.06);
+      border-radius: 20px;
+      padding: 2px 10px;
+    }
+
+    .city-actions-inline {
+      display: flex;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .city-summary:hover .city-actions-inline { opacity: 1; }
+
+    /* ─── Location list inside accordion ───────────────────────────── */
+    .city-locations {
+      display: none;
+      background: rgba(0,0,0,0.2);
+      border-top: 1px solid var(--border);
+    }
+    .city-row.open .city-locations { display: block; }
+
+    .loc-subheader {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px 12px 42px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .loc-list { list-style: none; }
+
+    .loc-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 24px 12px 42px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      transition: background 0.15s;
+    }
+    .loc-item:last-child { border-bottom: none; }
+    .loc-item:hover { background: rgba(255,255,255,0.02); }
+
+    .loc-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--border);
+    }
+    .loc-thumb-placeholder {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      background: var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      color: var(--text-muted);
+      font-size: 22px;
+    }
+
+    .loc-info { flex: 1; min-width: 0; }
+    .loc-info-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+    .loc-info-addr { font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; }
+    .loc-info-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 340px;
+    }
+
+    .loc-item-actions { display: flex; gap: 6px; }
+
+    /* ─── Location Modal ────────────────────────────────────────────── */
+    .loc-modal { max-width: 680px; }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    /* Image upload */
+    .upload-zone {
+      border: 2px dashed var(--border-light);
+      border-radius: 10px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(232,147,10,0.04);
+    }
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+    .upload-zone-label { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+    .upload-preview {
+      width: 100%;
+      max-height: 160px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-top: 10px;
+      display: none;
+    }
+
+    /* Map */
+    #loc-map {
+      width: 100%;
+      height: 220px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-top: 4px;
+      background: #1a1a1a;
+    }
+    .map-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .badge-active { background: rgba(39,174,96,0.15); color: #2ecc71; }
+    .badge-inactive { background: rgba(231,76,60,0.12); color: #e74c3c; }
+
+    .loading-row td { padding: 32px; text-align: center; color: var(--text-muted); }
+
+    .empty-loc {
+      padding: 20px 24px 20px 42px;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-style: italic;
+    }
+  </style>
 </head>
 <body>
 
@@ -19,55 +209,144 @@
 
       <div id="alert-box" class="alert"></div>
 
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Einsatzorte</div>
-          <div class="table-actions">
-            <button class="btn btn-primary" onclick="openNewModal()">+ Neuer Einsatzort</button>
+      <!-- ─── City accordion ─────────────────────────────────────── -->
+      <div class="cities-wrap" id="cities-wrap">
+        <div class="cities-header">
+          <div class="cities-title">Städte &amp; Locations</div>
+          <button class="btn btn-primary" onclick="openCityModal()">+ Neue Stadt</button>
+        </div>
+        <div id="cities-body">
+          <div style="padding:32px;text-align:center;color:var(--text-muted)">
+            <span class="spinner"></span> Laden...
           </div>
         </div>
-        <table id="locations-table">
-          <thead>
-            <tr>
-              <th>Stadt</th>
-              <th>Status</th>
-              <th>Erstellt am</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="locations-body">
-            <tr><td colspan="4" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
-          </tbody>
-        </table>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- ─── New / Edit Location Modal ──────────────────────────────── -->
-<div class="modal-overlay" id="location-modal">
-  <div class="modal" style="max-width:500px">
+<!-- ─── City Modal (new / edit) ──────────────────────────────────────── -->
+<div class="modal-overlay" id="city-modal">
+  <div class="modal" style="max-width:440px">
     <div class="modal-header">
-      <div class="modal-title" id="modal-title">Neuer Einsatzort</div>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
+      <div class="modal-title" id="city-modal-title">Neue Stadt</div>
+      <button class="modal-close" onclick="closeModal('city-modal')">&times;</button>
     </div>
     <div class="modal-body">
-      <form id="location-form">
+      <form id="city-form" onsubmit="return false">
         <div class="form-group">
           <label>Stadt *</label>
           <input class="form-control" id="f-city" required placeholder="z.B. Köln">
         </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:8px">
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:4px">
           <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="f-active" checked> Aktiv
+            <input type="checkbox" id="f-city-active" checked> Aktiv
           </label>
         </div>
       </form>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
-      <button class="btn btn-primary" id="modal-save-btn" onclick="saveLocation()">Speichern</button>
+      <button class="btn btn-ghost" onclick="closeModal('city-modal')">Abbrechen</button>
+      <button class="btn btn-primary" id="city-save-btn" onclick="saveCity()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Location Modal (new / edit) ────────────────────────────────── -->
+<div class="modal-overlay" id="location-modal">
+  <div class="modal loc-modal">
+    <div class="modal-header">
+      <div class="modal-title" id="loc-modal-title">Neue Location</div>
+      <button class="modal-close" onclick="closeModal('location-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="location-form" onsubmit="return false">
+
+        <!-- Name -->
+        <div class="form-group">
+          <label>Name *</label>
+          <input class="form-control" id="f-loc-name" required placeholder="z.B. Stadtpark Süd">
+        </div>
+
+        <!-- Adresse -->
+        <hr style="border-color:var(--border);margin:18px 0 14px">
+        <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Adresse</h3>
+        <div class="form-group">
+          <label>Straße &amp; Hausnummer</label>
+          <input class="form-control" id="f-loc-street" placeholder="Hauptstraße 12"
+            onblur="geocodeAddress()">
+        </div>
+        <div class="two-col">
+          <div class="form-group">
+            <label>PLZ</label>
+            <input class="form-control" id="f-loc-plz" maxlength="5" placeholder="50667"
+              onblur="geocodeAddress()">
+          </div>
+          <div class="form-group">
+            <label>Ort</label>
+            <input class="form-control" id="f-loc-ort" placeholder="Köln"
+              onblur="geocodeAddress()">
+          </div>
+        </div>
+
+        <!-- Google Map -->
+        <div class="form-group">
+          <label>Karte (Marker ziehbar)</label>
+          <div id="loc-map"></div>
+          <p class="map-hint">Adresse eingeben → Karte zentriert sich automatisch. Marker lässt sich verschieben.</p>
+        </div>
+        <input type="hidden" id="f-loc-lat">
+        <input type="hidden" id="f-loc-lng">
+
+        <!-- Beschreibung -->
+        <hr style="border-color:var(--border);margin:18px 0 14px">
+        <div class="form-group">
+          <label>Beschreibung</label>
+          <textarea class="form-control" id="f-loc-desc" rows="3" placeholder="Kurze Beschreibung der Location..."></textarea>
+        </div>
+
+        <!-- Bild -->
+        <div class="form-group">
+          <label>Bild</label>
+          <div class="upload-zone" id="upload-zone"
+            ondragover="uploadDragOver(event)" ondragleave="uploadDragLeave(event)" ondrop="uploadDrop(event)">
+            <input type="file" id="f-loc-image" accept="image/*" onchange="imageSelected(event)">
+            <div id="upload-icon">📸</div>
+            <div class="upload-zone-label">Bild hierher ziehen oder klicken zum Auswählen</div>
+            <img id="upload-preview" class="upload-preview" alt="Vorschau">
+          </div>
+        </div>
+
+        <!-- Aktiv -->
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:4px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="f-loc-active" checked> Aktiv
+          </label>
+        </div>
+
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('location-modal')">Abbrechen</button>
+      <button class="btn btn-primary" id="loc-save-btn" onclick="saveLocation()">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Delete confirm modal ──────────────────────────────────────── -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-header">
+      <div class="modal-title">Location löschen</div>
+      <button class="modal-close" onclick="closeModal('delete-modal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="delete-modal-text" style="color:var(--text-secondary)">Soll diese Location wirklich gelöscht werden?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('delete-modal')">Abbrechen</button>
+      <button class="btn btn-danger" id="delete-confirm-btn">Löschen</button>
     </div>
   </div>
 </div>
@@ -76,136 +355,544 @@
 <script src="auth-guard.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script>
-  let allLocations = [];
-  let editingLocationId = null;
-  let tableFilter;
+  /* ─────────────────────────────────────────────────────────────────
+     State
+  ───────────────────────────────────────────────────────────────── */
+  let allCities = [];           // service_locations rows
+  let cityLocations = {};       // { cityId: [location, ...] }
+  let openCityIds = new Set();  // which accordion rows are open
 
+  let editingCityId = null;
+  let editingLocId  = null;
+  let currentCityId = null;     // which city the loc-modal belongs to
+
+  let mapInstance = null;
+  let mapMarker   = null;
+  let geocoder    = null;
+  let newImageFile = null;
+
+  /* ─────────────────────────────────────────────────────────────────
+     Init
+  ───────────────────────────────────────────────────────────────── */
   (async () => {
     const user = await checkAdminAuth();
     if (!user) return;
 
     document.getElementById('sidebar').innerHTML = renderSidebar('locations');
-    document.getElementById('header').innerHTML = renderHeader('Einsatzorte');
+    document.getElementById('header').innerHTML  = renderHeader('Einsatzorte');
 
-    await loadLocations();
-
-    tableFilter = initSortableTable('locations-table', [
-      { key: 'city',       type: 'text',   getValue: l => l.city || '' },
-      { key: 'status',     type: 'select', getValue: l => l.is_active !== false ? 'Aktiv' : 'Inaktiv' },
-      { key: 'created_at', type: 'date',   getValue: l => l.created_at ? l.created_at.slice(0, 10) : '' },
-      null,
-    ]);
-    tableFilter.onFilterChange(() => renderLocations());
+    await loadCities();
   })();
 
-  async function loadLocations() {
+  /* ─────────────────────────────────────────────────────────────────
+     Load cities
+  ───────────────────────────────────────────────────────────────── */
+  async function loadCities() {
     try {
       const res = await adminApi('/api/admin?action=data&type=service_locations');
-      allLocations = res.data || [];
-      renderLocations();
+      allCities = res.data || [];
+      renderCities();
     } catch (err) {
-      document.getElementById('locations-body').innerHTML =
-        `<tr><td colspan="4" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+      document.getElementById('cities-body').innerHTML =
+        `<div style="padding:24px;color:var(--error)">Fehler: ${err.message}</div>`;
     }
   }
 
-  function renderLocations() {
-    const filtered = tableFilter ? tableFilter.apply(allLocations) : allLocations;
-    const tbody = document.getElementById('locations-body');
-    if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:24px">Keine Einsatzorte gefunden</td></tr>';
+  /* ─────────────────────────────────────────────────────────────────
+     Render city accordion
+  ───────────────────────────────────────────────────────────────── */
+  function renderCities() {
+    const container = document.getElementById('cities-body');
+    if (allCities.length === 0) {
+      container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-muted)">Noch keine Städte angelegt.</div>';
       return;
     }
 
-    tbody.innerHTML = filtered.map(l => `
-      <tr>
-        <td><strong>${l.city}</strong></td>
-        <td>${l.is_active !== false ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
-        <td class="text-muted">${formatDate(l.created_at)}</td>
-        <td>
-          <div class="action-cell">
-            <button class="btn btn-secondary btn-sm" onclick="editLocation('${l.id}')">Bearbeiten</button>
-            <button class="btn btn-sm ${l.is_active !== false ? 'btn-danger' : 'btn-success'}"
-              onclick="toggleActive('${l.id}', ${l.is_active === false})">
-              ${l.is_active !== false ? 'Deaktivieren' : 'Aktivieren'}
+    container.innerHTML = allCities.map(city => {
+      const isOpen = openCityIds.has(city.id);
+      const locs   = cityLocations[city.id] || [];
+      const count  = locs.length;
+      const activeBadge = city.is_active !== false
+        ? '<span class="badge badge-active">Aktiv</span>'
+        : '<span class="badge badge-inactive">Inaktiv</span>';
+
+      return `
+      <div class="city-row ${isOpen ? 'open' : ''}" id="city-row-${city.id}">
+        <div class="city-summary" onclick="toggleCity('${city.id}')">
+          <svg class="city-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+          <span class="city-name">${escHtml(city.city)}</span>
+          ${activeBadge}
+          <span class="city-count">${count} Location${count !== 1 ? 's' : ''}</span>
+          <div class="city-actions-inline" onclick="event.stopPropagation()">
+            <button class="btn btn-secondary btn-sm" onclick="openCityModal('${city.id}')">Bearbeiten</button>
+            <button class="btn btn-sm ${city.is_active !== false ? 'btn-danger' : 'btn-success'}"
+              onclick="toggleCityActive('${city.id}', ${city.is_active === false})">
+              ${city.is_active !== false ? 'Deakt.' : 'Aktiv.'}
             </button>
           </div>
-        </td>
-      </tr>
-    `).join('');
+        </div>
+        <div class="city-locations">
+          ${renderLocationList(city.id, isOpen)}
+        </div>
+      </div>`;
+    }).join('');
   }
 
-  function openNewModal() {
-    editingLocationId = null;
-    document.getElementById('modal-title').textContent = 'Neuer Einsatzort';
-    document.getElementById('location-form').reset();
-    document.getElementById('f-active').checked = true;
-    document.getElementById('location-modal').classList.add('open');
+  function renderLocationList(cityId, isOpen) {
+    const locs = cityLocations[cityId];
+
+    // Not yet loaded → show loader placeholder (will be loaded on open)
+    if (!locs) {
+      return `
+        <div class="loc-subheader">
+          <span style="color:var(--text-muted);font-size:13px"><span class="spinner"></span> Lade Locations…</span>
+          <button class="btn btn-primary btn-sm" onclick="openNewLocModal('${cityId}')">+ Neue Location</button>
+        </div>`;
+    }
+
+    const rows = locs.length === 0
+      ? `<div class="empty-loc">Noch keine Locations in dieser Stadt.</div>`
+      : `<ul class="loc-list">${locs.map(l => renderLocItem(cityId, l)).join('')}</ul>`;
+
+    return `
+      <div class="loc-subheader">
+        <span style="color:var(--text-muted);font-size:13px">${locs.length} Location${locs.length !== 1 ? 's' : ''}</span>
+        <button class="btn btn-primary btn-sm" onclick="openNewLocModal('${cityId}')">+ Neue Location</button>
+      </div>
+      ${rows}`;
   }
 
-  function editLocation(id) {
-    const l = allLocations.find(x => x.id === id);
-    if (!l) return;
-    editingLocationId = id;
-    document.getElementById('modal-title').textContent = 'Einsatzort bearbeiten';
-    document.getElementById('f-city').value = l.city || '';
-    document.getElementById('f-active').checked = l.is_active !== false;
-    document.getElementById('location-modal').classList.add('open');
+  function renderLocItem(cityId, l) {
+    const thumb = l.image_url
+      ? `<img class="loc-thumb" src="${escHtml(l.image_url)}" alt="">`
+      : `<div class="loc-thumb-placeholder">📍</div>`;
+    const addr = [l.street, l.plz, l.ort].filter(Boolean).join(', ');
+    const badge = l.is_active !== false
+      ? '<span class="badge badge-active">Aktiv</span>'
+      : '<span class="badge badge-inactive">Inaktiv</span>';
+
+    return `
+      <li class="loc-item">
+        ${thumb}
+        <div class="loc-info">
+          <div class="loc-info-name">${escHtml(l.name || '')} ${badge}</div>
+          ${addr ? `<div class="loc-info-addr">${escHtml(addr)}</div>` : ''}
+          ${l.description ? `<div class="loc-info-desc">${escHtml(l.description)}</div>` : ''}
+        </div>
+        <div class="loc-item-actions">
+          <button class="btn btn-secondary btn-sm" onclick="openEditLocModal('${cityId}', '${l.id}')">Bearbeiten</button>
+          <button class="btn btn-danger btn-sm" onclick="confirmDeleteLoc('${cityId}', '${l.id}', '${escHtml(l.name || '')}')">Löschen</button>
+        </div>
+      </li>`;
   }
 
-  async function saveLocation() {
-    const city = document.getElementById('f-city').value.trim();
-    if (!city) { alert('Stadt ist ein Pflichtfeld.'); return; }
+  /* ─────────────────────────────────────────────────────────────────
+     Toggle city accordion
+  ───────────────────────────────────────────────────────────────── */
+  async function toggleCity(cityId) {
+    const row = document.getElementById('city-row-' + cityId);
+    if (!row) return;
 
-    const payload = {
-      city,
-      is_active: document.getElementById('f-active').checked,
-    };
+    if (openCityIds.has(cityId)) {
+      openCityIds.delete(cityId);
+      row.classList.remove('open');
+    } else {
+      openCityIds.add(cityId);
+      row.classList.add('open');
+      // Load locations if not yet loaded
+      if (!cityLocations[cityId]) {
+        await loadCityLocations(cityId);
+      }
+    }
+  }
 
-    const btn = document.getElementById('modal-save-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
+  async function loadCityLocations(cityId) {
+    try {
+      const res = await adminApi(`/api/admin?action=location_details&cityId=${cityId}`);
+      cityLocations[cityId] = res.data || [];
+      // Re-render the locations area in place
+      const locDiv = document.querySelector(`#city-row-${cityId} .city-locations`);
+      if (locDiv) locDiv.innerHTML = renderLocationList(cityId, true);
+      // Update count badge
+      refreshCityCountBadge(cityId);
+    } catch (err) {
+      showAlert('alert-box', 'Fehler beim Laden: ' + err.message, 'error');
+    }
+  }
+
+  function refreshCityCountBadge(cityId) {
+    const row = document.getElementById('city-row-' + cityId);
+    if (!row) return;
+    const locs = cityLocations[cityId] || [];
+    const countEl = row.querySelector('.city-count');
+    if (countEl) countEl.textContent = `${locs.length} Location${locs.length !== 1 ? 's' : ''}`;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────
+     City CRUD
+  ───────────────────────────────────────────────────────────────── */
+  function openCityModal(cityId) {
+    editingCityId = cityId || null;
+    if (cityId) {
+      const city = allCities.find(c => c.id === cityId);
+      document.getElementById('city-modal-title').textContent = 'Stadt bearbeiten';
+      document.getElementById('f-city').value = city ? city.city : '';
+      document.getElementById('f-city-active').checked = city ? city.is_active !== false : true;
+    } else {
+      document.getElementById('city-modal-title').textContent = 'Neue Stadt';
+      document.getElementById('city-form').reset();
+      document.getElementById('f-city-active').checked = true;
+    }
+    openModal('city-modal');
+  }
+
+  async function saveCity() {
+    const cityName = document.getElementById('f-city').value.trim();
+    if (!cityName) { alert('Stadt ist ein Pflichtfeld.'); return; }
+
+    const payload = { city: cityName, is_active: document.getElementById('f-city-active').checked };
+    const btn = document.getElementById('city-save-btn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
 
     try {
-      if (editingLocationId) {
-        payload.id = editingLocationId;
+      if (editingCityId) {
+        payload.id = editingCityId;
         await adminApi('/api/admin?action=locations', { method: 'PUT', body: JSON.stringify(payload) });
       } else {
         await adminApi('/api/admin?action=locations', { method: 'POST', body: JSON.stringify(payload) });
       }
-      closeModal();
-      showAlert('alert-box', editingLocationId ? 'Einsatzort aktualisiert!' : 'Einsatzort erstellt!', 'success');
-      await loadLocations();
+      closeModal('city-modal');
+      showAlert('alert-box', editingCityId ? 'Stadt aktualisiert!' : 'Stadt erstellt!', 'success');
+      await loadCities();
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Speichern';
+      btn.disabled = false; btn.textContent = 'Speichern';
     }
   }
 
-  async function toggleActive(id, newState) {
+  async function toggleCityActive(cityId, newState) {
     try {
       await adminApi('/api/admin?action=locations', {
         method: 'PUT',
-        body: JSON.stringify({ id, is_active: newState }),
+        body: JSON.stringify({ id: cityId, is_active: newState }),
       });
-      await loadLocations();
+      await loadCities();
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     }
   }
 
-  function closeModal() {
-    document.getElementById('location-modal').classList.remove('open');
-    editingLocationId = null;
+  /* ─────────────────────────────────────────────────────────────────
+     Location CRUD
+  ───────────────────────────────────────────────────────────────── */
+  function openNewLocModal(cityId) {
+    currentCityId  = cityId;
+    editingLocId   = null;
+    newImageFile   = null;
+
+    document.getElementById('loc-modal-title').textContent = 'Neue Location';
+    document.getElementById('location-form').reset();
+    document.getElementById('f-loc-active').checked = true;
+    resetUploadPreview();
+
+    // Find city name for context
+    const city = allCities.find(c => c.id === cityId);
+    if (city) document.getElementById('f-loc-ort').value = city.city;
+
+    openModal('location-modal');
+    initMap();
   }
 
+  function openEditLocModal(cityId, locId) {
+    const locs = cityLocations[cityId] || [];
+    const l = locs.find(x => x.id === locId);
+    if (!l) return;
+
+    currentCityId = cityId;
+    editingLocId  = locId;
+    newImageFile  = null;
+
+    document.getElementById('loc-modal-title').textContent = 'Location bearbeiten';
+    document.getElementById('f-loc-name').value   = l.name        || '';
+    document.getElementById('f-loc-street').value = l.street      || '';
+    document.getElementById('f-loc-plz').value    = l.plz         || '';
+    document.getElementById('f-loc-ort').value    = l.ort         || '';
+    document.getElementById('f-loc-desc').value   = l.description || '';
+    document.getElementById('f-loc-lat').value    = l.lat         || '';
+    document.getElementById('f-loc-lng').value    = l.lng         || '';
+    document.getElementById('f-loc-active').checked = l.is_active !== false;
+
+    // Image preview
+    if (l.image_url) {
+      const prev = document.getElementById('upload-preview');
+      prev.src   = l.image_url;
+      prev.style.display = 'block';
+      document.getElementById('upload-icon').style.display  = 'none';
+    } else {
+      resetUploadPreview();
+    }
+
+    openModal('location-modal');
+    initMap(l.lat ? parseFloat(l.lat) : null, l.lng ? parseFloat(l.lng) : null);
+  }
+
+  async function saveLocation() {
+    const name = document.getElementById('f-loc-name').value.trim();
+    if (!name) { alert('Name ist ein Pflichtfeld.'); return; }
+
+    const payload = {
+      city_id:     currentCityId,
+      name,
+      street:      document.getElementById('f-loc-street').value.trim(),
+      plz:         document.getElementById('f-loc-plz').value.trim(),
+      ort:         document.getElementById('f-loc-ort').value.trim(),
+      description: document.getElementById('f-loc-desc').value.trim(),
+      lat:         document.getElementById('f-loc-lat').value  || null,
+      lng:         document.getElementById('f-loc-lng').value  || null,
+      is_active:   document.getElementById('f-loc-active').checked,
+    };
+
+    const btn = document.getElementById('loc-save-btn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+
+    try {
+      let locId = editingLocId;
+      if (editingLocId) {
+        payload.id = editingLocId;
+        const res = await adminApi('/api/admin?action=location_details', { method: 'PUT', body: JSON.stringify(payload) });
+        locId = editingLocId;
+      } else {
+        const res = await adminApi('/api/admin?action=location_details', { method: 'POST', body: JSON.stringify(payload) });
+        locId = res.id || (res.data && res.data.id);
+      }
+
+      // Upload image if selected
+      if (newImageFile && locId) {
+        await uploadImage(locId);
+      }
+
+      closeModal('location-modal');
+      showAlert('alert-box', editingLocId ? 'Location aktualisiert!' : 'Location erstellt!', 'success');
+      // Reload locations for this city
+      delete cityLocations[currentCityId];
+      await loadCityLocations(currentCityId);
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Speichern';
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────
+     Delete location
+  ───────────────────────────────────────────────────────────────── */
+  function confirmDeleteLoc(cityId, locId, locName) {
+    document.getElementById('delete-modal-text').textContent =
+      `Soll die Location „${locName}" wirklich gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.`;
+    const confirmBtn = document.getElementById('delete-confirm-btn');
+    confirmBtn.onclick = () => deleteLoc(cityId, locId);
+    openModal('delete-modal');
+  }
+
+  async function deleteLoc(cityId, locId) {
+    const btn = document.getElementById('delete-confirm-btn');
+    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    try {
+      await adminApi('/api/admin?action=location_details', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: locId }),
+      });
+      closeModal('delete-modal');
+      showAlert('alert-box', 'Location gelöscht.', 'success');
+      delete cityLocations[cityId];
+      await loadCityLocations(cityId);
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Löschen';
+    }
+  }
+
+  /* ─────────────────────────────────────────────────────────────────
+     Image Upload
+  ───────────────────────────────────────────────────────────────── */
+  function imageSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    newImageFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const prev = document.getElementById('upload-preview');
+      prev.src = e.target.result;
+      prev.style.display = 'block';
+      document.getElementById('upload-icon').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function uploadDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('drag-over'); }
+  function uploadDragLeave() { document.getElementById('upload-zone').classList.remove('drag-over'); }
+  function uploadDrop(e) {
+    e.preventDefault();
+    uploadDragLeave();
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.type.startsWith('image/')) return;
+    newImageFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const prev = document.getElementById('upload-preview');
+      prev.src = ev.target.result;
+      prev.style.display = 'block';
+      document.getElementById('upload-icon').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function resetUploadPreview() {
+    const prev = document.getElementById('upload-preview');
+    prev.src = ''; prev.style.display = 'none';
+    document.getElementById('upload-icon').style.display = 'block';
+    document.getElementById('f-loc-image').value = '';
+  }
+
+  async function uploadImage(locationId) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = async e => {
+        try {
+          const base64 = e.target.result.split(',')[1];
+          const res = await adminApi('/api/admin?action=upload_location_image', {
+            method: 'POST',
+            body: JSON.stringify({ locationId, imageBase64: base64, fileName: newImageFile.name }),
+          });
+          resolve(res);
+        } catch (err) { reject(err); }
+      };
+      reader.readAsDataURL(newImageFile);
+    });
+  }
+
+  /* ─────────────────────────────────────────────────────────────────
+     Google Maps
+  ───────────────────────────────────────────────────────────────── */
+  function initMap(lat, lng) {
+    // Wait for modal to be visible, then initialize
+    requestAnimationFrame(() => {
+      const center = (lat && lng)
+        ? { lat: parseFloat(lat), lng: parseFloat(lng) }
+        : { lat: 51.1657, lng: 10.4515 }; // Germany center
+
+      if (!mapInstance) {
+        mapInstance = new google.maps.Map(document.getElementById('loc-map'), {
+          center,
+          zoom: lat ? 15 : 6,
+          mapTypeControl: false,
+          streetViewControl: false,
+          fullscreenControl: false,
+          styles: [
+            { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
+            { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
+            { elementType: 'labels.text.fill', stylers: [{ color: '#8888a0' }] },
+            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a2a3e' }] },
+            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d0d1a' }] },
+          ],
+        });
+
+        geocoder = new google.maps.Geocoder();
+
+        mapInstance.addListener('click', e => {
+          placeMarker(e.latLng);
+        });
+      } else {
+        mapInstance.setCenter(center);
+        mapInstance.setZoom(lat ? 15 : 6);
+      }
+
+      if (lat && lng) {
+        placeMarker(new google.maps.LatLng(parseFloat(lat), parseFloat(lng)));
+      } else if (mapMarker) {
+        mapMarker.setMap(null);
+        mapMarker = null;
+      }
+    });
+  }
+
+  function placeMarker(latLng) {
+    if (mapMarker) {
+      mapMarker.setPosition(latLng);
+    } else {
+      mapMarker = new google.maps.Marker({
+        position: latLng,
+        map: mapInstance,
+        draggable: true,
+        title: 'Location',
+      });
+      mapMarker.addListener('dragend', e => {
+        document.getElementById('f-loc-lat').value = e.latLng.lat();
+        document.getElementById('f-loc-lng').value = e.latLng.lng();
+      });
+    }
+    document.getElementById('f-loc-lat').value = latLng.lat();
+    document.getElementById('f-loc-lng').value = latLng.lng();
+  }
+
+  function geocodeAddress() {
+    if (!geocoder) return;
+    const street = document.getElementById('f-loc-street').value.trim();
+    const plz    = document.getElementById('f-loc-plz').value.trim();
+    const ort    = document.getElementById('f-loc-ort').value.trim();
+    const addr   = [street, plz, ort].filter(Boolean).join(', ');
+    if (!addr) return;
+
+    geocoder.geocode({ address: addr + ', Deutschland' }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        const loc = results[0].geometry.location;
+        mapInstance.setCenter(loc);
+        mapInstance.setZoom(16);
+        placeMarker(loc);
+      }
+    });
+  }
+
+  /* ─────────────────────────────────────────────────────────────────
+     Modal helpers
+  ───────────────────────────────────────────────────────────────── */
+  function openModal(id) {
+    document.getElementById(id).classList.add('open');
+  }
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+    if (id === 'location-modal') {
+      // Destroy map so it re-initialises cleanly next open
+      mapInstance = null;
+      mapMarker   = null;
+      newImageFile = null;
+    }
+    if (id === 'city-modal')    editingCityId = null;
+    if (id === 'location-modal') { editingLocId = null; currentCityId = null; }
+  }
+
+  // Close on overlay click
   document.querySelectorAll('.modal-overlay').forEach(o => {
     o.addEventListener('click', e => {
-      if (e.target === o) { o.classList.remove('open'); editingLocationId = null; }
+      if (e.target === o) {
+        const id = o.id;
+        closeModal(id);
+      }
     });
   });
+
+  /* ─────────────────────────────────────────────────────────────────
+     Util
+  ───────────────────────────────────────────────────────────────── */
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
 </script>
 
 </body>
