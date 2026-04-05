@@ -23,34 +23,55 @@
       <h2 class="h2 text-center mb-4">Anmelden</h2>
 
       <div class="alert alert-danger d-none" id="error-msg"></div>
+      <div class="alert alert-success d-none" id="success-msg"></div>
 
-      <form id="login-form" novalidate>
-        <div class="mb-3">
-          <label class="form-label" for="email">E-Mail-Adresse</label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="ti ti-mail"></i></span>
-            <input type="email" class="form-control" id="email" placeholder="admin@projektfit.net" autocomplete="email" required>
+      <!-- Login Form -->
+      <div id="login-view">
+        <form id="login-form" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="email">E-Mail-Adresse</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="ti ti-mail"></i></span>
+              <input type="email" class="form-control" id="email" placeholder="admin@projektfit.net" autocomplete="email" required>
+            </div>
           </div>
-        </div>
-        <div class="mb-3">
-          <label class="form-label d-flex justify-content-between" for="password">
-            Passwort
-            <a href="#" class="text-secondary" style="font-size:12px">Vergessen?</a>
-          </label>
-          <div class="input-group">
-            <span class="input-group-text"><i class="ti ti-lock"></i></span>
-            <input type="password" class="form-control" id="password" placeholder="Passwort eingeben" autocomplete="current-password" required>
-            <button class="input-group-text" type="button" onclick="togglePw(this)" title="Anzeigen">
-              <i class="ti ti-eye"></i>
+          <div class="mb-3">
+            <label class="form-label d-flex justify-content-between" for="password">
+              Passwort
+              <a href="#" id="forgot-link" class="text-secondary" style="font-size:12px">Vergessen?</a>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="ti ti-lock"></i></span>
+              <input type="password" class="form-control" id="password" placeholder="Passwort eingeben" autocomplete="current-password" required>
+              <button class="input-group-text" type="button" onclick="togglePw(this)" title="Anzeigen">
+                <i class="ti ti-eye"></i>
+              </button>
+            </div>
+          </div>
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary w-100" id="submit-btn">
+              <i class="ti ti-login"></i> Anmelden
             </button>
           </div>
+        </form>
+      </div>
+
+      <!-- Password Reset Form -->
+      <div id="reset-view" style="display:none">
+        <h3 class="h3 text-center mb-3">Passwort zuruecksetzen</h3>
+        <form id="reset-form" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="reset-email">E-Mail</label>
+            <input type="email" class="form-control" id="reset-email" placeholder="deine@email.de" autocomplete="email" required>
+          </div>
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary w-100" id="reset-btn">Link senden</button>
+          </div>
+        </form>
+        <div class="text-center mt-3">
+          <a href="#" id="back-link" class="text-secondary">Zurueck zum Login</a>
         </div>
-        <div class="form-footer">
-          <button type="submit" class="btn btn-primary w-100" id="submit-btn">
-            <i class="ti ti-login"></i> Anmelden
-          </button>
-        </div>
-      </form>
+      </div>
     </div>
   </div>
 
@@ -121,6 +142,48 @@
     showError('Kein Admin-Zugang. Nur Administratoren dürfen sich hier einloggen.');
   }
 
+  const successMsg = document.getElementById('success-msg');
+
+  // ─── Forgot / Reset Toggle ─────────────────────────────────
+  document.getElementById('forgot-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('reset-view').style.display = 'block';
+    errorMsg.classList.add('d-none');
+    successMsg.classList.add('d-none');
+  });
+  document.getElementById('back-link').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('reset-view').style.display = 'none';
+    document.getElementById('login-view').style.display = 'block';
+    errorMsg.classList.add('d-none');
+    successMsg.classList.add('d-none');
+  });
+
+  // ─── Password Reset ───────────────────────────────────────
+  document.getElementById('reset-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorMsg.classList.add('d-none');
+    successMsg.classList.add('d-none');
+    const email = document.getElementById('reset-email').value.trim();
+    if (!email) { showError('Bitte E-Mail eingeben.'); return; }
+    const btn = document.getElementById('reset-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird gesendet...';
+    try {
+      const { error } = await sb.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://projektfit.net/admin/',
+      });
+      if (error) { showError('Fehler: ' + error.message); }
+      else {
+        successMsg.textContent = 'Reset-Link wurde an ' + email + ' gesendet. Pruefe dein Postfach.';
+        successMsg.classList.remove('d-none');
+      }
+    } catch (err) { showError('Verbindungsfehler: ' + err.message); }
+    finally { btn.disabled = false; btn.textContent = 'Link senden'; }
+  });
+
+  // ─── Login ─────────────────────────────────────────────────
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     hideError();
