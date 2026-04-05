@@ -337,6 +337,7 @@
         ${b.status === 'location_proposed' ? `<div class="form-group" style="margin:${b.proposed_date ? '8px 0 0' : '0'}">
           <label style="color:#F4A940">Vorgeschlagener Treffpunkt</label>
           <input class="form-control" value="${b.location_name || '–'}" disabled style="color:#F4A940;font-weight:700">
+          ${b.location_address ? '<input class="form-control mt-1" value="' + b.location_address + '" disabled style="color:#F4A940;font-size:13px">' : ''}
         </div>` : ''}
       </div>` : ''}
       <div class="two-col">

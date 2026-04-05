@@ -731,7 +731,8 @@
       </div>` : ''}
       ${b.status === 'location_proposed' && b.location_name ? `<div class="alert alert-warning mb-3" style="font-size:13px">
         <div class="fw-bold mb-1"><i class="ti ti-map-pin"></i> Dein Ort-Vorschlag</div>
-        <div>${b.location_name}</div>
+        <div class="fw-bold" style="color:#F4A940">${b.location_name}</div>
+        ${b.location_address ? '<div class="text-secondary">' + b.location_address + '</div>' : ''}
         <div class="text-secondary mt-1">Wartet auf Kundenbestaetigung (24h Frist)</div>
       </div>` : ''}
       ${contactHtml}
@@ -870,6 +871,7 @@
         var { error } = await sb.from('bookings').update({
           status: 'location_proposed',
           location_name: locName,
+          location_address: locAddress || null,
           notes: (function() {
             var b = allBookings.find(function(x) { return x.id === rescheduleBookingId; });
             var ts = new Date().toISOString().slice(0,16).replace('T',' ');
@@ -1130,6 +1132,7 @@
       var { error } = await sb.from('bookings').update({
         status: 'location_proposed',
         location_name: altName.value.trim(),
+        location_address: altAddr && altAddr.value.trim() ? altAddr.value.trim() : null,
         notes: newNotes
       }).eq('id', bookingId);
       if (error) { alert('Fehler: ' + error.message); return; }
