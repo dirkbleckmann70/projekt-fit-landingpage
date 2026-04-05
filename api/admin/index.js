@@ -168,7 +168,7 @@ export default async function handler(req, res) {
           scheduled_date: d,
           scheduled_time: time + ':00',
           start_time: time + ':00',
-          day_of_week: new Date(d + 'T00:00:00').getDay() === 0 ? 7 : new Date(d + 'T00:00:00').getDay(),
+          day_of_week: new Date(d + 'T12:00:00Z').getDay(),
           duration_minutes: duration_minutes || 60,
           max_participants: max_participants || 12,
           price_per_person_cents: Math.round(price_per_person_cents),
@@ -1451,7 +1451,7 @@ async function handleGroups(req, res, supabase) {
     // Calculate day_of_week from scheduled_date if provided
     let computedDayOfWeek = day_of_week;
     if (scheduled_date && computedDayOfWeek == null) {
-      computedDayOfWeek = new Date(scheduled_date + 'T00:00:00').getDay();
+      computedDayOfWeek = new Date(scheduled_date + 'T12:00:00Z').getDay();
     }
 
     const { data, error } = await supabase.from('group_classes').insert({
@@ -1483,7 +1483,7 @@ async function handleGroups(req, res, supabase) {
 
     // Recalculate day_of_week if scheduled_date changed
     if (update.scheduled_date) {
-      update.day_of_week = new Date(update.scheduled_date + 'T00:00:00').getDay();
+      update.day_of_week = new Date(update.scheduled_date + 'T12:00:00Z').getDay();
     }
 
     if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });

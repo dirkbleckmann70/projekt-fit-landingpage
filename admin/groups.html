@@ -1023,7 +1023,12 @@
           duration_minutes: duration,
           max_participants: maxP,
           price_per_person_cents: Math.round(price * 100),
-          dates: dates.map(function(d) { return d.toISOString().split('T')[0]; })
+          dates: dates.map(function(d) {
+            var y = d.getFullYear();
+            var m = String(d.getMonth() + 1).padStart(2, '0');
+            var day = String(d.getDate()).padStart(2, '0');
+            return y + '-' + m + '-' + day;
+          })
         })
       });
       bootstrap.Modal.getOrCreateInstance(document.getElementById('series-modal')).hide();
