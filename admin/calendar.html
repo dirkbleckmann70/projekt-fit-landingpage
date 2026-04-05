@@ -163,15 +163,10 @@
 
       var idsParam = trainerIds.join(',');
 
-      var results = await Promise.all([
-        adminApi('/api/admin?action=data&type=calendar_availability&trainer_ids=' + idsParam),
-        adminApi('/api/admin?action=data&type=calendar_bookings&trainer_ids=' + idsParam + '&week_start=' + startDate + '&week_end=' + endDate),
-        adminApi('/api/admin?action=data&type=calendar_groups&trainer_ids=' + idsParam),
-      ]);
-
-      var availRes = results[0];
-      var bookingsRes = results[1];
-      var gtRes = results[2];
+      // Einzeln laden damit ein Fehler die anderen nicht blockiert
+      var availRes = await adminApi('/api/admin?action=data&type=calendar_availability&trainer_ids=' + idsParam).catch(function(e) { console.error('Calendar availability:', e); return { data: [] }; });
+      var bookingsRes = await adminApi('/api/admin?action=data&type=calendar_bookings&trainer_ids=' + idsParam + '&week_start=' + startDate + '&week_end=' + endDate).catch(function(e) { console.error('Calendar bookings:', e); return { data: [] }; });
+      var gtRes = await adminApi('/api/admin?action=data&type=calendar_groups&trainer_ids=' + idsParam).catch(function(e) { console.error('Calendar groups:', e); return { data: [] }; });
 
       var events = [];
 
