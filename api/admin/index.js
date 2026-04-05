@@ -319,6 +319,13 @@ export default async function handler(req, res) {
         return handleLocationReject(req, res, supabase)
       }
 
+      // ═══════════════════════════════════════════════════════════════════
+      // TRAINER-VACATION – POST (erstellen) + DELETE (löschen)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'trainer_vacation': {
+        return await handleTrainerVacation(req, res, supabase);
+      }
+
       default:
         return res.status(404).json({ error: `Unbekannte Action: ${action}` });
     }
@@ -869,6 +876,19 @@ async function handleData(req, res, supabase) {
       const { data, error } = await supabase.from('booking_locations').select('*').eq('booking_id', bookingId).order('sort_order')
       if (error) return res.status(500).json({ success: false, error: error.message })
       return res.json({ success: true, data })
+    }
+
+    case 'trainer_vacations': {
+      const trainerIds = (req.query.trainer_ids || '').split(',').filter(Boolean);
+      let query = supabase.from('trainer_vacations').select('*, trainer_profiles(full_name)');
+      if (trainerIds.length) query = query.in('trainer_id', trainerIds);
+      query = query.order('start_date', { ascending: false });
+      const { data, error } = await query;
+      if (error) throw error;
+      return res.json({ data: (data || []).map(v => ({
+        ...v,
+        trainer_name: v.trainer_profiles?.full_name || null
+      })) });
     }
 
     default:
@@ -2059,4 +2079,35 @@ async function handleLocationReject(req, res, supabase) {
 
   if (error) return res.status(500).json({ success: false, error: error.message })
   return res.json({ success: true })
+}
+
+// ─── ACTION: trainer_vacation ──────────────────────────────────────────────────
+
+async function handleTrainerVacation(req, res, supabase) {
+  const body = await getBody(req);
+
+  if (req.method === 'POST') {
+    const { trainer_id, start_date, end_date, reason } = body;
+    if (!trainer_id || !start_date || !end_date) {
+      return res.status(400).json({ error: 'trainer_id, start_date, end_date required' });
+    }
+    const { data, error } = await supabase.from('trainer_vacations').insert({
+      trainer_id,
+      start_date,
+      end_date,
+      reason: reason || 'urlaub'
+    }).select().single();
+    if (error) throw error;
+    return res.json({ success: true, data });
+  }
+
+  if (req.method === 'DELETE') {
+    const { id } = body;
+    if (!id) return res.status(400).json({ error: 'id required' });
+    const { error } = await supabase.from('trainer_vacations').delete().eq('id', id);
+    if (error) throw error;
+    return res.json({ success: true });
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' });
 }

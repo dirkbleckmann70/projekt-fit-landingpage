@@ -535,6 +535,56 @@
         Verfügbarkeit speichern
       </button>
       <span id="availability-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
+
+      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Urlaub / Abwesenheit</h3>
+
+      <button class="btn btn-secondary btn-sm mb-3" onclick="document.getElementById('vacation-form').classList.toggle('d-none')">
+        <i class="ti ti-plus"></i> Urlaub eintragen
+      </button>
+
+      <div id="vacation-form" class="d-none card card-body mb-3" style="background:var(--tblr-bg-surface)">
+        <div class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">Von</label>
+            <input type="date" class="form-control" id="admin-vac-start">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Bis</label>
+            <input type="date" class="form-control" id="admin-vac-end">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Grund</label>
+            <select class="form-select" id="admin-vac-reason">
+              <option value="urlaub">Urlaub</option>
+              <option value="krank">Krank</option>
+              <option value="privat">Privat</option>
+              <option value="sonstiges">Sonstiges</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <button class="btn btn-primary btn-sm" onclick="createVacation('${id}')">Speichern</button>
+            <button class="btn btn-ghost-secondary btn-sm" onclick="document.getElementById('vacation-form').classList.add('d-none')">Abbrechen</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-vcenter table-sm">
+          <thead>
+            <tr>
+              <th>Von</th>
+              <th>Bis</th>
+              <th>Tage</th>
+              <th>Grund</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody id="vacation-list">
+            <tr><td colspan="5" class="text-center text-secondary p-3">Wird geladen...</td></tr>
+          </tbody>
+        </table>
+      </div>
     `;
 
     new bootstrap.Modal(document.getElementById('detail-modal')).show();
@@ -548,6 +598,8 @@
 
     // Load availability after modal is open
     loadAvailability(id);
+    // Load vacations
+    loadTrainerVacations(id);
   }
 
   // ─── Availability Grid ────────────────────────────────────────────────────
@@ -1147,6 +1199,64 @@
     if (inst) inst.hide();
     editingTrainerId = null;
   }
+  // ─── Vacation Management ─────────────────────────────────────────────────
+
+  async function loadTrainerVacations(trainerId) {
+    try {
+      var res = await adminApi('/api/admin?action=data&type=trainer_vacations&trainer_ids=' + trainerId);
+      var tbody = document.getElementById('vacation-list');
+      var vacations = res.data || [];
+      if (vacations.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-secondary p-3">Keine Urlaubseintraege</td></tr>';
+        return;
+      }
+      tbody.innerHTML = vacations.map(function(v) {
+        var days = Math.ceil((new Date(v.end_date) - new Date(v.start_date)) / 86400000) + 1;
+        var reasonMap = { urlaub: 'Urlaub', krank: 'Krank', privat: 'Privat', sonstiges: 'Sonstiges' };
+        return '<tr>' +
+          '<td>' + formatDate(v.start_date) + '</td>' +
+          '<td>' + formatDate(v.end_date) + '</td>' +
+          '<td>' + days + ' Tage</td>' +
+          '<td>' + (reasonMap[v.reason] || v.reason || '–') + '</td>' +
+          '<td><button class="btn btn-sm btn-outline-danger" onclick="deleteVacation(\'' + v.id + '\', \'' + v.trainer_id + '\')"><i class="ti ti-trash"></i></button></td>' +
+          '</tr>';
+      }).join('');
+    } catch(e) {
+      console.error('Vacations load error:', e);
+      document.getElementById('vacation-list').innerHTML = '<tr><td colspan="5" class="text-secondary p-3">Fehler beim Laden</td></tr>';
+    }
+  }
+
+  async function createVacation(trainerId) {
+    var startDate = document.getElementById('admin-vac-start').value;
+    var endDate = document.getElementById('admin-vac-end').value;
+    var reason = document.getElementById('admin-vac-reason').value;
+    if (!startDate || !endDate) { alert('Bitte Von und Bis angeben'); return; }
+    if (new Date(endDate) < new Date(startDate)) { alert('Bis-Datum muss nach Von-Datum liegen'); return; }
+    try {
+      await adminApi('/api/admin?action=trainer_vacation', {
+        method: 'POST',
+        body: JSON.stringify({ trainer_id: trainerId, start_date: startDate, end_date: endDate, reason: reason })
+      });
+      document.getElementById('vacation-form').classList.add('d-none');
+      document.getElementById('admin-vac-start').value = '';
+      document.getElementById('admin-vac-end').value = '';
+      document.getElementById('admin-vac-reason').value = 'urlaub';
+      loadTrainerVacations(trainerId);
+    } catch(e) { alert('Fehler: ' + e.message); }
+  }
+
+  async function deleteVacation(vacId, trainerId) {
+    if (!confirm('Urlaub loeschen?')) return;
+    try {
+      await adminApi('/api/admin?action=trainer_vacation', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: vacId })
+      });
+      loadTrainerVacations(trainerId);
+    } catch(e) { alert('Fehler: ' + e.message); }
+  }
+
 </script>
 
 </body>
