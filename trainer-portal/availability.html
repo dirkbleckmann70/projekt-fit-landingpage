@@ -68,10 +68,13 @@
         </div>
       </div>
 
-      <!-- Save + Reset -->
+      <!-- Save + Reset + Clear -->
       <div class="d-flex gap-2 mb-3">
         <button class="btn btn-primary flex-fill" id="save-btn" onclick="saveAvailability()">
           <i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern
+        </button>
+        <button class="btn btn-outline-danger" onclick="clearAllAvailability()">
+          <i class="ti ti-trash"></i> Alle loeschen
         </button>
         <button class="btn btn-ghost-secondary" onclick="if(confirm('Alle Aenderungen verwerfen?')) window.location.reload()">
           <i class="ti ti-refresh"></i> Zuruecksetzen
@@ -349,11 +352,11 @@
   function onEventClick(info) {
     var props = info.event.extendedProps;
     if (props.type === 'availability') {
-      if (confirm('Verfuegbarkeit loeschen?')) {
-        info.event.remove();
-        markDirty();
-        updateSummary();
-      }
+      // Direkt loeschen (kein confirm — Speichern-Button ist der Commit)
+      info.event.remove();
+      markDirty();
+      updateSummary();
+      showAlert('alert-box', 'Zeitfenster entfernt. Klicke "Speichern" um die Aenderung zu uebernehmen.', 'warning');
     } else if (props.type === 'booking') {
       var b = props.booking;
       alert('PT-Buchung\n\nKunde: ' + (b.customer_name || '–') + '\nDatum: ' + (b.scheduled_date || '') + '\nUhrzeit: ' + (b.scheduled_time || '') + '\nStatus: ' + (b.status || ''));
@@ -387,6 +390,30 @@
     info.event.setProp('title', formatTimeRange(info.event.start, info.event.end));
     markDirty();
     updateSummary();
+  }
+
+  // ── Clear All Availability ─────────────────────────────────
+  async function clearAllAvailability() {
+    if (!confirm('Alle Verfuegbarkeiten loeschen? Dies entfernt alle Zeitfenster aus dem Kalender und der Datenbank.')) return;
+
+    var sb = getSupabase();
+    var trainerId = window.currentTrainer.id;
+
+    try {
+      var { error } = await sb.from('trainer_availability').delete().eq('trainer_id', trainerId);
+      if (error) throw error;
+
+      // Remove all availability events from calendar
+      calendar.getEvents().forEach(function(e) {
+        if (e.extendedProps.type === 'availability') e.remove();
+      });
+
+      showAlert('alert-box', 'Alle Verfuegbarkeiten geloescht.', 'success');
+      markClean();
+      updateSummary();
+    } catch (err) {
+      alert('Loeschen fehlgeschlagen: ' + err.message);
+    }
   }
 
   // ── Save Availability ──────────────────────────────────────
