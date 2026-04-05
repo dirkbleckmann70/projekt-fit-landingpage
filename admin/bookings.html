@@ -216,10 +216,6 @@
     const tbody = document.getElementById('bookings-body');
     const tfoot  = document.getElementById('bookings-tfoot');
 
-    // Update count bar
-    document.getElementById('bookings-count-cell').textContent =
-      `${filtered.length} von ${allBookings.length} Eintraegen`;
-
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
       tfoot.style.display = 'none';
