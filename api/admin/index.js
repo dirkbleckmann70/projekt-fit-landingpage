@@ -386,7 +386,7 @@ export default async function handler(req, res) {
     if (msg.includes('column') && msg.includes('does not exist')) {
       return res.status(500).json({ error: 'Datenbank-Schema veraltet. Bitte SQL-Migration ausführen (siehe docs/sql-admin-erweiterungen.sql).' });
     }
-    return res.status(500).json({ error: 'Ein Fehler ist aufgetreten. Bitte versuche es erneut.' });
+    return res.status(500).json({ error: msg || 'Unbekannter Fehler', details: err.code || null });
   }
 }
 
