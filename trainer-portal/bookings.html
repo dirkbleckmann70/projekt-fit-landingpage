@@ -672,18 +672,36 @@
       }
     }
 
-    // Vorgeschlagene Treffpunkte laden
+    // Vorgeschlagene Treffpunkte laden (klickbar bei pending/replacement_pending)
     let locationHtml = '';
+    var isActionable = [BOOKING_STATUS.PENDING, BOOKING_STATUS.REPLACEMENT_PENDING].includes(b.status);
     try {
       const resp = await adminApi('/api/admin?action=data&type=booking_locations&bookingId=' + bookingId);
       var locs = Array.isArray(resp.data) ? resp.data : [];
+      window._detailLocations = locs;
+      window._detailBookingId = bookingId;
+      window._selectedLocationId = locs.length > 0 ? locs[0].id : null;
+
       if (locs.length > 0) {
-        locationHtml = `<div class="mb-3"><label class="form-label text-secondary">Vorgeschlagene Treffpunkte</label>`;
-        locs.forEach(function(loc) {
+        locationHtml = '<div class="mb-3"><label class="form-label text-secondary">Vorgeschlagene Treffpunkte' + (isActionable ? ' (klicke zum Auswaehlen)' : '') + '</label>';
+        locs.forEach(function(loc, idx) {
           var addr = [loc.street, loc.zip_code, loc.city].filter(Boolean).join(', ') || loc.address || '';
-          var selected = loc.is_selected ? ' <span class="badge bg-primary">Gewaehlt</span>' : '';
-          locationHtml += '<div class="d-flex align-items-start gap-2 mb-1"><i class="ti ti-map-pin text-secondary" style="margin-top:2px"></i><div><strong>' + (loc.name || loc.location_name || 'Treffpunkt') + '</strong>' + selected + (addr ? '<br><span class="text-secondary" style="font-size:12px">' + addr + '</span>' : '') + '</div></div>';
+          var selectedClass = (isActionable && idx === 0) ? 'border-color:var(--tblr-primary);background:rgba(64,145,108,0.08)' : '';
+          var checkIcon = (isActionable && idx === 0) ? '<i class="ti ti-circle-check" style="color:var(--tblr-primary);font-size:18px"></i>' : '<i class="ti ti-circle" style="color:var(--tblr-border-color);font-size:18px"></i>';
+          if (isActionable) {
+            locationHtml += '<div class="d-flex align-items-start gap-2 p-2 mb-1 border rounded" style="cursor:pointer;transition:all .15s;' + selectedClass + '" id="loc-card-' + loc.id + '" onclick="selectDetailLocation(\'' + loc.id + '\')">' + checkIcon + '<div><strong>' + (loc.name || loc.location_name || 'Treffpunkt') + '</strong>' + (addr ? '<br><span class="text-secondary" style="font-size:12px">' + addr + '</span>' : '') + '</div></div>';
+          } else {
+            var selected = loc.is_selected ? ' <span class="badge bg-primary">Gewaehlt</span>' : '';
+            locationHtml += '<div class="d-flex align-items-start gap-2 mb-1"><i class="ti ti-map-pin text-secondary" style="margin-top:2px"></i><div><strong>' + (loc.name || loc.location_name || 'Treffpunkt') + '</strong>' + selected + (addr ? '<br><span class="text-secondary" style="font-size:12px">' + addr + '</span>' : '') + '</div></div>';
+          }
         });
+        if (isActionable) {
+          locationHtml += '<div class="mt-2 pt-2" style="border-top:1px dashed var(--tblr-border-color)">';
+          locationHtml += '<div class="text-secondary fw-bold" style="font-size:12px;margin-bottom:6px">Oder alternativen Ort vorschlagen:</div>';
+          locationHtml += '<input type="text" class="form-control form-control-sm mb-1" id="detail-alt-loc-name" placeholder="Name (z.B. Stadtpark Nord)">';
+          locationHtml += '<input type="text" class="form-control form-control-sm" id="detail-alt-loc-address" placeholder="Adresse">';
+          locationHtml += '</div>';
+        }
         locationHtml += '</div>';
       }
     } catch { /* no locations */ }
@@ -726,7 +744,7 @@
     // Aktions-Buttons im Footer je nach Status
     var footerHtml = '';
     if (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.REPLACEMENT_PENDING) {
-      footerHtml = `<button class="btn btn-success btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openLocationSelectModal('${b.id}')"><i class="ti ti-check"></i> Bestätigen</button>
+      footerHtml = `<button class="btn btn-success btn-sm" onclick="confirmFromDetail('${b.id}')"><i class="ti ti-check"></i> Bestätigen</button>
         <button class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
         <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
     } else if (b.status === 'reschedule_proposed' || b.status === 'location_proposed') {
@@ -1044,6 +1062,88 @@
       await loadBookings();
     } catch (err) {
       showAlert('Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Detail-Modal: Location auswaehlen ──────────────────────────────────
+  function selectDetailLocation(locId) {
+    window._selectedLocationId = locId;
+    // Alle Karten zuruecksetzen
+    (window._detailLocations || []).forEach(function(loc) {
+      var card = document.getElementById('loc-card-' + loc.id);
+      if (!card) return;
+      if (loc.id === locId) {
+        card.style.borderColor = 'var(--tblr-primary)';
+        card.style.background = 'rgba(64,145,108,0.08)';
+        card.querySelector('i').className = 'ti ti-circle-check';
+        card.querySelector('i').style.color = 'var(--tblr-primary)';
+      } else {
+        card.style.borderColor = '';
+        card.style.background = '';
+        card.querySelector('i').className = 'ti ti-circle';
+        card.querySelector('i').style.color = 'var(--tblr-border-color)';
+      }
+    });
+    // Alt-Loc Felder leeren wenn Kunden-Vorschlag gewaehlt
+    var altName = document.getElementById('detail-alt-loc-name');
+    var altAddr = document.getElementById('detail-alt-loc-address');
+    if (altName) altName.value = '';
+    if (altAddr) altAddr.value = '';
+  }
+
+  async function confirmFromDetail(bookingId) {
+    var altName = document.getElementById('detail-alt-loc-name');
+    var altAddr = document.getElementById('detail-alt-loc-address');
+    var hasAltLoc = altName && altName.value.trim();
+
+    if (hasAltLoc) {
+      // Trainer schlaegt alternativen Ort vor → location_proposed
+      var sb = getSupabase();
+      var b = allBookings.find(function(x) { return x.id === bookingId; });
+      var ts = new Date().toISOString().slice(0,16).replace('T',' ');
+      var note = '[Ort-Vorschlag ' + ts + '] Trainer schlaegt vor: ' + altName.value.trim() + (altAddr && altAddr.value.trim() ? ' (' + altAddr.value.trim() + ')' : '');
+      var newNotes = b && b.notes ? b.notes + '\n' + note : note;
+      var { error } = await sb.from('bookings').update({
+        status: 'location_proposed',
+        location_name: altName.value.trim(),
+        notes: newNotes
+      }).eq('id', bookingId);
+      if (error) { alert('Fehler: ' + error.message); return; }
+      document.querySelectorAll('.modal.show').forEach(function(m) { var inst = bootstrap.Modal.getInstance(m); if (inst) inst.hide(); });
+      showAlert('Ort-Vorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
+      await loadBookings();
+      return;
+    }
+
+    // Kunden-Treffpunkt auswaehlen + bestaetigen
+    var selectedLocId = window._selectedLocationId;
+    if (!selectedLocId) {
+      alert('Bitte einen Treffpunkt auswaehlen.');
+      return;
+    }
+
+    // Location als gewaehlt markieren + Buchung bestaetigen
+    try {
+      var sb = getSupabase();
+      // Alle Locations dieser Buchung auf nicht-gewaehlt setzen
+      await sb.from('booking_locations').update({ is_selected: false }).eq('booking_id', bookingId);
+      // Gewaehlte Location markieren
+      await sb.from('booking_locations').update({ is_selected: true }).eq('id', selectedLocId);
+
+      // Location-Name in Buchung uebernehmen
+      var loc = (window._detailLocations || []).find(function(l) { return l.id === selectedLocId; });
+      var locName = loc ? (loc.name || loc.location_name || '') : '';
+
+      await sb.from('bookings').update({
+        status: BOOKING_STATUS.CONFIRMED,
+        location_name: locName
+      }).eq('id', bookingId);
+
+      document.querySelectorAll('.modal.show').forEach(function(m) { var inst = bootstrap.Modal.getInstance(m); if (inst) inst.hide(); });
+      showAlert('Buchung bestaetigt! Treffpunkt: ' + locName, 'success');
+      await loadBookings();
+    } catch (err) {
+      alert('Fehler: ' + err.message);
     }
   }
 </script>
