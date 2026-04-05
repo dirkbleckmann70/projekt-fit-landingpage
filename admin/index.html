@@ -16,7 +16,7 @@
 <div class="container container-tight py-4">
   <div class="text-center mb-4">
     <h1 style="font-weight:800;font-size:1.75rem">Projekt <span style="color:var(--tblr-primary)">Fit</span> Admin</h1>
-    <p class="text-secondary">Admin-Bereich</p>
+    <p class="text-secondary mt-2">Verwaltungsportal</p>
   </div>
   <div class="card card-md">
     <div class="card-body">
@@ -26,18 +26,43 @@
 
       <form id="login-form" novalidate>
         <div class="mb-3">
-          <label class="form-label" for="email">E-Mail</label>
-          <input type="email" class="form-control" id="email" placeholder="admin@projektfit.net" autocomplete="email" required>
+          <label class="form-label" for="email">E-Mail-Adresse</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="ti ti-mail"></i></span>
+            <input type="email" class="form-control" id="email" placeholder="admin@projektfit.net" autocomplete="email" required>
+          </div>
         </div>
         <div class="mb-3">
-          <label class="form-label" for="password">Passwort</label>
-          <input type="password" class="form-control" id="password" placeholder="Passwort" autocomplete="current-password" required>
+          <label class="form-label d-flex justify-content-between" for="password">
+            Passwort
+            <a href="#" class="text-secondary" style="font-size:12px">Vergessen?</a>
+          </label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="ti ti-lock"></i></span>
+            <input type="password" class="form-control" id="password" placeholder="Passwort eingeben" autocomplete="current-password" required>
+            <button class="input-group-text" type="button" onclick="togglePw(this)" title="Anzeigen">
+              <i class="ti ti-eye"></i>
+            </button>
+          </div>
         </div>
         <div class="form-footer">
-          <button type="submit" class="btn btn-primary w-100" id="submit-btn">Einloggen</button>
+          <button type="submit" class="btn btn-primary w-100" id="submit-btn">
+            <i class="ti ti-login"></i> Anmelden
+          </button>
         </div>
       </form>
     </div>
+  </div>
+
+  <div class="text-center text-secondary mt-3" style="font-size:12px">
+    &copy; 2026 ProjektFit &middot; <a href="/datenschutz.html" class="text-secondary">Datenschutz</a> &middot; <a href="/impressum.html" class="text-secondary">Impressum</a>
+  </div>
+
+  <!-- Theme Toggle unten rechts -->
+  <div style="position:fixed;bottom:1rem;right:1rem">
+    <button class="btn btn-icon btn-ghost-secondary" onclick="toggleThemeManual()" title="Theme wechseln">
+      <i class="ti ti-moon" id="theme-icon"></i>
+    </button>
   </div>
 </div>
 
@@ -45,6 +70,26 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="auth-guard.js"></script>
 <script>
+  function togglePw(btn) {
+    const input = btn.parentElement.querySelector('input');
+    const icon = btn.querySelector('i');
+    if (input.type === 'password') {
+      input.type = 'text';
+      icon.className = 'ti ti-eye-off';
+    } else {
+      input.type = 'password';
+      icon.className = 'ti ti-eye';
+    }
+  }
+  function toggleThemeManual() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-bs-theme', next);
+    localStorage.setItem('theme', next);
+    const icon = document.getElementById('theme-icon');
+    if (icon) icon.className = next === 'dark' ? 'ti ti-moon' : 'ti ti-sun';
+  }
+
   const sb = getSupabase();
 
   const errorMsg = document.getElementById('error-msg');

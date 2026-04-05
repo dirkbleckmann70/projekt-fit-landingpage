@@ -66,30 +66,46 @@
       <div id="alert-box" class="alert d-none"></div>
 
       <div id="bk-tfoot" style="display:none;text-align:right;font-size:14px" class="text-secondary mb-2">
-        Gesamt (best. + erl.): <strong id="bk-sum-value" style="color:var(--tblr-primary)">–</strong>
+        Gesamt (best. + erl.): <strong id="bk-sum-value" style="color:var(--tblr-primary)">--</strong>
       </div>
 
-      <div class="card mb-3">
-        <div class="table-responsive">
-          <table class="table table-vcenter card-table" id="bookings-table">
-            <thead>
-              <tr>
-                <th>Status</th>
-                <th>Datum</th>
-                <th>Uhrzeit</th>
-                <th>Kunde</th>
-                <th>Kurs</th>
-                <th>Art</th>
-                <th>Stadt</th>
-                <th>Vergütung</th>
-                <th>Aktion</th>
-              </tr>
-            </thead>
-            <tbody id="bookings-body">
-              <tr><td colspan="9" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</td></tr>
-            </tbody>
-          </table>
+      <!-- Tabs: Aktuell / Vergangen / Storniert -->
+      <ul class="nav nav-tabs mb-3" role="tablist" id="booking-tabs">
+        <li class="nav-item">
+          <a class="nav-link active" data-bs-toggle="tab" href="#tab-aktuell">
+            Aktuell <span class="badge bg-primary ms-1" id="tab-aktuell-count">0</span>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-vergangen">Vergangen</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-storniert">Storniert</a>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+        <div class="tab-pane active show" id="tab-aktuell">
+          <div id="cards-aktuell">
+            <div class="text-center text-secondary p-4"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</div>
+          </div>
         </div>
+        <div class="tab-pane" id="tab-vergangen">
+          <div id="cards-vergangen"></div>
+        </div>
+        <div class="tab-pane" id="tab-storniert">
+          <div id="cards-storniert"></div>
+        </div>
+      </div>
+
+      <!-- Hidden table for filter logic (kept for compatibility) -->
+      <div style="display:none">
+        <table id="bookings-table">
+          <thead><tr>
+            <th>Status</th><th>Datum</th><th>Uhrzeit</th><th>Kunde</th><th>Kurs</th><th>Art</th><th>Stadt</th><th>Vergütung</th><th>Aktion</th>
+          </tr></thead>
+          <tbody id="bookings-body"></tbody>
+        </table>
       </div>
 
     </div>
@@ -386,19 +402,94 @@
     const items = tableFilter ? tableFilter.apply(getAllItems()) : getAllItems();
     const tbody = document.getElementById('bookings-body');
 
+    // Also render table rows for compatibility
     if (items.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" class="text-center text-secondary" style="padding:24px">Keine Buchungen vorhanden</td></tr>';
-      document.getElementById('bk-tfoot').style.display = 'none';
-      return;
+    } else {
+      tbody.innerHTML = items.map(item =>
+        item._type === 'gt' ? renderGTRow(item) : renderPTRow(item)
+      ).join('');
     }
 
-    tbody.innerHTML = items.map(item =>
-      item._type === 'gt' ? renderGTRow(item) : renderPTRow(item)
-    ).join('');
+    // Card-based rendering for tabs
+    const aktuell = items.filter(i => {
+      if (i._type === 'gt') return i.is_active;
+      return [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed'].includes(i.status);
+    });
+    const vergangen = items.filter(i => {
+      if (i._type === 'gt') return !i.is_active;
+      return i.status === BOOKING_STATUS.COMPLETED || i.status === BOOKING_STATUS.EXPIRED;
+    });
+    const storniert = items.filter(i => {
+      if (i._type === 'gt') return false;
+      return CANCELLED.includes(i.status);
+    });
+
+    document.getElementById('tab-aktuell-count').textContent = aktuell.length;
+    document.getElementById('cards-aktuell').innerHTML = aktuell.length === 0
+      ? '<div class="text-center text-secondary p-4">Keine aktuellen Buchungen</div>'
+      : aktuell.map(i => renderBookingCard(i)).join('');
+    document.getElementById('cards-vergangen').innerHTML = vergangen.length === 0
+      ? '<div class="text-center text-secondary p-4">Keine vergangenen Buchungen</div>'
+      : vergangen.map(i => renderBookingCard(i)).join('');
+    document.getElementById('cards-storniert').innerHTML = storniert.length === 0
+      ? '<div class="text-center text-secondary p-4">Keine stornierten Buchungen</div>'
+      : storniert.map(i => renderBookingCard(i)).join('');
 
     const sumCents = calcSumCents(items);
     document.getElementById('bk-sum-value').textContent = formatEuro(sumCents);
-    document.getElementById('bk-tfoot').style.display = '';
+    document.getElementById('bk-tfoot').style.display = items.length > 0 ? '' : 'none';
+  }
+
+  function renderBookingCard(item) {
+    const isPending = item._type !== 'gt' && item.status === BOOKING_STATUS.PENDING;
+    const isLocationProposed = item._type !== 'gt' && item.status === 'reschedule_proposed';
+    const borderStyle = (isPending || isLocationProposed) ? 'border-left:3px solid var(--tblr-warning)' : '';
+    const name = item._type === 'gt' ? item.group_class_name : (item.customer_name || 'Kunde');
+    const dateStr = item.scheduled_date ? formatDate(item.scheduled_date) : '--';
+    const timeStr = item.scheduled_time ? item.scheduled_time.slice(0,5) : '--';
+    const city = item._type === 'gt' ? (item.city || '--') : (item.city || item.location_name || item.location || '--');
+    const badge = statusBadgeBK(item);
+
+    let actions = '';
+    if (item._type === 'gt') {
+      actions = `<button class="btn btn-sm btn-outline-primary" onclick="showGTDetail('${item.gc_id}')"><i class="ti ti-eye"></i> Details</button>`;
+    } else if (item.status === BOOKING_STATUS.PENDING) {
+      actions = `
+        <button class="btn btn-sm btn-success" onclick="openLocationSelectModal('${item.id}')"><i class="ti ti-check"></i> Bestaetigen</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="openRescheduleModal('${item.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
+    } else if (item.status === BOOKING_STATUS.CONFIRMED) {
+      actions = `
+        <button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="openRescheduleModal('${item.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
+    } else {
+      actions = `<button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>`;
+    }
+
+    let warningLine = '';
+    if (isLocationProposed) {
+      warningLine = `<div class="text-warning mt-1" style="font-size:12px"><i class="ti ti-clock"></i> Wartet auf Kundenbestaetigung</div>`;
+    }
+
+    return `
+      <div class="card mb-2" style="${borderStyle}">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <div>
+              <div class="fw-bold">${name}</div>
+              <div class="text-secondary" style="font-size:13px">
+                <i class="ti ti-calendar" style="font-size:14px"></i> ${dateStr} &middot; ${timeStr} &middot;
+                <i class="ti ti-map-pin" style="font-size:14px"></i> ${city}
+              </div>
+              ${warningLine}
+            </div>
+            ${badge}
+          </div>
+          ${actions ? `<div class="d-flex gap-2 flex-wrap">${actions}</div>` : ''}
+        </div>
+      </div>`;
   }
 
   function renderPTRow(b) {

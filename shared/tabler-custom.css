@@ -1,23 +1,74 @@
 /* ProjektFit Tabler Overrides */
 
-/* ── Markenfarben ──────────────────────────────────────── */
+/* ── Markenfarben (hohe Spezifitaet um Tabler-Defaults zu ueberschreiben) ── */
 :root,
-[data-bs-theme="dark"] {
-  --tblr-primary: #40916C;
-  --tblr-primary-rgb: 64, 145, 108;
-  --tblr-warning: #e8930a;
-  --tblr-warning-rgb: 232, 147, 10;
-  --tblr-body-bg: #0a0a0a;
-  --tblr-card-bg: #1a1a1a;
-  --tblr-border-color: #2a2a2a;
-  --tblr-font-sans-serif: 'Plus Jakarta Sans', sans-serif;
+[data-bs-theme="dark"],
+.page[data-bs-theme="dark"],
+body[data-bs-theme="dark"] {
+  --tblr-primary: #40916C !important;
+  --tblr-primary-rgb: 64, 145, 108 !important;
+  --tblr-warning: #e8930a !important;
+  --tblr-warning-rgb: 232, 147, 10 !important;
+  --tblr-body-bg: #0a0a0a !important;
+  --tblr-card-bg: #1a1a1a !important;
+  --tblr-border-color: #2a2a2a !important;
+  --tblr-font-sans-serif: 'Plus Jakarta Sans', sans-serif !important;
+  --tblr-body-color: #f0f0f5 !important;
+  --tblr-secondary-color: #8888a0 !important;
+  --tblr-muted-color: #666680 !important;
+  --tblr-card-border-color: #2a2a2a !important;
+  --tblr-navbar-bg: #111 !important;
+  color: #f0f0f5;
+  background-color: #0a0a0a;
 }
 
-[data-bs-theme="light"] {
-  --tblr-body-bg: #f5f7fb;
-  --tblr-card-bg: #ffffff;
-  --tblr-border-color: #e6e7e9;
+[data-bs-theme="light"],
+.page[data-bs-theme="light"],
+body[data-bs-theme="light"] {
+  --tblr-body-bg: #f5f7fb !important;
+  --tblr-card-bg: #ffffff !important;
+  --tblr-border-color: #e6e7e9 !important;
+  --tblr-body-color: #1e293b !important;
+  --tblr-secondary-color: #626976 !important;
+  --tblr-navbar-bg: #ffffff !important;
 }
+
+/* Sicherstellen dass body die Farben uebernimmt */
+body { color: var(--tblr-body-color); background-color: var(--tblr-body-bg); }
+.page-body { color: var(--tblr-body-color); }
+.card { background-color: var(--tblr-card-bg); border-color: var(--tblr-card-border-color, var(--tblr-border-color)); }
+.table { color: var(--tblr-body-color); }
+.page-header { color: var(--tblr-body-color); }
+.page-title { color: var(--tblr-body-color); }
+.card-title { color: var(--tblr-body-color); }
+.form-control, .form-select { color: var(--tblr-body-color); background-color: var(--tblr-card-bg); border-color: var(--tblr-border-color); }
+.modal-content { background-color: var(--tblr-card-bg); color: var(--tblr-body-color); }
+.nav-link { color: var(--tblr-secondary-color); }
+.nav-link.active { color: var(--tblr-primary); }
+
+/* Sidebar Farben forcieren */
+.navbar-vertical { background-color: #111 !important; }
+[data-bs-theme="light"] .navbar-vertical { background-color: #fff !important; }
+.navbar-vertical .nav-link { color: #8888a0; }
+.navbar-vertical .nav-link.active { color: var(--tblr-primary); background: rgba(64,145,108,0.1); }
+.navbar-vertical .nav-link:hover { color: #f0f0f5; }
+[data-bs-theme="light"] .navbar-vertical .nav-link { color: #626976; }
+[data-bs-theme="light"] .navbar-vertical .nav-link.active { color: var(--tblr-primary); }
+[data-bs-theme="light"] .navbar-vertical .nav-link:hover { color: #1e293b; }
+
+/* Tabellen-Zeilen Hover */
+.table-hover > tbody > tr:hover { --tblr-table-hover-bg: rgba(255,255,255,0.03); }
+[data-bs-theme="light"] .table-hover > tbody > tr:hover { --tblr-table-hover-bg: rgba(0,0,0,0.02); }
+
+/* Buttons sichtbarer */
+.btn-primary { background-color: #40916C; border-color: #40916C; color: #fff; }
+.btn-primary:hover { background-color: #357a5b; border-color: #357a5b; }
+.btn-ghost-secondary { color: var(--tblr-secondary-color); }
+.btn-ghost-secondary:hover { color: var(--tblr-body-color); background: rgba(255,255,255,0.05); }
+[data-bs-theme="light"] .btn-ghost-secondary:hover { background: rgba(0,0,0,0.04); }
+
+/* Accent-Farbe (orange) fuer Preise */
+.text-accent { color: #e8930a !important; }
 
 /* ── Sidebar ───────────────────────────────────────────── */
 .navbar-vertical .navbar-brand {

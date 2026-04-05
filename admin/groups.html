@@ -18,6 +18,13 @@
     .fc .fc-event { cursor: pointer; border-radius: 4px; padding: 1px 4px; font-size: 11px; }
     .fc .fc-toolbar-title { font-size: 16px !important; }
     .fc .fc-button { font-size: 12px; }
+    /* Participant Bar */
+    .participant-bar { height:6px; border-radius:3px; background:rgba(255,255,255,0.1); overflow:hidden; margin-top:4px; }
+    .participant-bar-fill { height:100%; border-radius:3px; transition:width 0.3s; }
+    /* Series Badge */
+    .series-badge { display:inline-flex; align-items:center; gap:3px; font-size:11px; background:rgba(155,89,182,0.2); color:#9b59b6; padding:2px 6px; border-radius:4px; }
+    /* View Toggle Tabs */
+    .nav-pills .nav-link.active { background:var(--tblr-primary); color:#fff; border-color:var(--tblr-primary); }
   </style>
 </head>
 <body class="page">
@@ -31,6 +38,42 @@
     <div class="container-xl">
 
       <div id="alert-box" class="alert"></div>
+
+      <!-- KPI Row -->
+      <div class="row row-deck row-cards mb-3" id="kpi-row">
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Aktive Kurse</div>
+              <div class="kpi-value" id="kpi-active">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Diese Woche</div>
+              <div class="kpi-value" id="kpi-week">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Teilnehmer (Monat)</div>
+              <div class="kpi-value" style="color:var(--tblr-primary)" id="kpi-participants">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Umsatz GT (Monat)</div>
+              <div class="kpi-value" style="color:var(--tblr-primary)" id="kpi-revenue">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div class="d-flex justify-content-between align-items-center mb-3">
         <ul class="nav nav-pills" id="view-tabs">
@@ -59,20 +102,18 @@
           <table class="table table-vcenter card-table" id="groups-table">
             <thead>
               <tr>
-                <th>Stadt</th>
                 <th>Kursname</th>
-                <th>Status</th>
-                <th>Datum</th>
-                <th>Wochentag</th>
-                <th>Uhrzeit</th>
+                <th>Stadt</th>
                 <th>Trainer</th>
-                <th>Anz. Teilnehmer</th>
+                <th>Datum / Zeit</th>
+                <th>Teilnehmer</th>
                 <th>Preis/Person</th>
+                <th>Status</th>
                 <th>Aktionen</th>
               </tr>
             </thead>
             <tbody id="groups-body">
-              <tr><td colspan="10" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</td></tr>
+              <tr><td colspan="8" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</td></tr>
             </tbody>
           </table>
         </div>
@@ -355,15 +396,13 @@
     await loadGroups();
 
     tableFilter = initSortableTable('groups-table', [
-      { key: 'city',           type: 'select', getValue: g => g.city || '\u2013' },
       { key: 'name',           type: 'text',   getValue: g => g.name || '' },
-      { key: 'status',         type: 'select', getValue: g => g.is_active ? 'Aktiv' : 'Inaktiv' },
-      { key: 'scheduled_date', type: 'date',   getValue: g => g.scheduled_date || '' },
-      { key: 'day_name',       type: 'select', getValue: g => getDayName(g) },
-      { key: 'time',           type: 'select', getValue: g => getTime(g) },
+      { key: 'city',           type: 'select', getValue: g => g.city || '\u2013' },
       { key: 'trainer',        type: 'text',   getValue: g => activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '' },
+      { key: 'scheduled_date', type: 'date',   getValue: g => g.scheduled_date || '' },
       { key: 'participants',   type: 'number', getValue: g => g.current_participants || 0 },
       { key: 'price',          type: 'number', getValue: g => (g.price_per_person_cents || 0) / 100 },
+      { key: 'status',         type: 'select', getValue: g => g.is_active ? 'Aktiv' : 'Inaktiv' },
       null,
     ]);
     tableFilter.onFilterChange(() => renderGroups());
@@ -376,7 +415,7 @@
       renderGroups();
     } catch (err) {
       document.getElementById('groups-body').innerHTML =
-        `<tr><td colspan="10" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="8" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -399,44 +438,81 @@
 
     const tbody = document.getElementById('groups-body');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings gefunden</td></tr>';
       return;
     }
 
     tbody.innerHTML = filtered.map(g => {
-      const trainerName = activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '–';
+      const trainerName = activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '--';
       const participants = g.current_participants || 0;
-      const max = g.max_participants || '–';
+      const max = g.max_participants || 12;
       const priceCents = g.price_per_person_cents || 0;
+      const fillPct = max > 0 ? Math.round((participants / max) * 100) : 0;
+      const barColor = fillPct > 70 ? 'var(--tblr-primary)' : (fillPct > 30 ? 'var(--tblr-primary)' : 'var(--tblr-warning)');
+      const seriesBadge = g.series_id ? ' <span class="series-badge ms-1"><i class="ti ti-repeat" style="font-size:12px"></i> Wo</span>' : '';
+      const dateTimeStr = g.scheduled_date ? formatDate(g.scheduled_date) + ' · ' + getTime(g) : getDayName(g) + ' · ' + getTime(g);
+      const inactiveStyle = !g.is_active ? ' style="opacity:0.5"' : '';
       return `
-        <tr>
-          <td>${g.city || '–'}</td>
-          <td><strong>${g.name}</strong></td>
-          <td>${g.is_active ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
-          <td>${g.scheduled_date ? formatDate(g.scheduled_date) : '–'}</td>
-          <td>${getDayName(g)}</td>
-          <td>${getTime(g)}</td>
+        <tr${inactiveStyle}>
+          <td><strong>${g.name}</strong>${seriesBadge}</td>
+          <td>${g.city || '--'}</td>
           <td>${trainerName}</td>
-          <td>${participants} / ${max}</td>
-          <td class="text-accent">${formatEuro(priceCents)}</td>
+          <td>${dateTimeStr}${g.duration_minutes ? '<br><span class="text-secondary" style="font-size:12px">' + g.duration_minutes + ' Min</span>' : ''}</td>
           <td>
-            <div class="action-cell">
-              <button class="btn btn-secondary btn-sm" onclick="editGroup('${g.id}')">Bearbeiten</button>
-              <button class="btn btn-ghost-secondary btn-sm" onclick="duplicateGroup('${g.id}')" title="Kurs duplizieren">Duplizieren</button>
-              <button class="btn btn-ghost-secondary btn-sm" onclick="showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')">Teilnehmer</button>
-              <button class="btn btn-sm ${g.is_active ? 'btn-danger' : 'btn-success'}"
-                onclick="toggleActive('${g.id}', ${!g.is_active})">
-                ${g.is_active ? 'Deaktivieren' : 'Aktivieren'}
-              </button>
-              ${g.is_active
-                ? '<button class="btn btn-icon btn-icon-delete" disabled title="Kurs muss zuerst deaktiviert werden">&#x1F5D1;</button>'
-                : `<button class="btn btn-icon btn-icon-delete" onclick="deleteGroup('${g.id}', '${(g.name||'').replace(/'/g, "\\'")}')" title="Kurs löschen">&#x1F5D1;</button>`
-              }
+            <span class="fw-bold">${participants}</span><span class="text-secondary">/${max}</span>
+            <div class="participant-bar"><div class="participant-bar-fill" style="width:${fillPct}%;background:${barColor}"></div></div>
+          </td>
+          <td class="fw-bold">${formatEuro(priceCents)}</td>
+          <td>${g.is_active ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
+          <td>
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-ghost-secondary" onclick="editGroup('${g.id}')" title="Bearbeiten"><i class="ti ti-edit"></i></button>
+              <button class="btn btn-sm btn-ghost-secondary" onclick="duplicateGroup('${g.id}')" title="Duplizieren"><i class="ti ti-copy"></i></button>
+              <button class="btn btn-sm btn-ghost-secondary" onclick="showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')" title="Teilnehmer"><i class="ti ti-users"></i></button>
             </div>
           </td>
         </tr>
       `;
     }).join('');
+
+    // Update KPIs
+    updateKPIs(filtered);
+  }
+
+  function updateKPIs(groups) {
+    const active = allGroups.filter(g => g.is_active);
+    document.getElementById('kpi-active').textContent = active.length;
+
+    // Diese Woche
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1));
+    startOfWeek.setHours(0,0,0,0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    const thisWeek = allGroups.filter(g => {
+      if (!g.scheduled_date || !g.is_active) return false;
+      const d = new Date(g.scheduled_date + 'T00:00:00');
+      return d >= startOfWeek && d < endOfWeek;
+    });
+    document.getElementById('kpi-week').textContent = thisWeek.length;
+
+    // Teilnehmer & Umsatz diesen Monat
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    let monthParticipants = 0;
+    let monthRevenue = 0;
+    allGroups.forEach(g => {
+      if (!g.scheduled_date) return;
+      const d = new Date(g.scheduled_date + 'T00:00:00');
+      if (d.getMonth() === month && d.getFullYear() === year) {
+        const p = g.current_participants || 0;
+        monthParticipants += p;
+        monthRevenue += p * (g.price_per_person_cents || 0);
+      }
+    });
+    document.getElementById('kpi-participants').textContent = monthParticipants;
+    document.getElementById('kpi-revenue').textContent = formatEuro(monthRevenue);
   }
 
   // Create / Edit
@@ -628,8 +704,12 @@
 
   async function showParticipants(groupId, groupName, date, time) {
     currentParticipantsGroupId = groupId;
+    const g = allGroups.find(x => x.id === groupId);
     const dateStr = date ? formatDate(date) : '';
-    document.getElementById('participants-title').textContent = `${groupName} – ${dateStr} ${time}`;
+    const trainerName = g ? (activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '') : '';
+    const priceStr = g && g.price_per_person_cents ? formatEuro(g.price_per_person_cents) : '';
+    document.getElementById('participants-title').innerHTML = `${groupName} — ${dateStr} ${time}` +
+      (trainerName || priceStr ? `<div class="text-secondary" style="font-size:13px">${trainerName}${priceStr ? ' · ' + priceStr + '/Person' : ''}</div>` : '');
     document.getElementById('participants-body').innerHTML = '<div class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</div>';
     new bootstrap.Modal(document.getElementById('participants-modal')).show();
     await loadParticipants(groupId);
@@ -643,16 +723,38 @@
       const attendedCount = participants.filter(p => p.attended).length;
       const totalCount = participants.length;
 
+      const g = allGroups.find(x => x.id === groupId);
+      const maxP = g ? (g.max_participants || 12) : 12;
+      const priceCents = g ? (g.price_per_person_cents || 0) : 0;
+      const paidCount = participants.filter(p => p.customer_paid).length;
+      const totalEurAll = formatEuro(totalCount * priceCents);
+      const paidEur = formatEuro(paidCount * priceCents);
+
       let html = `
-        <div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">
-          <div style="background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 16px">
-            <span style="font-size:12px;color:#8888A0">SOLL (angemeldet)</span>
-            <div style="font-size:20px;font-weight:700">${totalCount}</div>
+        <!-- SOLL / IST Cards -->
+        <div class="row mb-3">
+          <div class="col-6">
+            <div class="card">
+              <div class="card-body py-2 text-center">
+                <div class="text-secondary" style="font-size:12px">Angemeldet (SOLL)</div>
+                <div style="font-size:1.5rem;font-weight:700">${totalCount} <span class="text-secondary" style="font-size:14px">/ ${maxP}</span></div>
+              </div>
+            </div>
           </div>
-          <div style="background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 16px">
-            <span style="font-size:12px;color:#8888A0">IST (teilgenommen)</span>
-            <div style="font-size:20px;font-weight:700;color:var(--success)">${attendedCount}</div>
+          <div class="col-6">
+            <div class="card">
+              <div class="card-body py-2 text-center">
+                <div class="text-secondary" style="font-size:12px">Teilgenommen (IST)</div>
+                <div style="font-size:1.5rem;font-weight:700;color:var(--tblr-primary)">${attendedCount}</div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        <!-- Einnahmen-Zusammenfassung -->
+        <div class="alert" style="background:rgba(64,145,108,0.1);border:1px solid rgba(64,145,108,0.3);color:var(--tblr-primary)">
+          <strong>Einnahmen:</strong> ${totalCount} &times; ${formatEuro(priceCents)} = <strong>${totalEurAll}</strong>
+          &nbsp;|&nbsp; Davon bezahlt: <strong>${paidEur}</strong> (${paidCount} von ${totalCount})
         </div>
       `;
 

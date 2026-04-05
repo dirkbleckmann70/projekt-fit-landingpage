@@ -24,15 +24,22 @@
       <div id="alert-box" class="alert"></div>
 
       <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h3 class="card-title">Alle Buchungen</h3>
-          <div class="table-actions"></div>
+        <div class="count-bar" style="font-size:12px;color:var(--tblr-secondary-color);padding:8px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span id="bookings-count-cell">Buchungen werden geladen...</span>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-ghost-secondary" onclick="document.querySelector('.filter-row')?.classList.toggle('d-none')">
+              <i class="ti ti-filter"></i> Filter &amp; Sortierung
+            </button>
+            <button class="btn btn-sm btn-ghost-secondary" onclick="exportCSV()">
+              <i class="ti ti-download"></i> CSV Export
+            </button>
+          </div>
         </div>
         <div class="table-responsive">
-          <table class="table table-vcenter card-table" id="bookings-table">
+          <table class="table table-vcenter card-table table-hover" id="bookings-table">
             <thead>
-              <tr id="bookings-tfoot" style="display:none;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
-                <td colspan="7" style="padding:6px 12px;text-align:right;font-style:italic" id="bookings-count-cell"></td>
+              <tr id="bookings-tfoot" style="display:none;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--tblr-secondary-color)">
+                <td colspan="7" style="padding:6px 12px;text-align:right;font-style:italic" id="bookings-sum-label"></td>
                 <td style="padding:6px 12px" class="text-accent" id="bookings-price-sum"></td>
                 <td style="padding:6px 12px" class="text-muted"  id="bookings-cost-sum"></td>
                 <td colspan="2"></td>
@@ -56,6 +63,10 @@
             </tbody>
           </table>
         </div>
+        <!-- Pagination Footer -->
+        <div class="card-footer d-flex align-items-center" id="bookings-pagination" style="display:none!important">
+          <p class="m-0 text-secondary" id="pagination-info"></p>
+        </div>
       </div>
 
     </div>
@@ -70,10 +81,28 @@
         <h5 class="modal-title">Buchungs-Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-body">
+        <!-- Tabs -->
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-details">Details</a></li>
+          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-history">Verlauf</a></li>
+          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-invoice">Beleg</a></li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane active show" id="tab-details">
+            <div id="modal-body"></div>
+          </div>
+          <div class="tab-pane" id="tab-history">
+            <div id="modal-history"></div>
+          </div>
+          <div class="tab-pane" id="tab-invoice">
+            <div id="modal-invoice" class="text-center text-secondary p-4">Noch kein Beleg vorhanden</div>
+          </div>
+        </div>
+      </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schließen</button>
-        <button class="btn btn-primary" id="modal-save-btn" onclick="saveBookingStatus()">Speichern</button>
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schliessen</button>
+        <button class="btn btn-primary" id="modal-save-btn" onclick="saveBookingStatus()"><i class="ti ti-device-floppy"></i> Speichern</button>
       </div>
     </div>
   </div>
@@ -193,6 +222,10 @@
     const tbody = document.getElementById('bookings-body');
     const tfoot  = document.getElementById('bookings-tfoot');
 
+    // Update count bar
+    document.getElementById('bookings-count-cell').textContent =
+      `${filtered.length} von ${allBookings.length} Eintraegen`;
+
     if (filtered.length === 0) {
       tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
       tfoot.style.display = 'none';
@@ -226,7 +259,7 @@
     const totalPrice = filtered.reduce((s, b) => s + effectivePrice(b), 0);
     const totalCost  = filtered.reduce((s, b) => s + effectiveCost(b), 0);
     tfoot.style.display = '';
-    document.getElementById('bookings-count-cell').textContent =
+    document.getElementById('bookings-sum-label').textContent =
       `${filtered.length} von ${allBookings.length} Buchungen`;
     document.getElementById('bookings-price-sum').textContent = formatEuro(totalPrice);
     document.getElementById('bookings-cost-sum').textContent  = formatEuro(totalCost);
@@ -365,6 +398,9 @@
 
     new bootstrap.Modal(document.getElementById('detail-modal')).show();
 
+    // Verlauf-Tab fuellen
+    renderHistory(b);
+
     // Kontaktdaten asynchron nachladen (Admin sieht immer beide)
     loadAdminContacts(b);
 
@@ -492,6 +528,48 @@
       btn.disabled = false;
       btn.textContent = 'Speichern';
     }
+  }
+
+  function exportCSV() {
+    if (allBookings.length === 0) return;
+    const filtered = tableFilter ? tableFilter.apply(allBookings) : allBookings;
+    const headers = ['Datum','Ort','Uhrzeit','Art','Trainer','Kunde','Status','Einnahmen','Kosten','Zahlung'];
+    const rows = filtered.map(b => [
+      b.scheduled_date || '',
+      b.trainer_city || b.city || '',
+      b.scheduled_time ? b.scheduled_time.slice(0,5) : '',
+      getBookingType(b),
+      b.trainer_name || '',
+      b.customer_name || b.customer_id || '',
+      b.status || '',
+      (effectivePrice(b) / 100).toFixed(2),
+      (effectiveCost(b) / 100).toFixed(2),
+      getPaymentLabel(b),
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(c => '"' + String(c).replace(/"/g,'""') + '"').join(';')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'buchungen_export_' + new Date().toISOString().slice(0,10) + '.csv';
+    a.click();
+  }
+
+  function renderHistory(b) {
+    const el = document.getElementById('modal-history');
+    if (!el) return;
+    let html = '<div class="timeline">';
+    if (b.updated_at && b.updated_at !== b.created_at) {
+      html += `<div class="d-flex gap-3 mb-3">
+        <div class="text-secondary" style="font-size:12px;min-width:120px">${formatDateTime(b.updated_at)}</div>
+        <div>Status geaendert: ${statusBadge(b.status)}</div>
+      </div>`;
+    }
+    html += `<div class="d-flex gap-3 mb-3">
+      <div class="text-secondary" style="font-size:12px;min-width:120px">${formatDateTime(b.created_at)}</div>
+      <div>Buchung erstellt</div>
+    </div>`;
+    html += '</div>';
+    el.innerHTML = html;
   }
 
   function closeModal() {
