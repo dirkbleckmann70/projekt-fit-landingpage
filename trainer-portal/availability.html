@@ -171,7 +171,8 @@
   function addDay(dateStr) {
     var d = new Date(dateStr);
     d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    var y = d.getFullYear(); var m = String(d.getMonth()+1).padStart(2,'0'); var day = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + day;
   }
 
   function markDirty() {
@@ -248,7 +249,8 @@
           var jsDay = current.getDay();
           var isoDay = jsDay === 0 ? 7 : jsDay;
           if (isoDay === a.day_of_week) {
-            var dateStr = current.toISOString().split('T')[0];
+            var yy = current.getFullYear(); var mm = String(current.getMonth()+1).padStart(2,'0'); var dd = String(current.getDate()).padStart(2,'0');
+            var dateStr = yy + '-' + mm + '-' + dd;
             events.push({
               id: 'avail-' + a.id + '-' + dateStr,
               title: pad2(a.start_hour) + ':00 – ' + pad2(a.end_hour) + ':00',

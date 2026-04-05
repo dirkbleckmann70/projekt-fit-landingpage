@@ -836,7 +836,7 @@ async function handleData(req, res, supabase) {
       if (trainerIds.length === 0) return res.json({ data: [] });
       const { data, error } = await supabase
         .from('group_classes')
-        .select('id, trainer_id, title, scheduled_date, scheduled_time, start_time, day_of_week, is_active, price_per_person_cents, max_participants, current_participants')
+        .select('id, name, trainer_id, scheduled_date, scheduled_time, start_time, day_of_week, is_active, price_per_person_cents, max_participants, current_participants')
         .in('trainer_id', trainerIds)
         .eq('is_active', true);
       if (error) throw error;
