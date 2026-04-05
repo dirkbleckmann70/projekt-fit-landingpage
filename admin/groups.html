@@ -469,7 +469,8 @@
               <button class="btn btn-sm btn-ghost-secondary" onclick="editGroup('${g.id}')" title="Bearbeiten"><i class="ti ti-edit"></i></button>
               <button class="btn btn-sm btn-ghost-secondary" onclick="duplicateGroup('${g.id}')" title="Duplizieren"><i class="ti ti-copy"></i></button>
               <button class="btn btn-sm btn-ghost-secondary" onclick="showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')" title="Teilnehmer"><i class="ti ti-users"></i></button>
-              <button class="btn btn-sm btn-ghost-secondary" onclick="deleteGroup('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', ${!g.is_active})" title="Löschen" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>
+              <button class="btn btn-sm btn-ghost-secondary" onclick="toggleActive('${g.id}', ${!g.is_active})" title="${g.is_active ? 'Deaktivieren' : 'Aktivieren'}" style="color:${g.is_active ? 'var(--tblr-danger)' : 'var(--tblr-success)'}"><i class="ti ${g.is_active ? 'ti-player-pause' : 'ti-check'}"></i></button>
+              ${!g.is_active ? `<button class="btn btn-sm btn-ghost-secondary" onclick="deleteGroup('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}')\" title="Löschen" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>` : ''}
             </div>
           </td>
         </tr>
@@ -527,13 +528,9 @@
     new bootstrap.Modal(document.getElementById('group-modal')).show();
   }
 
-  async function deleteGroup(id, name, isInactive) {
+  async function deleteGroup(id, name) {
     if (!confirm(`Gruppentraining "${name}" endgültig löschen? Alle Teilnehmer werden ebenfalls gelöscht.`)) return;
     try {
-      // API verlangt deaktiviert — automatisch deaktivieren wenn noetig
-      if (!isInactive) {
-        await adminApi('/api/admin?action=groups', { method: 'PUT', body: JSON.stringify({ id, is_active: false }) });
-      }
       await adminApi('/api/admin?action=groups', { method: 'DELETE', body: JSON.stringify({ id }) });
       showAlert('alert-box', `"${name}" gelöscht.`, 'success');
       await loadGroups();
@@ -692,17 +689,6 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Speichern';
-    }
-  }
-
-  async function deleteGroup(id, name) {
-    if (!confirm(`Kurs "${name}" wirklich löschen? Das kann nicht rückgängig gemacht werden.`)) return;
-    try {
-      await adminApi('/api/admin?action=groups', { method: 'DELETE', body: JSON.stringify({ id }) });
-      showAlert('alert-box', 'Kurs gelöscht!', 'success');
-      await loadGroups();
-    } catch (err) {
-      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     }
   }
 
