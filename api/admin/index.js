@@ -1052,16 +1052,41 @@ async function handleActivateTrainer(req, res, supabase) {
     return res.status(500).json({ success: false, error: 'Profil-Update fehlgeschlagen', authUserId });
   }
 
-  const { error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
-    trainer.email,
-    { redirectTo: 'https://projektfit.net/trainer-portal/set-password/' }
-  );
+  // Passwort-Reset-Link senden (funktioniert auch fuer bestehende bestaetigte User)
+  const { error: resetError } = await supabase.auth.admin.generateLink({
+    type: 'recovery',
+    email: trainer.email,
+    options: { redirectTo: 'https://projektfit.net/trainer-portal/set-password/' }
+  });
 
-  if (inviteError) {
-    return res.json({ success: true, warning: 'Trainer aktiviert, aber Einladungs-E-Mail fehlgeschlagen', authUserId, trainerId });
+  // Benachrichtigungs-E-Mail ueber Brevo
+  let emailSent = false;
+  const brevoKey = process.env.BREVO_API_KEY;
+  if (brevoKey) {
+    try {
+      const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: { 'accept': 'application/json', 'content-type': 'application/json', 'api-key': brevoKey },
+        body: JSON.stringify({
+          sender: { name: 'Projekt Fit', email: 'noreply@projektfit.net' },
+          to: [{ email: trainer.email, name: trainer.full_name }],
+          subject: 'Dein Trainer-Account bei Projekt Fit ist aktiv!',
+          htmlContent: `<h2>Hallo ${trainer.full_name},</h2>
+            <p>dein Trainer-Account bei <strong>Projekt Fit</strong> wurde aktiviert!</p>
+            <p>Du kannst dich ab sofort im Trainer-Portal anmelden:</p>
+            <p><a href="https://projektfit.net/trainer-portal/" style="display:inline-block;padding:12px 24px;background:#40916C;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Zum Trainer-Portal</a></p>
+            <p>Falls du dein Passwort noch nicht gesetzt hast, klicke auf "Passwort vergessen" auf der Login-Seite.</p>
+            <p>Viel Erfolg!<br>Dein Projekt Fit Team</p>`
+        })
+      });
+      emailSent = resp.ok;
+    } catch (e) { console.error('[activate-trainer] Brevo error:', e.message); }
   }
 
-  return res.json({ success: true, message: `Trainer ${trainer.full_name} aktiviert und Einladung gesendet`, authUserId, trainerId });
+  const msg = emailSent
+    ? `Trainer ${trainer.full_name} aktiviert und Benachrichtigung gesendet`
+    : `Trainer ${trainer.full_name} aktiviert (E-Mail-Versand fehlgeschlagen)`;
+  return res.json({ success: true, message: msg, authUserId, trainerId });
 }
 
 // ─── ACTION: deactivate-trainer ──────────────────────────────────────────────
