@@ -10,6 +10,15 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
+  <!-- FullCalendar v6 styles are bundled in the JS -->
+  <style>
+    .fc { --fc-bg-event-opacity: 0.15; --fc-border-color: rgba(255,255,255,0.08); --fc-page-bg-color: transparent; --fc-neutral-bg-color: rgba(255,255,255,0.03); --fc-today-bg-color: rgba(64,145,108,0.08); font-size: 13px; }
+    .fc .fc-col-header-cell { background: rgba(255,255,255,0.03); }
+    .fc .fc-daygrid-day-number { color: #8888A0; }
+    .fc .fc-event { cursor: pointer; border-radius: 4px; padding: 1px 4px; font-size: 11px; }
+    .fc .fc-toolbar-title { font-size: 16px !important; }
+    .fc .fc-button { font-size: 12px; }
+  </style>
 </head>
 <body class="page">
 <script src="../shared/theme.js"></script>
@@ -23,12 +32,28 @@
 
       <div id="alert-box" class="alert"></div>
 
-      <div class="card">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <ul class="nav nav-pills" id="view-tabs">
+          <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#view-list" onclick="switchView('list')"><i class="ti ti-list"></i> Liste</a></li>
+          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#view-calendar" onclick="switchView('calendar')"><i class="ti ti-calendar"></i> Kalender</a></li>
+        </ul>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#series-modal"><i class="ti ti-repeat"></i> Serientermin</button>
+          <button class="btn btn-primary" onclick="openNewModal()">+ Neues Gruppentraining</button>
+        </div>
+      </div>
+
+      <!-- Calendar View -->
+      <div id="view-calendar" class="card" style="display:none">
+        <div class="card-body">
+          <div id="calendar"></div>
+        </div>
+      </div>
+
+      <!-- List View -->
+      <div id="view-list" class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h3 class="card-title">Gruppentrainings</h3>
-          <div class="table-actions">
-            <button class="btn btn-primary" onclick="openNewModal()">+ Neues Gruppentraining</button>
-          </div>
         </div>
         <div class="table-responsive">
           <table class="table table-vcenter card-table" id="groups-table">
@@ -148,6 +173,115 @@
   </div>
 </div>
 
+<!-- Series Modal -->
+<div class="modal modal-blur fade" id="series-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="ti ti-repeat"></i> Serientermin erstellen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <div class="d-flex">
+            <i class="ti ti-info-circle alert-icon"></i>
+            <div>Erstellt mehrere GT-Termine auf einmal. Jeder Termin wird als einzelner Kurs angelegt und kann danach individuell bearbeitet werden.</div>
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label required">Kursname</label>
+            <input type="text" class="form-control" id="series-name" placeholder="z.B. HIIT Outdoor">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label required">Trainer</label>
+            <select class="form-select" id="series-trainer">
+              <option value="">Waehlen...</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label required">Stadt</label>
+            <select class="form-select" id="series-city">
+              <option value="">Waehlen...</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Ort / Treffpunkt</label>
+            <input type="text" class="form-control" id="series-location" placeholder="Treffpunkt">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label required">Preis/Person</label>
+            <div class="input-group">
+              <input type="number" class="form-control" id="series-price" value="15.00" step="0.50" min="0">
+              <span class="input-group-text">&euro;</span>
+            </div>
+          </div>
+
+          <div class="col-12"><hr class="my-1"><h4 class="mb-0" style="font-size:14px;font-weight:600"><i class="ti ti-repeat"></i> Wiederholung</h4></div>
+
+          <div class="col-md-4">
+            <label class="form-label required">Rhythmus</label>
+            <select class="form-select" id="series-rhythm">
+              <option value="weekly">Woechentlich</option>
+              <option value="biweekly">Alle 2 Wochen</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label required">Uhrzeit</label>
+            <input type="time" class="form-control" id="series-time" value="10:00">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Dauer (Min)</label>
+            <input type="number" class="form-control" id="series-duration" value="60" min="15" step="15">
+          </div>
+
+          <div class="col-12">
+            <label class="form-label">Wochentage</label>
+            <div class="d-flex gap-2 flex-wrap" id="series-days">
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="1"><span class="form-check-label">Mo</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="2"><span class="form-check-label">Di</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="3"><span class="form-check-label">Mi</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="4"><span class="form-check-label">Do</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="5"><span class="form-check-label">Fr</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="6"><span class="form-check-label">Sa</span></label>
+              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="7"><span class="form-check-label">So</span></label>
+            </div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label required">Startdatum</label>
+            <input type="date" class="form-control" id="series-start">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label required">Enddatum</label>
+            <input type="date" class="form-control" id="series-end">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Max. Teilnehmer</label>
+            <input type="number" class="form-control" id="series-max" value="12" min="1">
+          </div>
+
+          <div class="col-12">
+            <div class="card" style="border:1px dashed var(--tblr-border-color)">
+              <div class="card-header py-2">
+                <h4 class="card-title" style="font-size:13px"><i class="ti ti-calendar-event"></i> Vorschau</h4>
+              </div>
+              <div class="card-body py-2" id="series-preview" style="max-height:150px;overflow-y:auto;font-size:12px">
+                Wochentage und Zeitraum waehlen...
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" id="series-submit-btn" onclick="createSeries()"><i class="ti ti-repeat"></i> Termine erstellen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Participants Modal -->
 <div class="modal modal-blur fade" id="participants-modal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -167,6 +301,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
@@ -622,6 +757,195 @@
     if (inst) inst.hide();
     currentParticipantsGroupId = null;
   }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // VIEW TOGGLE (Liste / Kalender)
+  // ═══════════════════════════════════════════════════════════════════
+  let calendarInstance = null;
+
+  function switchView(view) {
+    if (view === 'calendar') {
+      document.getElementById('view-list').style.display = 'none';
+      document.getElementById('view-calendar').style.display = 'block';
+      if (!calendarInstance) initCalendar();
+      else calendarInstance.refetchEvents();
+    } else {
+      document.getElementById('view-calendar').style.display = 'none';
+      document.getElementById('view-list').style.display = 'block';
+    }
+  }
+
+  function initCalendar() {
+    const calEl = document.getElementById('calendar');
+    calendarInstance = new FullCalendar.Calendar(calEl, {
+      initialView: 'dayGridMonth',
+      locale: 'de',
+      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,dayGridWeek' },
+      buttonText: { today: 'Heute', month: 'Monat', week: 'Woche' },
+      firstDay: 1,
+      height: 'auto',
+      events: function(info, successCallback) {
+        const events = allGroups.filter(g => g.scheduled_date).map(g => {
+          const trainerName = activeTrainers.find(t => t.id === g.trainer_id)?.full_name || '';
+          const timeStr = (g.scheduled_time || g.start_time || '').slice(0, 5);
+          return {
+            id: g.id,
+            title: (timeStr ? timeStr + ' ' : '') + g.name + (trainerName ? ' (' + trainerName + ')' : ''),
+            start: g.scheduled_date,
+            color: g.is_active ? '#40916C' : '#6c757d',
+            extendedProps: { groupId: g.id, groupName: g.name, date: g.scheduled_date, time: timeStr },
+          };
+        });
+        successCallback(events);
+      },
+      eventClick: function(info) {
+        const p = info.event.extendedProps;
+        showParticipants(p.groupId, p.groupName, p.date, p.time);
+      },
+    });
+    calendarInstance.render();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // SERIENTERMIN
+  // ═══════════════════════════════════════════════════════════════════
+
+  function populateSeriesDropdowns() {
+    const trainerSel = document.getElementById('series-trainer');
+    const citySel = document.getElementById('series-city');
+    // Clear existing options except first placeholder
+    while (trainerSel.options.length > 1) trainerSel.remove(1);
+    while (citySel.options.length > 1) citySel.remove(1);
+
+    activeTrainers.forEach(t => {
+      const opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.full_name;
+      trainerSel.appendChild(opt);
+    });
+
+    // Copy cities from existing dropdown
+    const mainCitySel = document.getElementById('f-city');
+    for (let i = 1; i < mainCitySel.options.length; i++) {
+      const opt = document.createElement('option');
+      opt.value = mainCitySel.options[i].value;
+      opt.textContent = mainCitySel.options[i].textContent;
+      citySel.appendChild(opt);
+    }
+  }
+
+  function updateSeriesPreview() {
+    var dates = generateSeriesDates();
+    var preview = document.getElementById('series-preview');
+    var btn = document.getElementById('series-submit-btn');
+    if (dates.length === 0) {
+      preview.textContent = 'Wochentage und Zeitraum waehlen...';
+      btn.innerHTML = '<i class="ti ti-repeat"></i> Termine erstellen';
+      return;
+    }
+    var dayNamesShort = ['So','Mo','Di','Mi','Do','Fr','Sa'];
+    var html = '<strong>' + dates.length + ' Termine</strong> werden erstellt:<br><div class="row g-1 mt-1">';
+    dates.slice(0, 12).forEach(function(d) {
+      html += '<div class="col-md-4"><span class="text-secondary">' + dayNamesShort[d.getDay()] + ', ' + formatDate(d.toISOString().split('T')[0]) + '</span></div>';
+    });
+    if (dates.length > 12) html += '<div class="col-12 text-secondary">... +' + (dates.length - 12) + ' weitere</div>';
+    html += '</div>';
+    preview.innerHTML = html;
+    btn.innerHTML = '<i class="ti ti-repeat"></i> ' + dates.length + ' Termine erstellen';
+  }
+
+  function generateSeriesDates() {
+    var rhythm = document.getElementById('series-rhythm').value;
+    var startStr = document.getElementById('series-start').value;
+    var endStr = document.getElementById('series-end').value;
+    var days = [];
+    document.querySelectorAll('#series-days input:checked').forEach(function(cb) {
+      days.push(parseInt(cb.value));
+    });
+    if (!startStr || !endStr || days.length === 0) return [];
+
+    var start = new Date(startStr + 'T00:00:00');
+    var end = new Date(endStr + 'T00:00:00');
+    var dates = [];
+    var current = new Date(start);
+    var weekCount = 0;
+    var lastWeek = -1;
+
+    while (current <= end) {
+      var isoDay = current.getDay() === 0 ? 7 : current.getDay();
+      var weekNum = Math.floor((current - start) / 604800000);
+      if (weekNum !== lastWeek) { lastWeek = weekNum; weekCount++; }
+
+      var includeWeek = rhythm === 'weekly' || (rhythm === 'biweekly' && weekCount % 2 === 1);
+
+      if (days.includes(isoDay) && includeWeek) {
+        dates.push(new Date(current));
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
+  }
+
+  async function createSeries() {
+    var name = document.getElementById('series-name').value.trim();
+    var trainerId = document.getElementById('series-trainer').value;
+    var city = document.getElementById('series-city').value;
+    var price = parseFloat(document.getElementById('series-price').value);
+    var time = document.getElementById('series-time').value;
+    var duration = parseInt(document.getElementById('series-duration').value) || 60;
+    var maxP = parseInt(document.getElementById('series-max').value) || 12;
+    var location = document.getElementById('series-location').value.trim();
+    var dates = generateSeriesDates();
+
+    if (!name || !trainerId || !city || !price || !time || dates.length === 0) {
+      alert('Bitte alle Pflichtfelder ausfuellen und Termine generieren.');
+      return;
+    }
+
+    var btn = document.getElementById('series-submit-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Wird erstellt...';
+
+    try {
+      var result = await adminApi('/api/admin?action=group_series', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: name,
+          trainer_id: trainerId,
+          city: city,
+          location_name: location || null,
+          time: time,
+          duration_minutes: duration,
+          max_participants: maxP,
+          price_per_person_cents: Math.round(price * 100),
+          dates: dates.map(function(d) { return d.toISOString().split('T')[0]; })
+        })
+      });
+      showAlert('alert-box', result.count + ' Termine erstellt!', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('series-modal')).hide();
+      await loadGroups();
+      if (calendarInstance) calendarInstance.refetchEvents();
+    } catch(e) {
+      showAlert('alert-box', 'Fehler: ' + e.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-repeat"></i> Termine erstellen';
+    }
+  }
+
+  // Attach preview listeners to series form inputs
+  document.addEventListener('DOMContentLoaded', function() {
+    ['series-rhythm', 'series-start', 'series-end', 'series-time'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('change', updateSeriesPreview);
+    });
+    document.querySelectorAll('#series-days input').forEach(function(cb) {
+      cb.addEventListener('change', updateSeriesPreview);
+    });
+
+    // Populate series dropdowns when modal opens
+    document.getElementById('series-modal').addEventListener('show.bs.modal', populateSeriesDropdowns);
+  });
 </script>
 
 </body>

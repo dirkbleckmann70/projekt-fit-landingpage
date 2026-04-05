@@ -142,6 +142,46 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════════
+      // GROUP_SERIES – POST: Serientermin (mehrere GTs auf einmal)
+      // ═══════════════════════════════════════════════════════════════════
+      case 'group_series': {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        const body = await getBody(req);
+        const { name, trainer_id, city, location_name, location_address,
+                time, duration_minutes, max_participants, price_per_person_cents,
+                dates } = body;
+
+        if (!name || !trainer_id || !city || !time || !dates || !dates.length) {
+          return res.status(400).json({ error: 'name, trainer_id, city, time, dates[] required' });
+        }
+
+        const crypto = await import('crypto');
+        const series_id = crypto.randomUUID();
+
+        const rows = dates.map(d => ({
+          name,
+          trainer_id,
+          city,
+          location_name: location_name || null,
+          location_address: location_address || null,
+          scheduled_date: d,
+          scheduled_time: time + ':00',
+          start_time: time + ':00',
+          day_of_week: new Date(d + 'T00:00:00').getDay() === 0 ? 7 : new Date(d + 'T00:00:00').getDay(),
+          duration_minutes: duration_minutes || 60,
+          max_participants: max_participants || 12,
+          price_per_person_cents: Math.round(price_per_person_cents),
+          is_active: true,
+          series_id,
+        }));
+
+        const { data, error } = await supabase.from('group_classes').insert(rows).select();
+        if (error) throw error;
+
+        return res.json({ success: true, count: rows.length, series_id });
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
       // LOCATIONS – POST + PUT
       // ═══════════════════════════════════════════════════════════════════
       case 'locations': {

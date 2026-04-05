@@ -7,74 +7,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
-  <style>
-    /* ─── Calendar-Specific Styles ─────────────────────────────────── */
-    .cal-toolbar {
-      display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
-      margin-bottom: 20px;
-    }
-    .cal-toolbar select, .cal-toolbar button {
-      font-family: inherit; font-size: 14px;
-    }
-    .cal-toolbar select {
-      background: var(--tblr-bg-surface); color: var(--tblr-body-color); border: 1px solid var(--tblr-border-color);
-      border-radius: 8px; padding: 8px 12px; min-width: 180px;
-    }
-    .cal-week-label {
-      font-size: 15px; font-weight: 600; color: var(--tblr-body-color); min-width: 240px; text-align: center;
-    }
-    .cal-grid {
-      display: grid;
-      grid-template-columns: 60px repeat(7, 1fr);
-      border: 1px solid var(--tblr-border-color);
-      border-radius: 12px;
-      overflow: hidden;
-      background: var(--tblr-bg-surface);
-    }
-    .cal-header {
-      background: var(--tblr-bg-surface-secondary); font-weight: 600; font-size: 13px;
-      padding: 10px 6px; text-align: center; border-bottom: 1px solid var(--tblr-border-color);
-      color: var(--tblr-secondary);
-    }
-    .cal-header.today { color: var(--tblr-primary); }
-    .cal-time {
-      font-size: 12px; color: var(--tblr-muted); padding: 6px 8px;
-      text-align: right; border-right: 1px solid var(--tblr-border-color);
-      border-bottom: 1px solid var(--tblr-border-color-translucent);
-      display: flex; align-items: center; justify-content: flex-end;
-    }
-    .cal-cell {
-      min-height: 38px; border-bottom: 1px solid var(--tblr-border-color-translucent);
-      border-right: 1px solid rgba(0,0,0,.05);
-      cursor: pointer; position: relative; transition: filter .15s;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 500;
-    }
-    .cal-cell:hover { filter: brightness(1.25); }
-
-    /* Farbcodierung */
-    .cal-cell.available   { background: rgba(39,174,96,.22); }
-    .cal-cell.pending     { background: rgba(243,156,18,.35); }
-    .cal-cell.confirmed   { background: rgba(52,152,219,.4); }
-    .cal-cell.gt          { background: rgba(155,89,182,.4); }
-    .cal-cell.cancelled   { background: rgba(231,76,60,.2); text-decoration: line-through; color: var(--tblr-danger); }
-    .cal-cell.empty       { background: transparent; }
-
-    .cal-cell .cell-label {
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      padding: 0 4px; max-width: 100%;
-    }
-
-    /* ─── Legende ──────────────────────────────────────────────────── */
-    .cal-legend {
-      display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 13px;
-    }
-    .cal-legend span { display: flex; align-items: center; gap: 6px; color: var(--tblr-secondary); }
-    .legend-dot {
-      width: 14px; height: 14px; border-radius: 4px; display: inline-block;
-    }
-  </style>
 </head>
 <body class="page">
 <script src="../shared/theme.js"></script>
@@ -86,44 +20,54 @@
   <div class="page-body">
     <div class="container-xl">
 
-      <!-- Toolbar -->
-      <div class="cal-toolbar">
-        <select id="trainer-filter"><option value="">Alle Trainer</option></select>
-        <select id="city-filter"><option value="">Alle Städte</option></select>
-        <button class="btn btn-ghost-secondary btn-sm" id="prev-week">&larr; Vorherige</button>
-        <div class="cal-week-label" id="week-label"></div>
-        <button class="btn btn-ghost-secondary btn-sm" id="next-week">Nächste &rarr;</button>
-        <button class="btn btn-secondary btn-sm" id="today-btn">Heute</button>
+      <!-- Filter-Bar -->
+      <div class="card mb-3">
+        <div class="card-body py-2">
+          <div class="row g-2 align-items-center">
+            <div class="col-auto">
+              <select class="form-select form-select-sm" id="trainer-filter" style="min-width:180px">
+                <option value="">Alle Trainer</option>
+              </select>
+            </div>
+            <div class="col-auto">
+              <select class="form-select form-select-sm" id="city-filter" style="min-width:140px">
+                <option value="">Alle Staedte</option>
+              </select>
+            </div>
+            <div class="col-auto ms-auto">
+              <div class="cal-legend">
+                <span><span class="legend-dot" style="background:rgba(39,174,96,0.3)"></span> Verfuegbar</span>
+                <span><span class="legend-dot" style="background:rgba(232,147,10,0.7)"></span> PT Ausstehend</span>
+                <span><span class="legend-dot" style="background:rgba(64,145,108,0.85)"></span> PT Bestaetigt</span>
+                <span><span class="legend-dot" style="background:rgba(155,89,182,0.7)"></span> Gruppentraining</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Grid -->
-      <div class="cal-grid" id="cal-grid"></div>
-
-      <!-- Legende -->
-      <div class="cal-legend">
-        <span><span class="legend-dot" style="background:rgba(39,174,96,.5)"></span> Verfügbar</span>
-        <span><span class="legend-dot" style="background:rgba(243,156,18,.6)"></span> PT Ausstehend</span>
-        <span><span class="legend-dot" style="background:rgba(52,152,219,.65)"></span> PT Bestätigt</span>
-        <span><span class="legend-dot" style="background:rgba(155,89,182,.6)"></span> Gruppentraining</span>
-        <span><span class="legend-dot" style="background:rgba(231,76,60,.45)"></span> Storniert</span>
-        <span><span class="legend-dot" style="background:transparent;border:1px solid var(--tblr-border-color)"></span> Nicht verfügbar</span>
+      <!-- FullCalendar -->
+      <div class="card">
+        <div class="card-body">
+          <div id="calendar"></div>
+        </div>
       </div>
 
     </div>
   </div>
 </div>
 
-<!-- Detail Modal -->
-<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+<!-- Event Detail Modal -->
+<div class="modal modal-blur fade" id="event-modal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title" id="modal-title">Details</h5>
+        <h5 class="modal-title" id="event-modal-title">Buchungsdetail</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-body" id="event-modal-body"></div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schließen</button>
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schliessen</button>
       </div>
     </div>
   </div>
@@ -131,290 +75,344 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
 <script>
 (async () => {
-  const user = await checkAdminAuth();
+  var user = await checkAdminAuth();
   if (!user) return;
   document.getElementById('sidebar').innerHTML = renderAdminSidebar('calendar');
   document.getElementById('header').innerHTML  = renderAdminHeader('Kalender', user.email);
   initRealtimeToasts(getSupabase(), 'admin');
 
   // ─── State ──────────────────────────────────────────────────────
-  let weekOffset = 0;
-  let trainers = [];
-  let allAvailability = [];
-  let allBookings = [];
-  let allGT = [];
-
-  const HOURS_START = 6;
-  const HOURS_END   = 22;
-  const DAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+  var trainers = [];
+  var calendar = null;
 
   // ─── Helpers ────────────────────────────────────────────────────
-  function getWeekDates(offset) {
-    const now = new Date();
-    const day = now.getDay();                       // 0=So
-    const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Montag
-    const monday = new Date(now.getFullYear(), now.getMonth(), diff + offset * 7);
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      dates.push(d);
-    }
-    return dates;
+  function addHour(date, time) {
+    var parts = time.split(':');
+    var h = parseInt(parts[0], 10) + 1;
+    return date + 'T' + String(h).padStart(2, '0') + ':' + parts[1];
   }
 
-  function fmt(d) { return d.toISOString().split('T')[0]; }
+  function addMinutes(date, time, minutes) {
+    var d = new Date(date + 'T' + time);
+    d.setMinutes(d.getMinutes() + (minutes || 60));
+    return d.toISOString().slice(0, 16);
+  }
 
-  function fmtDE(d) {
-    return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  function addDay(dateStr) {
+    var d = new Date(dateStr);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  }
+
+  function fmt(d) {
+    return d.toISOString().split('T')[0];
   }
 
   function toISODay(jsDay) {
     return jsDay === 0 ? 7 : jsDay;
   }
 
-  // ─── Load Trainers (über Admin-API) ───────────────────────────
+  // ─── Load Trainers ─────────────────────────────────────────────
   async function loadTrainers() {
-    const { data } = await adminApi('/api/admin?action=data&type=calendar_trainers');
-    trainers = data || [];
-    const sel = document.getElementById('trainer-filter');
-    const citySel = document.getElementById('city-filter');
-    const cities = new Set();
-    trainers.forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t.id; opt.textContent = t.full_name + (t.city ? ` (${t.city})` : '');
+    var res = await adminApi('/api/admin?action=data&type=calendar_trainers');
+    trainers = res.data || [];
+    var sel = document.getElementById('trainer-filter');
+    var citySel = document.getElementById('city-filter');
+    var cities = new Set();
+    trainers.forEach(function(t) {
+      var opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.full_name + (t.city ? ' (' + t.city + ')' : '');
       sel.appendChild(opt);
       if (t.city) cities.add(t.city);
     });
-    [...cities].sort().forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c; opt.textContent = c;
+    Array.from(cities).sort().forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c;
+      opt.textContent = c;
       citySel.appendChild(opt);
     });
   }
 
-  // ─── Load Week Data (über Admin-API) ───────────────────────────
-  async function loadWeekData() {
-    const dates = getWeekDates(weekOffset);
-    const weekStart = fmt(dates[0]);
-    const weekEnd   = fmt(dates[6]);
-    const trainerId = document.getElementById('trainer-filter').value;
-    const city      = document.getElementById('city-filter').value;
+  // ─── Load Events for FullCalendar ──────────────────────────────
+  async function loadEvents(info, success, failure) {
+    try {
+      var startDate = fmt(info.start);
+      var endDate = fmt(info.end);
+      var trainerId = document.getElementById('trainer-filter').value;
+      var city = document.getElementById('city-filter').value;
 
-    // Filter trainer IDs by city
-    let trainerIds = trainers.map(t => t.id);
-    if (city) trainerIds = trainers.filter(t => t.city === city).map(t => t.id);
-    if (trainerId) trainerIds = [trainerId];
-    if (trainerIds.length === 0) { allAvailability = []; allBookings = []; allGT = []; return; }
+      // Build trainer ID list (filter by city if set)
+      var trainerIds = trainers.map(function(t) { return t.id; });
+      if (city) trainerIds = trainers.filter(function(t) { return t.city === city; }).map(function(t) { return t.id; });
+      if (trainerId) trainerIds = [trainerId];
+      if (trainerIds.length === 0) { success([]); return; }
 
-    const idsParam = trainerIds.join(',');
+      var idsParam = trainerIds.join(',');
 
-    const [availRes, bookingsRes, gtRes] = await Promise.all([
-      adminApi(`/api/admin?action=data&type=calendar_availability&trainer_ids=${idsParam}`),
-      adminApi(`/api/admin?action=data&type=calendar_bookings&trainer_ids=${idsParam}&week_start=${weekStart}&week_end=${weekEnd}`),
-      adminApi(`/api/admin?action=data&type=calendar_groups&trainer_ids=${idsParam}`),
-    ]);
+      var results = await Promise.all([
+        adminApi('/api/admin?action=data&type=calendar_availability&trainer_ids=' + idsParam),
+        adminApi('/api/admin?action=data&type=calendar_bookings&trainer_ids=' + idsParam + '&week_start=' + startDate + '&week_end=' + endDate),
+        adminApi('/api/admin?action=data&type=calendar_groups&trainer_ids=' + idsParam),
+      ]);
 
-    allAvailability = availRes.data || [];
-    allBookings = bookingsRes.data || [];
-    allGT = gtRes.data || [];
-  }
+      var availRes = results[0];
+      var bookingsRes = results[1];
+      var gtRes = results[2];
 
-  // ─── Render Grid ────────────────────────────────────────────────
-  function renderGrid() {
-    const dates = getWeekDates(weekOffset);
-    const today = fmt(new Date());
-    const grid = document.getElementById('cal-grid');
+      var events = [];
 
-    // Week label
-    document.getElementById('week-label').textContent =
-      `${fmtDE(dates[0])} – ${fmtDE(dates[6])} ${dates[0].getFullYear()}`;
-
-    // Header row
-    let html = '<div class="cal-header"></div>'; // top-left corner
-    dates.forEach((d, i) => {
-      const isToday = fmt(d) === today;
-      html += `<div class="cal-header${isToday ? ' today' : ''}">${DAYS[i]}<br>${fmtDE(d)}</div>`;
-    });
-
-    // Hour rows
-    for (let h = HOURS_START; h <= HOURS_END; h++) {
-      html += `<div class="cal-time">${String(h).padStart(2,'0')}:00</div>`;
-
-      dates.forEach((d) => {
-        const dateStr = fmt(d);
-        const jsDay = d.getDay();
-        const isoDay = toISODay(jsDay);
-
-        // 1. Check availability for this hour
-        const isAvail = allAvailability.some(a =>
-          a.day_of_week === isoDay && h >= a.start_hour && h < a.end_hour
-        );
-
-        // 2. Check bookings for this cell
-        const cellBookings = allBookings.filter(b =>
-          b.scheduled_date === dateStr && b.scheduled_time &&
-          parseInt(b.scheduled_time.split(':')[0], 10) === h
-        );
-
-        // 3. Check GT for this cell (by exact date OR recurring day)
-        const cellGT = allGT.filter(gc => {
-          const t = gc.scheduled_time || gc.start_time;
-          if (!t) return false;
-          const gcHour = parseInt(t.split(':')[0], 10);
-          if (gcHour !== h) return false;
-          return gc.scheduled_date === dateStr || (!gc.scheduled_date && gc.day_of_week === isoDay);
+      // 1. Availability as background events
+      var availData = availRes.data || [];
+      // For each day in visible range, check if weekday matches
+      var current = new Date(info.start);
+      var end = new Date(info.end);
+      while (current < end) {
+        var dateStr = fmt(current);
+        var isoDay = toISODay(current.getDay());
+        availData.forEach(function(a) {
+          if (a.day_of_week === isoDay) {
+            var startH = String(a.start_hour).padStart(2, '0');
+            var endH = String(a.end_hour).padStart(2, '0');
+            events.push({
+              title: 'Verfuegbar',
+              start: dateStr + 'T' + startH + ':00',
+              end: dateStr + 'T' + endH + ':00',
+              display: 'background',
+              classNames: ['fc-event-available']
+            });
+          }
         });
-
-        // Determine cell class & label
-        let cls = 'empty';
-        let label = '';
-        let dataAttr = '';
-
-        // Priority: Booking > GT > Available > Empty
-        const activeBooking = cellBookings.find(b => ['pending','confirmed','checked_in'].includes(b.status));
-        const cancelledBooking = cellBookings.find(b => ['cancelled','cancelled_by_trainer','cancelled_by_customer'].includes(b.status));
-
-        if (activeBooking) {
-          cls = activeBooking.status === 'pending' ? 'pending' : 'confirmed';
-          label = activeBooking.status === 'pending' ? 'PT ⏳' : 'PT ✓';
-          dataAttr = `data-booking-id="${activeBooking.id}"`;
-        } else if (cellGT.length > 0) {
-          cls = 'gt';
-          label = 'GT';
-          dataAttr = `data-gt-id="${cellGT[0].id}"`;
-        } else if (cancelledBooking) {
-          cls = 'cancelled';
-          label = 'Storno';
-          dataAttr = `data-booking-id="${cancelledBooking.id}"`;
-        } else if (isAvail) {
-          cls = 'available';
-          label = '';
-          dataAttr = `data-avail="1"`;
-        }
-
-        html += `<div class="cal-cell ${cls}" data-date="${dateStr}" data-hour="${h}" ${dataAttr}>
-          <span class="cell-label">${label}</span>
-        </div>`;
-      });
-    }
-
-    grid.innerHTML = html;
-
-    // Click handlers
-    grid.querySelectorAll('.cal-cell').forEach(cell => {
-      cell.addEventListener('click', () => onCellClick(cell));
-    });
-  }
-
-  // ─── Cell Click → Modal (über Admin-API) ────────────────────────
-  async function onCellClick(cell) {
-    const bookingId = cell.dataset.bookingId;
-    const gtId      = cell.dataset.gtId;
-    const dateStr   = cell.dataset.date;
-    const hour      = cell.dataset.hour;
-
-    const modalEl = document.getElementById('detail-modal');
-    const body  = document.getElementById('modal-body');
-    const title = document.getElementById('modal-title');
-
-    if (bookingId) {
-      const booking = allBookings.find(b => b.id === bookingId);
-      if (!booking) return;
-
-      // Load customer + trainer + health via single API call
-      const detail = await adminApi(`/api/admin?action=data&type=booking_detail&customer_id=${booking.customer_id}&trainer_id=${booking.trainer_id}`);
-      const cust = detail.customer || {};
-      const trainer = detail.trainer || {};
-
-      let healthNote = '–';
-      if (detail.health) {
-        const parts = [];
-        if (detail.health.health_notes) parts.push(detail.health.health_notes);
-        if (detail.health.limitations) parts.push(detail.health.limitations);
-        if (parts.length) healthNote = parts.join(' | ');
+        current.setDate(current.getDate() + 1);
       }
 
-      const isCancelled = ['cancelled','cancelled_by_trainer','cancelled_by_customer'].includes(booking.status);
+      // 2. PT Bookings
+      (bookingsRes.data || []).forEach(function(b) {
+        if (!b.scheduled_date || !b.scheduled_time) return;
+        var isPending = b.status === 'pending';
+        var isCancelled = ['cancelled', 'cancelled_by_trainer', 'cancelled_by_customer'].includes(b.status);
+        var cls = isCancelled ? 'fc-event-cancelled' : (isPending ? 'fc-event-pt-pending' : 'fc-event-pt-confirmed');
+        var statusLabel = isCancelled ? ' (Storniert)' : (isPending ? ' (Anfrage)' : '');
+        events.push({
+          title: 'PT: ' + (b.customer_name || 'Kunde') + statusLabel,
+          start: b.scheduled_date + 'T' + b.scheduled_time,
+          end: addHour(b.scheduled_date, b.scheduled_time),
+          classNames: [cls],
+          extendedProps: { type: 'pt', booking: b }
+        });
+      });
 
-      title.textContent = isCancelled ? 'Buchung – STORNIERT' : 'Buchungsdetails';
-      body.innerHTML = `
-        ${isCancelled ? '<div style="text-align:center;padding:10px 0"><span class="text-danger" style="font-size:18px;font-weight:700">STORNIERT</span></div>' : ''}
-        <div class="row mb-2"><span class="col text-secondary">Datum</span><span class="col text-end fw-medium">${formatDate(booking.scheduled_date)}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Uhrzeit</span><span class="col text-end fw-medium">${booking.scheduled_time || '–'} Uhr</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Status</span><span class="col text-end fw-medium">${statusBadge(booking.status)}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Typ</span><span class="col text-end fw-medium">${booking.booking_type || 'PT'}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Kunde</span><span class="col text-end fw-medium">${cust.full_name || '–'}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Kunde Tel.</span><span class="col text-end fw-medium">${cust.phone || '–'}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Kunde E-Mail</span><span class="col text-end fw-medium">${cust.email || '–'}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Trainer</span><span class="col text-end fw-medium">${trainer.full_name || '–'}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Trainer Tel.</span><span class="col text-end fw-medium">${trainer.phone || '–'}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Kundenpreis</span><span class="col text-end fw-medium">${isCancelled ? '0,00 €' : formatEuro(booking.price_cents)}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Trainer-Vergütung</span><span class="col text-end fw-medium">${isCancelled ? '0,00 €' : formatEuro(booking.trainer_payout_cents)}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Gesundheitshinweise</span><span class="col text-end fw-medium">${healthNote}</span></div>
-      `;
-    } else if (gtId) {
-      const gc = allGT.find(g => g.id === gtId);
-      if (!gc) return;
-      const detail = await adminApi(`/api/admin?action=data&type=booking_detail&trainer_id=${gc.trainer_id}`);
-      const trainerName = detail.trainer?.full_name || '–';
+      // 3. GT Sessions
+      (gtRes.data || []).forEach(function(g) {
+        var time = g.scheduled_time || g.start_time;
+        if (!time) return;
 
-      title.textContent = 'Gruppentraining';
-      body.innerHTML = `
-        <div class="row mb-2"><span class="col text-secondary">Kurs</span><span class="col text-end fw-medium">${gc.title || '–'}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Datum</span><span class="col text-end fw-medium">${gc.scheduled_date ? formatDate(gc.scheduled_date) : 'Wiederkehrend'}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Uhrzeit</span><span class="col text-end fw-medium">${gc.scheduled_time || gc.start_time || '–'} Uhr</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Trainer</span><span class="col text-end fw-medium">${trainerName}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Preis/Person</span><span class="col text-end fw-medium">${formatEuro(gc.price_per_person_cents)}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Teilnehmer</span><span class="col text-end fw-medium">${gc.current_participants || 0} / ${gc.max_participants || '–'}</span></div>
-      `;
+        // GT can be date-specific or recurring by day_of_week
+        if (g.scheduled_date) {
+          events.push({
+            title: 'GT: ' + (g.title || g.name || 'Gruppe'),
+            start: g.scheduled_date + 'T' + time,
+            end: addMinutes(g.scheduled_date, time, g.duration_minutes || 60),
+            classNames: ['fc-event-gt'],
+            extendedProps: { type: 'gt', group: g }
+          });
+        } else if (g.day_of_week) {
+          // Recurring: create events for each matching day in visible range
+          var cur = new Date(info.start);
+          var last = new Date(info.end);
+          while (cur < last) {
+            if (toISODay(cur.getDay()) === g.day_of_week) {
+              var ds = fmt(cur);
+              events.push({
+                title: 'GT: ' + (g.title || g.name || 'Gruppe'),
+                start: ds + 'T' + time,
+                end: addMinutes(ds, time, g.duration_minutes || 60),
+                classNames: ['fc-event-gt'],
+                extendedProps: { type: 'gt', group: g }
+              });
+            }
+            cur.setDate(cur.getDate() + 1);
+          }
+        }
+      });
+
+      // 4. Vacations (try loading, gracefully handle if table doesn't exist yet)
+      try {
+        var vacRes = await adminApi('/api/admin?action=data&type=trainer_vacations&trainer_ids=' + idsParam);
+        (vacRes.data || []).forEach(function(v) {
+          events.push({
+            title: 'Urlaub' + (v.trainer_name ? ': ' + v.trainer_name : ''),
+            start: v.start_date,
+            end: addDay(v.end_date),
+            allDay: true,
+            classNames: ['fc-event-vacation'],
+            extendedProps: { type: 'vacation', vacation: v }
+          });
+        });
+      } catch(e) { /* trainer_vacations table may not exist yet */ }
+
+      success(events);
+    } catch(err) {
+      console.error('Calendar load error:', err);
+      failure(err);
+    }
+  }
+
+  // ─── Event Click → Detail Modal ────────────────────────────────
+  async function onEventClick(info) {
+    if (info.event.display === 'background') return;
+
+    var props = info.event.extendedProps;
+    var titleEl = document.getElementById('event-modal-title');
+    var bodyEl = document.getElementById('event-modal-body');
+
+    if (props.type === 'pt' && props.booking) {
+      var b = props.booking;
+
+      // Load customer + trainer + health via API
+      try {
+        var detail = await adminApi('/api/admin?action=data&type=booking_detail&customer_id=' + b.customer_id + '&trainer_id=' + b.trainer_id);
+        var cust = detail.customer || {};
+        var trainer = detail.trainer || {};
+
+        var healthNote = '–';
+        if (detail.health) {
+          var parts = [];
+          if (detail.health.health_notes) parts.push(detail.health.health_notes);
+          if (detail.health.limitations) parts.push(detail.health.limitations);
+          if (parts.length) healthNote = parts.join(' | ');
+        }
+
+        var isCancelled = ['cancelled', 'cancelled_by_trainer', 'cancelled_by_customer'].includes(b.status);
+
+        titleEl.textContent = isCancelled ? 'Buchung – STORNIERT' : 'Personal Training';
+        bodyEl.innerHTML =
+          (isCancelled ? '<div style="text-align:center;padding:10px 0"><span class="text-danger" style="font-size:18px;font-weight:700">STORNIERT</span></div>' : '') +
+          '<div class="mb-2">' + statusBadge(b.status) + '</div>' +
+          '<table class="table table-sm">' +
+          '<tr><td class="text-secondary" style="width:140px">Kunde</td><td class="fw-bold">' + (cust.full_name || b.customer_name || '–') + '</td></tr>' +
+          '<tr><td class="text-secondary">Kunde Tel.</td><td>' + (cust.phone || '–') + '</td></tr>' +
+          '<tr><td class="text-secondary">Kunde E-Mail</td><td>' + (cust.email || '–') + '</td></tr>' +
+          '<tr><td class="text-secondary">Trainer</td><td>' + (trainer.full_name || '–') + '</td></tr>' +
+          '<tr><td class="text-secondary">Trainer Tel.</td><td>' + (trainer.phone || '–') + '</td></tr>' +
+          '<tr><td class="text-secondary">Datum</td><td>' + formatDate(b.scheduled_date) + ' · ' + (b.scheduled_time || '–') + ' Uhr</td></tr>' +
+          '<tr><td class="text-secondary">Kundenpreis</td><td class="fw-bold" style="color:var(--tblr-primary)">' + (isCancelled ? '0,00 €' : formatEuro(b.price_cents)) + '</td></tr>' +
+          '<tr><td class="text-secondary">Trainer-Verguetung</td><td>' + (isCancelled ? '0,00 €' : formatEuro(b.trainer_payout_cents)) + '</td></tr>' +
+          '<tr><td class="text-secondary">Gesundheitshinweise</td><td>' + healthNote + '</td></tr>' +
+          '</table>';
+      } catch(e) {
+        titleEl.textContent = 'Personal Training';
+        bodyEl.innerHTML =
+          '<div class="mb-2">' + statusBadge(b.status) + '</div>' +
+          '<table class="table table-sm">' +
+          '<tr><td class="text-secondary" style="width:140px">Kunde</td><td class="fw-bold">' + (b.customer_name || '–') + '</td></tr>' +
+          '<tr><td class="text-secondary">Datum</td><td>' + formatDate(b.scheduled_date) + ' · ' + (b.scheduled_time || '–') + ' Uhr</td></tr>' +
+          '</table>';
+      }
+    } else if (props.type === 'gt' && props.group) {
+      var g = props.group;
+
+      var trainerName = '–';
+      try {
+        var gtDetail = await adminApi('/api/admin?action=data&type=booking_detail&trainer_id=' + g.trainer_id);
+        trainerName = gtDetail.trainer?.full_name || '–';
+      } catch(e) {}
+
+      titleEl.textContent = 'Gruppentraining';
+      bodyEl.innerHTML =
+        '<table class="table table-sm">' +
+        '<tr><td class="text-secondary" style="width:140px">Kurs</td><td class="fw-bold">' + (g.title || g.name || '–') + '</td></tr>' +
+        '<tr><td class="text-secondary">Trainer</td><td>' + trainerName + '</td></tr>' +
+        '<tr><td class="text-secondary">Datum</td><td>' + (g.scheduled_date ? formatDate(g.scheduled_date) : 'Wiederkehrend') + '</td></tr>' +
+        '<tr><td class="text-secondary">Uhrzeit</td><td>' + (g.scheduled_time || g.start_time || '–') + ' Uhr</td></tr>' +
+        '<tr><td class="text-secondary">Preis/Person</td><td>' + formatEuro(g.price_per_person_cents) + '</td></tr>' +
+        '<tr><td class="text-secondary">Teilnehmer</td><td>' + (g.current_participants || 0) + ' / ' + (g.max_participants || '–') + '</td></tr>' +
+        '</table>';
+    } else if (props.type === 'vacation') {
+      var v = props.vacation;
+      titleEl.textContent = 'Urlaub';
+      bodyEl.innerHTML =
+        '<table class="table table-sm">' +
+        '<tr><td class="text-secondary" style="width:140px">Trainer</td><td class="fw-bold">' + (v.trainer_name || '–') + '</td></tr>' +
+        '<tr><td class="text-secondary">Von</td><td>' + formatDate(v.start_date) + '</td></tr>' +
+        '<tr><td class="text-secondary">Bis</td><td>' + formatDate(v.end_date) + '</td></tr>' +
+        (v.note ? '<tr><td class="text-secondary">Notiz</td><td>' + v.note + '</td></tr>' : '') +
+        '</table>';
     } else {
-      // Available or empty
-      const isAvail = cell.dataset.avail === '1';
-      title.textContent = isAvail ? 'Verfügbar' : 'Nicht verfügbar';
-      body.innerHTML = `
-        <div class="row mb-2"><span class="col text-secondary">Datum</span><span class="col text-end fw-medium">${formatDate(dateStr)}</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Uhrzeit</span><span class="col text-end fw-medium">${String(hour).padStart(2,'0')}:00 Uhr</span></div>
-        <div class="row mb-2"><span class="col text-secondary">Status</span><span class="col text-end fw-medium">${isAvail ? 'Verfügbar, keine Buchung' : 'Keine Verfügbarkeit eingetragen'}</span></div>
-      `;
+      return; // Unknown type, do nothing
     }
 
-    new bootstrap.Modal(modalEl).show();
+    var modal = new bootstrap.Modal(document.getElementById('event-modal'));
+    modal.show();
   }
 
-  // ─── Events ─────────────────────────────────────────────────────
-  document.getElementById('prev-week').addEventListener('click', () => { weekOffset--; refresh(); });
-  document.getElementById('next-week').addEventListener('click', () => { weekOffset++; refresh(); });
-  document.getElementById('today-btn').addEventListener('click', () => { weekOffset = 0; refresh(); });
-  document.getElementById('trainer-filter').addEventListener('change', refresh);
-  document.getElementById('city-filter').addEventListener('change', () => {
-    // Reset trainer filter when city changes
-    const city = document.getElementById('city-filter').value;
-    const tSel = document.getElementById('trainer-filter');
+  // ─── City Filter: Reset Trainer Dropdown ────────────────────────
+  document.getElementById('city-filter').addEventListener('change', function() {
+    var city = document.getElementById('city-filter').value;
+    var tSel = document.getElementById('trainer-filter');
     tSel.innerHTML = '<option value="">Alle Trainer</option>';
-    const filtered = city ? trainers.filter(t => t.city === city) : trainers;
-    filtered.forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t.id; opt.textContent = t.full_name + (t.city ? ` (${t.city})` : '');
+    var filtered = city ? trainers.filter(function(t) { return t.city === city; }) : trainers;
+    filtered.forEach(function(t) {
+      var opt = document.createElement('option');
+      opt.value = t.id;
+      opt.textContent = t.full_name + (t.city ? ' (' + t.city + ')' : '');
       tSel.appendChild(opt);
     });
-    refresh();
+    calendar.refetchEvents();
   });
 
-  async function refresh() {
-    await loadWeekData();
-    renderGrid();
-  }
+  document.getElementById('trainer-filter').addEventListener('change', function() {
+    calendar.refetchEvents();
+  });
 
-  // ─── Init ───────────────────────────────────────────────────────
+  // ─── Init FullCalendar ─────────────────────────────────────────
   await loadTrainers();
-  await refresh();
+
+  var calendarEl = document.getElementById('calendar');
+  calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'timeGridWeek',
+    locale: 'de',
+    firstDay: 1,
+    slotMinTime: '06:00:00',
+    slotMaxTime: '22:00:00',
+    slotDuration: '00:30:00',
+    slotLabelInterval: '01:00',
+    allDaySlot: true,
+    expandRows: true,
+    height: 'auto',
+    nowIndicator: true,
+    navLinks: true,
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'timeGridDay,timeGridWeek,dayGridMonth'
+    },
+    buttonText: {
+      today: 'Heute',
+      day: 'Tag',
+      week: 'Woche',
+      month: 'Monat'
+    },
+    events: function(info, success, failure) {
+      loadEvents(info, success, failure);
+    },
+    eventClick: function(info) {
+      onEventClick(info);
+    },
+    eventDidMount: function(info) {
+      if (info.event.display !== 'background' && info.event.extendedProps.type) {
+        info.el.title = info.event.title;
+      }
+    }
+  });
+  calendar.render();
 })();
 </script>
 </body>
