@@ -37,40 +37,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'action Parameter fehlt. Beispiel: /api/admin?action=data&type=all_trainers' });
   }
 
-  // ── Temporaere Diagnose (kein Auth noetig) ──
-  if (action === 'diagnose-auth') {
-    const supabase = getServiceClient();
-    const email = req.query.email;
-    if (!email) return res.status(400).json({ error: 'email Parameter fehlt' });
-    try {
-      const { data: { users }, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
-      if (error) return res.status(500).json({ error: error.message });
-      const user = users?.find(u => u.email === email);
-      if (!user) return res.json({ found: false, message: 'Kein Auth-Account fuer ' + email });
-      // Passwort setzen (temporaer)
-      const newPw = req.query.setpw;
-      if (newPw && newPw.length >= 8) {
-        const { error: pwErr } = await supabase.auth.admin.updateUserById(user.id, { password: newPw });
-        if (pwErr) return res.json({ found: true, email: user.email, passwordReset: false, error: pwErr.message });
-        return res.json({ found: true, email: user.email, passwordReset: true });
-      }
-
-      return res.json({
-        found: true,
-        id: user.id,
-        email: user.email,
-        role: user.user_metadata?.role,
-        confirmed_at: user.confirmed_at,
-        last_sign_in_at: user.last_sign_in_at,
-        created_at: user.created_at,
-        updated_at: user.updated_at,
-        email_confirmed: !!user.email_confirmed_at,
-        banned: user.banned_until ? true : false,
-        factors: user.factors?.length || 0,
-      });
-    } catch (err) { return res.status(500).json({ error: err.message }); }
-  }
-
   // ── Auth Check (einmal für alle Actions) ──
   const adminAuthError = await verifyAdmin(req);
   if (adminAuthError) return res.status(401).json({ error: adminAuthError });
