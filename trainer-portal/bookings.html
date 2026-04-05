@@ -495,7 +495,11 @@
     const dateStr = item.scheduled_date ? formatDate(item.scheduled_date) : '--';
     const timeStr = item.scheduled_time ? item.scheduled_time.slice(0,5) : '--';
     const city = item._type === 'gt' ? (item.city || '--') : (item.city || item.location_name || item.location || '--');
-    const badge = statusBadgeBK(item);
+    // Abgelaufene aktive Termine visuell als "Abgelaufen" markieren
+    var isExpiredActive = isTerminVorbei(item) && (item._type === 'gt' ? item.is_active : ACTIVE.includes(item.status));
+    const badge = isExpiredActive
+      ? '<span class="badge badge-overdue">Abgelaufen</span>'
+      : statusBadgeBK(item);
 
     let actions = '';
     if (item._type === 'gt') {
@@ -553,6 +557,11 @@
         else if (item.notes.includes('Trainer-Ort-Vorschlag')) cancelReason = 'Ort-Vorschlag abgelehnt';
       }
       warningLine = `<div class="text-danger mt-1" style="font-size:12px"><i class="ti ti-x"></i> ${cancelReason}</div>`;
+    }
+
+    // Abgelaufene aktive Termine
+    if (isExpiredActive) {
+      warningLine = `<div class="text-danger mt-1" style="font-size:12px"><i class="ti ti-clock-off"></i> Termin abgelaufen – kein Check-in erfolgt. Keine Auszahlung.</div>`;
     }
 
     return `
