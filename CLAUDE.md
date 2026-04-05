@@ -9,7 +9,7 @@
 - **URL:** projektfit.net
 - **Hosting:** Vercel (Auto-Deploy via GitHub Push)
 - **Repo:** github.com/dirkbleckmann70/projekt-fit-landingpage
-- **Config:** `vercel.json` (cleanUrls: true)
+- **Config:** `vercel.json` (cleanUrls: true, Redirects fuer `/admin` → `/admin/` und `/trainer-portal` → `/trainer-portal/`)
 
 Jede Aenderung MUSS committed + gepusht werden → Vercel deployed automatisch.
 
@@ -23,6 +23,17 @@ Jede Aenderung MUSS committed + gepusht werden → Vercel deployed automatisch.
 - Supabase JS SDK (Auth, DB, Realtime)
 - Vanilla JS (kein Build-Prozess, kein React/Vue)
 - Puppeteer (Dev-Dependency, Screenshots)
+
+## Modell-Wahl
+
+- **Sonnet** fuer einfache Aufgaben (kleine Fixes, einzelne Datei-Aenderungen, Recherche)
+- **Opus 4.6** fuer komplexe Aufgaben (Multi-Datei-Features, Debugging, Architektur-Entscheidungen)
+
+## Wichtige Konventionen
+
+- **table-utils.js:** Generiert Toolbar automatisch. KEINE manuellen count-bar HTML-Elemente. Extras ueber `initSortableTable(id, config, { extraButtons, countLabel })`.
+- **Action-Buttons:** Icon-only Ghost-Buttons (`btn btn-sm btn-ghost-secondary` + Tabler Icon). Keine Text-Buttons in Tabellen.
+- **cleanUrls Gotcha:** `/admin` ohne Slash loest relative Pfade falsch auf. Redirects in `vercel.json` sind Pflicht fuer Index-Seiten.
 
 ---
 
