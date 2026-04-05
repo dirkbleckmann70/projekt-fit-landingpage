@@ -102,13 +102,16 @@
   function addMinutes(date, time, minutes) {
     var d = new Date(date + 'T' + time);
     d.setMinutes(d.getMinutes() + (minutes || 60));
-    return d.toISOString().slice(0, 16);
+    var y = d.getFullYear(); var m = String(d.getMonth()+1).padStart(2,'0'); var day = String(d.getDate()).padStart(2,'0');
+    var hh = String(d.getHours()).padStart(2,'0'); var mm = String(d.getMinutes()).padStart(2,'0');
+    return y + '-' + m + '-' + day + 'T' + hh + ':' + mm;
   }
 
   function addDay(dateStr) {
-    var d = new Date(dateStr);
+    var d = new Date(dateStr + 'T12:00:00');
     d.setDate(d.getDate() + 1);
-    return d.toISOString().split('T')[0];
+    var y = d.getFullYear(); var m = String(d.getMonth()+1).padStart(2,'0'); var day = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + day;
   }
 
   function fmt(d) {
