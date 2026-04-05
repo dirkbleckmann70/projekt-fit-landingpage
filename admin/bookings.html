@@ -235,11 +235,7 @@
           <td class="text-accent">${price > 0 ? formatEuro(price) : '–'}</td>
           <td class="text-muted">${cost > 0 ? formatEuro(cost) : '–'}</td>
           <td>${paymentBadge(b)}</td>
-          <td>
-            <div class="action-cell">
-              ${bookingActions(b)}
-            </div>
-          </td>
+          <td>${bookingActions(b)}</td>
         </tr>`;
     }).join('');
 

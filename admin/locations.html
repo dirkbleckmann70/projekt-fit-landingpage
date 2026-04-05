@@ -572,7 +572,8 @@
       } else {
         await adminApi('/api/admin?action=locations', { method: 'POST', body: JSON.stringify(payload) });
       }
-      bootstrap.Modal.getInstance(document.getElementById('city-modal')).hide();
+      const cm = bootstrap.Modal.getInstance(document.getElementById('city-modal')) || new bootstrap.Modal(document.getElementById('city-modal'));
+      cm.hide();
       showAlert('alert-box', editingCityId ? 'Stadt aktualisiert!' : 'Stadt erstellt!', 'success');
       await loadCities();
     } catch (err) {
@@ -683,7 +684,8 @@
         await uploadImage(locId);
       }
 
-      bootstrap.Modal.getInstance(document.getElementById('location-modal')).hide();
+      const lm = bootstrap.Modal.getInstance(document.getElementById('location-modal')) || new bootstrap.Modal(document.getElementById('location-modal'));
+      lm.hide();
       showAlert('alert-box', editingLocId ? 'Location aktualisiert!' : 'Location erstellt!', 'success');
       // Reload locations for this city
       delete cityLocations[currentCityId];
@@ -714,7 +716,8 @@
         method: 'DELETE',
         body: JSON.stringify({ id: locId }),
       });
-      bootstrap.Modal.getInstance(document.getElementById('delete-modal')).hide();
+      const dm = bootstrap.Modal.getInstance(document.getElementById('delete-modal')) || new bootstrap.Modal(document.getElementById('delete-modal'));
+      dm.hide();
       showAlert('alert-box', 'Location gelöscht.', 'success');
       delete cityLocations[cityId];
       await loadCityLocations(cityId);
