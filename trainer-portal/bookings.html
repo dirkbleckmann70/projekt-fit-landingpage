@@ -439,7 +439,7 @@
     // Card-based rendering for tabs
     const aktuell = items.filter(i => {
       if (i._type === 'gt') return i.is_active;
-      return [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', BOOKING_STATUS.REPLACEMENT_PENDING].includes(i.status);
+      return [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING].includes(i.status);
     });
     const vergangen = items.filter(i => {
       if (i._type === 'gt') return !i.is_active;
