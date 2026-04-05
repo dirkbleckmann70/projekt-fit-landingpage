@@ -676,7 +676,7 @@
 
     // Aktions-Buttons im Footer je nach Status
     var footerHtml = '';
-    if (b.status === BOOKING_STATUS.PENDING) {
+    if (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.REPLACEMENT_PENDING) {
       footerHtml = `<button class="btn btn-success btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openLocationSelectModal('${b.id}')"><i class="ti ti-check"></i> Bestätigen</button>
         <button class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
         <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
