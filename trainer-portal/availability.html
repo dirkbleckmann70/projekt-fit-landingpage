@@ -352,11 +352,26 @@
   function onEventClick(info) {
     var props = info.event.extendedProps;
     if (props.type === 'availability') {
-      // Direkt loeschen (kein confirm — Speichern-Button ist der Commit)
-      info.event.remove();
+      // Alle Vorkommen desselben Wochentag+Zeitfenster entfernen
+      var clickedStart = info.event.start;
+      var clickedEnd = info.event.end;
+      var clickedDay = clickedStart.getDay();
+      var clickedSH = clickedStart.getHours();
+      var clickedEH = clickedEnd ? clickedEnd.getHours() : clickedSH + 1;
+
+      calendar.getEvents().forEach(function(e) {
+        if (e.extendedProps.type !== 'availability') return;
+        var s = e.start;
+        var en = e.end;
+        if (!s) return;
+        if (s.getDay() === clickedDay && s.getHours() === clickedSH && (en ? en.getHours() : s.getHours()+1) === clickedEH) {
+          e.remove();
+        }
+      });
+
       markDirty();
       updateSummary();
-      showAlert('alert-box', 'Zeitfenster entfernt. Klicke "Speichern" um die Aenderung zu uebernehmen.', 'warning');
+      showAlert('alert-box', 'Zeitfenster entfernt (alle Wochen). Klicke "Speichern" um die Aenderung zu uebernehmen.', 'warning');
     } else if (props.type === 'booking') {
       var b = props.booking;
       alert('PT-Buchung\n\nKunde: ' + (b.customer_name || '–') + '\nDatum: ' + (b.scheduled_date || '') + '\nUhrzeit: ' + (b.scheduled_time || '') + '\nStatus: ' + (b.status || ''));
