@@ -176,19 +176,47 @@
   <div class="modal-dialog modal-dialog-centered reschedule-modal" style="max-width:460px">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Termin ändern</h5>
+        <h5 class="modal-title">Termin / Ort aendern</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
         <div id="reschedule-current" class="p-3 border rounded mb-3">
           <div class="text-secondary text-uppercase fw-bold" style="font-size:11px;margin-bottom:4px">Aktueller Termin</div>
           <div id="reschedule-current-date" class="fw-bold"></div>
+          <div id="reschedule-current-location" class="text-secondary" style="font-size:13px"></div>
         </div>
-        <label class="form-label">Neues Datum</label>
-        <input type="date" id="reschedule-date" class="form-control mb-3" />
-        <label class="form-label">Neue Uhrzeit</label>
-        <div id="reschedule-time-grid" class="time-grid"></div>
-        <div id="reschedule-no-slots" style="display:none" class="text-danger" style="font-size:13px">Keine verfügbaren Zeiten an diesem Tag</div>
+
+        <!-- Tab-Auswahl: Zeit oder Ort -->
+        <ul class="nav nav-tabs mb-3">
+          <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-reschedule-time">Andere Zeit</a></li>
+          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-reschedule-location">Anderen Ort</a></li>
+        </ul>
+
+        <div class="tab-content">
+          <!-- Tab: Zeit aendern -->
+          <div class="tab-pane active show" id="tab-reschedule-time">
+            <label class="form-label">Neues Datum</label>
+            <input type="date" id="reschedule-date" class="form-control mb-3" />
+            <label class="form-label">Neue Uhrzeit</label>
+            <div id="reschedule-time-grid" class="time-grid"></div>
+            <div id="reschedule-no-slots" style="display:none" class="text-danger" style="font-size:13px">Keine verfuegbaren Zeiten an diesem Tag</div>
+          </div>
+
+          <!-- Tab: Ort aendern -->
+          <div class="tab-pane" id="tab-reschedule-location">
+            <div class="mb-3">
+              <label class="form-label">Neuer Treffpunkt (Name)</label>
+              <input type="text" id="reschedule-loc-name" class="form-control" placeholder="z.B. Stadtpark Eingang Nord">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Adresse</label>
+              <input type="text" id="reschedule-loc-address" class="form-control" placeholder="Strasse, PLZ Ort">
+            </div>
+            <div class="alert alert-info" style="font-size:13px">
+              <i class="ti ti-info-circle"></i> Der Kunde hat 24h Zeit den neuen Ort zu akzeptieren.
+            </div>
+          </div>
+        </div>
       </div>
       <div class="modal-footer gap-2">
         <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
@@ -702,6 +730,12 @@
 
     document.getElementById('reschedule-current-date').textContent =
       `${formatDate(b.scheduled_date)} · ${(b.scheduled_time || '').slice(0,5)} Uhr`;
+    document.getElementById('reschedule-current-location').textContent =
+      b.location_name || b.location || b.city || '';
+
+    // Ort-Felder zuruecksetzen
+    document.getElementById('reschedule-loc-name').value = '';
+    document.getElementById('reschedule-loc-address').value = '';
 
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -772,29 +806,56 @@
   }
 
   async function submitReschedule() {
-    if (!rescheduleBookingId || rescheduleSelectedHour === null) return;
+    if (!rescheduleBookingId) return;
 
-    const dateVal = document.getElementById('reschedule-date').value;
-    const timeVal = String(rescheduleSelectedHour).padStart(2, '0') + ':00';
+    // Pruefen welcher Tab aktiv ist
+    var locationTab = document.getElementById('tab-reschedule-location');
+    var isLocationChange = locationTab && locationTab.classList.contains('active');
 
     const btn = document.getElementById('reschedule-submit');
     btn.disabled = true;
     btn.textContent = 'Sende...';
 
     try {
-      const resp = await fetch('/api/admin?action=bookings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bookingId: rescheduleBookingId,
-          reschedule: { proposed_date: dateVal, proposed_time: timeVal },
-        }),
-      });
-      const result = await resp.json();
-      if (!result.success) throw new Error(result.error || 'Fehler');
+      if (isLocationChange) {
+        // Ort-Vorschlag
+        var locName = document.getElementById('reschedule-loc-name').value.trim();
+        var locAddress = document.getElementById('reschedule-loc-address').value.trim();
+        if (!locName) { alert('Bitte einen Treffpunkt-Namen eingeben.'); btn.disabled = false; btn.textContent = 'Vorschlagen'; return; }
 
-      if (_rescheduleModal) _rescheduleModal.hide();
-      showAlert('Terminvorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
+        var sb = getSupabase();
+        var { error } = await sb.from('bookings').update({
+          status: 'location_proposed',
+          location_name: locName,
+          notes: (function() {
+            var b = allBookings.find(function(x) { return x.id === rescheduleBookingId; });
+            var ts = new Date().toISOString().slice(0,16).replace('T',' ');
+            var note = '[Ort-Vorschlag ' + ts + '] Trainer schlaegt vor: ' + locName + (locAddress ? ' (' + locAddress + ')' : '');
+            return b && b.notes ? b.notes + '\n' + note : note;
+          })()
+        }).eq('id', rescheduleBookingId);
+        if (error) throw error;
+
+        if (_rescheduleModal) _rescheduleModal.hide();
+        showAlert('Ort-Vorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
+      } else {
+        // Zeit-Vorschlag (bestehende Logik)
+        if (rescheduleSelectedHour === null) { alert('Bitte eine Uhrzeit auswaehlen.'); btn.disabled = false; btn.textContent = 'Vorschlagen'; return; }
+
+        var dateVal = document.getElementById('reschedule-date').value;
+        var timeVal = String(rescheduleSelectedHour).padStart(2, '0') + ':00';
+
+        var resp = await adminApi('/api/admin?action=bookings', {
+          method: 'PUT',
+          body: JSON.stringify({
+            bookingId: rescheduleBookingId,
+            reschedule: { proposed_date: dateVal, proposed_time: timeVal },
+          }),
+        });
+
+        if (_rescheduleModal) _rescheduleModal.hide();
+        showAlert('Terminvorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
+      }
       await loadBookings();
     } catch (err) {
       showAlert('Fehler: ' + err.message, 'error');
