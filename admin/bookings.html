@@ -304,7 +304,12 @@
         </div>
         <div class="form-group">
           <label>Trainer</label>
-          <input class="form-control" value="${b.trainer_name || '–'}" disabled>
+          ${b.status === 'cancelled_by_trainer' || b.status === 'finding_replacement'
+            ? `<select class="form-control" id="edit-booking-trainer">
+                <option value="${b.trainer_id}">${b.trainer_name || '–'} (aktuell – hat abgesagt)</option>
+              </select>
+              <button class="btn btn-warning btn-sm mt-2" type="button" onclick="assignReplacementTrainer()"><i class="ti ti-replace"></i> Ersatztrainer zuweisen</button>`
+            : `<input class="form-control" value="${b.trainer_name || '–'}" disabled>`}
         </div>
       </div>
       <div class="two-col">
@@ -383,6 +388,11 @@
     `;
 
     new bootstrap.Modal(document.getElementById('detail-modal')).show();
+
+    // Bei cancelled_by_trainer: Trainer-Dropdown mit aktiven Trainern befuellen
+    if (b.status === 'cancelled_by_trainer' || b.status === 'finding_replacement') {
+      loadReplacementTrainers(b);
+    }
 
     // Verlauf-Tab fuellen
     renderHistory(b);
@@ -602,6 +612,54 @@
     const modal = bootstrap.Modal.getInstance(document.getElementById('detail-modal'));
     if (modal) modal.hide();
     editingBookingId = null;
+  }
+
+  // ─── Ersatztrainer zuweisen ──────────────────────────────────────────────
+  async function loadReplacementTrainers(booking) {
+    const sel = document.getElementById('edit-booking-trainer');
+    if (!sel) return;
+    try {
+      const resp = await adminApi('/api/admin?action=data&type=calendar_trainers');
+      var trainers = (resp.data || []).filter(function(t) {
+        return t.id !== booking.trainer_id && t.is_active;
+      });
+      trainers.forEach(function(t) {
+        var opt = document.createElement('option');
+        opt.value = t.id;
+        opt.textContent = t.full_name + (t.city ? ' (' + t.city + ')' : '');
+        sel.appendChild(opt);
+      });
+    } catch(e) { console.error('Trainer laden:', e); }
+  }
+
+  async function assignReplacementTrainer() {
+    var sel = document.getElementById('edit-booking-trainer');
+    var newTrainerId = sel ? sel.value : null;
+    if (!newTrainerId || !editingBookingId) return;
+
+    var b = allBookings.find(function(x) { return x.id === editingBookingId; });
+    if (!b) return;
+    if (newTrainerId === b.trainer_id) {
+      alert('Bitte einen anderen Trainer auswaehlen.');
+      return;
+    }
+
+    try {
+      await adminApi('/api/admin?action=bookings', {
+        method: 'PUT',
+        body: JSON.stringify({
+          bookingId: editingBookingId,
+          status: 'replacement_pending',
+          trainer_id: newTrainerId,
+          admin_note: 'Ersatztrainer zugewiesen'
+        }),
+      });
+      showAlert('alert-box', 'Ersatztrainer zugewiesen! Status: Warte auf Bestaetigung.', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();
+      await loadBookings();
+    } catch(e) {
+      alert('Fehler: ' + e.message);
+    }
   }
 </script>
 
