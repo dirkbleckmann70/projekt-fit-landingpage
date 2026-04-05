@@ -492,17 +492,23 @@
         <button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
         <button class="btn btn-sm btn-outline-secondary" onclick="openRescheduleModal('${item.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
         <button class="btn btn-sm btn-outline-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
+    } else if (item.status === 'reschedule_proposed' || item.status === 'location_proposed') {
+      // Wartet auf Kunde — Trainer kann nur Details sehen oder absagen
+      actions = `
+        <button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
     } else {
       actions = `<button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>`;
     }
 
     let warningLine = '';
     if (item.status === 'reschedule_proposed' && item.proposed_date) {
-      warningLine = `<div class="text-warning mt-1" style="font-size:12px"><i class="ti ti-clock"></i> Dein Vorschlag: ${formatDate(item.proposed_date)} · ${item.proposed_time ? item.proposed_time.slice(0,5) : '–'} Uhr – Wartet auf Kunde</div>`;
+      warningLine = `<div class="text-warning mt-1" style="font-size:12px">
+        <i class="ti ti-clock"></i> <strong>Original:</strong> ${dateStr} · ${timeStr} → <strong>Vorschlag:</strong> ${formatDate(item.proposed_date)} · ${item.proposed_time ? item.proposed_time.slice(0,5) : '–'} Uhr
+        <br><i class="ti ti-hourglass"></i> Wartet auf Kundenbestaetigung
+      </div>`;
     } else if (item.status === 'location_proposed') {
       warningLine = `<div class="text-warning mt-1" style="font-size:12px"><i class="ti ti-map-pin"></i> Ort-Vorschlag: ${item.location_name || '–'} – Wartet auf Kunde</div>`;
-    } else if (isLocationProposed) {
-      warningLine = `<div class="text-warning mt-1" style="font-size:12px"><i class="ti ti-clock"></i> Wartet auf Kundenbestaetigung</div>`;
     }
 
     return `
@@ -700,8 +706,9 @@
         ${hasRating ? `<div class="col-6"><label class="form-label text-secondary">Bewertung</label><div>${b.rating}/5${b.review_comment ? '<br><span class="text-secondary" style="font-size:13px">„' + b.review_comment + '"</span>' : ''}</div></div>` : '<div class="col-6"></div>'}
       </div>
       ${b.proposed_date ? `<div class="alert alert-warning mb-3" style="font-size:13px">
-        <div class="fw-bold mb-1"><i class="ti ti-calendar-event"></i> Dein Terminvorschlag</div>
-        <div>${formatDate(b.proposed_date)} · ${b.proposed_time ? b.proposed_time.slice(0,5) : '–'} Uhr</div>
+        <div class="fw-bold mb-1"><i class="ti ti-calendar-event"></i> Terminaenderung vorgeschlagen</div>
+        <div><span style="text-decoration:line-through;opacity:0.6">${b.scheduled_date ? formatDate(b.scheduled_date) : '–'} · ${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'} Uhr</span></div>
+        <div class="fw-bold" style="color:#F4A940">→ ${formatDate(b.proposed_date)} · ${b.proposed_time ? b.proposed_time.slice(0,5) : '–'} Uhr</div>
         <div class="text-secondary mt-1">Wartet auf Kundenbestaetigung (24h Frist)</div>
       </div>` : ''}
       ${b.status === 'location_proposed' && b.location_name ? `<div class="alert alert-warning mb-3" style="font-size:13px">
@@ -722,6 +729,10 @@
       footerHtml = `<button class="btn btn-success btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openLocationSelectModal('${b.id}')"><i class="ti ti-check"></i> Bestätigen</button>
         <button class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
         <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
+    } else if (b.status === 'reschedule_proposed' || b.status === 'location_proposed') {
+      // Wartet auf Kunde — Trainer kann nur absagen
+      footerHtml = `<span class="badge badge-reschedule me-2">Wartet auf Kundenbestaetigung</span>
+        <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
     } else if (b.status === BOOKING_STATUS.CONFIRMED) {
       footerHtml = `<button class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
         <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
