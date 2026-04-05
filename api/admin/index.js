@@ -47,14 +47,6 @@ export default async function handler(req, res) {
       if (error) return res.status(500).json({ error: error.message });
       const user = users?.find(u => u.email === email);
       if (!user) return res.json({ found: false, message: 'Kein Auth-Account fuer ' + email });
-      // Optional: Passwort setzen
-      const newPw = req.query.setpw;
-      if (newPw && newPw.length >= 8) {
-        const { error: pwErr } = await supabase.auth.admin.updateUserById(user.id, { password: newPw });
-        if (pwErr) return res.json({ found: true, email: user.email, passwordReset: false, error: pwErr.message });
-        return res.json({ found: true, email: user.email, passwordReset: true, message: 'Passwort erfolgreich gesetzt' });
-      }
-
       // Passwort setzen (temporaer)
       const newPw = req.query.setpw;
       if (newPw && newPw.length >= 8) {
