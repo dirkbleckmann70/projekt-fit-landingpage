@@ -134,7 +134,8 @@
       null,
     ], {
       extraButtons: [
-        { label: 'CSV Export', icon: 'ti-download', className: 'btn btn-sm btn-ghost-secondary', onClick: 'exportCSV()' }
+        { label: 'CSV Export', icon: 'ti-download', className: 'btn btn-sm btn-ghost-secondary', onClick: 'exportCSV()' },
+        { label: 'Gefilterte löschen', icon: 'ti-trash', className: 'btn btn-sm btn-ghost-danger', onClick: 'deleteAllFiltered()' }
       ],
       countLabel: 'Buchungen'
     });
@@ -165,29 +166,30 @@
     const confirmBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Bestätigen" onclick="quickStatusChange('${id}',BOOKING_STATUS.CONFIRMED)" style="color:var(--tblr-success)"><i class="ti ti-check"></i></button>`;
     const completeBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Abschließen" onclick="quickStatusChange('${id}',BOOKING_STATUS.COMPLETED)" style="color:var(--tblr-success)"><i class="ti ti-circle-check"></i></button>`;
     const cancelBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Stornieren" onclick="quickStatusChange('${id}',BOOKING_STATUS.CANCELLED)" style="color:var(--tblr-danger)"><i class="ti ti-x"></i></button>`;
+    const deleteBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Löschen" onclick="deleteBooking('${id}')" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>`;
 
-    // Abgeschlossene/unveränderliche Zustände → nur Ansehen
+    // Abgeschlossene/unveränderliche Zustände → Ansehen + Löschen
     if (['COMPLETED', 'CANCELLED', 'REFUNDED', 'DISPUTED', 'ESCALATED'].includes(s)) {
-      return `<div class="d-flex gap-1">${viewBtn} ${editBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${deleteBtn}</div>`;
     }
-    // EXPIRED → Ansehen + Bearbeiten
+    // EXPIRED → Ansehen + Bearbeiten + Löschen
     if (s === BOOKING_STATUS.EXPIRED.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${editBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${deleteBtn}</div>`;
     }
-    // In Bearbeitung → nur Ansehen
+    // In Bearbeitung → Ansehen + Löschen
     if (['CHECKED_IN', 'IN_PROGRESS'].includes(s)) {
-      return `<div class="d-flex gap-1">${viewBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${deleteBtn}</div>`;
     }
-    // PENDING → Ansehen + Bestätigen + Stornieren
+    // PENDING → Ansehen + Bestätigen + Stornieren + Löschen
     if (s === BOOKING_STATUS.PENDING.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${confirmBtn} ${cancelBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${confirmBtn} ${cancelBtn} ${deleteBtn}</div>`;
     }
-    // CONFIRMED → Ansehen + Abschließen + Stornieren
+    // CONFIRMED → Ansehen + Abschließen + Stornieren + Löschen
     if (s === BOOKING_STATUS.CONFIRMED.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${completeBtn} ${cancelBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${completeBtn} ${cancelBtn} ${deleteBtn}</div>`;
     }
     // Fallback
-    return `<div class="d-flex gap-1">${viewBtn} ${editBtn}</div>`;
+    return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${deleteBtn}</div>`;
   }
 
   // Nutzt CANCELLED_STATUSES aus shared/constants.js (lowercase)
@@ -511,6 +513,37 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Speichern';
+    }
+  }
+
+  async function deleteBooking(id) {
+    if (!confirm('Buchung wirklich endgültig löschen?')) return;
+    try {
+      await adminApi('/api/admin?action=bookings', {
+        method: 'DELETE',
+        body: JSON.stringify({ bookingIds: [id] }),
+      });
+      showAlert('alert-box', 'Buchung gelöscht.', 'success');
+      await loadBookings();
+    } catch (err) {
+      alert('Löschen fehlgeschlagen: ' + err.message);
+    }
+  }
+
+  async function deleteAllFiltered() {
+    const filtered = tableFilter ? tableFilter.apply(allBookings) : allBookings;
+    if (filtered.length === 0) return;
+    if (!confirm(`${filtered.length} gefilterte Buchung(en) endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden!`)) return;
+    try {
+      const ids = filtered.map(b => b.id);
+      await adminApi('/api/admin?action=bookings', {
+        method: 'DELETE',
+        body: JSON.stringify({ bookingIds: ids }),
+      });
+      showAlert('alert-box', `${ids.length} Buchung(en) gelöscht.`, 'success');
+      await loadBookings();
+    } catch (err) {
+      alert('Löschen fehlgeschlagen: ' + err.message);
     }
   }
 

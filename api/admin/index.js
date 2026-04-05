@@ -91,8 +91,9 @@ export default async function handler(req, res) {
       // BOOKINGS – PUT (Status + paid ändern)
       // ═══════════════════════════════════════════════════════════════════
       case 'bookings': {
-        if (req.method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
-        return await handleBookingsPut(req, res, supabase);
+        if (req.method === 'PUT') return await handleBookingsPut(req, res, supabase);
+        if (req.method === 'DELETE') return await handleBookingsDelete(req, res, supabase);
+        return res.status(405).json({ error: 'Method not allowed' });
       }
 
       // ═══════════════════════════════════════════════════════════════════
@@ -1366,6 +1367,37 @@ async function handleBookingsPut(req, res, supabase) {
   const { error } = await supabase.from('bookings').update(update).eq('id', bookingId);
   if (error) throw error;
   return res.json({ success: true });
+}
+
+// ─── ACTION: bookings DELETE ────────────────────────────────────────────────
+
+async function handleBookingsDelete(req, res, supabase) {
+  const body = await getBody(req);
+  const { bookingIds } = body;
+
+  if (!bookingIds || !Array.isArray(bookingIds) || bookingIds.length === 0) {
+    return res.status(400).json({ error: 'bookingIds (Array) ist erforderlich' });
+  }
+
+  if (bookingIds.length > 50) {
+    return res.status(400).json({ error: 'Maximal 50 Buchungen gleichzeitig loeschen' });
+  }
+
+  // booking_locations werden per CASCADE geloescht (FK ON DELETE CASCADE)
+  // selected_location_id in bookings muss zuerst genullt werden
+  const { error: nullErr } = await supabase
+    .from('bookings')
+    .update({ selected_location_id: null })
+    .in('id', bookingIds);
+  if (nullErr) console.warn('selected_location_id null setzen:', nullErr.message);
+
+  const { error, count } = await supabase
+    .from('bookings')
+    .delete({ count: 'exact' })
+    .in('id', bookingIds);
+
+  if (error) throw error;
+  return res.json({ success: true, deleted: count || bookingIds.length });
 }
 
 // ─── ACTION: groups ──────────────────────────────────────────────────────────
