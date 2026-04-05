@@ -1383,13 +1383,11 @@ async function handleBookingsDelete(req, res, supabase) {
     return res.status(400).json({ error: 'Maximal 50 Buchungen gleichzeitig loeschen' });
   }
 
-  // booking_locations werden per CASCADE geloescht (FK ON DELETE CASCADE)
-  // selected_location_id in bookings muss zuerst genullt werden
-  const { error: nullErr } = await supabase
-    .from('bookings')
-    .update({ selected_location_id: null })
-    .in('id', bookingIds);
-  if (nullErr) console.warn('selected_location_id null setzen:', nullErr.message);
+  // Abhaengige Datensaetze zuerst loeschen (FK Constraints)
+  await supabase.from('trainer_reviews').delete().in('booking_id', bookingIds);
+  await supabase.from('invoices').delete().in('booking_id', bookingIds);
+  await supabase.from('bookings').update({ selected_location_id: null }).in('id', bookingIds);
+  await supabase.from('booking_locations').delete().in('booking_id', bookingIds);
 
   const { error, count } = await supabase
     .from('bookings')
