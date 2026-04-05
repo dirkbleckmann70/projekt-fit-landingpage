@@ -296,13 +296,13 @@
           <td class="text-accent">${rating}</td>
           <td class="text-muted">${formatDate(t.created_at)}</td>
           <td>
-            <div class="action-cell">
-              <button class="btn btn-secondary btn-sm" onclick="openDetailModal('${t.id}')">Details</button>
-              ${canActivate ? `<button class="btn btn-success btn-sm" onclick="activateTrainer('${t.id}')">Aktivieren</button>` : ''}
-              ${canDeactivate ? `<button class="btn btn-danger btn-sm" onclick="deactivateTrainer('${t.id}')">Deaktivieren</button>` : ''}
+            <div class="d-flex gap-1">
+              <button class="btn btn-sm btn-ghost-secondary" title="Details" onclick="openDetailModal('${t.id}')"><i class="ti ti-eye"></i></button>
+              ${canActivate ? `<button class="btn btn-sm btn-ghost-secondary" title="Aktivieren" onclick="activateTrainer('${t.id}')" style="color:var(--tblr-success)"><i class="ti ti-check"></i></button>` : ''}
+              ${canDeactivate ? `<button class="btn btn-sm btn-ghost-secondary" title="Deaktivieren" onclick="deactivateTrainer('${t.id}')" style="color:var(--tblr-danger)"><i class="ti ti-player-pause"></i></button>` : ''}
               ${t.status !== 'active'
-                ? `<button class="btn btn-icon btn-icon-delete" onclick="deleteTrainer('${t.id}','${(t.full_name||'').replace(/'/g,"\\'")}')" title="Trainer löschen">&#x1F5D1;</button>`
-                : `<button class="btn btn-icon btn-icon-delete" disabled title="Trainer muss zuerst deaktiviert werden">&#x1F5D1;</button>`}
+                ? `<button class="btn btn-sm btn-ghost-secondary" title="Trainer löschen" onclick="deleteTrainer('${t.id}','${(t.full_name||'').replace(/'/g,"\\'")}')" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>`
+                : ''}
             </div>
           </td>
         </tr>

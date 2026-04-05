@@ -160,36 +160,34 @@
   function bookingActions(b) {
     const s = (b.status || '').toUpperCase();
     const id = b.id;
-    const detailBtn = `<button class="btn btn-secondary btn-sm" onclick="openDetail('${id}')">Details</button>`;
+    const viewBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Details" onclick="openDetail('${id}')"><i class="ti ti-eye"></i></button>`;
+    const editBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Bearbeiten" onclick="openDetail('${id}')"><i class="ti ti-edit"></i></button>`;
+    const confirmBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Bestätigen" onclick="quickStatusChange('${id}',BOOKING_STATUS.CONFIRMED)" style="color:var(--tblr-success)"><i class="ti ti-check"></i></button>`;
+    const completeBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Abschließen" onclick="quickStatusChange('${id}',BOOKING_STATUS.COMPLETED)" style="color:var(--tblr-success)"><i class="ti ti-circle-check"></i></button>`;
+    const cancelBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Stornieren" onclick="quickStatusChange('${id}',BOOKING_STATUS.CANCELLED)" style="color:var(--tblr-danger)"><i class="ti ti-x"></i></button>`;
 
-    // Abgeschlossene/unveränderliche Zustände → nur Details
+    // Abgeschlossene/unveränderliche Zustände → nur Ansehen
     if (['COMPLETED', 'CANCELLED', 'REFUNDED', 'DISPUTED', 'ESCALATED'].includes(s)) {
-      return detailBtn;
+      return `<div class="d-flex gap-1">${viewBtn} ${editBtn}</div>`;
     }
-    // EXPIRED → Details + Klären
+    // EXPIRED → Ansehen + Bearbeiten
     if (s === BOOKING_STATUS.EXPIRED.toUpperCase()) {
-      return `${detailBtn} <button class="btn btn-ghost-secondary btn-sm" style="color:#f39c12;border-color:rgba(243,156,18,0.4)" onclick="openDetail('${id}')">Klären</button>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${editBtn}</div>`;
     }
-    // In Bearbeitung → nur Details
+    // In Bearbeitung → nur Ansehen
     if (['CHECKED_IN', 'IN_PROGRESS'].includes(s)) {
-      return detailBtn;
+      return `<div class="d-flex gap-1">${viewBtn}</div>`;
     }
-    // PENDING → Details + Bestätigen + Stornieren
+    // PENDING → Ansehen + Bestätigen + Stornieren
     if (s === BOOKING_STATUS.PENDING.toUpperCase()) {
-      return `
-        ${detailBtn}
-        <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}',BOOKING_STATUS.CONFIRMED)">Bestätigen</button>
-        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}',BOOKING_STATUS.CANCELLED)">Stornieren</button>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${confirmBtn} ${cancelBtn}</div>`;
     }
-    // CONFIRMED → Details + Abschließen + Stornieren
+    // CONFIRMED → Ansehen + Abschließen + Stornieren
     if (s === BOOKING_STATUS.CONFIRMED.toUpperCase()) {
-      return `
-        ${detailBtn}
-        <button class="btn btn-success btn-sm" onclick="quickStatusChange('${id}',BOOKING_STATUS.COMPLETED)">Abschließen</button>
-        <button class="btn btn-danger btn-sm"  onclick="quickStatusChange('${id}',BOOKING_STATUS.CANCELLED)">Stornieren</button>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${completeBtn} ${cancelBtn}</div>`;
     }
     // Fallback
-    return detailBtn;
+    return `<div class="d-flex gap-1">${viewBtn} ${editBtn}</div>`;
   }
 
   // Nutzt CANCELLED_STATUSES aus shared/constants.js (lowercase)
