@@ -814,6 +814,18 @@ async function handleData(req, res, supabase) {
       return res.json({ data: data || [] });
     }
 
+    // ─── Customer Names (für Trainer-Portal) ───────────────────────────
+    case 'customer_names': {
+      const ids = req.query.ids ? req.query.ids.split(',').filter(Boolean) : [];
+      if (ids.length === 0) return res.json({ data: [] });
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, full_name, first_name, last_name')
+        .in('id', ids);
+      if (error) throw error;
+      return res.json({ data: data || [] });
+    }
+
     // ─── Calendar: Bookings für Woche + Trainer ───────────────────────
     case 'calendar_bookings': {
       const trainerIds = req.query.trainer_ids ? req.query.trainer_ids.split(',') : [];

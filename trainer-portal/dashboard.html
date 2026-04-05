@@ -245,7 +245,8 @@
       if (pendingBookings.length > 0) {
         var custIds = [...new Set(pendingBookings.map(b => b.customer_id).filter(Boolean))];
         if (custIds.length > 0) {
-          var { data: custs } = await sb.from('customers').select('id, full_name, first_name, last_name').in('id', custIds);
+          var custResp = await adminApi('/api/admin?action=data&type=customer_names&ids=' + custIds.join(','));
+          var custs = custResp.data || [];
           var custMap = {};
           (custs || []).forEach(function(c) { custMap[c.id] = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Kunde'; });
           pendingBookings = pendingBookings.map(function(b) { return Object.assign({}, b, { customer_name: custMap[b.customer_id] || b.customer_name || 'Kunde' }); });

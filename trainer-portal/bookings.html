@@ -326,15 +326,12 @@
       const customerIds = [...new Set((data || []).map(b => b.customer_id).filter(Boolean))];
       const customerNames = {};
       if (customerIds.length > 0) {
-        const { data: customers } = await sb
-          .from('customers')
-          .select('id, first_name, last_name, full_name')
-          .in('id', customerIds);
-        if (customers) {
-          customers.forEach(c => {
+        try {
+          const custResp = await adminApi('/api/admin?action=data&type=customer_names&ids=' + customerIds.join(','));
+          (custResp.data || []).forEach(function(c) {
             customerNames[c.id] = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Kunde';
           });
-        }
+        } catch { /* fallback to Kunde */ }
       }
 
       allBookings = (data || []).map(b => ({
@@ -729,11 +726,12 @@
   function updateTimeGrid(date) {
     const jsDay = date.getDay();
     const isoDay = jsDay === 0 ? 7 : jsDay;
-    const dateStr = date.toISOString().split('T')[0];
+    const y = date.getFullYear(); const m = String(date.getMonth()+1).padStart(2,'0'); const d = String(date.getDate()).padStart(2,'0');
+    const dateStr = y + '-' + m + '-' + d;
 
     // Dual-Source: date-specific entries + weekly (no specific_date) entries
     const dateSlots = rescheduleAvailability.filter(s => s.specific_date === dateStr);
-    const weeklySlots = rescheduleAvailability.filter(s => !s.specific_date && s.day_of_week === isoDay);
+    const weeklySlots = rescheduleAvailability.filter(s => (s.specific_date === null || s.specific_date === undefined || s.specific_date === '') && s.day_of_week === isoDay);
     const slots = [...dateSlots, ...weeklySlots];
 
     const hours = [];
