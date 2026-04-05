@@ -1013,6 +1013,9 @@ async function handleActivateTrainer(req, res, supabase) {
     return res.status(404).json({ success: false, error: 'Trainer nicht gefunden' });
   }
 
+  // Reaktivierung: Trainer hatte schon einen Auth-Account und war bereits aktiv
+  const isReactivation = !!trainer.auth_user_id && ['active', 'pausiert', 'gesperrt'].includes(trainer.status);
+
   let authUserId = trainer.auth_user_id;
 
   if (!authUserId) {
@@ -1052,7 +1055,12 @@ async function handleActivateTrainer(req, res, supabase) {
     return res.status(500).json({ success: false, error: 'Profil-Update fehlgeschlagen', authUserId });
   }
 
-  // Onboarding-Link generieren (Trainer kann damit Passwort setzen)
+  // Reaktivierung: Nur Status setzen, kein Onboarding
+  if (isReactivation) {
+    return res.json({ success: true, message: `Trainer ${trainer.full_name} reaktiviert.`, authUserId, trainerId });
+  }
+
+  // Erstmalige Aktivierung: Onboarding-Link generieren
   let onboardingLink = null;
   const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
     type: 'invite',

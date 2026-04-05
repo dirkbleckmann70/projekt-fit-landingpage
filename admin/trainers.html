@@ -509,10 +509,15 @@
       </div>
 
       <!-- Aktivieren-Button fuer nicht-aktive Trainer -->
-      ${t.status !== 'active' ? `
+      ${t.status !== 'active' && t.status === 'pending' && !t.auth_user_id ? `
       <div class="alert alert-warning mt-3 d-flex align-items-center justify-content-between">
-        <span><i class="ti ti-alert-circle me-2"></i>Trainer ist <strong>${t.status || 'pending'}</strong> — noch nicht aktiv.</span>
-        <button class="btn btn-success btn-sm" onclick="activateFromModal('${t.id}')"><i class="ti ti-check me-1"></i>Aktivieren & Einladung senden</button>
+        <span><i class="ti ti-alert-circle me-2"></i>Neuer Trainer — noch nicht aktiviert.</span>
+        <button class="btn btn-success btn-sm" onclick="activateFromModal('${t.id}')"><i class="ti ti-check me-1"></i>Aktivieren & Onboarding-E-Mail senden</button>
+      </div>` : ''}
+      ${t.status !== 'active' && t.auth_user_id ? `
+      <div class="alert mt-3 d-flex align-items-center justify-content-between" style="background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.2)">
+        <span><i class="ti ti-player-pause me-2"></i>Trainer ist <strong>${t.status}</strong> — derzeit deaktiviert.</span>
+        <button class="btn btn-success btn-sm" onclick="activateFromModal('${t.id}')"><i class="ti ti-check me-1"></i>Reaktivieren</button>
       </div>` : ''}
 
       ${t.auth_user_id ? `<p class="text-muted mt-2" style="font-size:12px">Auth User ID: ${t.auth_user_id}</p>` : ''}
