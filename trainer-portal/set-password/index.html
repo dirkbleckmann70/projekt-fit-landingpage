@@ -81,7 +81,7 @@
   const SUPABASE_URL = 'https://ahsjydgknmysircubjsk.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_8tZaFMrIrzJXjDbYAF2huw_ygDY9K2Q';
 
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { storageKey: 'sb-trainer-auth' } });
 
   // ─── DOM ────────────────────────────────────────────────────────────
   const viewLoading = document.getElementById('view-loading');

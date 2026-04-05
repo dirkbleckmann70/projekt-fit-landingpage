@@ -14,7 +14,9 @@ window.currentTrainer = null;
 
 function getSupabase() {
   if (!_sb) {
-    _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    _sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { storageKey: 'sb-trainer-auth' }
+    });
   }
   return _sb;
 }
