@@ -441,6 +441,7 @@
               style="color:${city.is_active !== false ? 'var(--tblr-danger)' : 'var(--tblr-success)'}">
               <i class="ti ${city.is_active !== false ? 'ti-player-pause' : 'ti-check'}"></i>
             </button>
+            <button class="btn btn-sm btn-ghost-secondary" title="Stadt löschen" onclick="deleteCity('${city.id}', '${escHtml(city.city)}')" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>
           </div>
         </div>
         <div class="city-locations">
@@ -599,6 +600,20 @@
     }
   }
 
+  async function deleteCity(cityId, cityName) {
+    if (!confirm(`Stadt "${cityName}" wirklich löschen?`)) return;
+    try {
+      await adminApi('/api/admin?action=locations', {
+        method: 'DELETE',
+        body: JSON.stringify({ id: cityId }),
+      });
+      showAlert('alert-box', `Stadt "${cityName}" gelöscht.`, 'success');
+      await loadCities();
+    } catch (err) {
+      alert('Stadt löschen fehlgeschlagen: ' + err.message);
+    }
+  }
+
   /* ─────────────────────────────────────────────────────────────────
      Location CRUD
   ───────────────────────────────────────────────────────────────── */
@@ -660,12 +675,12 @@
     const payload = {
       city_id:     currentCityId,
       name,
-      street:      document.getElementById('f-loc-street').value.trim(),
-      plz:         document.getElementById('f-loc-plz').value.trim(),
-      ort:         document.getElementById('f-loc-ort').value.trim(),
-      description: document.getElementById('f-loc-desc').value.trim(),
-      lat:         document.getElementById('f-loc-lat').value  || null,
-      lng:         document.getElementById('f-loc-lng').value  || null,
+      street:      document.getElementById('f-loc-street').value.trim() || null,
+      zip_code:    document.getElementById('f-loc-plz').value.trim() || null,
+      city_name:   document.getElementById('f-loc-ort').value.trim() || null,
+      description: document.getElementById('f-loc-desc').value.trim() || null,
+      latitude:    parseFloat(document.getElementById('f-loc-lat').value) || null,
+      longitude:   parseFloat(document.getElementById('f-loc-lng').value) || null,
       is_active:   document.getElementById('f-loc-active').checked,
     };
 

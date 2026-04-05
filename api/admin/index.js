@@ -1472,6 +1472,22 @@ async function handleLocations(req, res, supabase) {
     return res.json({ success: true });
   }
 
+  if (req.method === 'DELETE') {
+    const body = await getBody(req);
+    const { id } = body;
+    if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
+
+    // Erst pruefen ob noch Locations vorhanden
+    const { data: locs } = await supabase.from('service_location_details').select('id').eq('city_id', id);
+    if (locs && locs.length > 0) {
+      return res.status(400).json({ error: `Stadt kann nicht gelöscht werden — noch ${locs.length} Location(s) vorhanden. Bitte zuerst alle Locations löschen.` });
+    }
+
+    const { error } = await supabase.from('service_locations').delete().eq('id', id);
+    if (error) throw error;
+    return res.json({ success: true });
+  }
+
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
