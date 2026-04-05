@@ -1052,41 +1052,59 @@ async function handleActivateTrainer(req, res, supabase) {
     return res.status(500).json({ success: false, error: 'Profil-Update fehlgeschlagen', authUserId });
   }
 
-  // Passwort-Reset-Link senden (funktioniert auch fuer bestehende bestaetigte User)
-  const { error: resetError } = await supabase.auth.admin.generateLink({
-    type: 'recovery',
+  // Onboarding-Link generieren (Trainer kann damit Passwort setzen)
+  let onboardingLink = null;
+  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+    type: 'invite',
     email: trainer.email,
     options: { redirectTo: 'https://projektfit.net/trainer-portal/set-password/' }
   });
+  if (!linkError && linkData?.properties?.action_link) {
+    onboardingLink = linkData.properties.action_link;
+  } else {
+    // Fallback: Recovery Link
+    const { data: recData } = await supabase.auth.admin.generateLink({
+      type: 'recovery',
+      email: trainer.email,
+      options: { redirectTo: 'https://projektfit.net/trainer-portal/set-password/' }
+    });
+    if (recData?.properties?.action_link) {
+      onboardingLink = recData.properties.action_link;
+    }
+  }
 
-  // Benachrichtigungs-E-Mail ueber Brevo
+  // E-Mail mit Onboarding-Link ueber Brevo senden
   let emailSent = false;
   const brevoKey = process.env.BREVO_API_KEY;
-  if (brevoKey) {
+  if (brevoKey && onboardingLink) {
     try {
       const resp = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         headers: { 'accept': 'application/json', 'content-type': 'application/json', 'api-key': brevoKey },
         body: JSON.stringify({
-          sender: { name: 'Projekt Fit', email: 'noreply@projektfit.net' },
+          sender: { name: 'Projekt Fit', email: process.env.BREVO_SENDER_EMAIL || 'dirkbleckmann70@gmail.com' },
           to: [{ email: trainer.email, name: trainer.full_name }],
-          subject: 'Dein Trainer-Account bei Projekt Fit ist aktiv!',
+          subject: 'Willkommen bei Projekt Fit – Dein Trainer-Zugang',
           htmlContent: `<h2>Hallo ${trainer.full_name},</h2>
-            <p>dein Trainer-Account bei <strong>Projekt Fit</strong> wurde aktiviert!</p>
-            <p>Du kannst dich ab sofort im Trainer-Portal anmelden:</p>
-            <p><a href="https://projektfit.net/trainer-portal/" style="display:inline-block;padding:12px 24px;background:#40916C;color:#fff;text-decoration:none;border-radius:8px;font-weight:600">Zum Trainer-Portal</a></p>
-            <p>Falls du dein Passwort noch nicht gesetzt hast, klicke auf "Passwort vergessen" auf der Login-Seite.</p>
+            <p>willkommen im Team! Dein Trainer-Account bei <strong>Projekt Fit</strong> wurde aktiviert.</p>
+            <p>Klicke auf den folgenden Button um dein Passwort zu setzen und dich erstmalig anzumelden:</p>
+            <p><a href="${onboardingLink}" style="display:inline-block;padding:14px 28px;background:#40916C;color:#fff;text-decoration:none;border-radius:8px;font-weight:700;font-size:16px">Passwort setzen &amp; anmelden</a></p>
+            <p style="font-size:13px;color:#666">Dieser Link ist 24 Stunden gueltig. Danach kannst du ueber "Passwort vergessen" auf der <a href="https://projektfit.net/trainer-portal/">Login-Seite</a> einen neuen Link anfordern.</p>
             <p>Viel Erfolg!<br>Dein Projekt Fit Team</p>`
         })
       });
       emailSent = resp.ok;
+      if (!resp.ok) {
+        const brevoErr = await resp.json().catch(() => ({}));
+        console.error('[activate-trainer] Brevo response:', resp.status, brevoErr);
+      }
     } catch (e) { console.error('[activate-trainer] Brevo error:', e.message); }
   }
 
   const msg = emailSent
-    ? `Trainer ${trainer.full_name} aktiviert und Benachrichtigung gesendet`
-    : `Trainer ${trainer.full_name} aktiviert (E-Mail-Versand fehlgeschlagen)`;
-  return res.json({ success: true, message: msg, authUserId, trainerId });
+    ? `Trainer ${trainer.full_name} aktiviert! Onboarding-E-Mail mit Passwort-Link gesendet.`
+    : `Trainer ${trainer.full_name} aktiviert. E-Mail konnte nicht gesendet werden.`;
+  return res.json({ success: true, message: msg, authUserId, trainerId, onboardingLink: emailSent ? null : onboardingLink });
 }
 
 // ─── ACTION: deactivate-trainer ──────────────────────────────────────────────
