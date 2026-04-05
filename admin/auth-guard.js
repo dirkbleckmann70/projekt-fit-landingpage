@@ -45,30 +45,21 @@ async function adminLogout() {
   window.location.href = '/admin/';
 }
 
-// Hilfsfunktion: Admin-API Call mit Session-Token (Auto-Refresh)
+// Hilfsfunktion: Admin-API Call mit Session-Token
 async function adminApi(endpoint, options = {}) {
   const sb = getSupabase();
+  const { data: { session } } = await sb.auth.getSession();
 
-  // Immer frischen Token holen (refresht automatisch wenn abgelaufen)
-  const { data: { session }, error: sessionErr } = await sb.auth.refreshSession();
-
-  if (sessionErr || !session) {
-    // Fallback: getSession versuchen
-    const { data: { session: fallback } } = await sb.auth.getSession();
-    if (!fallback) {
-      window.location.href = '/admin/';
-      throw new Error('Nicht eingeloggt');
-    }
-    var token = fallback.access_token;
-  } else {
-    var token = session.access_token;
+  if (!session) {
+    window.location.href = '/admin/';
+    throw new Error('Nicht eingeloggt');
   }
 
   const res = await fetch(endpoint, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
+      'Authorization': `Bearer ${session.access_token}`,
       ...(options.headers || {}),
     },
   });
