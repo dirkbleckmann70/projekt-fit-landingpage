@@ -281,9 +281,8 @@
         method: 'PUT',
         body: JSON.stringify({ bookingId, status }),
       });
-      // Update local data
-      const b = allBookings.find(x => x.id === bookingId);
-      if (b) b.status = status;
+      showAlert('alert-box', 'Status aktualisiert.', 'success');
+      await loadBookings();
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
       await loadBookings();

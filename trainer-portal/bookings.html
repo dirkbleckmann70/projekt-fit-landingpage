@@ -813,6 +813,11 @@
   }
 
   async function updateBooking(bookingId, status) {
+    // Alle offenen Modals schliessen
+    document.querySelectorAll('.modal.show').forEach(function(m) {
+      var inst = bootstrap.Modal.getInstance(m);
+      if (inst) inst.hide();
+    });
     const sb = getSupabase();
     const { error } = await sb.from('bookings').update({ status }).eq('id', bookingId);
     if (error) {
