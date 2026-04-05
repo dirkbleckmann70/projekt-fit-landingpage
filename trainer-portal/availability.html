@@ -11,13 +11,14 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
   <style>
-    /* Select-Highlight (drag to create) */
     .fc .fc-highlight {
       background: rgba(64,145,108,0.2) !important;
       border: 2px dashed var(--tblr-primary) !important;
     }
-    /* Hint card accent */
     .hint-card { border-left: 3px solid var(--tblr-primary); }
+    .weekday-check { width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; border-radius: 50%; border: 2px solid var(--tblr-border-color); cursor: pointer; font-weight: 600; font-size: 13px; user-select: none; transition: all .15s; }
+    .weekday-check.active { background: var(--tblr-primary); border-color: var(--tblr-primary); color: #fff; }
+    .series-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: rgba(64,145,108,0.3); color: var(--tblr-primary); margin-left: 4px; }
   </style>
 </head>
 <body class="page">
@@ -50,7 +51,7 @@
         <div class="card-body py-2">
           <div class="d-flex align-items-center gap-2">
             <i class="ti ti-info-circle" style="color:var(--tblr-primary);font-size:18px"></i>
-            <span style="font-size:13px"><strong>Outlook-Stil:</strong> Klicke und ziehe im Kalender um Zeiten zu markieren. Klicke auf bestehende Bloecke um sie zu loeschen.</span>
+            <span style="font-size:13px"><strong>Outlook-Stil:</strong> Klicke und ziehe im Kalender um Verfuegbarkeit einzutragen. Du kannst Einzeltermine oder Serientermine erstellen.</span>
           </div>
         </div>
       </div>
@@ -68,25 +69,12 @@
         </div>
       </div>
 
-      <!-- Save + Reset + Clear -->
-      <div class="d-flex gap-2 mb-3">
-        <button class="btn btn-primary flex-fill" id="save-btn" onclick="saveAvailability()">
-          <i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern
-        </button>
-        <button class="btn btn-outline-danger" onclick="clearAllAvailability()">
-          <i class="ti ti-trash"></i> Alle loeschen
-        </button>
-        <button class="btn btn-ghost-secondary" onclick="if(confirm('Alle Aenderungen verwerfen?')) window.location.reload()">
-          <i class="ti ti-refresh"></i> Zuruecksetzen
-        </button>
-      </div>
-
       <!-- Summary Table -->
       <div class="card">
         <div class="card-header"><h3 class="card-title">Zusammenfassung</h3></div>
         <div class="card-body p-0">
           <table class="table table-sm table-vcenter card-table">
-            <thead><tr><th>Tag</th><th>Zeiten</th><th class="text-end">Stunden</th></tr></thead>
+            <thead><tr><th>Datum</th><th>Zeiten</th><th class="text-end">Stunden</th></tr></thead>
             <tbody id="summary-body"></tbody>
             <tfoot><tr class="fw-bold"><td>Gesamt</td><td></td><td class="text-end" id="total-hours">&ndash;</td></tr></tfoot>
           </table>
@@ -98,6 +86,140 @@
 </div>
 
 <div id="bottom-nav"></div>
+
+<!-- Availability Modal (Einzeltermin + Serientermin) -->
+<div class="modal modal-blur fade" id="avail-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="avail-modal-title"><i class="ti ti-clock-plus"></i> Verfuegbarkeit eintragen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Datum + Zeit -->
+        <div class="row mb-3">
+          <div class="col">
+            <label class="form-label required">Datum</label>
+            <input type="date" class="form-control" id="avail-date">
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-6">
+            <label class="form-label required">Von</label>
+            <input type="time" class="form-control" id="avail-start-time" step="1800">
+          </div>
+          <div class="col-6">
+            <label class="form-label required">Bis</label>
+            <input type="time" class="form-control" id="avail-end-time" step="1800">
+          </div>
+        </div>
+
+        <hr>
+
+        <!-- Serientermin Toggle -->
+        <label class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" id="series-toggle" onchange="toggleSeriesOptions()">
+          <span class="form-check-label fw-bold">Serientermin</span>
+        </label>
+
+        <!-- Serien-Optionen (hidden by default) -->
+        <div id="series-options" style="display:none">
+          <!-- Wiederholung -->
+          <div class="mb-3">
+            <label class="form-label">Wiederholung</label>
+            <select class="form-select" id="series-repeat" onchange="onRepeatChange()">
+              <option value="daily">Taeglich</option>
+              <option value="workdays">An Arbeitstagen (Mo–Fr)</option>
+              <option value="custom" selected>An bestimmten Wochentagen</option>
+            </select>
+          </div>
+
+          <!-- Wochentag-Auswahl (nur bei custom) -->
+          <div class="mb-3" id="weekday-picker">
+            <label class="form-label">Wochentage</label>
+            <div class="d-flex gap-2">
+              <div class="weekday-check" data-day="1" onclick="toggleWeekday(this)">Mo</div>
+              <div class="weekday-check" data-day="2" onclick="toggleWeekday(this)">Di</div>
+              <div class="weekday-check" data-day="3" onclick="toggleWeekday(this)">Mi</div>
+              <div class="weekday-check" data-day="4" onclick="toggleWeekday(this)">Do</div>
+              <div class="weekday-check" data-day="5" onclick="toggleWeekday(this)">Fr</div>
+              <div class="weekday-check" data-day="6" onclick="toggleWeekday(this)">Sa</div>
+              <div class="weekday-check" data-day="7" onclick="toggleWeekday(this)">So</div>
+            </div>
+          </div>
+
+          <!-- Serie-Ende -->
+          <div class="mb-3">
+            <label class="form-label">Serie endet</label>
+            <select class="form-select mb-2" id="series-end-type" onchange="onSeriesEndChange()">
+              <option value="count">Nach Anzahl Termine</option>
+              <option value="date">Am Datum</option>
+            </select>
+            <div id="series-end-count">
+              <div class="input-group">
+                <input type="number" class="form-control" id="series-count" value="8" min="2" max="52">
+                <span class="input-group-text">Termine</span>
+              </div>
+            </div>
+            <div id="series-end-date" style="display:none">
+              <input type="date" class="form-control" id="series-until">
+            </div>
+          </div>
+
+          <!-- Vorschau -->
+          <div class="alert alert-info" id="series-preview" style="font-size:13px">
+            <i class="ti ti-calendar-event"></i> <span id="series-preview-text">Vorschau wird berechnet...</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" id="avail-save-btn" onclick="saveAvailabilityFromModal()">
+          <i class="ti ti-check"></i> Speichern
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit/Delete Modal (fuer bestehende Eintraege) -->
+<div class="modal modal-blur fade" id="edit-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="ti ti-edit"></i> Verfuegbarkeit bearbeiten</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="edit-info" class="mb-3"></div>
+        <div class="row mb-3">
+          <div class="col-6">
+            <label class="form-label">Von</label>
+            <input type="time" class="form-control" id="edit-start-time" step="1800">
+          </div>
+          <div class="col-6">
+            <label class="form-label">Bis</label>
+            <input type="time" class="form-control" id="edit-end-time" step="1800">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between">
+        <div>
+          <button class="btn btn-outline-danger" id="edit-delete-btn" onclick="deleteFromEditModal()">
+            <i class="ti ti-trash"></i> Loeschen
+          </button>
+          <button class="btn btn-outline-danger d-none" id="edit-delete-series-btn" onclick="deleteSeriesFromEditModal()">
+            <i class="ti ti-trash"></i> Ganze Serie loeschen
+          </button>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+          <button class="btn btn-primary" onclick="updateFromEditModal()"><i class="ti ti-check"></i> Speichern</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Vacation Modal -->
 <div class="modal modal-blur fade" id="vacation-modal" tabindex="-1">
@@ -147,22 +269,24 @@
 <script>
   // ── State ──────────────────────────────────────────────────
   var calendar;
-  var eventIdCounter = 0;
-  var availabilityChanged = false;
+  var editingEvent = null; // currently selected event for edit modal
 
   // ── Helper Functions ───────────────────────────────────────
   function pad2(n) { return String(n).padStart(2, '0'); }
 
-  function formatTimeRange(start, end) {
-    var s = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    var e = end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    return s + ' – ' + e;
+  function toLocalDateStr(d) {
+    var y = d.getFullYear(); var m = String(d.getMonth()+1).padStart(2,'0'); var dd = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + dd;
+  }
+
+  function toTimeStr(d) {
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
 
   function addHour(dateStr, timeStr) {
     var d = new Date(dateStr + 'T' + timeStr);
     d.setHours(d.getHours() + 1);
-    return d.toISOString().replace('Z', '');
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
   }
 
   function addMinutes(dateStr, timeStr, mins) {
@@ -174,24 +298,17 @@
   function addDay(dateStr) {
     var d = new Date(dateStr);
     d.setDate(d.getDate() + 1);
-    var y = d.getFullYear(); var m = String(d.getMonth()+1).padStart(2,'0'); var day = String(d.getDate()).padStart(2,'0');
-    return y + '-' + m + '-' + day;
+    return toLocalDateStr(d);
   }
 
-  function markDirty() {
-    availabilityChanged = true;
-    var btn = document.getElementById('save-btn');
-    btn.innerHTML = '<i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern *';
-    btn.classList.remove('btn-primary');
-    btn.classList.add('btn-warning');
-  }
+  function isoDay(jsDay) { return jsDay === 0 ? 7 : jsDay; }
 
-  function markClean() {
-    availabilityChanged = false;
-    var btn = document.getElementById('save-btn');
-    btn.innerHTML = '<i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern';
-    btn.classList.remove('btn-warning');
-    btn.classList.add('btn-primary');
+  var dayNames = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr', 6: 'Sa', 7: 'So' };
+  var dayNamesFull = { 1: 'Montag', 2: 'Dienstag', 3: 'Mittwoch', 4: 'Donnerstag', 5: 'Freitag', 6: 'Samstag', 7: 'Sonntag' };
+
+  function formatDateDE(dateStr) {
+    var d = new Date(dateStr + 'T00:00:00');
+    return pad2(d.getDate()) + '.' + pad2(d.getMonth()+1) + '.' + d.getFullYear();
   }
 
   // ── Status Toggle ──────────────────────────────────────────
@@ -214,14 +331,9 @@
     var toggle = document.getElementById('active-toggle');
     var newState = toggle.checked;
     toggle.disabled = true;
-
     try {
-      var result = await sb
-        .from('trainer_profiles')
-        .update({ is_active: newState })
-        .eq('id', trainer.id);
+      var result = await sb.from('trainer_profiles').update({ is_active: newState }).eq('id', trainer.id);
       if (result.error) throw result.error;
-
       trainer.is_active = newState;
       updateStatusUI(newState);
       showAlert('alert-box', newState ? 'Du bist jetzt verfuegbar!' : 'Du bist jetzt auf Pause.', 'success');
@@ -242,30 +354,51 @@
     var endDate = info.endStr.split('T')[0];
 
     try {
-      // 1. Availability (editable green blocks)
+      // 1. Availability — date-based (new) + day_of_week-based (legacy)
       var availResult = await sb.from('trainer_availability').select('*').eq('trainer_id', trainerId);
       var avail = availResult.data || [];
+
       avail.forEach(function(a) {
-        var current = new Date(startDate);
-        var end = new Date(endDate);
-        while (current <= end) {
-          var jsDay = current.getDay();
-          var isoDay = jsDay === 0 ? 7 : jsDay;
-          if (isoDay === a.day_of_week) {
-            var yy = current.getFullYear(); var mm = String(current.getMonth()+1).padStart(2,'0'); var dd = String(current.getDate()).padStart(2,'0');
-            var dateStr = yy + '-' + mm + '-' + dd;
+        if (a.specific_date) {
+          // Date-based entry: show on exact date
+          if (a.specific_date >= startDate && a.specific_date <= endDate) {
+            var st = a.start_time || (pad2(a.start_hour) + ':00');
+            var et = a.end_time || (pad2(a.end_hour) + ':00');
             events.push({
-              id: 'avail-' + a.id + '-' + dateStr,
-              title: pad2(a.start_hour) + ':00 – ' + pad2(a.end_hour) + ':00',
-              start: dateStr + 'T' + pad2(a.start_hour) + ':00',
-              end: dateStr + 'T' + pad2(a.end_hour) + ':00',
-              classNames: ['fc-event-avail'],
+              id: 'avail-' + a.id,
+              title: st.substring(0,5) + ' – ' + et.substring(0,5),
+              start: a.specific_date + 'T' + st,
+              end: a.specific_date + 'T' + et,
+              classNames: a.series_id ? ['fc-event-avail', 'fc-event-series'] : ['fc-event-avail'],
               editable: true,
               durationEditable: true,
-              extendedProps: { type: 'availability', availId: a.id, dayOfWeek: a.day_of_week }
+              extendedProps: { type: 'availability', dbId: a.id, seriesId: a.series_id, specificDate: a.specific_date }
             });
           }
-          current.setDate(current.getDate() + 1);
+        } else {
+          // Legacy: day_of_week recurring — expand into visible range
+          var current = new Date(startDate);
+          var end = new Date(endDate);
+          while (current <= end) {
+            var jsD = current.getDay();
+            var isoD = isoDay(jsD);
+            if (isoD === a.day_of_week) {
+              var dateStr = toLocalDateStr(current);
+              var stH = a.start_time || (pad2(a.start_hour) + ':00');
+              var etH = a.end_time || (pad2(a.end_hour) + ':00');
+              events.push({
+                id: 'legacy-' + a.id + '-' + dateStr,
+                title: stH.substring(0,5) + ' – ' + etH.substring(0,5) + ' (wchtl.)',
+                start: dateStr + 'T' + stH,
+                end: dateStr + 'T' + etH,
+                classNames: ['fc-event-avail', 'fc-event-legacy'],
+                editable: true,
+                durationEditable: true,
+                extendedProps: { type: 'availability', dbId: a.id, dayOfWeek: a.day_of_week, isLegacy: true }
+              });
+            }
+            current.setDate(current.getDate() + 1);
+          }
         }
       });
 
@@ -274,13 +407,14 @@
         .eq('trainer_id', trainerId)
         .in('status', ['pending', 'confirmed', 'checked_in'])
         .gte('scheduled_date', startDate).lte('scheduled_date', endDate);
-      var bookings = bookResult.data || [];
-      bookings.forEach(function(b) {
+      (bookResult.data || []).forEach(function(b) {
         if (!b.scheduled_date || !b.scheduled_time) return;
+        var endTime = new Date(b.scheduled_date + 'T' + b.scheduled_time);
+        endTime.setHours(endTime.getHours() + 1);
         events.push({
           title: 'PT: ' + (b.customer_name || 'Kunde'),
           start: b.scheduled_date + 'T' + b.scheduled_time,
-          end: addHour(b.scheduled_date, b.scheduled_time),
+          end: endTime.toISOString(),
           classNames: [b.status === 'pending' ? 'fc-event-pt-pending' : 'fc-event-pt-confirmed'],
           editable: false,
           extendedProps: { type: 'booking', booking: b }
@@ -290,8 +424,7 @@
       // 3. GT Sessions (read-only)
       var groupResult = await sb.from('group_classes').select('*')
         .eq('trainer_id', trainerId).eq('is_active', true);
-      var groups = groupResult.data || [];
-      groups.forEach(function(g) {
+      (groupResult.data || []).forEach(function(g) {
         if (!g.scheduled_date) return;
         if (g.scheduled_date >= startDate && g.scheduled_date <= endDate) {
           events.push({
@@ -308,8 +441,7 @@
       // 4. Vacations (allDay, red)
       try {
         var vacResult = await sb.from('trainer_vacations').select('*').eq('trainer_id', trainerId);
-        var vacations = vacResult.data || [];
-        vacations.forEach(function(v) {
+        (vacResult.data || []).forEach(function(v) {
           events.push({
             id: 'vacation-' + v.id,
             title: v.reason === 'urlaub' ? 'Urlaub' : (v.reason === 'krank' ? 'Krank' : (v.reason || 'Abwesend')),
@@ -330,48 +462,55 @@
     }
   }
 
-  // ── Create Availability via Select (drag) ──────────────────
+  // ── Create Availability via Select (drag) → open modal ─────
   function onCreateAvailability(info) {
-    var newEvent = {
-      id: 'new-' + (++eventIdCounter),
-      title: formatTimeRange(info.start, info.end),
-      start: info.start,
-      end: info.end,
-      classNames: ['fc-event-avail'],
-      editable: true,
-      durationEditable: true,
-      extendedProps: { type: 'availability', isNew: true }
-    };
-    calendar.addEvent(newEvent);
+    var dateStr = toLocalDateStr(info.start);
+    document.getElementById('avail-date').value = dateStr;
+    document.getElementById('avail-start-time').value = toTimeStr(info.start);
+    document.getElementById('avail-end-time').value = toTimeStr(info.end);
+    document.getElementById('avail-modal-title').innerHTML = '<i class="ti ti-clock-plus"></i> Verfuegbarkeit eintragen';
+    document.getElementById('series-toggle').checked = false;
+    toggleSeriesOptions();
+
+    // Pre-select the weekday of the dragged date
+    var iso = isoDay(info.start.getDay());
+    document.querySelectorAll('#weekday-picker .weekday-check').forEach(function(el) {
+      el.classList.toggle('active', parseInt(el.dataset.day) === iso);
+    });
+
+    updateSeriesPreview();
     calendar.unselect();
-    markDirty();
-    updateSummary();
+
+    var modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('avail-modal'));
+    modal.show();
   }
 
   // ── Event Click ────────────────────────────────────────────
   function onEventClick(info) {
     var props = info.event.extendedProps;
     if (props.type === 'availability') {
-      // Alle Vorkommen desselben Wochentag+Zeitfenster entfernen
-      var clickedStart = info.event.start;
-      var clickedEnd = info.event.end;
-      var clickedDay = clickedStart.getDay();
-      var clickedSH = clickedStart.getHours();
-      var clickedEH = clickedEnd ? clickedEnd.getHours() : clickedSH + 1;
+      // Open edit modal
+      editingEvent = info.event;
+      var start = info.event.start;
+      var end = info.event.end;
+      var dateStr = toLocalDateStr(start);
 
-      calendar.getEvents().forEach(function(e) {
-        if (e.extendedProps.type !== 'availability') return;
-        var s = e.start;
-        var en = e.end;
-        if (!s) return;
-        if (s.getDay() === clickedDay && s.getHours() === clickedSH && (en ? en.getHours() : s.getHours()+1) === clickedEH) {
-          e.remove();
-        }
-      });
+      document.getElementById('edit-start-time').value = toTimeStr(start);
+      document.getElementById('edit-end-time').value = end ? toTimeStr(end) : '';
 
-      markDirty();
-      updateSummary();
-      showAlert('alert-box', 'Zeitfenster entfernt (alle Wochen). Klicke "Speichern" um die Aenderung zu uebernehmen.', 'warning');
+      var infoHtml = '<strong>' + formatDateDE(dateStr) + '</strong> (' + dayNamesFull[isoDay(start.getDay())] + ')';
+      if (props.seriesId) {
+        infoHtml += '<span class="series-badge">Serie</span>';
+        document.getElementById('edit-delete-series-btn').classList.remove('d-none');
+      } else if (props.isLegacy) {
+        infoHtml += '<span class="series-badge">Woechentlich (alt)</span>';
+        document.getElementById('edit-delete-series-btn').classList.add('d-none');
+      } else {
+        document.getElementById('edit-delete-series-btn').classList.add('d-none');
+      }
+      document.getElementById('edit-info').innerHTML = infoHtml;
+
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('edit-modal')).show();
     } else if (props.type === 'booking') {
       var b = props.booking;
       alert('PT-Buchung\n\nKunde: ' + (b.customer_name || '–') + '\nDatum: ' + (b.scheduled_date || '') + '\nUhrzeit: ' + (b.scheduled_time || '') + '\nStatus: ' + (b.status || ''));
@@ -386,123 +525,284 @@
     }
   }
 
-  // ── Drag/Resize handlers ───────────────────────────────────
-  function onAvailDragDrop(info) {
-    if (info.event.extendedProps.type !== 'availability') {
-      info.revert();
-      return;
-    }
-    info.event.setProp('title', formatTimeRange(info.event.start, info.event.end));
-    markDirty();
-    updateSummary();
-  }
-
-  function onAvailResize(info) {
-    if (info.event.extendedProps.type !== 'availability') {
-      info.revert();
-      return;
-    }
-    info.event.setProp('title', formatTimeRange(info.event.start, info.event.end));
-    markDirty();
-    updateSummary();
-  }
-
-  // ── Clear All Availability ─────────────────────────────────
-  async function clearAllAvailability() {
-    if (!confirm('Alle Verfuegbarkeiten loeschen? Dies entfernt alle Zeitfenster aus dem Kalender und der Datenbank.')) return;
+  // ── Drag/Resize → update in DB ─────────────────────────────
+  async function onAvailDragDrop(info) {
+    var props = info.event.extendedProps;
+    if (props.type !== 'availability') { info.revert(); return; }
 
     var sb = getSupabase();
-    var trainerId = window.currentTrainer.id;
+    var newDate = toLocalDateStr(info.event.start);
+    var newStart = toTimeStr(info.event.start);
+    var newEnd = info.event.end ? toTimeStr(info.event.end) : addHour(newDate, newStart);
 
-    try {
-      var { error } = await sb.from('trainer_availability').delete().eq('trainer_id', trainerId);
-      if (error) throw error;
-
-      // Remove all availability events from calendar
-      calendar.getEvents().forEach(function(e) {
-        if (e.extendedProps.type === 'availability') e.remove();
-      });
-
-      showAlert('alert-box', 'Alle Verfuegbarkeiten geloescht.', 'success');
-      markClean();
-      updateSummary();
-    } catch (err) {
-      alert('Loeschen fehlgeschlagen: ' + err.message);
-    }
-  }
-
-  // ── Save Availability ──────────────────────────────────────
-  async function saveAvailability() {
-    var btn = document.getElementById('save-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird gespeichert...';
-
-    var sb = getSupabase();
-    var trainerId = window.currentTrainer.id;
-
-    try {
-      // Delete all existing availability
-      var delResult = await sb.from('trainer_availability').delete().eq('trainer_id', trainerId);
-      if (delResult.error && delResult.error.code !== '42P01') {
-        if (delResult.error.message && (delResult.error.message.includes('row-level security') || delResult.error.code === '42501')) {
-          throw new Error('Keine Berechtigung zum Loeschen. Bitte den Admin kontaktieren (RLS-Konfiguration fehlt).');
-        }
-        throw delResult.error;
+    if (props.dbId) {
+      try {
+        var updateData = {
+          specific_date: newDate,
+          start_time: newStart + ':00',
+          end_time: newEnd + ':00',
+          day_of_week: isoDay(info.event.start.getDay()),
+          start_hour: info.event.start.getHours(),
+          end_hour: info.event.end ? info.event.end.getHours() : info.event.start.getHours() + 1
+        };
+        var result = await sb.from('trainer_availability').update(updateData).eq('id', props.dbId);
+        if (result.error) throw result.error;
+        info.event.setProp('title', newStart + ' – ' + newEnd);
+        showAlert('alert-box', 'Termin verschoben.', 'success');
+      } catch (err) {
+        info.revert();
+        showAlert('alert-box', 'Fehler: ' + err.message, 'error');
       }
+    } else {
+      info.revert();
+    }
+  }
 
-      // Collect availability events from calendar, group by day_of_week
-      var allEvents = calendar.getEvents().filter(function(e) {
-        return e.extendedProps.type === 'availability';
-      });
+  async function onAvailResize(info) {
+    var props = info.event.extendedProps;
+    if (props.type !== 'availability') { info.revert(); return; }
 
-      // Convert events to rows, deduplicate by day+start+end
-      var seen = {};
+    var sb = getSupabase();
+    var dateStr = toLocalDateStr(info.event.start);
+    var newStart = toTimeStr(info.event.start);
+    var newEnd = info.event.end ? toTimeStr(info.event.end) : addHour(dateStr, newStart);
+
+    if (props.dbId) {
+      try {
+        var updateData = {
+          start_time: newStart + ':00',
+          end_time: newEnd + ':00',
+          start_hour: info.event.start.getHours(),
+          end_hour: info.event.end ? info.event.end.getHours() : info.event.start.getHours() + 1
+        };
+        var result = await sb.from('trainer_availability').update(updateData).eq('id', props.dbId);
+        if (result.error) throw result.error;
+        info.event.setProp('title', newStart + ' – ' + newEnd);
+        showAlert('alert-box', 'Dauer angepasst.', 'success');
+      } catch (err) {
+        info.revert();
+        showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+      }
+    } else {
+      info.revert();
+    }
+  }
+
+  // ── Serien-Modal Helpers ───────────────────────────────────
+  function toggleSeriesOptions() {
+    var show = document.getElementById('series-toggle').checked;
+    document.getElementById('series-options').style.display = show ? 'block' : 'none';
+    document.getElementById('avail-save-btn').innerHTML = show
+      ? '<i class="ti ti-check"></i> Serie speichern'
+      : '<i class="ti ti-check"></i> Speichern';
+    if (show) updateSeriesPreview();
+  }
+
+  function onRepeatChange() {
+    var val = document.getElementById('series-repeat').value;
+    document.getElementById('weekday-picker').style.display = val === 'custom' ? 'block' : 'none';
+    updateSeriesPreview();
+  }
+
+  function onSeriesEndChange() {
+    var val = document.getElementById('series-end-type').value;
+    document.getElementById('series-end-count').style.display = val === 'count' ? 'block' : 'none';
+    document.getElementById('series-end-date').style.display = val === 'date' ? 'block' : 'none';
+    updateSeriesPreview();
+  }
+
+  function toggleWeekday(el) {
+    el.classList.toggle('active');
+    updateSeriesPreview();
+  }
+
+  function getSelectedWeekdays() {
+    var days = [];
+    document.querySelectorAll('#weekday-picker .weekday-check.active').forEach(function(el) {
+      days.push(parseInt(el.dataset.day));
+    });
+    return days;
+  }
+
+  function generateSeriesDates() {
+    var startDate = document.getElementById('avail-date').value;
+    if (!startDate) return [];
+
+    var repeat = document.getElementById('series-repeat').value;
+    var endType = document.getElementById('series-end-type').value;
+    var maxCount = endType === 'count' ? parseInt(document.getElementById('series-count').value) || 8 : 999;
+    var untilDate = endType === 'date' ? document.getElementById('series-until').value : null;
+
+    var allowedDays;
+    if (repeat === 'daily') {
+      allowedDays = [1, 2, 3, 4, 5, 6, 7];
+    } else if (repeat === 'workdays') {
+      allowedDays = [1, 2, 3, 4, 5];
+    } else {
+      allowedDays = getSelectedWeekdays();
+    }
+    if (allowedDays.length === 0) return [];
+
+    var dates = [];
+    var current = new Date(startDate + 'T12:00:00');
+    var maxIterations = 365; // safety limit
+
+    while (dates.length < maxCount && maxIterations-- > 0) {
+      var iso = isoDay(current.getDay());
+      if (allowedDays.indexOf(iso) !== -1) {
+        var ds = toLocalDateStr(current);
+        if (untilDate && ds > untilDate) break;
+        dates.push(ds);
+      }
+      current.setDate(current.getDate() + 1);
+    }
+
+    return dates;
+  }
+
+  function updateSeriesPreview() {
+    var dates = generateSeriesDates();
+    var el = document.getElementById('series-preview-text');
+    if (dates.length === 0) {
+      el.textContent = 'Keine Termine — bitte Wochentage und Datum pruefen.';
+      return;
+    }
+    var first = formatDateDE(dates[0]);
+    var last = formatDateDE(dates[dates.length - 1]);
+    el.textContent = dates.length + ' Termine: ' + first + ' bis ' + last;
+  }
+
+  // ── Save from Create Modal ─────────────────────────────────
+  async function saveAvailabilityFromModal() {
+    var date = document.getElementById('avail-date').value;
+    var startTime = document.getElementById('avail-start-time').value;
+    var endTime = document.getElementById('avail-end-time').value;
+
+    if (!date || !startTime || !endTime) { alert('Bitte alle Felder ausfuellen.'); return; }
+    if (endTime <= startTime) { alert('Endzeit muss nach Startzeit liegen.'); return; }
+
+    var isSeries = document.getElementById('series-toggle').checked;
+    var sb = getSupabase();
+    var trainerId = window.currentTrainer.id;
+    var btn = document.getElementById('avail-save-btn');
+    btn.disabled = true;
+
+    try {
       var rows = [];
-      allEvents.forEach(function(e) {
-        var start = e.start;
-        var end = e.end;
-        if (!start || !end) return;
 
-        var jsDay = start.getDay();
-        var isoDay = jsDay === 0 ? 7 : jsDay;
-        var startHour = start.getHours();
-        var endHour = end.getHours();
-        if (end.getMinutes() > 0) endHour = endHour + 1;
-        if (endHour <= startHour) return;
-
-        var key = isoDay + '-' + startHour + '-' + endHour;
-        if (seen[key]) return; // Duplikat ueberspringen
-        seen[key] = true;
-
+      if (isSeries) {
+        var dates = generateSeriesDates();
+        if (dates.length === 0) { alert('Keine Termine generiert. Bitte Wochentage pruefen.'); btn.disabled = false; return; }
+        var seriesId = crypto.randomUUID();
+        dates.forEach(function(d) {
+          var dd = new Date(d + 'T12:00:00');
+          rows.push({
+            trainer_id: trainerId,
+            specific_date: d,
+            day_of_week: isoDay(dd.getDay()),
+            start_time: startTime + ':00',
+            end_time: endTime + ':00',
+            start_hour: parseInt(startTime.split(':')[0]),
+            end_hour: parseInt(endTime.split(':')[0]) + (parseInt(endTime.split(':')[1]) > 0 ? 1 : 0),
+            series_id: seriesId,
+            is_active: true
+          });
+        });
+      } else {
+        var dd = new Date(date + 'T12:00:00');
         rows.push({
           trainer_id: trainerId,
-          day_of_week: isoDay,
-          start_hour: startHour,
-          end_hour: endHour,
+          specific_date: date,
+          day_of_week: isoDay(dd.getDay()),
+          start_time: startTime + ':00',
+          end_time: endTime + ':00',
+          start_hour: parseInt(startTime.split(':')[0]),
+          end_hour: parseInt(endTime.split(':')[0]) + (parseInt(endTime.split(':')[1]) > 0 ? 1 : 0),
           is_active: true
         });
-      });
-
-      if (rows.length > 0) {
-        var insResult = await sb.from('trainer_availability').insert(rows);
-        if (insResult.error) {
-          if (insResult.error.message && (insResult.error.message.includes('row-level security') || insResult.error.code === '42501')) {
-            throw new Error('Keine Berechtigung. Bitte den Admin kontaktieren (RLS-Konfiguration fehlt).');
-          }
-          throw new Error('Speichern fehlgeschlagen: ' + (insResult.error.message || 'Unbekannter Fehler'));
-        }
       }
 
-      showAlert('alert-box', 'Verfuegbarkeit gespeichert! (' + rows.length + ' Zeitfenster)', 'success');
-      markClean();
-      // Alle Events entfernen (inkl. manuell hinzugefuegte), dann frisch aus DB laden
-      calendar.getEvents().forEach(function(e) { e.remove(); });
+      var result = await sb.from('trainer_availability').insert(rows);
+      if (result.error) {
+        if (result.error.code === '42501' || (result.error.message && result.error.message.includes('row-level security'))) {
+          throw new Error('Keine Berechtigung. Bitte den Admin kontaktieren.');
+        }
+        throw result.error;
+      }
+
+      bootstrap.Modal.getInstance(document.getElementById('avail-modal')).hide();
+      showAlert('alert-box', (isSeries ? rows.length + ' Serientermine' : 'Termin') + ' gespeichert!', 'success');
       calendar.refetchEvents();
     } catch (err) {
       alert('Speichern fehlgeschlagen: ' + err.message);
     } finally {
       btn.disabled = false;
-      btn.innerHTML = '<i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern';
+    }
+  }
+
+  // ── Delete single entry ────────────────────────────────────
+  async function deleteFromEditModal() {
+    if (!editingEvent) return;
+    var props = editingEvent.extendedProps;
+    var sb = getSupabase();
+
+    try {
+      if (props.dbId) {
+        var result = await sb.from('trainer_availability').delete().eq('id', props.dbId);
+        if (result.error) throw result.error;
+      }
+      bootstrap.Modal.getInstance(document.getElementById('edit-modal')).hide();
+      showAlert('alert-box', 'Termin geloescht.', 'success');
+      calendar.refetchEvents();
+    } catch (err) {
+      alert('Loeschen fehlgeschlagen: ' + err.message);
+    }
+  }
+
+  // ── Delete entire series ───────────────────────────────────
+  async function deleteSeriesFromEditModal() {
+    if (!editingEvent) return;
+    var props = editingEvent.extendedProps;
+    if (!props.seriesId) return;
+    if (!confirm('Alle Termine dieser Serie loeschen?')) return;
+
+    var sb = getSupabase();
+    try {
+      var result = await sb.from('trainer_availability').delete().eq('series_id', props.seriesId);
+      if (result.error) throw result.error;
+      bootstrap.Modal.getInstance(document.getElementById('edit-modal')).hide();
+      showAlert('alert-box', 'Serie geloescht.', 'success');
+      calendar.refetchEvents();
+    } catch (err) {
+      alert('Loeschen fehlgeschlagen: ' + err.message);
+    }
+  }
+
+  // ── Update single entry from edit modal ────────────────────
+  async function updateFromEditModal() {
+    if (!editingEvent) return;
+    var props = editingEvent.extendedProps;
+    var newStart = document.getElementById('edit-start-time').value;
+    var newEnd = document.getElementById('edit-end-time').value;
+    if (!newStart || !newEnd || newEnd <= newStart) { alert('Ungueltige Zeiten.'); return; }
+
+    var sb = getSupabase();
+    try {
+      if (props.dbId) {
+        var updateData = {
+          start_time: newStart + ':00',
+          end_time: newEnd + ':00',
+          start_hour: parseInt(newStart.split(':')[0]),
+          end_hour: parseInt(newEnd.split(':')[0]) + (parseInt(newEnd.split(':')[1]) > 0 ? 1 : 0)
+        };
+        var result = await sb.from('trainer_availability').update(updateData).eq('id', props.dbId);
+        if (result.error) throw result.error;
+      }
+      bootstrap.Modal.getInstance(document.getElementById('edit-modal')).hide();
+      showAlert('alert-box', 'Termin aktualisiert.', 'success');
+      calendar.refetchEvents();
+    } catch (err) {
+      alert('Speichern fehlgeschlagen: ' + err.message);
     }
   }
 
@@ -526,10 +826,9 @@
       });
       if (result.error) throw result.error;
 
-      bootstrap.Modal.getInstance(document.getElementById('vacation-modal')).hide();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('vacation-modal')).hide();
       showAlert('alert-box', 'Urlaub eingetragen!', 'success');
       calendar.refetchEvents();
-      // Reset form
       document.getElementById('vacation-start').value = '';
       document.getElementById('vacation-end').value = '';
       document.getElementById('vacation-reason').value = 'urlaub';
@@ -557,16 +856,21 @@
       return e.extendedProps.type === 'availability';
     });
 
-    var dayFull = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-    var byDay = {};
+    // Group by date string (not day_of_week)
+    var byDate = {};
+    var seen = {}; // deduplicate legacy events
 
     events.forEach(function(e) {
       if (!e.start || !e.end) return;
-      var jsDay = e.start.getDay();
-      if (!byDay[jsDay]) byDay[jsDay] = [];
-      byDay[jsDay].push({
-        start: e.start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
-        end: e.end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+      var dateStr = toLocalDateStr(e.start);
+      var key = dateStr + '-' + toTimeStr(e.start) + '-' + toTimeStr(e.end);
+      if (seen[key]) return;
+      seen[key] = true;
+
+      if (!byDate[dateStr]) byDate[dateStr] = [];
+      byDate[dateStr].push({
+        start: toTimeStr(e.start),
+        end: toTimeStr(e.end),
         hours: (e.end - e.start) / 3600000
       });
     });
@@ -575,18 +879,32 @@
     var totalH = 0;
     var html = '';
 
-    // Mo-So: JS days 1,2,3,4,5,6,0
-    [1, 2, 3, 4, 5, 6, 0].forEach(function(d) {
-      if (!byDay[d]) return;
-      var slots = byDay[d].sort(function(a, b) { return a.start.localeCompare(b.start); });
+    // Sort dates
+    var sortedDates = Object.keys(byDate).sort();
+    // Show max 14 days
+    sortedDates.slice(0, 14).forEach(function(dateStr) {
+      var d = new Date(dateStr + 'T12:00:00');
+      var dayLabel = dayNames[isoDay(d.getDay())] + ', ' + formatDateDE(dateStr);
+      var slots = byDate[dateStr].sort(function(a, b) { return a.start.localeCompare(b.start); });
       var times = slots.map(function(s) { return s.start + ' – ' + s.end; }).join(', ');
       var h = slots.reduce(function(sum, s) { return sum + s.hours; }, 0);
       totalH += h;
-      html += '<tr><td class="fw-bold">' + dayFull[d] + '</td><td class="text-secondary">' + times + '</td><td class="text-end">' + h.toFixed(1).replace('.0', '') + 'h</td></tr>';
+      html += '<tr><td class="fw-bold">' + dayLabel + '</td><td class="text-secondary">' + times + '</td><td class="text-end">' + h.toFixed(1).replace('.0', '') + 'h</td></tr>';
     });
 
+    if (sortedDates.length > 14) {
+      // Count remaining
+      var remaining = sortedDates.slice(14);
+      var remH = 0;
+      remaining.forEach(function(ds) {
+        byDate[ds].forEach(function(s) { remH += s.hours; });
+      });
+      totalH += remH;
+      html += '<tr><td colspan="2" class="text-secondary">... und ' + remaining.length + ' weitere Tage</td><td class="text-end">' + remH.toFixed(1).replace('.0', '') + 'h</td></tr>';
+    }
+
     tbody.innerHTML = html || '<tr><td colspan="3" class="text-center text-secondary p-3">Keine Verfuegbarkeit eingetragen</td></tr>';
-    document.getElementById('total-hours').textContent = totalH.toFixed(1).replace('.0', '') + 'h / Woche';
+    document.getElementById('total-hours').textContent = totalH.toFixed(1).replace('.0', '') + 'h sichtbar';
   }
 
   // ── Init ───────────────────────────────────────────────────
@@ -605,8 +923,12 @@
       return;
     }
 
-    // Status Toggle
     updateStatusUI(trainer.is_active);
+
+    // Set default series-until to 4 weeks from now
+    var defaultUntil = new Date();
+    defaultUntil.setDate(defaultUntil.getDate() + 28);
+    document.getElementById('series-until').value = toLocalDateStr(defaultUntil);
 
     // FullCalendar init
     var calendarEl = document.getElementById('calendar');
@@ -624,7 +946,7 @@
       nowIndicator: true,
       selectable: true,
       selectMirror: true,
-      editable: false, // default; availability events override to editable:true
+      editable: false,
       eventResizableFromStart: true,
       headerToolbar: {
         left: 'prev,next today',
@@ -638,13 +960,15 @@
       eventDrop: onAvailDragDrop,
       eventResize: onAvailResize,
       loading: function(isLoading) {
-        if (!isLoading) {
-          // Update summary after events loaded
-          setTimeout(updateSummary, 100);
-        }
+        if (!isLoading) setTimeout(updateSummary, 100);
       }
     });
     calendar.render();
+
+    // Wire up series preview updates
+    ['avail-date', 'series-count', 'series-until'].forEach(function(id) {
+      document.getElementById(id).addEventListener('change', updateSeriesPreview);
+    });
   })();
 </script>
 

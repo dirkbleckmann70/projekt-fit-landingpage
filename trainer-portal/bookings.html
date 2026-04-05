@@ -677,7 +677,7 @@
     const trainerId = window.currentTrainer.id;
     const { data } = await sb
       .from('trainer_availability')
-      .select('day_of_week, start_hour, end_hour, is_active')
+      .select('day_of_week, start_hour, end_hour, start_time, end_time, specific_date, is_active')
       .eq('trainer_id', trainerId)
       .eq('is_active', true);
     rescheduleAvailability = data || [];
@@ -693,11 +693,18 @@
   function updateTimeGrid(date) {
     const jsDay = date.getDay();
     const isoDay = jsDay === 0 ? 7 : jsDay;
-    const slots = rescheduleAvailability.filter(s => s.day_of_week === isoDay);
+    const dateStr = date.toISOString().split('T')[0];
+
+    // Dual-Source: date-specific entries + weekly (no specific_date) entries
+    const dateSlots = rescheduleAvailability.filter(s => s.specific_date === dateStr);
+    const weeklySlots = rescheduleAvailability.filter(s => !s.specific_date && s.day_of_week === isoDay);
+    const slots = [...dateSlots, ...weeklySlots];
 
     const hours = [];
     for (const slot of slots) {
-      for (let h = slot.start_hour; h < slot.end_hour; h++) {
+      const sh = slot.start_time ? parseInt(slot.start_time.split(':')[0]) : slot.start_hour;
+      const eh = slot.end_time ? parseInt(slot.end_time.split(':')[0]) : slot.end_hour;
+      for (let h = sh; h < eh; h++) {
         if (!hours.includes(h)) hours.push(h);
       }
     }

@@ -36,7 +36,7 @@
             </div>
             <div class="col-auto ms-auto">
               <div class="cal-legend">
-                <span><span class="legend-dot" style="background:rgba(39,174,96,0.3)"></span> Verfuegbar</span>
+                <span><span class="legend-dot" style="background:rgba(39,174,96,0.7)"></span> Verfuegbar</span>
                 <span><span class="legend-dot" style="background:rgba(232,147,10,0.7)"></span> PT Ausstehend</span>
                 <span><span class="legend-dot" style="background:rgba(64,145,108,0.85)"></span> PT Bestaetigt</span>
                 <span><span class="legend-dot" style="background:rgba(155,89,182,0.7)"></span> Gruppentraining</span>
@@ -170,29 +170,55 @@
 
       var events = [];
 
-      // 1. Availability as background events
+      // 1. Availability — normale Events (nicht background) damit sie nebeneinander stehen
       var availData = availRes.data || [];
-      // For each day in visible range, check if weekday matches
-      var current = new Date(info.start);
-      var end = new Date(info.end);
-      while (current < end) {
-        var dateStr = fmt(current);
-        var isoDay = toISODay(current.getDay());
-        availData.forEach(function(a) {
-          if (a.day_of_week === isoDay) {
-            var startH = String(a.start_hour).padStart(2, '0');
-            var endH = String(a.end_hour).padStart(2, '0');
+      // Build trainer name lookup
+      var trainerNameMap = {};
+      trainers.forEach(function(t) {
+        var parts = (t.full_name || '').split(' ');
+        trainerNameMap[t.id] = parts[0] + (parts.length > 1 ? ' ' + parts[1].charAt(0) + '.' : '');
+      });
+
+      availData.forEach(function(a) {
+        var tName = trainerNameMap[a.trainer_id] || 'Trainer';
+
+        if (a.specific_date) {
+          // Date-based entry: show on exact date
+          if (a.specific_date >= startDate && a.specific_date <= endDate) {
+            var st = a.start_time ? a.start_time.substring(0,5) : String(a.start_hour).padStart(2,'0') + ':00';
+            var et = a.end_time ? a.end_time.substring(0,5) : String(a.end_hour).padStart(2,'0') + ':00';
             events.push({
-              title: 'Verfuegbar',
-              start: dateStr + 'T' + startH + ':00',
-              end: dateStr + 'T' + endH + ':00',
-              display: 'background',
-              classNames: ['fc-event-available']
+              title: tName + ' ' + st + '–' + et,
+              start: a.specific_date + 'T' + st,
+              end: a.specific_date + 'T' + et,
+              classNames: ['fc-event-available'],
+              editable: false,
+              extendedProps: { type: 'availability', trainerId: a.trainer_id }
             });
           }
-        });
-        current.setDate(current.getDate() + 1);
-      }
+        } else {
+          // Legacy: day_of_week recurring — expand into visible range
+          var current = new Date(info.start);
+          var end = new Date(info.end);
+          while (current < end) {
+            var dateStr = fmt(current);
+            var isoDay = toISODay(current.getDay());
+            if (a.day_of_week === isoDay) {
+              var startH = a.start_time ? a.start_time.substring(0,5) : String(a.start_hour).padStart(2,'0') + ':00';
+              var endH = a.end_time ? a.end_time.substring(0,5) : String(a.end_hour).padStart(2,'0') + ':00';
+              events.push({
+                title: tName + ' ' + startH + '–' + endH,
+                start: dateStr + 'T' + startH,
+                end: dateStr + 'T' + endH,
+                classNames: ['fc-event-available'],
+                editable: false,
+                extendedProps: { type: 'availability', trainerId: a.trainer_id }
+              });
+            }
+            current.setDate(current.getDate() + 1);
+          }
+        }
+      });
 
       // 2. PT Bookings
       (bookingsRes.data || []).forEach(function(b) {
@@ -268,9 +294,8 @@
 
   // ─── Event Click → Detail Modal ────────────────────────────────
   async function onEventClick(info) {
-    if (info.event.display === 'background') return;
-
     var props = info.event.extendedProps;
+    if (props.type === 'availability') return; // Availability blocks are info-only
     var titleEl = document.getElementById('event-modal-title');
     var bodyEl = document.getElementById('event-modal-body');
 
@@ -407,8 +432,9 @@
     eventClick: function(info) {
       onEventClick(info);
     },
+    slotEventOverlap: false,
     eventDidMount: function(info) {
-      if (info.event.display !== 'background' && info.event.extendedProps.type) {
+      if (info.event.extendedProps.type) {
         info.el.title = info.event.title;
       }
     }

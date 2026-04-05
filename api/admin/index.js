@@ -807,7 +807,7 @@ async function handleData(req, res, supabase) {
       if (trainerIds.length === 0) return res.json({ data: [] });
       const { data, error } = await supabase
         .from('trainer_availability')
-        .select('trainer_id, day_of_week, start_hour, end_hour, is_active')
+        .select('trainer_id, day_of_week, start_hour, end_hour, start_time, end_time, specific_date, series_id, is_active')
         .in('trainer_id', trainerIds)
         .eq('is_active', true);
       if (error) throw error;
@@ -1380,18 +1380,37 @@ async function handleBookingsPut(req, res, supabase) {
     })();
     const proposedHour = parseInt(proposed_time.split(':')[0]);
 
-    const { data: availability } = await supabase
+    // Check both date-specific and day_of_week-based availability
+    const { data: dateAvail } = await supabase
       .from('trainer_availability')
-      .select('start_hour, end_hour')
+      .select('start_hour, end_hour, start_time, end_time')
+      .eq('trainer_id', current.trainer_id)
+      .eq('specific_date', proposed_date)
+      .eq('is_active', true);
+
+    const { data: weekdayAvail } = await supabase
+      .from('trainer_availability')
+      .select('start_hour, end_hour, start_time, end_time')
       .eq('trainer_id', current.trainer_id)
       .eq('day_of_week', dayOfWeek)
+      .is('specific_date', null)
       .eq('is_active', true);
+
+    const availability = [...(dateAvail || []), ...(weekdayAvail || [])];
 
     if (!availability || availability.length === 0) {
       return res.status(400).json({ error: 'Trainer ist an diesem Tag nicht verfuegbar' });
     }
 
-    const isInSlot = availability.some(s => proposedHour >= s.start_hour && proposedHour < s.end_hour);
+    const isInSlot = availability.some(function(s) {
+      if (s.start_time && s.end_time) {
+        var st = parseInt(s.start_time.split(':')[0]) * 60 + parseInt(s.start_time.split(':')[1]);
+        var et = parseInt(s.end_time.split(':')[0]) * 60 + parseInt(s.end_time.split(':')[1]);
+        var pt = proposedHour * 60 + parseInt((proposed_time.split(':')[1]) || '0');
+        return pt >= st && pt < et;
+      }
+      return proposedHour >= s.start_hour && proposedHour < s.end_hour;
+    });
     if (!isInSlot) {
       return res.status(400).json({ error: 'Trainer ist zu dieser Uhrzeit nicht verfuegbar' });
     }
@@ -1878,6 +1897,10 @@ async function handleTrainerAvailabilityPost(req, res, supabase) {
       day_of_week: s.day_of_week,
       start_hour: s.start_hour,
       end_hour: s.end_hour,
+      start_time: s.start_time || null,
+      end_time: s.end_time || null,
+      specific_date: s.specific_date || null,
+      series_id: s.series_id || null,
       is_active: s.is_active !== false,
     }));
 
