@@ -37,9 +37,18 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'action Parameter fehlt. Beispiel: /api/admin?action=data&type=all_trainers' });
   }
 
-  // ── Auth Check (einmal für alle Actions) ──
-  const adminAuthError = await verifyAdmin(req);
-  if (adminAuthError) return res.status(401).json({ error: adminAuthError });
+  // ── Auth Check ──
+  // Bestimmte read-only Endpoints sind auch fuer Trainer zugaenglich
+  const trainerAllowedTypes = ['customer_names', 'booking_locations'];
+  const isTrainerAllowed = action === 'data' && req.method === 'GET' && trainerAllowedTypes.includes(req.query.type);
+
+  if (isTrainerAllowed) {
+    const authError = await verifyAuthenticated(req);
+    if (authError) return res.status(401).json({ error: authError });
+  } else {
+    const adminAuthError = await verifyAdmin(req);
+    if (adminAuthError) return res.status(401).json({ error: adminAuthError });
+  }
 
   const supabase = getServiceClient();
 
@@ -394,6 +403,16 @@ export default async function handler(req, res) {
 
 function getServiceClient() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+}
+
+async function verifyAuthenticated(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return 'Token fehlt';
+  const token = authHeader.split(' ')[1];
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return 'Ungültiger Token';
+  return null;
 }
 
 async function verifyAdmin(req) {
