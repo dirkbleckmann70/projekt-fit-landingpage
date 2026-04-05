@@ -48,15 +48,16 @@ async function checkTrainerAuth() {
 
   if (error || !profile) {
     console.error('Trainer-Profil nicht gefunden:', error?.message);
-    // Profil nicht gefunden – trotzdem eingeloggt lassen, aber warnen
-    window.currentTrainer = {
-      id: null,
-      auth_user_id: user.id,
-      email: user.email,
-      full_name: user.user_metadata?.full_name || user.email,
-      _noProfile: true,
-    };
-    return window.currentTrainer;
+    await sb.auth.signOut();
+    window.location.href = '/trainer-portal/?error=no_profile';
+    return null;
+  }
+
+  // Gesperrte/deaktivierte Trainer aussperren
+  if (profile.status === 'gesperrt' || profile.status === 'pending') {
+    await sb.auth.signOut();
+    window.location.href = '/trainer-portal/?error=deactivated';
+    return null;
   }
 
   window.currentTrainer = profile;

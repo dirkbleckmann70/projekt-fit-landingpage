@@ -88,6 +88,12 @@
   if (urlError === 'no_trainer') {
     errorMsg.textContent = 'Kein Trainer-Zugang. Bitte melde dich mit deinem Trainer-Account an.';
     errorMsg.classList.remove('d-none');
+  } else if (urlError === 'deactivated') {
+    errorMsg.textContent = 'Dein Trainer-Account ist derzeit deaktiviert. Bitte kontaktiere den Admin.';
+    errorMsg.classList.remove('d-none');
+  } else if (urlError === 'no_profile') {
+    errorMsg.textContent = 'Kein Trainer-Profil gefunden. Bitte kontaktiere den Admin.';
+    errorMsg.classList.remove('d-none');
   }
 
   // ─── Login ──────────────────────────────────────────────────────
