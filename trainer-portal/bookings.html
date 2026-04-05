@@ -437,20 +437,26 @@
     }
 
     // Card-based rendering for tabs
-    var today = new Date().toISOString().split('T')[0];
+    var now = new Date();
     const ACTIVE = [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING];
+
+    function isTerminVorbei(item) {
+      if (!item.scheduled_date) return false;
+      var terminEnd = new Date(item.scheduled_date + 'T' + (item.scheduled_time ? item.scheduled_time.slice(0,5) : '23:59'));
+      terminEnd.setHours(terminEnd.getHours() + 1); // 1h Puffer nach Terminbeginn
+      return now > terminEnd;
+    }
 
     const aktuell = items.filter(i => {
       if (i._type === 'gt') return i.is_active;
       if (!ACTIVE.includes(i.status)) return false;
-      // Abgelaufene Termine gehoeren nicht in Aktuell
-      return !i.scheduled_date || i.scheduled_date >= today;
+      return !isTerminVorbei(i);
     });
     const vergangen = items.filter(i => {
       if (i._type === 'gt') return !i.is_active;
       if (i.status === BOOKING_STATUS.COMPLETED || i.status === BOOKING_STATUS.EXPIRED) return true;
       // Abgelaufene aktive Termine → Vergangen
-      if (ACTIVE.includes(i.status) && i.scheduled_date && i.scheduled_date < today) return true;
+      if (ACTIVE.includes(i.status) && isTerminVorbei(i)) return true;
       return false;
     });
     const storniert = items.filter(i => {
