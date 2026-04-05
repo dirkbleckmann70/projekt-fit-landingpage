@@ -240,6 +240,21 @@
   let _detailModal, _locationModal, _rescheduleModal;
 
   const CANCELLED = [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.CANCELLED_BY_TRAINER, BOOKING_STATUS.REFUNDED, BOOKING_STATUS.FULLY_CANCELLED];
+  const ACTIVE = [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING];
+
+  function isTerminVorbei(item) {
+    if (!item.scheduled_date) return false;
+    var parts = item.scheduled_date.split('-');
+    var y = parseInt(parts[0]); var mo = parseInt(parts[1]) - 1; var da = parseInt(parts[2]);
+    var h = 23; var m = 59;
+    if (item.scheduled_time) {
+      var tp = item.scheduled_time.split(':');
+      h = parseInt(tp[0]) + 1;
+      m = parseInt(tp[1]) || 0;
+    }
+    var terminEnd = new Date(y, mo, da, h, m, 0);
+    return new Date() > terminEnd;
+  }
 
   function statusPriority(item) {
     if (item._type === 'gt') return item.is_active ? 1 : 3;
@@ -437,22 +452,7 @@
     }
 
     // Card-based rendering for tabs
-    var now = new Date();
-    const ACTIVE = [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING];
 
-    function isTerminVorbei(item) {
-      if (!item.scheduled_date) return false;
-      var parts = item.scheduled_date.split('-');
-      var y = parseInt(parts[0]); var mo = parseInt(parts[1]) - 1; var da = parseInt(parts[2]);
-      var h = 23; var m = 59;
-      if (item.scheduled_time) {
-        var tp = item.scheduled_time.split(':');
-        h = parseInt(tp[0]) + 1; // 1h nach Terminbeginn = vorbei
-        m = parseInt(tp[1]) || 0;
-      }
-      var terminEnd = new Date(y, mo, da, h, m, 0);
-      return now > terminEnd;
-    }
 
     const aktuell = items.filter(i => {
       if (i._type === 'gt') return i.is_active && !isTerminVorbei(i);
