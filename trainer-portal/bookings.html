@@ -215,7 +215,7 @@
 
   function statusPriority(item) {
     if (item._type === 'gt') return item.is_active ? 1 : 3;
-    if (item.status === BOOKING_STATUS.PENDING)            return 0;
+    if (item.status === BOOKING_STATUS.PENDING || item.status === BOOKING_STATUS.REPLACEMENT_PENDING) return 0;
     if (item.status === BOOKING_STATUS.CONFIRMED)          return 1;
     if (item.status === BOOKING_STATUS.COMPLETED)          return 2;
     return 3;
@@ -411,7 +411,7 @@
     // Card-based rendering for tabs
     const aktuell = items.filter(i => {
       if (i._type === 'gt') return i.is_active;
-      return [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed'].includes(i.status);
+      return [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', BOOKING_STATUS.REPLACEMENT_PENDING].includes(i.status);
     });
     const vergangen = items.filter(i => {
       if (i._type === 'gt') return !i.is_active;
@@ -451,8 +451,10 @@
     let actions = '';
     if (item._type === 'gt') {
       actions = `<button class="btn btn-sm btn-outline-primary" onclick="showGTDetail('${item.gc_id}')"><i class="ti ti-eye"></i> Details</button>`;
-    } else if (item.status === BOOKING_STATUS.PENDING) {
+    } else if (item.status === BOOKING_STATUS.PENDING || item.status === BOOKING_STATUS.REPLACEMENT_PENDING) {
+      var isReplacement = item.status === BOOKING_STATUS.REPLACEMENT_PENDING;
       actions = `
+        ${isReplacement ? '<div class="badge badge-reschedule mb-2">Ersatztrainer-Anfrage</div><br>' : ''}
         <button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
         <button class="btn btn-sm btn-success" onclick="openLocationSelectModal('${item.id}')"><i class="ti ti-check"></i> Bestaetigen</button>
         <button class="btn btn-sm btn-outline-secondary" onclick="openRescheduleModal('${item.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
@@ -494,8 +496,8 @@
     const city    = b.city || b.location_name || b.location || '–';
     const revenue = calcRevenue(b);
     let actions;
-    if (b.status === BOOKING_STATUS.PENDING) {
-      actions = `<button class="btn btn-ghost-secondary btn-sm" onclick="showDetail('${b.id}')">Details</button>
+    if (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.REPLACEMENT_PENDING) {
+      actions = `${b.status === BOOKING_STATUS.REPLACEMENT_PENDING ? '<span class="badge badge-reschedule me-1">Ersatz</span>' : ''}<button class="btn btn-ghost-secondary btn-sm" onclick="showDetail('${b.id}')">Details</button>
          <button class="btn btn-sm btn-confirm" onclick="openLocationSelectModal('${b.id}')">Bestätigen</button>
          <button class="btn btn-sm btn-reschedule" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
          <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)">Ablehnen</button>`;

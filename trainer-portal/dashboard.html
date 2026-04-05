@@ -236,7 +236,7 @@
         .from('bookings')
         .select('*')
         .eq('trainer_id', trainerId)
-        .eq('status', BOOKING_STATUS.PENDING)
+        .in('status', [BOOKING_STATUS.PENDING, BOOKING_STATUS.REPLACEMENT_PENDING])
         .order('created_at', { ascending: false })
         .limit(5);
 
