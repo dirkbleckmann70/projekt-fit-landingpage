@@ -90,6 +90,22 @@
 <!-- Mobile Bottom Nav -->
 <div id="bottom-nav"></div>
 
+<!-- Detail Modal -->
+<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Buchungs-Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="detail-modal-body"></div>
+      <div class="modal-footer" id="detail-modal-footer">
+        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schliessen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../shared/constants.js"></script>
@@ -224,11 +240,24 @@
         .order('created_at', { ascending: false })
         .limit(5);
 
+      // Kundennamen nachladen
+      var pendingBookings = pending || [];
+      if (pendingBookings.length > 0) {
+        var custIds = [...new Set(pendingBookings.map(b => b.customer_id).filter(Boolean))];
+        if (custIds.length > 0) {
+          var { data: custs } = await sb.from('customers').select('id, full_name, first_name, last_name').in('id', custIds);
+          var custMap = {};
+          (custs || []).forEach(function(c) { custMap[c.id] = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Kunde'; });
+          pendingBookings = pendingBookings.map(function(b) { return Object.assign({}, b, { customer_name: custMap[b.customer_id] || b.customer_name || 'Kunde' }); });
+        }
+      }
+      window._dashPending = pendingBookings;
+
       const pList = document.getElementById('pending-list');
-      if (!pending || pending.length === 0) {
+      if (pendingBookings.length === 0) {
         pList.innerHTML = '<div class="card-body text-center text-secondary">Keine offenen Anfragen</div>';
       } else {
-        pList.innerHTML = '<div class="card-body p-0">' + pending.map(b => `
+        pList.innerHTML = '<div class="card-body p-0">' + pendingBookings.map(b => `
           <div class="p-3 border-bottom" style="border-color:var(--tblr-border-color)!important">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <div>
@@ -241,6 +270,7 @@
               ${statusBadge(BOOKING_STATUS.PENDING)}
             </div>
             <div class="d-flex gap-2">
+              <button class="btn btn-outline-primary btn-sm" onclick="showPendingDetail('${b.id}')"><i class="ti ti-eye"></i> Details</button>
               <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', BOOKING_STATUS.CONFIRMED)"><i class="ti ti-check"></i> Bestätigen</button>
               <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}', BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>
             </div>
@@ -260,6 +290,95 @@
     } else {
       window.location.reload();
     }
+  }
+
+  function renderHealthSection(hd) {
+    if (!hd || typeof hd !== 'object') return '';
+    var labels = {
+      heart_disease: 'Herz-/Kreislauferkrankung', joint_problems: 'Gelenkprobleme',
+      respiratory: 'Atemwegserkrankung', medical_treatment: 'Aktuell in Behandlung',
+      medication: 'Medikamente', recent_surgery: 'Kürzliche OP',
+      pregnant: 'Schwangerschaft', other_conditions: 'Sonstige Erkrankungen'
+    };
+    var flags = Object.keys(labels).filter(function(k) { return hd[k] === true; });
+    var html = '<div class="mb-3"><label class="form-label text-secondary">Gesundheitserklaerung</label>';
+    if (flags.length === 0) {
+      html += '<div class="text-success" style="font-size:13px"><i class="ti ti-check"></i> Keine gesundheitlichen Einschraenkungen angegeben</div>';
+    } else {
+      html += '<div class="alert alert-warning" style="font-size:13px"><i class="ti ti-alert-triangle me-1"></i><strong>Hinweise:</strong><ul class="mb-0 mt-1">';
+      flags.forEach(function(k) { html += '<li>' + labels[k] + '</li>'; });
+      html += '</ul></div>';
+    }
+    if (hd.additional_notes) {
+      html += '<div class="text-secondary" style="font-size:13px"><strong>Anmerkungen:</strong> ' + hd.additional_notes + '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
+  var _detailModal = null;
+
+  async function showPendingDetail(bookingId) {
+    var b = (window._dashPending || []).find(function(x) { return x.id === bookingId; });
+    if (!b) return;
+
+    var healthHtml = '';
+    var contactHtml = '';
+    if (b.customer_id) {
+      try {
+        var sb = getSupabase();
+        var { data: cust } = await sb.from('customers').select('health_declaration, phone, email').eq('id', b.customer_id).single();
+        healthHtml = renderHealthSection(cust?.health_declaration);
+        if (cust?.phone || cust?.email) {
+          contactHtml = '<div class="alert alert-success mb-3"><div class="text-secondary text-uppercase fw-bold" style="font-size:11px;letter-spacing:0.5px;margin-bottom:6px">Kontakt zum Kunden</div>';
+          if (cust.phone) contactHtml += '<a href="tel:' + cust.phone + '" style="color:var(--tblr-primary);font-size:16px;font-weight:700;text-decoration:none"><i class="ti ti-phone me-1"></i>' + cust.phone + '</a><br>';
+          if (cust.email) contactHtml += '<a href="mailto:' + cust.email + '" style="color:var(--tblr-primary);text-decoration:none"><i class="ti ti-mail me-1"></i>' + cust.email + '</a>';
+          contactHtml += '</div>';
+        }
+      } catch { /* no customer data */ }
+    }
+
+    // Vorgeschlagene Treffpunkte
+    var locationHtml = '';
+    try {
+      var resp = await adminApi('/api/admin?action=data&type=booking_locations&bookingId=' + bookingId);
+      var locs = Array.isArray(resp.data) ? resp.data : [];
+      if (locs.length > 0) {
+        locationHtml = '<div class="mb-3"><label class="form-label text-secondary">Vorgeschlagene Treffpunkte</label>';
+        locs.forEach(function(loc) {
+          var addr = [loc.street, loc.zip_code, loc.city].filter(Boolean).join(', ') || loc.address || '';
+          locationHtml += '<div class="d-flex align-items-start gap-2 mb-1"><i class="ti ti-map-pin text-secondary" style="margin-top:2px"></i><div><strong>' + (loc.name || loc.location_name || 'Treffpunkt') + '</strong>' + (addr ? '<br><span class="text-secondary" style="font-size:12px">' + addr + '</span>' : '') + '</div></div>';
+        });
+        locationHtml += '</div>';
+      }
+    } catch { /* no locations */ }
+
+    document.getElementById('detail-modal-body').innerHTML =
+      '<div class="row mb-3">' +
+        '<div class="col-6"><label class="form-label text-secondary">Kunde</label><div class="fw-bold">' + (b.customer_name || '–') + '</div></div>' +
+        '<div class="col-6"><label class="form-label text-secondary">Art</label><div>Personal Training</div></div>' +
+      '</div>' +
+      '<div class="row mb-3">' +
+        '<div class="col-6"><label class="form-label text-secondary">Datum</label><div>' + formatDate(b.scheduled_date) + '</div></div>' +
+        '<div class="col-6"><label class="form-label text-secondary">Uhrzeit</label><div>' + (b.scheduled_time ? b.scheduled_time.slice(0,5) : '–') + '</div></div>' +
+      '</div>' +
+      '<div class="row mb-3">' +
+        '<div class="col-6"><label class="form-label text-secondary">Stadt / Ort</label><div>' + (b.city || b.location_name || b.location || '–') + '</div></div>' +
+        '<div class="col-6"><label class="form-label text-secondary">Status</label><div>' + statusBadge(b.status) + '</div></div>' +
+      '</div>' +
+      contactHtml +
+      locationHtml +
+      healthHtml +
+      (b.notes ? '<div class="mb-3"><label class="form-label text-secondary">Notizen</label><div class="text-secondary" style="font-size:14px">' + b.notes + '</div></div>' : '');
+
+    // Footer mit Aktions-Buttons
+    document.getElementById('detail-modal-footer').innerHTML =
+      '<button class="btn btn-success btn-sm" onclick="updateBooking(\'' + b.id + '\', BOOKING_STATUS.CONFIRMED)"><i class="ti ti-check"></i> Bestätigen</button>' +
+      '<button class="btn btn-outline-danger btn-sm" onclick="updateBooking(\'' + b.id + '\', BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>' +
+      '<button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schliessen</button>';
+
+    if (!_detailModal) _detailModal = new bootstrap.Modal(document.getElementById('detail-modal'));
+    _detailModal.show();
   }
 </script>
 

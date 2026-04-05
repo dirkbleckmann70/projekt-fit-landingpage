@@ -123,7 +123,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="detail-modal-body"></div>
-      <div class="modal-footer">
+      <div class="modal-footer" id="detail-modal-footer">
         <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schließen</button>
       </div>
     </div>
@@ -674,6 +674,20 @@
       ${b.notes ? `<div class="mb-3"><label class="form-label text-secondary">Notizen</label><div class="text-secondary" style="font-size:14px">${b.notes}</div></div>` : ''}
       <div class="text-secondary" style="font-size:11px;border-top:1px solid var(--tblr-border-color);padding-top:12px">Buchungs-ID: ${b.id}</div>
     `;
+
+    // Aktions-Buttons im Footer je nach Status
+    var footerHtml = '';
+    if (b.status === BOOKING_STATUS.PENDING) {
+      footerHtml = `<button class="btn btn-success btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openLocationSelectModal('${b.id}')"><i class="ti ti-check"></i> Bestätigen</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
+    } else if (b.status === BOOKING_STATUS.CONFIRMED) {
+      footerHtml = `<button class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
+        <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
+    }
+    footerHtml += '<button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schliessen</button>';
+    document.getElementById('detail-modal-footer').innerHTML = footerHtml;
+
     if (!_detailModal) _detailModal = new bootstrap.Modal(document.getElementById('detail-modal'));
     _detailModal.show();
   }
