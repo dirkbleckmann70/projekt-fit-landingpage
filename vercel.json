@@ -1,4 +1,7 @@
 {
   "cleanUrls": true,
-  "trailingSlash": true
+  "redirects": [
+    { "source": "/admin", "destination": "/admin/", "permanent": true },
+    { "source": "/trainer-portal", "destination": "/trainer-portal/", "permanent": true }
+  ]
 }
