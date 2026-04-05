@@ -3,59 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verfügbarkeit – Trainer-Portal</title>
+  <title>Kalender – Trainer-Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
   <style>
-    /* ── Availability Grid (unique to this page) ─── */
-    .avail-day-row {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--tblr-border-color);
+    /* Select-Highlight (drag to create) */
+    .fc .fc-highlight {
+      background: rgba(64,145,108,0.2) !important;
+      border: 2px dashed var(--tblr-primary) !important;
     }
-    .avail-day-row:last-child { border-bottom: none; }
-    .avail-day-label {
-      width: 36px;
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--tblr-secondary-color);
-      padding-top: 8px;
-      flex-shrink: 0;
-    }
-    .avail-slots {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      flex: 1;
-    }
-    .avail-slot {
-      width: 38px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 500;
-      cursor: pointer;
-      background: rgba(255,255,255,0.03);
-      color: var(--tblr-secondary-color);
-      border: 1px solid transparent;
-      transition: all 0.12s;
-      user-select: none;
-    }
-    .avail-slot:hover { background: rgba(255,255,255,0.06); }
-    .avail-slot.active {
-      background: rgba(64,145,108,0.2);
-      border-color: var(--tblr-primary);
-      color: var(--tblr-primary);
-      font-weight: 700;
-    }
+    /* Hint card accent */
+    .hint-card { border-left: 3px solid var(--tblr-primary); }
   </style>
 </head>
 <body class="page">
@@ -70,35 +32,63 @@
 
       <div id="alert-box" class="alert d-none"></div>
 
-      <!-- Urlaubs-Toggle -->
+      <!-- Status Toggle Card -->
       <div class="card mb-3">
-        <div class="card-body d-flex align-items-center justify-content-between">
+        <div class="card-body d-flex justify-content-between align-items-center py-2">
           <div>
-            <div style="font-size:15px;font-weight:700" id="status-label">Status wird geladen...</div>
-            <small class="form-hint">Wenn deaktiviert, bist du für Kunden nicht sichtbar.</small>
+            <div class="fw-bold" id="status-label">Status wird geladen...</div>
+            <div class="text-secondary" style="font-size:12px">Wenn deaktiviert, bist du fuer Kunden nicht sichtbar.</div>
           </div>
-          <button class="btn btn-sm" id="toggle-btn" onclick="toggleAvailability()" disabled>
-            <span class="spinner-border spinner-border-sm"></span>
+          <label class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="active-toggle" onchange="toggleAvailability()">
+          </label>
+        </div>
+      </div>
+
+      <!-- Hint Card -->
+      <div class="card mb-3 hint-card">
+        <div class="card-body py-2">
+          <div class="d-flex align-items-center gap-2">
+            <i class="ti ti-info-circle" style="color:var(--tblr-primary);font-size:18px"></i>
+            <span style="font-size:13px"><strong>Outlook-Stil:</strong> Klicke und ziehe im Kalender um Zeiten zu markieren. Klicke auf bestehende Bloecke um sie zu loeschen.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- FullCalendar -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Kalender</h3>
+          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#vacation-modal">
+            <i class="ti ti-plane-departure"></i> Urlaub
           </button>
         </div>
-      </div>
-
-      <!-- Wochenkalender -->
-      <div class="card mb-3">
-        <div class="card-header">
-          <h3 class="card-title">Wöchentliche Verfügbarkeit</h3>
-        </div>
         <div class="card-body">
-          <small class="form-hint d-block mb-3">Tippe auf Zeitslots um sie zu aktivieren/deaktivieren</small>
-          <div id="avail-grid">
-            <div class="spinner-border spinner-border-sm me-2"></div> Laden...
-          </div>
+          <div id="calendar"></div>
         </div>
       </div>
 
-      <button class="btn btn-primary w-100 btn-lg mb-3" id="save-btn" onclick="saveAvailability()" disabled>
-        Verfügbarkeit speichern
-      </button>
+      <!-- Save + Reset -->
+      <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-primary flex-fill" id="save-btn" onclick="saveAvailability()">
+          <i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern
+        </button>
+        <button class="btn btn-ghost-secondary" onclick="if(confirm('Alle Aenderungen verwerfen?')) window.location.reload()">
+          <i class="ti ti-refresh"></i> Zuruecksetzen
+        </button>
+      </div>
+
+      <!-- Summary Table -->
+      <div class="card">
+        <div class="card-header"><h3 class="card-title">Zusammenfassung</h3></div>
+        <div class="card-body p-0">
+          <table class="table table-sm table-vcenter card-table">
+            <thead><tr><th>Tag</th><th>Zeiten</th><th class="text-end">Stunden</th></tr></thead>
+            <tbody id="summary-body"></tbody>
+            <tfoot><tr class="fw-bold"><td>Gesamt</td><td></td><td class="text-end" id="total-hours">&ndash;</td></tr></tfoot>
+          </table>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -106,266 +96,510 @@
 
 <div id="bottom-nav"></div>
 
+<!-- Vacation Modal -->
+<div class="modal modal-blur fade" id="vacation-modal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="ti ti-plane-departure"></i> Urlaub eintragen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label required">Von</label>
+          <input type="date" class="form-control" id="vacation-start">
+        </div>
+        <div class="mb-3">
+          <label class="form-label required">Bis</label>
+          <input type="date" class="form-control" id="vacation-end">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Grund</label>
+          <select class="form-select" id="vacation-reason">
+            <option value="urlaub">Urlaub</option>
+            <option value="krank">Krank</option>
+            <option value="privat">Privat</option>
+            <option value="sonstiges">Sonstiges</option>
+          </select>
+        </div>
+        <div class="alert alert-warning">
+          <i class="ti ti-alert-triangle"></i> Waehrend des Urlaubs koennen keine neuen Buchungen fuer dich erstellt werden.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-danger" onclick="saveVacation()"><i class="ti ti-check"></i> Urlaub speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
 <script src="auth-check.js"></script>
 <script>
-  // ISO 8601: 1=Mo, 2=Di, 3=Mi, 4=Do, 5=Fr, 6=Sa, 7=So
-  const DAYS = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr', 6: 'Sa', 7: 'So' };
-  const DAY_NAMES = { 1: 'Montag', 2: 'Dienstag', 3: 'Mittwoch', 4: 'Donnerstag', 5: 'Freitag', 6: 'Samstag', 7: 'Sonntag' };
-  const HOURS = [];
-  for (let h = 5; h <= 22; h++) HOURS.push(h);
+  // ── State ──────────────────────────────────────────────────
+  var calendar;
+  var eventIdCounter = 0;
+  var availabilityChanged = false;
 
-  const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 7];
+  // ── Helper Functions ───────────────────────────────────────
+  function pad2(n) { return String(n).padStart(2, '0'); }
 
-  function toISODay(d) { return d.getDay() === 0 ? 7 : d.getDay(); }
+  function formatTimeRange(start, end) {
+    var s = start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    var e = end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+    return s + ' – ' + e;
+  }
 
-  let availState = {};
-  Object.values(DAYS).forEach(d => availState[d] = []);
+  function addHour(dateStr, timeStr) {
+    var d = new Date(dateStr + 'T' + timeStr);
+    d.setHours(d.getHours() + 1);
+    return d.toISOString().replace('Z', '');
+  }
 
-  let isMouseDown = false;
-  let paintMode = true;
+  function addMinutes(dateStr, timeStr, mins) {
+    var d = new Date(dateStr + 'T' + timeStr);
+    d.setMinutes(d.getMinutes() + mins);
+    return d.toISOString().replace('Z', '');
+  }
 
-  (async () => {
-    const trainer = await checkTrainerAuth();
-    if (!trainer) return;
+  function addDay(dateStr) {
+    var d = new Date(dateStr);
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  }
 
-    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('availability');
-    document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('availability');
-    document.getElementById('header').innerHTML = renderTrainerHeader('Verfügbarkeit');
-    initRealtimeToasts(getSupabase(), 'trainer');
+  function markDirty() {
+    availabilityChanged = true;
+    var btn = document.getElementById('save-btn');
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern *';
+    btn.classList.remove('btn-primary');
+    btn.classList.add('btn-warning');
+  }
 
-    if (!trainer.id) {
-      document.getElementById('avail-grid').innerHTML =
-        '<div class="text-center text-secondary py-3">Kein Trainer-Profil verknüpft.</div>';
-      return;
-    }
+  function markClean() {
+    availabilityChanged = false;
+    var btn = document.getElementById('save-btn');
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern';
+    btn.classList.remove('btn-warning');
+    btn.classList.add('btn-primary');
+  }
 
-    // ─── Status Toggle ────────────────────────────────────────────
-    updateStatusUI(trainer.is_active);
-    document.getElementById('toggle-btn').disabled = false;
-
-    // ─── Verfügbarkeit laden ──────────────────────────────────────
-    await loadAvailability();
-    renderGrid();
-    document.getElementById('save-btn').disabled = false;
-  })();
-
+  // ── Status Toggle ──────────────────────────────────────────
   function updateStatusUI(isActive) {
-    const label = document.getElementById('status-label');
-    const btn = document.getElementById('toggle-btn');
-
+    var label = document.getElementById('status-label');
+    var toggle = document.getElementById('active-toggle');
+    toggle.checked = isActive;
     if (isActive) {
-      label.textContent = 'Ich bin verfügbar';
+      label.innerHTML = '<i class="ti ti-check"></i> Ich bin verfuegbar';
       label.style.color = 'var(--tblr-primary)';
-      btn.className = 'btn btn-danger btn-sm';
-      btn.textContent = 'Deaktivieren';
     } else {
-      label.textContent = 'Ich bin im Urlaub / Pause';
+      label.innerHTML = '<i class="ti ti-x"></i> Ich bin im Urlaub / Pause';
       label.style.color = 'var(--tblr-danger)';
-      btn.className = 'btn btn-success btn-sm';
-      btn.textContent = 'Aktivieren';
     }
   }
 
   async function toggleAvailability() {
-    const sb = getSupabase();
-    const trainer = window.currentTrainer;
-    const newState = !trainer.is_active;
-
-    const btn = document.getElementById('toggle-btn');
-    btn.disabled = true;
+    var sb = getSupabase();
+    var trainer = window.currentTrainer;
+    var toggle = document.getElementById('active-toggle');
+    var newState = toggle.checked;
+    toggle.disabled = true;
 
     try {
-      const { error } = await sb
+      var result = await sb
         .from('trainer_profiles')
         .update({ is_active: newState })
         .eq('id', trainer.id);
-
-      if (error) throw error;
+      if (result.error) throw result.error;
 
       trainer.is_active = newState;
       updateStatusUI(newState);
-      showAlert('alert-box', newState ? 'Du bist jetzt verfügbar!' : 'Du bist jetzt auf Pause.', 'success');
+      showAlert('alert-box', newState ? 'Du bist jetzt verfuegbar!' : 'Du bist jetzt auf Pause.', 'success');
     } catch (err) {
+      toggle.checked = !newState;
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     } finally {
-      btn.disabled = false;
+      toggle.disabled = false;
     }
   }
 
-  // ─── Availability laden ─────────────────────────────────────────
-  async function loadAvailability() {
-    const sb = getSupabase();
+  // ── Event Loading ──────────────────────────────────────────
+  async function loadTrainerEvents(info, success, failure) {
+    var sb = getSupabase();
+    var trainerId = window.currentTrainer.id;
+    var events = [];
+    var startDate = info.startStr.split('T')[0];
+    var endDate = info.endStr.split('T')[0];
+
     try {
-      const { data, error } = await sb
-        .from('trainer_availability')
-        .select('*')
-        .eq('trainer_id', window.currentTrainer.id);
-
-      if (error) {
-        if (error.code === '42P01') return;
-        throw error;
-      }
-
-      (data || []).forEach(row => {
-        const dayIndex = row.day_of_week;
-        if (dayIndex >= 1 && dayIndex <= 7) {
-          const dayKey = DAYS[dayIndex];
-          const startHour = row.start_hour;
-          const endHour = row.end_hour;
-          if (startHour != null && endHour != null) {
-            for (let h = startHour; h < endHour; h++) {
-              if (!availState[dayKey].includes(h)) {
-                availState[dayKey].push(h);
-              }
-            }
+      // 1. Availability (editable green blocks)
+      var availResult = await sb.from('trainer_availability').select('*').eq('trainer_id', trainerId);
+      var avail = availResult.data || [];
+      avail.forEach(function(a) {
+        var current = new Date(startDate);
+        var end = new Date(endDate);
+        while (current <= end) {
+          var jsDay = current.getDay();
+          var isoDay = jsDay === 0 ? 7 : jsDay;
+          if (isoDay === a.day_of_week) {
+            var dateStr = current.toISOString().split('T')[0];
+            events.push({
+              id: 'avail-' + a.id + '-' + dateStr,
+              title: pad2(a.start_hour) + ':00 – ' + pad2(a.end_hour) + ':00',
+              start: dateStr + 'T' + pad2(a.start_hour) + ':00',
+              end: dateStr + 'T' + pad2(a.end_hour) + ':00',
+              classNames: ['fc-event-avail'],
+              editable: true,
+              durationEditable: true,
+              extendedProps: { type: 'availability', availId: a.id, dayOfWeek: a.day_of_week }
+            });
           }
+          current.setDate(current.getDate() + 1);
         }
       });
+
+      // 2. PT Bookings (read-only)
+      var bookResult = await sb.from('bookings').select('*')
+        .eq('trainer_id', trainerId)
+        .in('status', ['pending', 'confirmed', 'checked_in'])
+        .gte('scheduled_date', startDate).lte('scheduled_date', endDate);
+      var bookings = bookResult.data || [];
+      bookings.forEach(function(b) {
+        if (!b.scheduled_date || !b.scheduled_time) return;
+        events.push({
+          title: 'PT: ' + (b.customer_name || 'Kunde'),
+          start: b.scheduled_date + 'T' + b.scheduled_time,
+          end: addHour(b.scheduled_date, b.scheduled_time),
+          classNames: [b.status === 'pending' ? 'fc-event-pt-pending' : 'fc-event-pt-confirmed'],
+          editable: false,
+          extendedProps: { type: 'booking', booking: b }
+        });
+      });
+
+      // 3. GT Sessions (read-only)
+      var groupResult = await sb.from('group_classes').select('*')
+        .eq('trainer_id', trainerId).eq('is_active', true);
+      var groups = groupResult.data || [];
+      groups.forEach(function(g) {
+        if (!g.scheduled_date) return;
+        if (g.scheduled_date >= startDate && g.scheduled_date <= endDate) {
+          events.push({
+            title: 'GT: ' + (g.name || 'Gruppe'),
+            start: g.scheduled_date + 'T' + (g.scheduled_time || g.start_time || '10:00'),
+            end: addMinutes(g.scheduled_date, g.scheduled_time || g.start_time || '10:00', g.duration_minutes || 60),
+            classNames: ['fc-event-gt'],
+            editable: false,
+            extendedProps: { type: 'gt', group: g }
+          });
+        }
+      });
+
+      // 4. Vacations (allDay, red)
+      try {
+        var vacResult = await sb.from('trainer_vacations').select('*').eq('trainer_id', trainerId);
+        var vacations = vacResult.data || [];
+        vacations.forEach(function(v) {
+          events.push({
+            id: 'vacation-' + v.id,
+            title: v.reason === 'urlaub' ? 'Urlaub' : (v.reason === 'krank' ? 'Krank' : (v.reason || 'Abwesend')),
+            start: v.start_date,
+            end: addDay(v.end_date),
+            allDay: true,
+            classNames: ['fc-event-vacation'],
+            editable: false,
+            extendedProps: { type: 'vacation', vacation: v }
+          });
+        });
+      } catch (e) { /* table may not exist yet */ }
+
+      success(events);
     } catch (err) {
-      console.error('Verfügbarkeit laden:', err);
+      console.error('Events laden:', err);
+      success([]);
     }
   }
 
-  // ─── Grid rendern ───────────────────────────────────────────────
-  function renderGrid() {
-    const grid = document.getElementById('avail-grid');
-
-    grid.innerHTML = DISPLAY_ORDER.map(isoDay => {
-      const day = DAYS[isoDay];
-      return `
-      <div class="avail-day-row">
-        <div class="avail-day-label">${day}</div>
-        <div class="avail-slots">
-          ${HOURS.map(h => {
-            const isActive = availState[day].includes(h);
-            return `<div class="avail-slot ${isActive ? 'active' : ''}"
-              data-day="${day}" data-hour="${h}"
-              onmousedown="startPaint(event, '${day}', ${h})"
-              onmouseenter="continuePaint(event, '${day}', ${h})"
-              ontouchstart="startPaint(event, '${day}', ${h})"
-              ontouchmove="handleTouchMove(event)"
-            >${h}:00</div>`;
-          }).join('')}
-        </div>
-      </div>
-    `}).join('');
-
-    document.addEventListener('mouseup', () => { isMouseDown = false; });
-    document.addEventListener('touchend', () => { isMouseDown = false; });
+  // ── Create Availability via Select (drag) ──────────────────
+  function onCreateAvailability(info) {
+    var newEvent = {
+      id: 'new-' + (++eventIdCounter),
+      title: formatTimeRange(info.start, info.end),
+      start: info.start,
+      end: info.end,
+      classNames: ['fc-event-avail'],
+      editable: true,
+      durationEditable: true,
+      extendedProps: { type: 'availability', isNew: true }
+    };
+    calendar.addEvent(newEvent);
+    calendar.unselect();
+    markDirty();
+    updateSummary();
   }
 
-  function startPaint(e, day, hour) {
-    e.preventDefault();
-    isMouseDown = true;
-    const isActive = availState[day].includes(hour);
-    paintMode = !isActive;
-    toggleSlot(day, hour);
-  }
-
-  function continuePaint(e, day, hour) {
-    if (!isMouseDown) return;
-    toggleSlot(day, hour);
-  }
-
-  function handleTouchMove(e) {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const el = document.elementFromPoint(touch.clientX, touch.clientY);
-    if (el && el.classList.contains('avail-slot')) {
-      const day = el.dataset.day;
-      const hour = parseInt(el.dataset.hour);
-      toggleSlot(day, hour);
+  // ── Event Click ────────────────────────────────────────────
+  function onEventClick(info) {
+    var props = info.event.extendedProps;
+    if (props.type === 'availability') {
+      if (confirm('Verfuegbarkeit loeschen?')) {
+        info.event.remove();
+        markDirty();
+        updateSummary();
+      }
+    } else if (props.type === 'booking') {
+      var b = props.booking;
+      alert('PT-Buchung\n\nKunde: ' + (b.customer_name || '–') + '\nDatum: ' + (b.scheduled_date || '') + '\nUhrzeit: ' + (b.scheduled_time || '') + '\nStatus: ' + (b.status || ''));
+    } else if (props.type === 'gt') {
+      var g = props.group;
+      alert('Gruppentraining\n\n' + (g.name || '–') + '\nDatum: ' + (g.scheduled_date || '') + '\nTeilnehmer: ' + (g.current_participants || 0) + '/' + (g.max_participants || '–'));
+    } else if (props.type === 'vacation') {
+      var v = props.vacation;
+      if (confirm('Urlaub loeschen?\n\n' + v.start_date + ' bis ' + v.end_date)) {
+        deleteVacation(v.id, info.event);
+      }
     }
   }
 
-  function toggleSlot(day, hour) {
-    const idx = availState[day].indexOf(hour);
-    if (paintMode && idx === -1) {
-      availState[day].push(hour);
-    } else if (!paintMode && idx !== -1) {
-      availState[day].splice(idx, 1);
+  // ── Drag/Resize handlers ───────────────────────────────────
+  function onAvailDragDrop(info) {
+    if (info.event.extendedProps.type !== 'availability') {
+      info.revert();
+      return;
     }
-
-    const el = document.querySelector(`[data-day="${day}"][data-hour="${hour}"]`);
-    if (el) {
-      el.classList.toggle('active', availState[day].includes(hour));
-    }
+    info.event.setProp('title', formatTimeRange(info.event.start, info.event.end));
+    markDirty();
+    updateSummary();
   }
 
-  // ─── Speichern ──────────────────────────────────────────────────
+  function onAvailResize(info) {
+    if (info.event.extendedProps.type !== 'availability') {
+      info.revert();
+      return;
+    }
+    info.event.setProp('title', formatTimeRange(info.event.start, info.event.end));
+    markDirty();
+    updateSummary();
+  }
+
+  // ── Save Availability ──────────────────────────────────────
   async function saveAvailability() {
-    const btn = document.getElementById('save-btn');
+    var btn = document.getElementById('save-btn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird gespeichert...';
 
-    const sb = getSupabase();
-    const trainerId = window.currentTrainer.id;
+    var sb = getSupabase();
+    var trainerId = window.currentTrainer.id;
 
     try {
-      const { error: delError } = await sb
-        .from('trainer_availability')
-        .delete()
-        .eq('trainer_id', trainerId);
-
-      if (delError && delError.code !== '42P01') {
-        console.error('Delete error:', delError);
-        if (delError.message?.includes('row-level security') || delError.code === '42501') {
-          throw new Error('Keine Berechtigung zum Löschen. Bitte den Admin kontaktieren (RLS-Konfiguration fehlt).');
+      // Delete all existing availability
+      var delResult = await sb.from('trainer_availability').delete().eq('trainer_id', trainerId);
+      if (delResult.error && delResult.error.code !== '42P01') {
+        if (delResult.error.message && (delResult.error.message.includes('row-level security') || delResult.error.code === '42501')) {
+          throw new Error('Keine Berechtigung zum Loeschen. Bitte den Admin kontaktieren (RLS-Konfiguration fehlt).');
         }
-        throw delError;
+        throw delResult.error;
       }
 
-      const rows = [];
-      DISPLAY_ORDER.forEach(isoDay => {
-        const day = DAYS[isoDay];
-        const hours = availState[day].sort((a, b) => a - b);
-        if (hours.length === 0) return;
+      // Collect availability events from calendar, group by day_of_week
+      var allEvents = calendar.getEvents().filter(function(e) {
+        return e.extendedProps.type === 'availability';
+      });
 
-        let blockStart = hours[0];
-        let prev = hours[0];
+      // Convert events to rows: extract day_of_week, start_hour, end_hour
+      var rows = [];
+      allEvents.forEach(function(e) {
+        var start = e.start;
+        var end = e.end;
+        if (!start || !end) return;
 
-        for (let i = 1; i <= hours.length; i++) {
-          if (i === hours.length || hours[i] !== prev + 1) {
-            rows.push({
-              trainer_id: trainerId,
-              day_of_week: isoDay,
-              start_hour: blockStart,
-              end_hour: prev + 1,
-              is_active: true,
-            });
-            if (i < hours.length) blockStart = hours[i];
-          }
-          if (i < hours.length) prev = hours[i];
-        }
+        var jsDay = start.getDay();
+        var isoDay = jsDay === 0 ? 7 : jsDay;
+        var startHour = start.getHours();
+        var endHour = end.getHours();
+        // If end is exactly on the hour boundary with minutes=0, use that hour
+        // If end has minutes > 0, round up to next hour
+        if (end.getMinutes() > 0) endHour = endHour + 1;
+        if (endHour <= startHour) return; // invalid
+
+        rows.push({
+          trainer_id: trainerId,
+          day_of_week: isoDay,
+          start_hour: startHour,
+          end_hour: endHour,
+          is_active: true
+        });
       });
 
       if (rows.length > 0) {
-        const { error: insError } = await sb
-          .from('trainer_availability')
-          .insert(rows);
-
-        if (insError) {
-          console.error('Insert error:', insError, 'Rows:', JSON.stringify(rows));
-          if (insError.message?.includes('row-level security') || insError.code === '42501') {
+        var insResult = await sb.from('trainer_availability').insert(rows);
+        if (insResult.error) {
+          if (insResult.error.message && (insResult.error.message.includes('row-level security') || insResult.error.code === '42501')) {
             throw new Error('Keine Berechtigung. Bitte den Admin kontaktieren (RLS-Konfiguration fehlt).');
           }
-          throw new Error('Speichern fehlgeschlagen: ' + (insError.message || 'Unbekannter Fehler'));
+          throw new Error('Speichern fehlgeschlagen: ' + (insResult.error.message || 'Unbekannter Fehler'));
         }
       }
 
-      showAlert('alert-box', 'Verfügbarkeit gespeichert!', 'success');
+      showAlert('alert-box', 'Verfuegbarkeit gespeichert!', 'success');
+      markClean();
+      // Refetch to get proper IDs from DB
+      calendar.refetchEvents();
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Verfügbarkeit speichern';
+      if (!availabilityChanged) {
+        btn.innerHTML = '<i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern';
+      }
     }
   }
+
+  // ── Vacation Save ──────────────────────────────────────────
+  async function saveVacation() {
+    var startDate = document.getElementById('vacation-start').value;
+    var endDate = document.getElementById('vacation-end').value;
+    var reason = document.getElementById('vacation-reason').value;
+    if (!startDate || !endDate) { alert('Bitte Von und Bis Datum angeben'); return; }
+    if (endDate < startDate) { alert('Bis-Datum muss nach Von-Datum liegen'); return; }
+
+    var sb = getSupabase();
+    try {
+      var userResult = await sb.auth.getUser();
+      var result = await sb.from('trainer_vacations').insert({
+        trainer_id: window.currentTrainer.id,
+        start_date: startDate,
+        end_date: endDate,
+        reason: reason,
+        created_by: userResult.data.user.id
+      });
+      if (result.error) throw result.error;
+
+      bootstrap.Modal.getInstance(document.getElementById('vacation-modal')).hide();
+      showAlert('alert-box', 'Urlaub eingetragen!', 'success');
+      calendar.refetchEvents();
+      // Reset form
+      document.getElementById('vacation-start').value = '';
+      document.getElementById('vacation-end').value = '';
+      document.getElementById('vacation-reason').value = 'urlaub';
+    } catch (err) {
+      alert('Fehler: ' + err.message);
+    }
+  }
+
+  // ── Vacation Delete ────────────────────────────────────────
+  async function deleteVacation(vacationId, calEvent) {
+    var sb = getSupabase();
+    try {
+      var result = await sb.from('trainer_vacations').delete().eq('id', vacationId);
+      if (result.error) throw result.error;
+      calEvent.remove();
+      showAlert('alert-box', 'Urlaub geloescht.', 'success');
+    } catch (err) {
+      alert('Fehler: ' + err.message);
+    }
+  }
+
+  // ── Summary Table ──────────────────────────────────────────
+  function updateSummary() {
+    var events = calendar.getEvents().filter(function(e) {
+      return e.extendedProps.type === 'availability';
+    });
+
+    var dayFull = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+    var byDay = {};
+
+    events.forEach(function(e) {
+      if (!e.start || !e.end) return;
+      var jsDay = e.start.getDay();
+      if (!byDay[jsDay]) byDay[jsDay] = [];
+      byDay[jsDay].push({
+        start: e.start.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        end: e.end.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }),
+        hours: (e.end - e.start) / 3600000
+      });
+    });
+
+    var tbody = document.getElementById('summary-body');
+    var totalH = 0;
+    var html = '';
+
+    // Mo-So: JS days 1,2,3,4,5,6,0
+    [1, 2, 3, 4, 5, 6, 0].forEach(function(d) {
+      if (!byDay[d]) return;
+      var slots = byDay[d].sort(function(a, b) { return a.start.localeCompare(b.start); });
+      var times = slots.map(function(s) { return s.start + ' – ' + s.end; }).join(', ');
+      var h = slots.reduce(function(sum, s) { return sum + s.hours; }, 0);
+      totalH += h;
+      html += '<tr><td class="fw-bold">' + dayFull[d] + '</td><td class="text-secondary">' + times + '</td><td class="text-end">' + h.toFixed(1).replace('.0', '') + 'h</td></tr>';
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="3" class="text-center text-secondary p-3">Keine Verfuegbarkeit eingetragen</td></tr>';
+    document.getElementById('total-hours').textContent = totalH.toFixed(1).replace('.0', '') + 'h / Woche';
+  }
+
+  // ── Init ───────────────────────────────────────────────────
+  (async function() {
+    var trainer = await checkTrainerAuth();
+    if (!trainer) return;
+
+    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('availability');
+    document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('availability');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Kalender');
+    initRealtimeToasts(getSupabase(), 'trainer');
+
+    if (!trainer.id) {
+      document.getElementById('calendar').innerHTML =
+        '<div class="text-center text-secondary py-3">Kein Trainer-Profil verknuepft.</div>';
+      return;
+    }
+
+    // Status Toggle
+    updateStatusUI(trainer.is_active);
+
+    // FullCalendar init
+    var calendarEl = document.getElementById('calendar');
+    calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'timeGridWeek',
+      locale: 'de',
+      firstDay: 1,
+      slotMinTime: '05:00:00',
+      slotMaxTime: '23:00:00',
+      slotDuration: '00:30:00',
+      slotLabelInterval: '01:00',
+      allDaySlot: true,
+      expandRows: true,
+      height: 'auto',
+      nowIndicator: true,
+      selectable: true,
+      selectMirror: true,
+      editable: false, // default; availability events override to editable:true
+      eventResizableFromStart: true,
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'timeGridDay,timeGridWeek'
+      },
+      buttonText: { today: 'Heute', day: 'Tag', week: 'Woche' },
+      events: loadTrainerEvents,
+      select: onCreateAvailability,
+      eventClick: onEventClick,
+      eventDrop: onAvailDragDrop,
+      eventResize: onAvailResize,
+      loading: function(isLoading) {
+        if (!isLoading) {
+          // Update summary after events loaded
+          setTimeout(updateSummary, 100);
+        }
+      }
+    });
+    calendar.render();
+  })();
 </script>
 
 </body>
