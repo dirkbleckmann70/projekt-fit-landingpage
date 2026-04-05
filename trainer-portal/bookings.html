@@ -270,7 +270,7 @@
 
     document.getElementById('sidebar').innerHTML = renderTrainerSidebar('bookings');
     document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('bookings');
-    document.getElementById('header').innerHTML = renderTrainerHeader('Buchungen');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Buchungen', window.currentTrainer?.email || '');
     initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id) {

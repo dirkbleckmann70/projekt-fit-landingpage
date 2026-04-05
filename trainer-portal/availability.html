@@ -550,7 +550,7 @@
 
     document.getElementById('sidebar').innerHTML = renderTrainerSidebar('availability');
     document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('availability');
-    document.getElementById('header').innerHTML = renderTrainerHeader('Kalender');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Kalender', window.currentTrainer?.email || '');
     initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id) {

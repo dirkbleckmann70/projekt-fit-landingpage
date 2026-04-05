@@ -188,7 +188,7 @@
 
     document.getElementById('sidebar').innerHTML = renderTrainerSidebar('finances');
     document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('finances');
-    document.getElementById('header').innerHTML = renderTrainerHeader('Finanzen');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Finanzen', window.currentTrainer?.email || '');
     initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id) {

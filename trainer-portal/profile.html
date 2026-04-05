@@ -46,7 +46,7 @@
 
     document.getElementById('sidebar').innerHTML = renderTrainerSidebar('profile');
     document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('profile');
-    document.getElementById('header').innerHTML = renderTrainerHeader('Profil');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Profil', window.currentTrainer?.email || '');
     initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id || trainer._noProfile) {

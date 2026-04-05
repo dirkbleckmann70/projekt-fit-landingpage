@@ -103,7 +103,7 @@
 
     document.getElementById('sidebar').innerHTML = renderTrainerSidebar('dashboard');
     document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('dashboard');
-    document.getElementById('header').innerHTML = renderTrainerHeader('Dashboard');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Dashboard', window.currentTrainer?.email || '');
     initRealtimeToasts(getSupabase(), 'trainer');
 
     document.getElementById('welcome').textContent = `Willkommen, ${trainer.full_name || 'Trainer'}!`;

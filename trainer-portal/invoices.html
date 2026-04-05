@@ -260,7 +260,7 @@
 
     document.getElementById('sidebar').innerHTML = renderTrainerSidebar('invoices');
     document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('invoices');
-    document.getElementById('header').innerHTML = renderTrainerHeader('Gutschriften');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Gutschriften', window.currentTrainer?.email || '');
     initRealtimeToasts(getSupabase(), 'trainer');
 
     handleOnboardingReturn();

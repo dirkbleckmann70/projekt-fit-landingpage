@@ -143,18 +143,20 @@ window.renderTrainerBottomNav = function renderTrainerBottomNav(activePage) {
 
 // ─── Trainer Header ─────────────────────────────────────────────────────────
 
-window.renderTrainerHeader = function renderTrainerHeader(title) {
+window.renderTrainerHeader = function renderTrainerHeader(title, trainerEmail) {
   return `<div class="container-xl">
   <div class="page-header d-print-none">
     <div class="row align-items-center">
       <div class="col">
         <h2 class="page-title">${title}</h2>
       </div>
-      <div class="col-auto ms-auto">
+      <div class="col-auto ms-auto d-print-none">
         <div class="d-flex align-items-center gap-2">
           <button id="theme-toggle" class="btn btn-icon btn-ghost-secondary" onclick="toggleTheme()" title="Theme wechseln">
             ${MOON_SVG}
           </button>
+          <span class="text-secondary d-none d-md-inline">${trainerEmail || ''}</span>
+          <button class="btn btn-ghost-secondary btn-sm" onclick="trainerLogout()">Logout</button>
         </div>
       </div>
     </div>
