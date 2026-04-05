@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kalender – Projekt Fit Admin</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <style>
     /* ─── Calendar-Specific Styles ─────────────────────────────────── */
     .cal-toolbar {
@@ -16,38 +18,38 @@
       font-family: inherit; font-size: 14px;
     }
     .cal-toolbar select {
-      background: var(--bg-input); color: var(--text); border: 1px solid var(--border);
+      background: var(--tblr-bg-surface); color: var(--tblr-body-color); border: 1px solid var(--tblr-border-color);
       border-radius: 8px; padding: 8px 12px; min-width: 180px;
     }
     .cal-week-label {
-      font-size: 15px; font-weight: 600; color: var(--text); min-width: 240px; text-align: center;
+      font-size: 15px; font-weight: 600; color: var(--tblr-body-color); min-width: 240px; text-align: center;
     }
     .cal-grid {
       display: grid;
       grid-template-columns: 60px repeat(7, 1fr);
-      border: 1px solid var(--border);
+      border: 1px solid var(--tblr-border-color);
       border-radius: 12px;
       overflow: hidden;
-      background: var(--bg-card);
+      background: var(--tblr-bg-surface);
     }
     .cal-header {
-      background: #222; font-weight: 600; font-size: 13px;
-      padding: 10px 6px; text-align: center; border-bottom: 1px solid var(--border);
-      color: var(--text-secondary);
+      background: var(--tblr-bg-surface-secondary); font-weight: 600; font-size: 13px;
+      padding: 10px 6px; text-align: center; border-bottom: 1px solid var(--tblr-border-color);
+      color: var(--tblr-secondary);
     }
-    .cal-header.today { color: var(--accent); }
+    .cal-header.today { color: var(--tblr-primary); }
     .cal-time {
-      font-size: 12px; color: var(--text-muted); padding: 6px 8px;
-      text-align: right; border-right: 1px solid var(--border);
-      border-bottom: 1px solid rgba(42,42,42,.4);
+      font-size: 12px; color: var(--tblr-muted); padding: 6px 8px;
+      text-align: right; border-right: 1px solid var(--tblr-border-color);
+      border-bottom: 1px solid var(--tblr-border-color-translucent);
       display: flex; align-items: center; justify-content: flex-end;
     }
     .cal-cell {
-      min-height: 38px; border-bottom: 1px solid rgba(42,42,42,.4);
-      border-right: 1px solid rgba(42,42,42,.15);
+      min-height: 38px; border-bottom: 1px solid var(--tblr-border-color-translucent);
+      border-right: 1px solid rgba(0,0,0,.05);
       cursor: pointer; position: relative; transition: filter .15s;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 500; color: #fff;
+      font-size: 11px; font-weight: 500;
     }
     .cal-cell:hover { filter: brightness(1.25); }
 
@@ -56,7 +58,7 @@
     .cal-cell.pending     { background: rgba(243,156,18,.35); }
     .cal-cell.confirmed   { background: rgba(52,152,219,.4); }
     .cal-cell.gt          { background: rgba(155,89,182,.4); }
-    .cal-cell.cancelled   { background: rgba(231,76,60,.2); text-decoration: line-through; color: var(--error); }
+    .cal-cell.cancelled   { background: rgba(231,76,60,.2); text-decoration: line-through; color: var(--tblr-danger); }
     .cal-cell.empty       { background: transparent; }
 
     .cal-cell .cell-label {
@@ -68,53 +70,29 @@
     .cal-legend {
       display: flex; gap: 18px; flex-wrap: wrap; margin-top: 14px; font-size: 13px;
     }
-    .cal-legend span { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); }
+    .cal-legend span { display: flex; align-items: center; gap: 6px; color: var(--tblr-secondary); }
     .legend-dot {
       width: 14px; height: 14px; border-radius: 4px; display: inline-block;
     }
-
-    /* ─── Detail Modal ─────────────────────────────────────────────── */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.65);
-      z-index: 200; align-items: center; justify-content: center;
-    }
-    .modal-overlay.show { display: flex; }
-    .modal {
-      background: var(--bg-card); border: 1px solid var(--border);
-      border-radius: 16px; width: 480px; max-width: 94vw; max-height: 85vh;
-      overflow-y: auto;
-    }
-    .modal-header {
-      padding: 18px 24px; border-bottom: 1px solid var(--border);
-      font-size: 16px; font-weight: 700; display: flex; justify-content: space-between; align-items: center;
-    }
-    .modal-body { padding: 20px 24px; }
-    .modal-body .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(42,42,42,.4); font-size: 14px; }
-    .modal-body .row .label { color: var(--text-secondary); }
-    .modal-body .row .value { color: var(--text); font-weight: 500; text-align: right; }
-    .modal-body .status-cancelled { color: var(--error); font-weight: 700; }
-    .modal-footer { padding: 14px 24px; border-top: 1px solid var(--border); text-align: right; }
-    .close-btn {
-      background: none; border: none; color: var(--text-secondary); font-size: 22px; cursor: pointer;
-    }
-    .close-btn:hover { color: var(--text); }
   </style>
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <!-- Toolbar -->
       <div class="cal-toolbar">
         <select id="trainer-filter"><option value="">Alle Trainer</option></select>
         <select id="city-filter"><option value="">Alle Städte</option></select>
-        <button class="btn btn-ghost btn-sm" id="prev-week">&larr; Vorherige</button>
+        <button class="btn btn-ghost-secondary btn-sm" id="prev-week">&larr; Vorherige</button>
         <div class="cal-week-label" id="week-label"></div>
-        <button class="btn btn-ghost btn-sm" id="next-week">Nächste &rarr;</button>
+        <button class="btn btn-ghost-secondary btn-sm" id="next-week">Nächste &rarr;</button>
         <button class="btn btn-secondary btn-sm" id="today-btn">Heute</button>
       </div>
 
@@ -128,7 +106,7 @@
         <span><span class="legend-dot" style="background:rgba(52,152,219,.65)"></span> PT Bestätigt</span>
         <span><span class="legend-dot" style="background:rgba(155,89,182,.6)"></span> Gruppentraining</span>
         <span><span class="legend-dot" style="background:rgba(231,76,60,.45)"></span> Storniert</span>
-        <span><span class="legend-dot" style="background:transparent;border:1px solid var(--border)"></span> Nicht verfügbar</span>
+        <span><span class="legend-dot" style="background:transparent;border:1px solid var(--tblr-border-color)"></span> Nicht verfügbar</span>
       </div>
 
     </div>
@@ -136,27 +114,34 @@
 </div>
 
 <!-- Detail Modal -->
-<div class="modal-overlay" id="detail-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <span id="modal-title">Details</span>
-      <button class="close-btn" onclick="closeModal()">&times;</button>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost btn-sm" onclick="closeModal()">Schließen</button>
+<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-title">Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schließen</button>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
 <script>
 (async () => {
   const user = await checkAdminAuth();
   if (!user) return;
-  document.getElementById('sidebar').innerHTML = renderSidebar('calendar');
-  document.getElementById('header').innerHTML  = renderHeader('Kalender');
+  document.getElementById('sidebar').innerHTML = renderAdminSidebar('calendar');
+  document.getElementById('header').innerHTML  = renderAdminHeader('Kalender', user.email);
+  initRealtimeToasts(getSupabase(), 'admin');
 
   // ─── State ──────────────────────────────────────────────────────
   let weekOffset = 0;
@@ -335,7 +320,7 @@
     const dateStr   = cell.dataset.date;
     const hour      = cell.dataset.hour;
 
-    const modal = document.getElementById('detail-modal');
+    const modalEl = document.getElementById('detail-modal');
     const body  = document.getElementById('modal-body');
     const title = document.getElementById('modal-title');
 
@@ -360,19 +345,19 @@
 
       title.textContent = isCancelled ? 'Buchung – STORNIERT' : 'Buchungsdetails';
       body.innerHTML = `
-        ${isCancelled ? '<div style="text-align:center;padding:10px 0"><span class="status-cancelled" style="font-size:18px">STORNIERT</span></div>' : ''}
-        <div class="row"><span class="label">Datum</span><span class="value">${formatDate(booking.scheduled_date)}</span></div>
-        <div class="row"><span class="label">Uhrzeit</span><span class="value">${booking.scheduled_time || '–'} Uhr</span></div>
-        <div class="row"><span class="label">Status</span><span class="value">${statusBadge(booking.status)}</span></div>
-        <div class="row"><span class="label">Typ</span><span class="value">${booking.booking_type || 'PT'}</span></div>
-        <div class="row"><span class="label">Kunde</span><span class="value">${cust.full_name || '–'}</span></div>
-        <div class="row"><span class="label">Kunde Tel.</span><span class="value">${cust.phone || '–'}</span></div>
-        <div class="row"><span class="label">Kunde E-Mail</span><span class="value">${cust.email || '–'}</span></div>
-        <div class="row"><span class="label">Trainer</span><span class="value">${trainer.full_name || '–'}</span></div>
-        <div class="row"><span class="label">Trainer Tel.</span><span class="value">${trainer.phone || '–'}</span></div>
-        <div class="row"><span class="label">Kundenpreis</span><span class="value">${isCancelled ? '0,00 €' : formatEuro(booking.price_cents)}</span></div>
-        <div class="row"><span class="label">Trainer-Vergütung</span><span class="value">${isCancelled ? '0,00 €' : formatEuro(booking.trainer_payout_cents)}</span></div>
-        <div class="row"><span class="label">Gesundheitshinweise</span><span class="value">${healthNote}</span></div>
+        ${isCancelled ? '<div style="text-align:center;padding:10px 0"><span class="text-danger" style="font-size:18px;font-weight:700">STORNIERT</span></div>' : ''}
+        <div class="row mb-2"><span class="col text-secondary">Datum</span><span class="col text-end fw-medium">${formatDate(booking.scheduled_date)}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Uhrzeit</span><span class="col text-end fw-medium">${booking.scheduled_time || '–'} Uhr</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Status</span><span class="col text-end fw-medium">${statusBadge(booking.status)}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Typ</span><span class="col text-end fw-medium">${booking.booking_type || 'PT'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Kunde</span><span class="col text-end fw-medium">${cust.full_name || '–'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Kunde Tel.</span><span class="col text-end fw-medium">${cust.phone || '–'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Kunde E-Mail</span><span class="col text-end fw-medium">${cust.email || '–'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Trainer</span><span class="col text-end fw-medium">${trainer.full_name || '–'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Trainer Tel.</span><span class="col text-end fw-medium">${trainer.phone || '–'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Kundenpreis</span><span class="col text-end fw-medium">${isCancelled ? '0,00 €' : formatEuro(booking.price_cents)}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Trainer-Vergütung</span><span class="col text-end fw-medium">${isCancelled ? '0,00 €' : formatEuro(booking.trainer_payout_cents)}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Gesundheitshinweise</span><span class="col text-end fw-medium">${healthNote}</span></div>
       `;
     } else if (gtId) {
       const gc = allGT.find(g => g.id === gtId);
@@ -382,35 +367,26 @@
 
       title.textContent = 'Gruppentraining';
       body.innerHTML = `
-        <div class="row"><span class="label">Kurs</span><span class="value">${gc.title || '–'}</span></div>
-        <div class="row"><span class="label">Datum</span><span class="value">${gc.scheduled_date ? formatDate(gc.scheduled_date) : 'Wiederkehrend'}</span></div>
-        <div class="row"><span class="label">Uhrzeit</span><span class="value">${gc.scheduled_time || gc.start_time || '–'} Uhr</span></div>
-        <div class="row"><span class="label">Trainer</span><span class="value">${trainerName}</span></div>
-        <div class="row"><span class="label">Preis/Person</span><span class="value">${formatEuro(gc.price_per_person_cents)}</span></div>
-        <div class="row"><span class="label">Teilnehmer</span><span class="value">${gc.current_participants || 0} / ${gc.max_participants || '–'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Kurs</span><span class="col text-end fw-medium">${gc.title || '–'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Datum</span><span class="col text-end fw-medium">${gc.scheduled_date ? formatDate(gc.scheduled_date) : 'Wiederkehrend'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Uhrzeit</span><span class="col text-end fw-medium">${gc.scheduled_time || gc.start_time || '–'} Uhr</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Trainer</span><span class="col text-end fw-medium">${trainerName}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Preis/Person</span><span class="col text-end fw-medium">${formatEuro(gc.price_per_person_cents)}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Teilnehmer</span><span class="col text-end fw-medium">${gc.current_participants || 0} / ${gc.max_participants || '–'}</span></div>
       `;
     } else {
       // Available or empty
       const isAvail = cell.dataset.avail === '1';
       title.textContent = isAvail ? 'Verfügbar' : 'Nicht verfügbar';
       body.innerHTML = `
-        <div class="row"><span class="label">Datum</span><span class="value">${formatDate(dateStr)}</span></div>
-        <div class="row"><span class="label">Uhrzeit</span><span class="value">${String(hour).padStart(2,'0')}:00 Uhr</span></div>
-        <div class="row"><span class="label">Status</span><span class="value">${isAvail ? 'Verfügbar, keine Buchung' : 'Keine Verfügbarkeit eingetragen'}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Datum</span><span class="col text-end fw-medium">${formatDate(dateStr)}</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Uhrzeit</span><span class="col text-end fw-medium">${String(hour).padStart(2,'0')}:00 Uhr</span></div>
+        <div class="row mb-2"><span class="col text-secondary">Status</span><span class="col text-end fw-medium">${isAvail ? 'Verfügbar, keine Buchung' : 'Keine Verfügbarkeit eingetragen'}</span></div>
       `;
     }
 
-    modal.classList.add('show');
+    new bootstrap.Modal(modalEl).show();
   }
-
-  function closeModal() {
-    document.getElementById('detail-modal').classList.remove('show');
-  }
-
-  // Close modal on overlay click
-  document.getElementById('detail-modal').addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) closeModal();
-  });
 
   // ─── Events ─────────────────────────────────────────────────────
   document.getElementById('prev-week').addEventListener('click', () => { weekOffset--; refresh(); });

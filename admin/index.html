@@ -6,82 +6,44 @@
   <title>Admin Login – Projekt Fit</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0a0a0a;
-      color: #f0f0f5;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .card {
-      background: #1a1a1a;
-      border: 1px solid #2a2a2a;
-      border-radius: 20px;
-      padding: 40px;
-      max-width: 400px;
-      width: 100%;
-    }
-    .logo { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 4px; }
-    .logo span { color: #e8930a; }
-    .subtitle { text-align: center; color: #8888a0; font-size: 14px; margin-bottom: 32px; }
-    h1 { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 24px; }
-    .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 13px; font-weight: 600; color: #aaa; margin-bottom: 6px; }
-    .field input {
-      width: 100%; padding: 12px 14px; background: #111; border: 1px solid #2a2a2a;
-      border-radius: 10px; color: #f0f0f5; font-size: 15px; font-family: inherit;
-      outline: none; transition: border-color 0.2s;
-    }
-    .field input:focus { border-color: #e8930a; }
-    .btn {
-      width: 100%; padding: 14px; background: #e8930a; color: #fff; font-size: 16px;
-      font-weight: 700; font-family: inherit; border: none; border-radius: 12px;
-      cursor: pointer; margin-top: 8px; transition: opacity 0.2s;
-    }
-    .btn:hover { opacity: 0.9; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .error-msg {
-      background: rgba(231,76,60,0.12); color: #e74c3c; padding: 12px;
-      border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: none;
-      text-align: center;
-    }
-    .error-msg.show { display: block; }
-    .spinner {
-      display: inline-block; width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
-      border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
 </head>
-<body>
+<body class="page page-center">
+<script src="../shared/theme.js"></script>
 
-<div class="card">
-  <div class="logo">Projekt <span>Fit</span></div>
-  <p class="subtitle">Admin-Bereich</p>
-  <h1>Anmelden</h1>
+<div class="container container-tight py-4">
+  <div class="text-center mb-4">
+    <h1 style="font-weight:800;font-size:1.75rem">Projekt <span style="color:var(--tblr-primary)">Fit</span> Admin</h1>
+    <p class="text-secondary">Admin-Bereich</p>
+  </div>
+  <div class="card card-md">
+    <div class="card-body">
+      <h2 class="h2 text-center mb-4">Anmelden</h2>
 
-  <div class="error-msg" id="error-msg"></div>
+      <div class="alert alert-danger d-none" id="error-msg"></div>
 
-  <form id="login-form" novalidate>
-    <div class="field">
-      <label for="email">E-Mail</label>
-      <input type="email" id="email" placeholder="admin@projektfit.net" autocomplete="email" required>
+      <form id="login-form" novalidate>
+        <div class="mb-3">
+          <label class="form-label" for="email">E-Mail</label>
+          <input type="email" class="form-control" id="email" placeholder="admin@projektfit.net" autocomplete="email" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="password">Passwort</label>
+          <input type="password" class="form-control" id="password" placeholder="Passwort" autocomplete="current-password" required>
+        </div>
+        <div class="form-footer">
+          <button type="submit" class="btn btn-primary w-100" id="submit-btn">Einloggen</button>
+        </div>
+      </form>
     </div>
-    <div class="field">
-      <label for="password">Passwort</label>
-      <input type="password" id="password" placeholder="Passwort" autocomplete="current-password" required>
-    </div>
-    <button type="submit" class="btn" id="submit-btn">Einloggen</button>
-  </form>
+  </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="auth-guard.js"></script>
 <script>
   const SUPABASE_URL = 'https://ahsjydgknmysircubjsk.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_8tZaFMrIrzJXjDbYAF2huw_ygDY9K2Q';
@@ -89,6 +51,14 @@
 
   const errorMsg = document.getElementById('error-msg');
   const submitBtn = document.getElementById('submit-btn');
+
+  function showError(msg) {
+    errorMsg.textContent = msg;
+    errorMsg.classList.remove('d-none');
+  }
+  function hideError() {
+    errorMsg.classList.add('d-none');
+  }
 
   // Check if already logged in as admin
   (async () => {
@@ -101,32 +71,29 @@
   // Show error from URL params (e.g. ?error=no_admin)
   const urlError = new URLSearchParams(window.location.search).get('error');
   if (urlError === 'no_admin') {
-    errorMsg.textContent = 'Kein Admin-Zugang. Nur Administratoren dürfen sich hier einloggen.';
-    errorMsg.classList.add('show');
+    showError('Kein Admin-Zugang. Nur Administratoren dürfen sich hier einloggen.');
   }
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorMsg.classList.remove('show');
+    hideError();
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
 
     if (!email || !password) {
-      errorMsg.textContent = 'Bitte E-Mail und Passwort eingeben.';
-      errorMsg.classList.add('show');
+      showError('Bitte E-Mail und Passwort eingeben.');
       return;
     }
 
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Wird geprüft...';
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird geprüft...';
 
     try {
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
       if (error) {
-        errorMsg.textContent = 'Login fehlgeschlagen: ' + error.message;
-        errorMsg.classList.add('show');
+        showError('Login fehlgeschlagen: ' + error.message);
         submitBtn.disabled = false;
         submitBtn.textContent = 'Einloggen';
         return;
@@ -136,8 +103,7 @@
       const role = data.user?.user_metadata?.role;
       if (!role || !role.includes('admin')) {
         await sb.auth.signOut();
-        errorMsg.textContent = 'Kein Admin-Zugang. Nur Administratoren dürfen sich hier einloggen.';
-        errorMsg.classList.add('show');
+        showError('Kein Admin-Zugang. Nur Administratoren dürfen sich hier einloggen.');
         submitBtn.disabled = false;
         submitBtn.textContent = 'Einloggen';
         return;
@@ -146,8 +112,7 @@
       // Redirect to dashboard
       window.location.href = '/admin/dashboard.html';
     } catch (err) {
-      errorMsg.textContent = 'Verbindungsfehler: ' + err.message;
-      errorMsg.classList.add('show');
+      showError('Verbindungsfehler: ' + err.message);
       submitBtn.disabled = false;
       submitBtn.textContent = 'Einloggen';
     }

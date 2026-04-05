@@ -6,8 +6,9 @@
   <title>Belege – Projekt Fit Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="../shared/table-utils.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <style>
     .filter-bar {
       display: flex;
@@ -18,18 +19,9 @@
     }
     .filter-bar select,
     .filter-bar input[type="text"] {
-      background: #1a1a24;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      color: #fff;
       font-family: inherit;
       font-size: 13px;
-      padding: 7px 12px;
-      outline: none;
-      transition: border-color 0.2s;
     }
-    .filter-bar select:focus,
-    .filter-bar input[type="text"]:focus { border-color: #40916C; }
     .filter-bar input[type="text"] { min-width: 200px; }
 
     .badge-rg  { background: rgba(64,145,108,0.15); color: #40916C; border: 1px solid rgba(64,145,108,0.3); }
@@ -43,7 +35,6 @@
     .sum-row td {
       background: rgba(64,145,108,0.07);
       font-weight: 700;
-      color: #fff;
       border-top: 2px solid rgba(64,145,108,0.3);
     }
 
@@ -58,7 +49,7 @@
       font-size: 16px;
       line-height: 1;
     }
-    .icon-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .icon-btn:hover { color: var(--tblr-body-color); background: rgba(0,0,0,0.05); }
     .icon-btn.download:hover { color: #40916C; }
     .icon-btn.print:hover   { color: #E07A3A; }
 
@@ -83,71 +74,72 @@
     }
     .detail-item .val {
       font-size: 14px;
-      color: #fff;
     }
     .detail-section-title {
       font-size: 11px;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: #40916C;
+      color: var(--tblr-primary);
       margin: 20px 0 10px;
       padding-bottom: 6px;
-      border-bottom: 1px solid rgba(64,145,108,0.2);
+      border-bottom: 1px solid rgba(32,107,196,0.2);
     }
   </style>
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <div id="alert-box" class="alert"></div>
 
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Belege</div>
-          <div class="table-actions">
-            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV-Export</button>
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Belege</h3>
+          <button class="btn btn-ghost-secondary btn-sm" onclick="exportCSV()">CSV-Export</button>
+        </div>
+        <div class="card-body">
+
+          <!-- Filter-Leiste -->
+          <div class="filter-bar">
+            <select class="form-select form-select-sm" id="filter-year" onchange="applyFilters()">
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
+            <select class="form-select form-select-sm" id="filter-month" onchange="applyFilters()">
+              <option value="">Alle Monate</option>
+              <option value="01">Januar</option>
+              <option value="02">Februar</option>
+              <option value="03">März</option>
+              <option value="04">April</option>
+              <option value="05">Mai</option>
+              <option value="06">Juni</option>
+              <option value="07">Juli</option>
+              <option value="08">August</option>
+              <option value="09">September</option>
+              <option value="10">Oktober</option>
+              <option value="11">November</option>
+              <option value="12">Dezember</option>
+            </select>
+            <select class="form-select form-select-sm" id="filter-type" onchange="applyFilters()">
+              <option value="">Alle Typen</option>
+              <option value="invoice">Rechnungen</option>
+              <option value="credit_note">Gutschriften</option>
+              <option value="cancellation">Stornos</option>
+            </select>
+            <input type="text" class="form-control form-control-sm" id="filter-search" placeholder="Suche (Nr., Empfänger...)" oninput="applyFilters()">
           </div>
-        </div>
 
-        <!-- Filter-Leiste -->
-        <div class="filter-bar">
-          <select id="filter-year" onchange="applyFilters()">
-            <option value="2026">2026</option>
-            <option value="2025">2025</option>
-            <option value="2024">2024</option>
-          </select>
-          <select id="filter-month" onchange="applyFilters()">
-            <option value="">Alle Monate</option>
-            <option value="01">Januar</option>
-            <option value="02">Februar</option>
-            <option value="03">März</option>
-            <option value="04">April</option>
-            <option value="05">Mai</option>
-            <option value="06">Juni</option>
-            <option value="07">Juli</option>
-            <option value="08">August</option>
-            <option value="09">September</option>
-            <option value="10">Oktober</option>
-            <option value="11">November</option>
-            <option value="12">Dezember</option>
-          </select>
-          <select id="filter-type" onchange="applyFilters()">
-            <option value="">Alle Typen</option>
-            <option value="invoice">Rechnungen</option>
-            <option value="credit_note">Gutschriften</option>
-            <option value="cancellation">Stornos</option>
-          </select>
-          <input type="text" id="filter-search" placeholder="Suche (Nr., Empfänger...)" oninput="applyFilters()">
         </div>
-
-        <div style="overflow-x:auto">
-          <table id="invoices-table">
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table" id="invoices-table">
             <thead>
               <tr>
                 <th>Nr.</th>
@@ -163,7 +155,7 @@
               </tr>
             </thead>
             <tbody id="invoices-body">
-              <tr><td colspan="10" class="loading-overlay"><span class="spinner"></span> Belege werden geladen...</td></tr>
+              <tr><td colspan="10" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Belege werden geladen...</td></tr>
             </tbody>
             <tfoot id="invoices-tfoot" style="display:none">
               <tr class="sum-row">
@@ -183,24 +175,29 @@
 </div>
 
 <!-- Detail Modal -->
-<div class="modal-overlay" id="detail-modal">
-  <div class="modal" style="max-width:680px">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-title">Beleg-Details</div>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
-    </div>
-    <div class="modal-body" id="modal-body"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Schließen</button>
-      <button class="btn btn-secondary" id="modal-pdf-btn" onclick="openPdf(currentInvoiceId)">PDF öffnen</button>
+<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-title">Beleg-Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schließen</button>
+        <button class="btn btn-secondary" id="modal-pdf-btn" onclick="openPdf(currentInvoiceId)">PDF öffnen</button>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-guard.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-guard.js"></script>
 <script>
   let allInvoices = [];
   let filteredInvoices = [];
@@ -210,8 +207,9 @@
     const user = await checkAdminAuth();
     if (!user) return;
 
-    document.getElementById('sidebar').innerHTML = renderSidebar('invoices');
-    document.getElementById('header').innerHTML = renderHeader('Belege');
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('invoices');
+    document.getElementById('header').innerHTML = renderAdminHeader('Belege', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
 
     // Jahr aus URL oder aktuelles Jahr
     const urlYear = new URLSearchParams(window.location.search).get('year');
@@ -229,7 +227,7 @@
       applyFilters();
     } catch (err) {
       document.getElementById('invoices-body').innerHTML =
-        `<tr><td colspan="10" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="10" class="text-danger" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -285,7 +283,7 @@
     const t = (inv.training_type || '').toLowerCase();
     if (t === 'group' || t === 'gruppentraining') return '<span class="badge badge-gt">GT</span>';
     if (t === 'personal' || t === 'pt')           return '<span class="badge badge-pt">PT</span>';
-    return '<span style="color:#55556A">–</span>';
+    return '<span class="text-muted">–</span>';
   }
 
   function emailBadge(inv) {
@@ -384,32 +382,27 @@
         <div class="detail-item"><label>Nettobetrag</label><div class="val">${fmtCents(inv.net_amount_cents)}</div></div>
         <div class="detail-item"><label>MwSt-Satz</label><div class="val">${inv.vat_rate != null ? inv.vat_rate + ' %' : '–'}</div></div>
         <div class="detail-item"><label>MwSt-Betrag</label><div class="val">${fmtCents(inv.vat_amount_cents)}</div></div>
-        <div class="detail-item"><label>Bruttobetrag</label><div class="val" style="color:#40916C;font-weight:700">${fmtCents(inv.gross_amount_cents)}</div></div>
+        <div class="detail-item"><label>Bruttobetrag</label><div class="val" style="color:var(--tblr-primary);font-weight:700">${fmtCents(inv.gross_amount_cents)}</div></div>
       </div>
 
       <div class="detail-section-title">Status & Versand</div>
       <div class="detail-grid">
         <div class="detail-item"><label>Zahlungsstatus</label><div class="val">${inv.payment_status || '–'}</div></div>
         <div class="detail-item"><label>E-Mail gesendet</label><div class="val">${inv.email_sent_at ? formatDateTime(inv.email_sent_at) : '<span class="email-pend">Nein</span>'}</div></div>
-        <div class="detail-item"><label>PDF vorhanden</label><div class="val">${inv.pdf_path ? '<span class="email-ok">Ja</span>' : '<span style="color:#888">Nein</span>'}</div></div>
+        <div class="detail-item"><label>PDF vorhanden</label><div class="val">${inv.pdf_path ? '<span class="email-ok">Ja</span>' : '<span class="text-muted">Nein</span>'}</div></div>
         <div class="detail-item"><label>Erstellt am</label><div class="val">${formatDateTime(inv.created_at)}</div></div>
       </div>
 
       ${inv.notes ? `
       <div class="detail-section-title">Notizen</div>
-      <div style="background:#111;border-radius:8px;padding:12px;font-size:13px;color:#ccc">${inv.notes}</div>
+      <div style="background:var(--tblr-bg-surface-secondary);border-radius:8px;padding:12px;font-size:13px">${inv.notes}</div>
       ` : ''}
 
-      <p class="text-muted mt-1" style="font-size:11px">ID: ${inv.id}</p>
+      <p class="text-muted mt-3" style="font-size:11px">ID: ${inv.id}</p>
     `;
 
     document.getElementById('modal-pdf-btn').style.display = inv.pdf_path ? '' : 'none';
-    document.getElementById('detail-modal').classList.add('open');
-  }
-
-  function closeModal() {
-    document.getElementById('detail-modal').classList.remove('open');
-    currentInvoiceId = null;
+    new bootstrap.Modal(document.getElementById('detail-modal')).show();
   }
 
   // ─── PDF ──────────────────────────────────────────────────────────────────
@@ -470,11 +463,6 @@
     a.click();
     URL.revokeObjectURL(url);
   }
-
-  // ─── Modal-Overlay schliessen per Klick ───────────────────────────────────
-  document.querySelectorAll('.modal-overlay').forEach(o => {
-    o.addEventListener('click', e => { if (e.target === o) closeModal(); });
-  });
 </script>
 
 </body>

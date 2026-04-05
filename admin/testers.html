@@ -6,15 +6,19 @@
   <title>Tester & Admins – Projekt Fit Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <p class="text-muted" style="margin-bottom:24px">
         Verwalte Testnutzer und deren Berechtigungen. Änderungen werden sofort wirksam.
@@ -24,97 +28,118 @@
       <div class="alert" id="alert"></div>
 
       <!-- KPI Cards -->
-      <div class="kpi-grid" style="margin-bottom:24px" id="kpi-grid">
-        <div class="kpi-card">
-          <div class="kpi-label">Aktive Tester</div>
-          <div class="kpi-value" id="kpi-active"><span class="spinner"></span></div>
+      <div class="row row-deck row-cards mb-3" id="kpi-grid">
+        <div class="col-sm-6 col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Aktive Tester</div>
+              <div class="kpi-value" id="kpi-active"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Inaktive</div>
-          <div class="kpi-value" id="kpi-inactive"><span class="spinner"></span></div>
+        <div class="col-sm-6 col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Inaktive</div>
+              <div class="kpi-value" id="kpi-inactive"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
         </div>
-        <div class="kpi-card">
-          <div class="kpi-label">Gesamt</div>
-          <div class="kpi-value" id="kpi-total"><span class="spinner"></span></div>
+        <div class="col-sm-6 col-lg-4">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Gesamt</div>
+              <div class="kpi-value" id="kpi-total"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Formular -->
-      <div class="table-wrap mb-2">
-        <div class="table-header">
-          <div class="table-title" id="form-title">Neuen Tester hinzufügen</div>
-          <button class="btn btn-ghost btn-sm" id="form-cancel-btn" style="display:none" onclick="resetForm()">Abbrechen</button>
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title" id="form-title">Neuen Tester hinzufügen</h3>
+          <button class="btn btn-ghost-secondary btn-sm" id="form-cancel-btn" style="display:none" onclick="resetForm()">Abbrechen</button>
         </div>
-        <form id="tester-form" style="padding:16px;display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
-          <input type="hidden" id="edit-id" value="">
-          <div style="flex:1;min-width:220px">
-            <label class="form-label">E-Mail *</label>
-            <input type="email" id="input-email" class="form-input" placeholder="name@beispiel.de" required>
-          </div>
-          <div style="min-width:140px">
-            <label class="form-label">Rolle</label>
-            <select id="input-role" class="form-input">
-              <option value="tester">Tester</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div style="min-width:120px">
-            <label class="form-label" style="display:block">&nbsp;</label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text)">
-              <input type="checkbox" id="input-premium" checked> Premium
-            </label>
-          </div>
-          <div style="min-width:120px">
-            <label class="form-label" style="display:block">&nbsp;</label>
-            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;color:var(--text)">
-              <input type="checkbox" id="input-devtools" checked> Dev-Tools
-            </label>
-          </div>
-          <div style="flex:1;min-width:180px">
-            <label class="form-label">Notiz</label>
-            <input type="text" id="input-notes" class="form-input" placeholder="z.B. Beta-Tester, QA">
-          </div>
-          <button type="submit" class="btn btn-primary" id="submit-btn">Hinzufügen</button>
-        </form>
+        <div class="card-body">
+          <form id="tester-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+            <input type="hidden" id="edit-id" value="">
+            <div style="flex:1;min-width:220px">
+              <label class="form-label">E-Mail *</label>
+              <input type="email" id="input-email" class="form-control" placeholder="name@beispiel.de" required>
+            </div>
+            <div style="min-width:140px">
+              <label class="form-label">Rolle</label>
+              <select id="input-role" class="form-select">
+                <option value="tester">Tester</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div style="min-width:120px">
+              <label class="form-label" style="display:block">&nbsp;</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="input-premium" checked> Premium
+              </label>
+            </div>
+            <div style="min-width:120px">
+              <label class="form-label" style="display:block">&nbsp;</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="input-devtools" checked> Dev-Tools
+              </label>
+            </div>
+            <div style="flex:1;min-width:180px">
+              <label class="form-label">Notiz</label>
+              <input type="text" id="input-notes" class="form-control" placeholder="z.B. Beta-Tester, QA">
+            </div>
+            <button type="submit" class="btn btn-primary" id="submit-btn">Hinzufügen</button>
+          </form>
+        </div>
       </div>
 
       <!-- Tabelle -->
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Alle Tester & Admins</div>
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Alle Tester & Admins</h3>
         </div>
-        <table>
-          <thead>
-            <tr>
-              <th>E-Mail</th>
-              <th>Rolle</th>
-              <th>Premium</th>
-              <th>Dev-Tools</th>
-              <th>Notiz</th>
-              <th>Status</th>
-              <th>Erstellt</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="testers-body">
-            <tr><td colspan="8" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table">
+            <thead>
+              <tr>
+                <th>E-Mail</th>
+                <th>Rolle</th>
+                <th>Premium</th>
+                <th>Dev-Tools</th>
+                <th>Notiz</th>
+                <th>Status</th>
+                <th>Erstellt</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="testers-body">
+              <tr><td colspan="8" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
 <script>
 (async () => {
   const user = await checkAdminAuth();
   if (!user) return;
 
-  document.getElementById('sidebar').innerHTML = renderSidebar('testers');
-  document.getElementById('header').innerHTML = renderHeader('Tester & Admins');
+  document.getElementById('sidebar').innerHTML = renderAdminSidebar('testers');
+  document.getElementById('header').innerHTML = renderAdminHeader('Tester & Admins', user.email);
+  initRealtimeToasts(getSupabase(), 'admin');
 
   let allTesters = [];
 
@@ -164,7 +189,7 @@
           </td>
           <td class="text-muted">${t.notes || '–'}</td>
           <td>
-            <button class="btn btn-sm ${t.is_active ? 'btn-primary' : 'btn-ghost'}"
+            <button class="btn btn-sm ${t.is_active ? 'btn-primary' : 'btn-ghost-secondary'}"
               onclick="toggleField('${t.id}', 'is_active', ${!t.is_active})"
               style="min-width:70px">
               ${t.is_active ? 'Aktiv' : 'Inaktiv'}
@@ -173,8 +198,8 @@
           <td class="text-muted">${formatDate(t.created_at)}</td>
           <td>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-ghost btn-sm" onclick="editTester('${t.id}')">✏️</button>
-              <button class="btn btn-ghost btn-sm" onclick="deleteTester('${t.id}', '${t.email}')" style="color:var(--danger)">🗑️</button>
+              <button class="btn btn-ghost-secondary btn-sm" onclick="editTester('${t.id}')">✏️</button>
+              <button class="btn btn-ghost-secondary btn-sm" onclick="deleteTester('${t.id}', '${t.email}')" style="color:var(--tblr-danger)">🗑️</button>
             </div>
           </td>
         </tr>

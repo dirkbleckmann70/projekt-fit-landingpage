@@ -6,14 +6,15 @@
   <title>Einsatzorte – Projekt Fit Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="../shared/table-utils.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBHIdnhJZ1xsND7PRXW4CnHe3fuPfhhtAI&callback=Function.prototype" async defer></script>
   <style>
     /* ─── Accordion / City List ─────────────────────────────────────── */
     .cities-wrap {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
+      background: var(--tblr-bg-surface);
+      border: 1px solid var(--tblr-border-color);
       border-radius: 12px;
       overflow: hidden;
     }
@@ -23,13 +24,13 @@
       align-items: center;
       justify-content: space-between;
       padding: 18px 24px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--tblr-border-color);
     }
 
     .cities-title { font-size: 16px; font-weight: 700; }
 
     .city-row {
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--tblr-border-color);
     }
     .city-row:last-child { border-bottom: none; }
 
@@ -42,12 +43,12 @@
       transition: background 0.15s;
       user-select: none;
     }
-    .city-summary:hover { background: rgba(255,255,255,0.03); }
+    .city-summary:hover { background: rgba(0,0,0,0.02); }
 
     .city-arrow {
       width: 18px;
       height: 18px;
-      color: var(--text-muted);
+      color: var(--tblr-muted);
       transition: transform 0.2s;
       flex-shrink: 0;
     }
@@ -57,8 +58,8 @@
 
     .city-count {
       font-size: 13px;
-      color: var(--text-secondary);
-      background: rgba(255,255,255,0.06);
+      color: var(--tblr-secondary);
+      background: rgba(0,0,0,0.04);
       border-radius: 20px;
       padding: 2px 10px;
     }
@@ -74,8 +75,8 @@
     /* ─── Location list inside accordion ───────────────────────────── */
     .city-locations {
       display: none;
-      background: rgba(0,0,0,0.2);
-      border-top: 1px solid var(--border);
+      background: var(--tblr-bg-surface-secondary);
+      border-top: 1px solid var(--tblr-border-color);
     }
     .city-row.open .city-locations { display: block; }
 
@@ -84,21 +85,21 @@
       align-items: center;
       justify-content: space-between;
       padding: 12px 24px 12px 42px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--tblr-border-color-translucent);
     }
 
-    .loc-list { list-style: none; }
+    .loc-list { list-style: none; padding: 0; margin: 0; }
 
     .loc-item {
       display: flex;
       align-items: center;
       gap: 14px;
       padding: 12px 24px 12px 42px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--tblr-border-color-translucent);
       transition: background 0.15s;
     }
     .loc-item:last-child { border-bottom: none; }
-    .loc-item:hover { background: rgba(255,255,255,0.02); }
+    .loc-item:hover { background: rgba(0,0,0,0.02); }
 
     .loc-thumb {
       width: 60px;
@@ -106,27 +107,27 @@
       border-radius: 8px;
       object-fit: cover;
       flex-shrink: 0;
-      background: var(--border);
+      background: var(--tblr-border-color);
     }
     .loc-thumb-placeholder {
       width: 60px;
       height: 60px;
       border-radius: 8px;
-      background: var(--border);
+      background: var(--tblr-border-color);
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
-      color: var(--text-muted);
+      color: var(--tblr-muted);
       font-size: 22px;
     }
 
     .loc-info { flex: 1; min-width: 0; }
     .loc-info-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
-    .loc-info-addr { font-size: 13px; color: var(--text-secondary); margin-bottom: 2px; }
+    .loc-info-addr { font-size: 13px; color: var(--tblr-secondary); margin-bottom: 2px; }
     .loc-info-desc {
       font-size: 12px;
-      color: var(--text-muted);
+      color: var(--tblr-muted);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -136,8 +137,6 @@
     .loc-item-actions { display: flex; gap: 6px; }
 
     /* ─── Location Modal ────────────────────────────────────────────── */
-    .loc-modal { max-width: 680px; }
-
     .two-col {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -146,7 +145,7 @@
 
     /* Image upload */
     .upload-zone {
-      border: 2px dashed var(--border-light);
+      border: 2px dashed var(--tblr-border-color);
       border-radius: 10px;
       padding: 24px;
       text-align: center;
@@ -155,8 +154,8 @@
       position: relative;
     }
     .upload-zone:hover, .upload-zone.drag-over {
-      border-color: var(--accent);
-      background: rgba(232,147,10,0.04);
+      border-color: var(--tblr-primary);
+      background: rgba(32,107,196,0.04);
     }
     .upload-zone input[type="file"] {
       position: absolute;
@@ -164,7 +163,7 @@
       opacity: 0;
       cursor: pointer;
     }
-    .upload-zone-label { font-size: 13px; color: var(--text-secondary); margin-top: 6px; }
+    .upload-zone-label { font-size: 13px; color: var(--tblr-secondary); margin-top: 6px; }
     .upload-preview {
       width: 100%;
       max-height: 160px;
@@ -179,33 +178,32 @@
       width: 100%;
       height: 220px;
       border-radius: 10px;
-      border: 1px solid var(--border);
+      border: 1px solid var(--tblr-border-color);
       margin-top: 4px;
-      background: #1a1a1a;
+      background: var(--tblr-bg-surface-secondary);
     }
-    .map-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .map-hint { font-size: 12px; color: var(--tblr-muted); margin-top: 4px; }
 
-    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 12px; font-weight: 600; }
     .badge-active { background: rgba(39,174,96,0.15); color: #2ecc71; }
     .badge-inactive { background: rgba(231,76,60,0.12); color: #e74c3c; }
 
-    .loading-row td { padding: 32px; text-align: center; color: var(--text-muted); }
-
     .empty-loc {
       padding: 20px 24px 20px 42px;
-      color: var(--text-muted);
+      color: var(--tblr-muted);
       font-size: 13px;
       font-style: italic;
     }
   </style>
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <div id="alert-box" class="alert"></div>
 
@@ -216,8 +214,8 @@
           <button class="btn btn-primary" onclick="openCityModal()">+ Neue Stadt</button>
         </div>
         <div id="cities-body">
-          <div style="padding:32px;text-align:center;color:var(--text-muted)">
-            <span class="spinner"></span> Laden...
+          <div style="padding:32px;text-align:center;color:var(--tblr-muted)">
+            <div class="spinner-border spinner-border-sm"></div> Laden...
           </div>
         </div>
       </div>
@@ -227,133 +225,143 @@
 </div>
 
 <!-- ─── City Modal (new / edit) ──────────────────────────────────────── -->
-<div class="modal-overlay" id="city-modal">
-  <div class="modal" style="max-width:440px">
-    <div class="modal-header">
-      <div class="modal-title" id="city-modal-title">Neue Stadt</div>
-      <button class="modal-close" onclick="closeModal('city-modal')">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="city-form" onsubmit="return false">
-        <div class="form-group">
-          <label>Stadt *</label>
-          <input class="form-control" id="f-city" required placeholder="z.B. Köln">
-        </div>
-        <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:4px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="f-city-active" checked> Aktiv
-          </label>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('city-modal')">Abbrechen</button>
-      <button class="btn btn-primary" id="city-save-btn" onclick="saveCity()">Speichern</button>
+<div class="modal modal-blur fade" id="city-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="city-modal-title">Neue Stadt</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="city-form" onsubmit="return false">
+          <div class="mb-3">
+            <label class="form-label">Stadt *</label>
+            <input class="form-control" id="f-city" required placeholder="z.B. Köln">
+          </div>
+          <div class="mb-3" style="display:flex;align-items:center;gap:8px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="f-city-active" checked> Aktiv
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" id="city-save-btn" onclick="saveCity()">Speichern</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- ─── Location Modal (new / edit) ────────────────────────────────── -->
-<div class="modal-overlay" id="location-modal">
-  <div class="modal loc-modal">
-    <div class="modal-header">
-      <div class="modal-title" id="loc-modal-title">Neue Location</div>
-      <button class="modal-close" onclick="closeModal('location-modal')">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="location-form" onsubmit="return false">
+<div class="modal modal-blur fade" id="location-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="loc-modal-title">Neue Location</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="location-form" onsubmit="return false">
 
-        <!-- Name -->
-        <div class="form-group">
-          <label>Name *</label>
-          <input class="form-control" id="f-loc-name" required placeholder="z.B. Stadtpark Süd">
-        </div>
+          <!-- Name -->
+          <div class="mb-3">
+            <label class="form-label">Name *</label>
+            <input class="form-control" id="f-loc-name" required placeholder="z.B. Stadtpark Süd">
+          </div>
 
-        <!-- Adresse -->
-        <hr style="border-color:var(--border);margin:18px 0 14px">
-        <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Adresse</h3>
-        <div class="form-group">
-          <label>Straße &amp; Hausnummer</label>
-          <input class="form-control" id="f-loc-street" placeholder="Hauptstraße 12"
-            onblur="geocodeAddress()">
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>PLZ</label>
-            <input class="form-control" id="f-loc-plz" maxlength="5" placeholder="50667"
+          <!-- Adresse -->
+          <hr class="my-3">
+          <h3 style="font-size:14px;font-weight:700;margin-bottom:14px">Adresse</h3>
+          <div class="mb-3">
+            <label class="form-label">Straße &amp; Hausnummer</label>
+            <input class="form-control" id="f-loc-street" placeholder="Hauptstraße 12"
               onblur="geocodeAddress()">
           </div>
-          <div class="form-group">
-            <label>Ort</label>
-            <input class="form-control" id="f-loc-ort" placeholder="Köln"
-              onblur="geocodeAddress()">
+          <div class="two-col mb-3">
+            <div>
+              <label class="form-label">PLZ</label>
+              <input class="form-control" id="f-loc-plz" maxlength="5" placeholder="50667"
+                onblur="geocodeAddress()">
+            </div>
+            <div>
+              <label class="form-label">Ort</label>
+              <input class="form-control" id="f-loc-ort" placeholder="Köln"
+                onblur="geocodeAddress()">
+            </div>
           </div>
-        </div>
 
-        <!-- Google Map -->
-        <div class="form-group">
-          <label>Karte (Marker ziehbar)</label>
-          <div id="loc-map"></div>
-          <p class="map-hint">Adresse eingeben → Karte zentriert sich automatisch. Marker lässt sich verschieben.</p>
-        </div>
-        <input type="hidden" id="f-loc-lat">
-        <input type="hidden" id="f-loc-lng">
-
-        <!-- Beschreibung -->
-        <hr style="border-color:var(--border);margin:18px 0 14px">
-        <div class="form-group">
-          <label>Beschreibung</label>
-          <textarea class="form-control" id="f-loc-desc" rows="3" placeholder="Kurze Beschreibung der Location..."></textarea>
-        </div>
-
-        <!-- Bild -->
-        <div class="form-group">
-          <label>Bild</label>
-          <div class="upload-zone" id="upload-zone"
-            ondragover="uploadDragOver(event)" ondragleave="uploadDragLeave(event)" ondrop="uploadDrop(event)">
-            <input type="file" id="f-loc-image" accept="image/*" onchange="imageSelected(event)">
-            <div id="upload-icon">📸</div>
-            <div class="upload-zone-label">Bild hierher ziehen oder klicken zum Auswählen</div>
-            <img id="upload-preview" class="upload-preview" alt="Vorschau">
+          <!-- Google Map -->
+          <div class="mb-3">
+            <label class="form-label">Karte (Marker ziehbar)</label>
+            <div id="loc-map"></div>
+            <p class="map-hint">Adresse eingeben → Karte zentriert sich automatisch. Marker lässt sich verschieben.</p>
           </div>
-        </div>
+          <input type="hidden" id="f-loc-lat">
+          <input type="hidden" id="f-loc-lng">
 
-        <!-- Aktiv -->
-        <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:4px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="f-loc-active" checked> Aktiv
-          </label>
-        </div>
+          <!-- Beschreibung -->
+          <hr class="my-3">
+          <div class="mb-3">
+            <label class="form-label">Beschreibung</label>
+            <textarea class="form-control" id="f-loc-desc" rows="3" placeholder="Kurze Beschreibung der Location..."></textarea>
+          </div>
 
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('location-modal')">Abbrechen</button>
-      <button class="btn btn-primary" id="loc-save-btn" onclick="saveLocation()">Speichern</button>
+          <!-- Bild -->
+          <div class="mb-3">
+            <label class="form-label">Bild</label>
+            <div class="upload-zone" id="upload-zone"
+              ondragover="uploadDragOver(event)" ondragleave="uploadDragLeave(event)" ondrop="uploadDrop(event)">
+              <input type="file" id="f-loc-image" accept="image/*" onchange="imageSelected(event)">
+              <div id="upload-icon">📸</div>
+              <div class="upload-zone-label">Bild hierher ziehen oder klicken zum Auswählen</div>
+              <img id="upload-preview" class="upload-preview" alt="Vorschau">
+            </div>
+          </div>
+
+          <!-- Aktiv -->
+          <div class="mb-3" style="display:flex;align-items:center;gap:8px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+              <input type="checkbox" id="f-loc-active" checked> Aktiv
+            </label>
+          </div>
+
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" id="loc-save-btn" onclick="saveLocation()">Speichern</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- ─── Delete confirm modal ──────────────────────────────────────── -->
-<div class="modal-overlay" id="delete-modal">
-  <div class="modal" style="max-width:420px">
-    <div class="modal-header">
-      <div class="modal-title">Location löschen</div>
-      <button class="modal-close" onclick="closeModal('delete-modal')">&times;</button>
-    </div>
-    <div class="modal-body">
-      <p id="delete-modal-text" style="color:var(--text-secondary)">Soll diese Location wirklich gelöscht werden?</p>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('delete-modal')">Abbrechen</button>
-      <button class="btn btn-danger" id="delete-confirm-btn">Löschen</button>
+<div class="modal modal-blur fade" id="delete-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Location löschen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="delete-modal-text" class="text-secondary">Soll diese Location wirklich gelöscht werden?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-danger" id="delete-confirm-btn">Löschen</button>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-guard.js"></script>
+<script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-guard.js"></script>
 <script>
   /* ─────────────────────────────────────────────────────────────────
      State
@@ -378,8 +386,9 @@
     const user = await checkAdminAuth();
     if (!user) return;
 
-    document.getElementById('sidebar').innerHTML = renderSidebar('locations');
-    document.getElementById('header').innerHTML  = renderHeader('Einsatzorte');
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('locations');
+    document.getElementById('header').innerHTML  = renderAdminHeader('Einsatzorte', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
 
     await loadCities();
   })();
@@ -394,7 +403,7 @@
       renderCities();
     } catch (err) {
       document.getElementById('cities-body').innerHTML =
-        `<div style="padding:24px;color:var(--error)">Fehler: ${err.message}</div>`;
+        `<div style="padding:24px" class="text-danger">Fehler: ${err.message}</div>`;
     }
   }
 
@@ -404,7 +413,7 @@
   function renderCities() {
     const container = document.getElementById('cities-body');
     if (allCities.length === 0) {
-      container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-muted)">Noch keine Städte angelegt.</div>';
+      container.innerHTML = '<div style="padding:32px;text-align:center;color:var(--tblr-muted)">Noch keine Städte angelegt.</div>';
       return;
     }
 
@@ -447,7 +456,7 @@
     if (!locs) {
       return `
         <div class="loc-subheader">
-          <span style="color:var(--text-muted);font-size:13px"><span class="spinner"></span> Lade Locations…</span>
+          <span style="color:var(--tblr-muted);font-size:13px"><div class="spinner-border spinner-border-sm"></div> Lade Locations…</span>
           <button class="btn btn-primary btn-sm" onclick="openNewLocModal('${cityId}')">+ Neue Location</button>
         </div>`;
     }
@@ -458,7 +467,7 @@
 
     return `
       <div class="loc-subheader">
-        <span style="color:var(--text-muted);font-size:13px">${locs.length} Location${locs.length !== 1 ? 's' : ''}</span>
+        <span style="color:var(--tblr-muted);font-size:13px">${locs.length} Location${locs.length !== 1 ? 's' : ''}</span>
         <button class="btn btn-primary btn-sm" onclick="openNewLocModal('${cityId}')">+ Neue Location</button>
       </div>
       ${rows}`;
@@ -545,7 +554,7 @@
       document.getElementById('city-form').reset();
       document.getElementById('f-city-active').checked = true;
     }
-    openModal('city-modal');
+    new bootstrap.Modal(document.getElementById('city-modal')).show();
   }
 
   async function saveCity() {
@@ -554,7 +563,7 @@
 
     const payload = { city: cityName, is_active: document.getElementById('f-city-active').checked };
     const btn = document.getElementById('city-save-btn');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    btn.disabled = true; btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
 
     try {
       if (editingCityId) {
@@ -563,7 +572,7 @@
       } else {
         await adminApi('/api/admin?action=locations', { method: 'POST', body: JSON.stringify(payload) });
       }
-      closeModal('city-modal');
+      bootstrap.Modal.getInstance(document.getElementById('city-modal')).hide();
       showAlert('alert-box', editingCityId ? 'Stadt aktualisiert!' : 'Stadt erstellt!', 'success');
       await loadCities();
     } catch (err) {
@@ -602,7 +611,7 @@
     const city = allCities.find(c => c.id === cityId);
     if (city) document.getElementById('f-loc-ort').value = city.city;
 
-    openModal('location-modal');
+    new bootstrap.Modal(document.getElementById('location-modal')).show();
     initMap();
   }
 
@@ -635,7 +644,7 @@
       resetUploadPreview();
     }
 
-    openModal('location-modal');
+    new bootstrap.Modal(document.getElementById('location-modal')).show();
     initMap(l.lat ? parseFloat(l.lat) : null, l.lng ? parseFloat(l.lng) : null);
   }
 
@@ -656,7 +665,7 @@
     };
 
     const btn = document.getElementById('loc-save-btn');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    btn.disabled = true; btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
 
     try {
       let locId = editingLocId;
@@ -674,7 +683,7 @@
         await uploadImage(locId);
       }
 
-      closeModal('location-modal');
+      bootstrap.Modal.getInstance(document.getElementById('location-modal')).hide();
       showAlert('alert-box', editingLocId ? 'Location aktualisiert!' : 'Location erstellt!', 'success');
       // Reload locations for this city
       delete cityLocations[currentCityId];
@@ -694,18 +703,18 @@
       `Soll die Location „${locName}" wirklich gelöscht werden? Diese Aktion kann nicht rückgängig gemacht werden.`;
     const confirmBtn = document.getElementById('delete-confirm-btn');
     confirmBtn.onclick = () => deleteLoc(cityId, locId);
-    openModal('delete-modal');
+    new bootstrap.Modal(document.getElementById('delete-modal')).show();
   }
 
   async function deleteLoc(cityId, locId) {
     const btn = document.getElementById('delete-confirm-btn');
-    btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+    btn.disabled = true; btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
     try {
       await adminApi('/api/admin?action=location_details', {
         method: 'DELETE',
         body: JSON.stringify({ id: locId }),
       });
-      closeModal('delete-modal');
+      bootstrap.Modal.getInstance(document.getElementById('delete-modal')).hide();
       showAlert('alert-box', 'Location gelöscht.', 'success');
       delete cityLocations[cityId];
       await loadCityLocations(cityId);
@@ -792,13 +801,6 @@
           mapTypeControl: false,
           streetViewControl: false,
           fullscreenControl: false,
-          styles: [
-            { elementType: 'geometry', stylers: [{ color: '#1a1a2e' }] },
-            { elementType: 'labels.text.stroke', stylers: [{ color: '#1a1a2e' }] },
-            { elementType: 'labels.text.fill', stylers: [{ color: '#8888a0' }] },
-            { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2a2a3e' }] },
-            { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0d0d1a' }] },
-          ],
         });
 
         geocoder = new google.maps.Geocoder();
@@ -858,31 +860,17 @@
   }
 
   /* ─────────────────────────────────────────────────────────────────
-     Modal helpers
+     Modal cleanup on hide
   ───────────────────────────────────────────────────────────────── */
-  function openModal(id) {
-    document.getElementById(id).classList.add('open');
-  }
-  function closeModal(id) {
-    document.getElementById(id).classList.remove('open');
-    if (id === 'location-modal') {
-      // Destroy map so it re-initialises cleanly next open
-      mapInstance = null;
-      mapMarker   = null;
-      newImageFile = null;
-    }
-    if (id === 'city-modal')    editingCityId = null;
-    if (id === 'location-modal') { editingLocId = null; currentCityId = null; }
-  }
-
-  // Close on overlay click
-  document.querySelectorAll('.modal-overlay').forEach(o => {
-    o.addEventListener('click', e => {
-      if (e.target === o) {
-        const id = o.id;
-        closeModal(id);
-      }
-    });
+  document.getElementById('location-modal').addEventListener('hidden.bs.modal', () => {
+    mapInstance = null;
+    mapMarker   = null;
+    newImageFile = null;
+    editingLocId = null;
+    currentCityId = null;
+  });
+  document.getElementById('city-modal').addEventListener('hidden.bs.modal', () => {
+    editingCityId = null;
   });
 
   /* ─────────────────────────────────────────────────────────────────

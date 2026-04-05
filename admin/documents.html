@@ -6,11 +6,13 @@
   <title>Dokumente – Projekt Fit Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <style>
     .folder-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
+      background: var(--tblr-bg-surface);
+      border: 1px solid var(--tblr-border-color);
       border-radius: 14px;
       margin-bottom: 16px;
       overflow: hidden;
@@ -23,7 +25,7 @@
       cursor: pointer;
       transition: background 0.15s;
     }
-    .folder-header:hover { background: rgba(255,255,255,0.02); }
+    .folder-header:hover { background: rgba(0,0,0,0.02); }
     .folder-title {
       display: flex;
       align-items: center;
@@ -34,20 +36,20 @@
     .folder-icon {
       width: 36px; height: 36px;
       border-radius: 10px;
-      background: rgba(232,147,10,0.12);
-      color: var(--accent);
+      background: rgba(32,107,196,0.1);
+      color: var(--tblr-primary);
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
     .folder-count {
       font-size: 12px;
-      color: var(--text-muted);
-      background: rgba(255,255,255,0.06);
+      color: var(--tblr-muted);
+      background: rgba(0,0,0,0.04);
       padding: 2px 10px;
       border-radius: 50px;
     }
     .folder-chevron {
-      color: var(--text-muted);
+      color: var(--tblr-muted);
       transition: transform 0.2s;
       font-size: 18px;
     }
@@ -55,7 +57,7 @@
     .folder-body {
       display: none;
       padding: 0 20px 16px;
-      border-top: 1px solid var(--border);
+      border-top: 1px solid var(--tblr-border-color);
     }
     .folder-card.open .folder-body { display: block; }
     .file-row {
@@ -63,7 +65,7 @@
       align-items: center;
       gap: 12px;
       padding: 10px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
+      border-bottom: 1px solid var(--tblr-border-color-translucent);
     }
     .file-row:last-of-type { border-bottom: none; }
     .file-type-badge {
@@ -81,48 +83,56 @@
       font-size: 13px; font-weight: 600;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .file-meta { font-size: 11px; color: var(--text-muted); }
+    .file-meta { font-size: 11px; color: var(--tblr-muted); }
     .file-actions { display: flex; gap: 6px; flex-shrink: 0; }
     .folder-upload-area {
       margin-top: 12px;
       padding-top: 12px;
-      border-top: 1px solid rgba(255,255,255,0.04);
+      border-top: 1px solid var(--tblr-border-color-translucent);
     }
     .empty-folder {
       padding: 20px 0;
       text-align: center;
-      color: var(--text-muted);
+      color: var(--tblr-muted);
       font-size: 13px;
     }
   </style>
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <div id="alert-box" class="alert"></div>
 
-      <div class="table-header" style="background:var(--bg-card);border:1px solid var(--border);border-radius:14px;margin-bottom:20px">
-        <div class="table-title">Dokumente</div>
-        <div class="table-actions" style="display:flex;align-items:center;gap:12px">
-          <input type="text" class="search-input" id="doc-search" placeholder="Dateiname suchen..." style="width:220px">
-          <span class="text-muted" style="font-size:12px">Storage Bucket: admin-documents</span>
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Dokumente</h3>
+          <div style="display:flex;align-items:center;gap:12px">
+            <input type="text" class="form-control form-control-sm" id="doc-search" placeholder="Dateiname suchen..." style="width:220px">
+            <span class="text-muted" style="font-size:12px">Storage Bucket: admin-documents</span>
+          </div>
         </div>
       </div>
 
       <div id="folders-container">
-        <div class="loading-overlay"><span class="spinner"></span> Dokumente werden geladen...</div>
+        <div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm"></div> Dokumente werden geladen...</div>
       </div>
 
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
 <script>
   const FOLDERS = [
@@ -139,8 +149,9 @@
     const user = await checkAdminAuth();
     if (!user) return;
 
-    document.getElementById('sidebar').innerHTML = renderSidebar('documents');
-    document.getElementById('header').innerHTML = renderHeader('Dokumente');
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('documents');
+    document.getElementById('header').innerHTML = renderAdminHeader('Dokumente', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
 
     document.getElementById('doc-search').addEventListener('input', (e) => {
       docSearch = e.target.value.toLowerCase();
@@ -157,7 +168,7 @@
       renderFolders();
     } catch (err) {
       document.getElementById('folders-container').innerHTML =
-        `<p class="text-error" style="padding:20px">Fehler: ${err.message}</p>`;
+        `<p class="text-danger" style="padding:20px">Fehler: ${err.message}</p>`;
     }
   }
 
@@ -187,7 +198,7 @@
                   onchange="uploadFiles('${folder.id}', this)">
                 + Datei hochladen
               </label>
-              <span class="upload-status" id="status-${folder.id}" style="font-size:12px;color:var(--text-muted);margin-left:8px"></span>
+              <span class="upload-status" id="status-${folder.id}" style="font-size:12px;color:var(--tblr-muted);margin-left:8px"></span>
             </div>
           </div>
         </div>
@@ -211,7 +222,7 @@
         </div>
         <div class="file-actions">
           <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewDocument('${f.path}')">Anzeigen</button>
-          <button class="btn btn-icon btn-icon-delete" onclick="deleteDocument('${f.id}','${f.path}','${f.filename.replace(/'/g, "\\'")}')">&#x1F5D1;</button>
+          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteDocument('${f.id}','${f.path}','${f.filename.replace(/'/g, "\\'")}')">&#x1F5D1;</button>
         </div>
       </div>
     `;
