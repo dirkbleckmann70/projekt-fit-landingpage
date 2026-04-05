@@ -572,11 +572,11 @@
       } else {
         await adminApi('/api/admin?action=locations', { method: 'POST', body: JSON.stringify(payload) });
       }
-      const cm = bootstrap.Modal.getInstance(document.getElementById('city-modal')) || new bootstrap.Modal(document.getElementById('city-modal'));
-      cm.hide();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('city-modal')).hide();
       showAlert('alert-box', editingCityId ? 'Stadt aktualisiert!' : 'Stadt erstellt!', 'success');
       await loadCities();
     } catch (err) {
+      console.error('[Locations] saveCity error:', err);
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     } finally {
       btn.disabled = false; btn.textContent = 'Speichern';
@@ -684,13 +684,13 @@
         await uploadImage(locId);
       }
 
-      const lm = bootstrap.Modal.getInstance(document.getElementById('location-modal')) || new bootstrap.Modal(document.getElementById('location-modal'));
-      lm.hide();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('location-modal')).hide();
       showAlert('alert-box', editingLocId ? 'Location aktualisiert!' : 'Location erstellt!', 'success');
       // Reload locations for this city
       delete cityLocations[currentCityId];
       await loadCityLocations(currentCityId);
     } catch (err) {
+      console.error('[Locations] saveLocation error:', err);
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     } finally {
       btn.disabled = false; btn.textContent = 'Speichern';
@@ -716,8 +716,7 @@
         method: 'DELETE',
         body: JSON.stringify({ id: locId }),
       });
-      const dm = bootstrap.Modal.getInstance(document.getElementById('delete-modal')) || new bootstrap.Modal(document.getElementById('delete-modal'));
-      dm.hide();
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('delete-modal')).hide();
       showAlert('alert-box', 'Location gelöscht.', 'success');
       delete cityLocations[cityId];
       await loadCityLocations(cityId);
