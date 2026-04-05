@@ -456,6 +456,7 @@
       actions = `<button class="btn btn-sm btn-outline-primary" onclick="showGTDetail('${item.gc_id}')"><i class="ti ti-eye"></i> Details</button>`;
     } else if (item.status === BOOKING_STATUS.PENDING) {
       actions = `
+        <button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
         <button class="btn btn-sm btn-success" onclick="openLocationSelectModal('${item.id}')"><i class="ti ti-check"></i> Bestaetigen</button>
         <button class="btn btn-sm btn-outline-secondary" onclick="openRescheduleModal('${item.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
         <button class="btn btn-sm btn-outline-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
@@ -497,7 +498,8 @@
     const revenue = calcRevenue(b);
     let actions;
     if (b.status === BOOKING_STATUS.PENDING) {
-      actions = `<button class="btn btn-sm btn-confirm" onclick="openLocationSelectModal('${b.id}')">Bestätigen</button>
+      actions = `<button class="btn btn-ghost-secondary btn-sm" onclick="showDetail('${b.id}')">Details</button>
+         <button class="btn btn-sm btn-confirm" onclick="openLocationSelectModal('${b.id}')">Bestätigen</button>
          <button class="btn btn-sm btn-reschedule" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
          <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)">Ablehnen</button>`;
     } else if (b.status === BOOKING_STATUS.CONFIRMED) {
@@ -611,17 +613,20 @@
 
     let healthHtml = '';
     let contactHtml = '';
+    let customerEmail = '';
     if (b.customer_id) {
       try {
         const sb = getSupabase();
-        const { data: cust } = await sb.from('customers').select('health_declaration, phone').eq('id', b.customer_id).single();
+        const { data: cust } = await sb.from('customers').select('health_declaration, phone, email').eq('id', b.customer_id).single();
         healthHtml = renderHealthSection(cust?.health_declaration);
+        if (cust?.email) customerEmail = cust.email;
 
-        const showContact = [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.CHECKED_IN, BOOKING_STATUS.CHECKED_IN_TRAINER].includes(b.status);
+        const showContact = [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.CHECKED_IN, BOOKING_STATUS.CHECKED_IN_TRAINER].includes(b.status);
         if (showContact && cust?.phone) {
           contactHtml = `<div class="alert alert-success mb-3">
             <div class="text-secondary text-uppercase fw-bold" style="font-size:11px;letter-spacing:0.5px;margin-bottom:6px">Kontakt zum Kunden</div>
             <a href="tel:${cust.phone}" style="color:var(--tblr-primary);font-size:16px;font-weight:700;text-decoration:none"><i class="ti ti-phone me-1"></i>${cust.phone}</a>
+            ${cust.email ? '<div class="mt-1"><a href="mailto:' + cust.email + '" style="color:var(--tblr-primary);text-decoration:none"><i class="ti ti-mail me-1"></i>' + cust.email + '</a></div>' : ''}
             <div class="text-secondary mt-1" style="font-size:12px">Bei Verspätung oder Fragen zum Treffpunkt</div>
           </div>`;
         }
@@ -629,6 +634,22 @@
         healthHtml = '';
       }
     }
+
+    // Vorgeschlagene Treffpunkte laden
+    let locationHtml = '';
+    try {
+      const resp = await adminApi('/api/admin?action=data&type=booking_locations&bookingId=' + bookingId);
+      var locs = Array.isArray(resp.data) ? resp.data : [];
+      if (locs.length > 0) {
+        locationHtml = `<div class="mb-3"><label class="form-label text-secondary">Vorgeschlagene Treffpunkte</label>`;
+        locs.forEach(function(loc) {
+          var addr = [loc.street, loc.zip_code, loc.city].filter(Boolean).join(', ') || loc.address || '';
+          var selected = loc.is_selected ? ' <span class="badge bg-primary">Gewaehlt</span>' : '';
+          locationHtml += '<div class="d-flex align-items-start gap-2 mb-1"><i class="ti ti-map-pin text-secondary" style="margin-top:2px"></i><div><strong>' + (loc.name || loc.location_name || 'Treffpunkt') + '</strong>' + selected + (addr ? '<br><span class="text-secondary" style="font-size:12px">' + addr + '</span>' : '') + '</div></div>';
+        });
+        locationHtml += '</div>';
+      }
+    } catch { /* no locations */ }
 
     document.getElementById('detail-modal-body').innerHTML = `
       <div class="row mb-3">
@@ -644,10 +665,11 @@
         <div class="col-6"><label class="form-label text-secondary">Status</label><div>${statusBadgeBK(b)}</div></div>
       </div>
       <div class="row mb-3">
-        <div class="col-6"><label class="form-label text-secondary">Vergütung</label><div style="color:var(--tblr-primary);font-weight:700">${vergütung}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Verguetung</label><div style="color:var(--tblr-primary);font-weight:700">${vergütung}</div></div>
         ${hasRating ? `<div class="col-6"><label class="form-label text-secondary">Bewertung</label><div>${b.rating}/5${b.review_comment ? '<br><span class="text-secondary" style="font-size:13px">„' + b.review_comment + '"</span>' : ''}</div></div>` : '<div class="col-6"></div>'}
       </div>
       ${contactHtml}
+      ${locationHtml}
       ${healthHtml}
       ${b.notes ? `<div class="mb-3"><label class="form-label text-secondary">Notizen</label><div class="text-secondary" style="font-size:14px">${b.notes}</div></div>` : ''}
       <div class="text-secondary" style="font-size:11px;border-top:1px solid var(--tblr-border-color);padding-top:12px">Buchungs-ID: ${b.id}</div>
