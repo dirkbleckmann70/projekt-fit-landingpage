@@ -523,6 +523,22 @@
       </div>`;
     } else if (item.status === 'location_proposed') {
       warningLine = `<div class="text-warning mt-1" style="font-size:12px"><i class="ti ti-map-pin"></i> Ort-Vorschlag: <strong>${item.location_name || '–'}</strong>${item.location_address ? ', ' + item.location_address : ''} – Wartet auf Kunde</div>`;
+    } else if (item.status === BOOKING_STATUS.CANCELLED_BY_TRAINER) {
+      warningLine = `<div class="text-danger mt-1" style="font-size:12px"><i class="ti ti-alert-circle"></i> Trainer hat abgesagt</div>`;
+    } else if (item.status === BOOKING_STATUS.FULLY_CANCELLED) {
+      // Grund aus Notes extrahieren
+      var reason = '';
+      if (item.notes) {
+        if (item.notes.includes('Stornierung durch den Kunden')) reason = 'Vom Kunden storniert';
+        else if (item.notes.includes('Treffpunkt-Vorschlag abgelehnt')) reason = 'Kunde hat Treffpunkt abgelehnt';
+        else if (item.notes.includes('Kein Ersatztrainer')) reason = 'Kein Ersatztrainer verfuegbar';
+        else reason = 'Vollstaendig storniert';
+      } else {
+        reason = 'Vollstaendig storniert';
+      }
+      warningLine = `<div class="text-danger mt-1" style="font-size:12px"><i class="ti ti-x"></i> ${reason}</div>`;
+    } else if (item.status === BOOKING_STATUS.CANCELLED) {
+      warningLine = `<div class="text-secondary mt-1" style="font-size:12px"><i class="ti ti-x"></i> Storniert</div>`;
     }
 
     return `
