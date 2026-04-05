@@ -442,8 +442,15 @@
 
     function isTerminVorbei(item) {
       if (!item.scheduled_date) return false;
-      var terminEnd = new Date(item.scheduled_date + 'T' + (item.scheduled_time ? item.scheduled_time.slice(0,5) : '23:59'));
-      terminEnd.setHours(terminEnd.getHours() + 1); // 1h Puffer nach Terminbeginn
+      var parts = item.scheduled_date.split('-');
+      var y = parseInt(parts[0]); var mo = parseInt(parts[1]) - 1; var da = parseInt(parts[2]);
+      var h = 23; var m = 59;
+      if (item.scheduled_time) {
+        var tp = item.scheduled_time.split(':');
+        h = parseInt(tp[0]) + 1; // 1h nach Terminbeginn = vorbei
+        m = parseInt(tp[1]) || 0;
+      }
+      var terminEnd = new Date(y, mo, da, h, m, 0);
       return now > terminEnd;
     }
 
