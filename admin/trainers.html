@@ -25,17 +25,6 @@
 
       <!-- Trainer Table -->
       <div class="card">
-        <div class="count-bar" style="font-size:12px;color:var(--tblr-secondary-color);padding:8px 16px;display:flex;justify-content:space-between;align-items:center">
-          <span id="trainers-count-cell">Trainer werden geladen...</span>
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-ghost-secondary" onclick="document.querySelector('.filter-row')?.classList.toggle('d-none')">
-              <i class="ti ti-filter"></i> Filter &amp; Sortierung
-            </button>
-            <button class="btn btn-sm btn-primary" onclick="openNewTrainerModal()">
-              <i class="ti ti-plus"></i> Neuer Trainer
-            </button>
-          </div>
-        </div>
         <div class="table-responsive">
           <table class="table table-vcenter card-table table-hover" id="trainers-table">
             <thead>
@@ -253,7 +242,12 @@
       { key: 'rating',        type: 'number', getValue: t => t.rating || 0 },
       { key: 'created_at',    type: 'date',   getValue: t => t.created_at ? t.created_at.slice(0, 10) : '' },
       null,
-    ]);
+    ], {
+      extraButtons: [
+        { label: 'Neuer Trainer', icon: 'ti-plus', className: 'btn btn-sm btn-primary', onClick: 'openNewTrainerModal()' }
+      ],
+      countLabel: 'Trainern'
+    });
     tableFilter.onFilterChange(() => renderTrainers());
   })();
 
@@ -270,13 +264,6 @@
 
   function renderTrainers() {
     let filtered = tableFilter ? tableFilter.apply(allTrainers) : allTrainers;
-
-    const countCell = document.getElementById('trainers-count-cell');
-    if (filtered.length === allTrainers.length) {
-      countCell.textContent = `${allTrainers.length} Trainer`;
-    } else {
-      countCell.textContent = `${filtered.length} von ${allTrainers.length} Trainern`;
-    }
 
     const tbody = document.getElementById('trainers-body');
 

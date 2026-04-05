@@ -24,17 +24,6 @@
       <div id="alert-box" class="alert"></div>
 
       <div class="card">
-        <div class="count-bar" style="font-size:12px;color:var(--tblr-secondary-color);padding:8px 16px;display:flex;justify-content:space-between;align-items:center">
-          <span id="bookings-count-cell">Buchungen werden geladen...</span>
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-ghost-secondary" onclick="document.querySelector('.filter-row')?.classList.toggle('d-none')">
-              <i class="ti ti-filter"></i> Filter &amp; Sortierung
-            </button>
-            <button class="btn btn-sm btn-ghost-secondary" onclick="exportCSV()">
-              <i class="ti ti-download"></i> CSV Export
-            </button>
-          </div>
-        </div>
         <div class="table-responsive">
           <table class="table table-vcenter card-table table-hover" id="bookings-table">
             <thead>
@@ -143,7 +132,12 @@
       { key: 'cost',           type: 'number', getValue: b => effectiveCost(b) / 100 },
       { key: 'payment_status', type: 'select', getValue: b => getPaymentLabel(b) },
       null,
-    ]);
+    ], {
+      extraButtons: [
+        { label: 'CSV Export', icon: 'ti-download', className: 'btn btn-sm btn-ghost-secondary', onClick: 'exportCSV()' }
+      ],
+      countLabel: 'Buchungen'
+    });
     tableFilter.onFilterChange(() => renderBookings());
   })();
 

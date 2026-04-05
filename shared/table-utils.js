@@ -1,17 +1,25 @@
-// shared/table-utils.js – Excel-Stil Sort + Filter für alle Tabellen
-// Verwendung: tableFilter = initSortableTable(tableId, columnConfig);
+// shared/table-utils.js – Tabler-styled Sort + Filter fuer alle Tabellen
+// Verwendung: tableFilter = initSortableTable(tableId, columnConfig, options);
 //             tableFilter.onFilterChange(() => renderMyTable());
 //             let data = tableFilter.apply(allData); // in Render-Funktion
+//
+// options (optional):
+//   extraButtons: [{label, icon, className, onClick}]  – seitenspezifische Buttons
+//   countLabel: 'Trainern' | 'Kunden' | ...           – Default: 'Eintraegen'
 (function () {
   'use strict';
 
   /**
    * @param {string} tableId
    * @param {Array<{key,type,getValue}|null>} columnConfig
-   *   type: 'text' | 'select' | 'date' | 'number' | null (keine Filter-Zelle)
+   * @param {Object} [options]
    * @returns {{ apply, applyFilters, onFilterChange, clearAll }}
    */
-  function initSortableTable(tableId, columnConfig) {
+  function initSortableTable(tableId, columnConfig, options) {
+    options = options || {};
+    var extraButtons = options.extraButtons || [];
+    var countLabel = options.countLabel || 'Eintraegen';
+
     var table = document.getElementById(tableId);
     if (!table) { console.warn('initSortableTable: Tabelle nicht gefunden:', tableId); return null; }
 
@@ -28,35 +36,70 @@
     var sortKey    = null;
     var sortDir    = 0;       // 0=none 1=asc -1=desc
     var onChangeCb = null;
-    var filterStates  = {};   // key -> {type, value, from, to, min, max} | null
-    var filterVisible = false; // Filterzeile standardmäßig ausgeblendet
+    var filterStates  = {};
+    var filterVisible = false;
 
-    // ── Toolbar (Count-Bar + Toggle + Reset) ─────────────────────────
+    // ── Toolbar (Count-Bar) mit Tabler-Design ────────────────────────
     var toolbar = document.createElement('div');
-    toolbar.className = 'tf-count-bar';
-    toolbar.innerHTML =
-      '<span class="tf-count-text"></span>' +
-      '<div class="tf-toolbar-right">' +
-        '<button type="button" class="tf-toggle-btn">\uD83D\uDD3D Filter &amp; Sortierung</button>' +
-        '<button type="button" class="tf-reset-btn">Filter zur\u00fccksetzen</button>' +
-      '</div>';
-    table.parentElement.insertBefore(toolbar, table);
+    toolbar.className = 'count-bar';
+    toolbar.style.cssText = 'font-size:12px;color:var(--tblr-secondary-color);padding:8px 16px;display:flex;justify-content:space-between;align-items:center';
 
-    var countText = toolbar.querySelector('.tf-count-text');
-    var toggleBtn = toolbar.querySelector('.tf-toggle-btn');
-    var resetBtn  = toolbar.querySelector('.tf-reset-btn');
+    var countText = document.createElement('span');
+    countText.className = 'tf-count-text';
+    toolbar.appendChild(countText);
 
-    // ── Sort-Icons + direkte Click-Handler auf <th> ───────────────────
+    var btnGroup = document.createElement('div');
+    btnGroup.className = 'd-flex gap-2';
+
+    // Filter-Toggle Button
+    var toggleBtn = document.createElement('button');
+    toggleBtn.type = 'button';
+    toggleBtn.className = 'btn btn-sm btn-ghost-secondary';
+    toggleBtn.innerHTML = '<i class="ti ti-filter"></i> Filter &amp; Sortierung';
+    btnGroup.appendChild(toggleBtn);
+
+    // Reset Button (initial hidden)
+    var resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.className = 'btn btn-sm btn-ghost-secondary';
+    resetBtn.innerHTML = '<i class="ti ti-x"></i> Zuruecksetzen';
+    resetBtn.style.display = 'none';
+    btnGroup.appendChild(resetBtn);
+
+    // Extra-Buttons (seitenspezifisch)
+    extraButtons.forEach(function (btn) {
+      var el = document.createElement('button');
+      el.type = 'button';
+      el.className = btn.className || 'btn btn-sm btn-ghost-secondary';
+      el.innerHTML = (btn.icon ? '<i class="ti ' + btn.icon + '"></i> ' : '') + btn.label;
+      if (btn.onClick) {
+        el.setAttribute('onclick', btn.onClick);
+      }
+      btnGroup.appendChild(el);
+    });
+
+    toolbar.appendChild(btnGroup);
+
+    // Einfuegen: Innerhalb der .card als erstes Element
+    var card = table.closest('.card');
+    if (card) {
+      // Bestehende manuelle count-bar entfernen falls vorhanden
+      var existingBar = card.querySelector('.count-bar');
+      if (existingBar) existingBar.remove();
+      card.insertBefore(toolbar, card.firstChild);
+    } else {
+      table.parentElement.insertBefore(toolbar, table);
+    }
+
+    // ── Sort-Icons (Tabler Icons) auf <th> ───────────────────────────
     columnConfig.forEach(function (col, i) {
       if (!col || i >= ths.length) return;
       var th = ths[i];
       th.classList.add('tf-sortable');
-      th.style.cursor = 'pointer';
-      th.style.userSelect = 'none';
 
-      var icon = document.createElement('span');
-      icon.className = 'tf-sort-icon';
-      icon.innerHTML = '&#x21C5;'; // ⇅
+      var icon = document.createElement('i');
+      icon.className = 'ti ti-arrows-sort tf-sort-icon';
+      icon.style.cssText = 'font-size:12px;opacity:0.5;margin-left:4px;vertical-align:middle';
       th.appendChild(icon);
 
       th.addEventListener('click', function () {
@@ -80,19 +123,21 @@
         var icon = ths[i].querySelector('.tf-sort-icon');
         if (!icon) return;
         if (sortKey === col.key && sortDir !== 0) {
-          icon.innerHTML = sortDir === 1 ? '&#x25B2;' : '&#x25BC;';
-          icon.classList.add('active');
+          icon.className = sortDir === 1
+            ? 'ti ti-sort-ascending tf-sort-icon'
+            : 'ti ti-sort-descending tf-sort-icon';
+          icon.style.cssText = 'font-size:12px;margin-left:4px;vertical-align:middle;color:var(--tblr-warning);opacity:1';
         } else {
-          icon.innerHTML = '&#x21C5;';
-          icon.classList.remove('active');
+          icon.className = 'ti ti-arrows-sort tf-sort-icon';
+          icon.style.cssText = 'font-size:12px;opacity:0.5;margin-left:4px;vertical-align:middle';
         }
       });
     }
 
-    // ── Filter-Zeile in <thead> einfügen (standardmäßig hidden) ──────
+    // ── Filter-Zeile in <thead> (default: hidden) ────────────────────
     var filterRow = document.createElement('tr');
     filterRow.className = 'tf-filter-row';
-    filterRow.style.display = 'none'; // default: ausgeblendet
+    filterRow.style.display = 'none';
 
     columnConfig.forEach(function (col) {
       var td = document.createElement('th');
@@ -100,20 +145,20 @@
       if (col) {
         var k = col.key;
         if (col.type === 'text') {
-          td.innerHTML = '<input type="text" class="tf-fi tf-fi-text" placeholder="Suchen\u2026" data-key="' + k + '">';
+          td.innerHTML = '<input type="text" class="form-control form-control-sm tf-fi tf-fi-text" placeholder="Suchen\u2026" data-key="' + k + '">';
         } else if (col.type === 'select') {
-          td.innerHTML = '<select class="tf-fi tf-fi-select" data-key="' + k + '"><option value="">Alle</option></select>';
+          td.innerHTML = '<select class="form-select form-select-sm tf-fi tf-fi-select" data-key="' + k + '"><option value="">Alle</option></select>';
         } else if (col.type === 'date') {
           td.innerHTML =
             '<div class="tf-date-range">' +
-            '<input type="date" class="tf-fi tf-fi-date-from" data-key="' + k + '" title="Von">' +
-            '<input type="date" class="tf-fi tf-fi-date-to"   data-key="' + k + '" title="Bis">' +
+            '<input type="date" class="form-control form-control-sm tf-fi tf-fi-date-from" data-key="' + k + '" title="Von">' +
+            '<input type="date" class="form-control form-control-sm tf-fi tf-fi-date-to"   data-key="' + k + '" title="Bis">' +
             '</div>';
         } else if (col.type === 'number') {
           td.innerHTML =
             '<div class="tf-date-range">' +
-            '<input type="number" class="tf-fi tf-fi-num-min" placeholder="Min" data-key="' + k + '" step="any">' +
-            '<input type="number" class="tf-fi tf-fi-num-max" placeholder="Max" data-key="' + k + '" step="any">' +
+            '<input type="number" class="form-control form-control-sm tf-fi tf-fi-num-min" placeholder="Min" data-key="' + k + '" step="any">' +
+            '<input type="number" class="form-control form-control-sm tf-fi tf-fi-num-max" placeholder="Max" data-key="' + k + '" step="any">' +
             '</div>';
         }
       }
@@ -121,11 +166,9 @@
     });
 
     thead.appendChild(filterRow);
-
-    // Klick in Filter-Zeile löst keinen Sort aus
     filterRow.addEventListener('click', function (e) { e.stopPropagation(); });
 
-    // ── Toggle-Button ─────────────────────────────────────────────────
+    // ── Toggle-Button Handler ────────────────────────────────────────
     toggleBtn.addEventListener('click', function () {
       filterVisible = !filterVisible;
       filterRow.style.display = filterVisible ? '' : 'none';
@@ -135,28 +178,24 @@
     function _updateToolbar() {
       var activeFilters = Object.values(filterStates).filter(function (s) { return s; }).length;
 
-      // Filterzeile automatisch einblenden wenn Filter aktiv werden
       if (activeFilters > 0 && !filterVisible) {
         filterVisible = true;
         filterRow.style.display = '';
       }
 
-      // Toggle-Button Text
-      var arrow = filterVisible ? '\uD83D\uDD3C' : '\uD83D\uDD3D';
-      var label = arrow + ' Filter & Sortierung';
+      // Toggle-Button: Icon + Text + optionaler Badge
+      var label = '<i class="ti ti-filter"></i> Filter &amp; Sortierung';
       if (activeFilters > 0) {
-        label += ' <span class="tf-filter-badge">' + activeFilters +
-                 (activeFilters === 1 ? ' aktiv' : ' aktiv') + '</span>';
+        label += ' <span class="badge bg-warning-lt ms-1">' + activeFilters + ' aktiv</span>';
       }
       toggleBtn.innerHTML = label;
-      toggleBtn.classList.toggle('tf-toggle-active', activeFilters > 0);
 
       // Reset-Button nur wenn Filter oder Sort aktiv
       var hasActive = activeFilters > 0 || sortDir !== 0;
-      resetBtn.style.display = hasActive ? 'inline-block' : 'none';
+      resetBtn.style.display = hasActive ? '' : 'none';
     }
 
-    // ── Filter-Events ─────────────────────────────────────────────────
+    // ── Filter-Events ────────────────────────────────────────────────
     filterRow.addEventListener('input', function (e) {
       var el = e.target, key = el.dataset.key;
       if (!key) return;
@@ -202,7 +241,7 @@
       }
     });
 
-    // ── Select-Optionen befüllen ──────────────────────────────────────
+    // ── Select-Optionen befuellen ────────────────────────────────────
     function _populateSelects(allData) {
       filterRow.querySelectorAll('.tf-fi-select').forEach(function (select) {
         var key = select.dataset.key;
@@ -235,7 +274,7 @@
       });
     }
 
-    // ── apply: Filter + Sort anwenden ─────────────────────────────────
+    // ── apply: Filter + Sort anwenden ────────────────────────────────
     function apply(allData) {
       _populateSelects(allData);
 
@@ -294,12 +333,16 @@
       }
 
       // 3. Count-Text aktualisieren
-      countText.textContent = result.length + ' von ' + allData.length + ' Eintr\u00e4gen';
+      if (result.length === allData.length) {
+        countText.textContent = allData.length + ' ' + countLabel;
+      } else {
+        countText.textContent = result.length + ' von ' + allData.length + ' ' + countLabel;
+      }
 
       return result;
     }
 
-    // ── Reset ─────────────────────────────────────────────────────────
+    // ── Reset ────────────────────────────────────────────────────────
     resetBtn.addEventListener('click', function () {
       Object.keys(filterStates).forEach(function (k) { filterStates[k] = null; });
       sortKey = null; sortDir = 0;

@@ -24,17 +24,6 @@
       <div id="alert-box" class="alert"></div>
 
       <div class="card">
-        <div class="count-bar" style="font-size:12px;color:var(--tblr-secondary-color);padding:8px 16px;display:flex;justify-content:space-between;align-items:center">
-          <span id="customers-count-cell">Kunden werden geladen...</span>
-          <div class="d-flex gap-2">
-            <button class="btn btn-sm btn-ghost-secondary" onclick="document.querySelector('.filter-row')?.classList.toggle('d-none')">
-              <i class="ti ti-filter"></i> Filter &amp; Sortierung
-            </button>
-            <button class="btn btn-sm btn-primary" onclick="openNewModal()">
-              <i class="ti ti-plus"></i> Kunde anlegen
-            </button>
-          </div>
-        </div>
         <div class="table-responsive">
           <table class="table table-vcenter card-table table-hover" id="customers-table">
             <thead>
@@ -183,7 +172,12 @@
       { key: 'health',     type: 'select', getValue: c => c.health_declaration_accepted ? 'Akzeptiert' : 'Offen' },
       { key: 'created_at', type: 'date',   getValue: c => c.created_at ? c.created_at.slice(0, 10) : '' },
       null,
-    ]);
+    ], {
+      extraButtons: [
+        { label: 'Kunde anlegen', icon: 'ti-plus', className: 'btn btn-sm btn-primary', onClick: 'openNewModal()' }
+      ],
+      countLabel: 'Kunden'
+    });
     tableFilter.onFilterChange(() => renderCustomers());
   })();
 
@@ -200,13 +194,6 @@
 
   function renderCustomers() {
     let filtered = tableFilter ? tableFilter.apply(allCustomers) : allCustomers;
-
-    const countCell = document.getElementById('customers-count-cell');
-    if (filtered.length === allCustomers.length) {
-      countCell.textContent = `${allCustomers.length} Kunden`;
-    } else {
-      countCell.textContent = `${filtered.length} von ${allCustomers.length} Kunden`;
-    }
 
     const tbody = document.getElementById('customers-body');
 
