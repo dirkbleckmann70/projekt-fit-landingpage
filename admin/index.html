@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -102,6 +102,10 @@
   function hideError() {
     errorMsg.classList.add('d-none');
   }
+  function resetBtn() {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<i class="ti ti-login"></i> Anmelden';
+  }
 
   // Check if already logged in as admin
   (async () => {
@@ -136,28 +140,28 @@
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
       if (error) {
+        console.error('[Admin Login] signIn error:', error);
         showError('Login fehlgeschlagen: ' + error.message);
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Einloggen';
+        resetBtn();
         return;
       }
 
       // Check admin role
       const role = data.user?.user_metadata?.role;
+      console.log('[Admin Login] role:', role);
       if (!role || !role.includes('admin')) {
         await sb.auth.signOut();
         showError('Kein Admin-Zugang. Nur Administratoren dürfen sich hier einloggen.');
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Einloggen';
+        resetBtn();
         return;
       }
 
       // Redirect to dashboard
       window.location.href = '/admin/dashboard.html';
     } catch (err) {
+      console.error('[Admin Login] catch:', err);
       showError('Verbindungsfehler: ' + err.message);
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Einloggen';
+      resetBtn();
     }
   });
 </script>

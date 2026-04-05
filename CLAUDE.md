@@ -17,8 +17,11 @@ Jede Aenderung MUSS committed + gepusht werden → Vercel deployed automatisch.
 
 ## Tech-Stack
 
-- Statisches HTML/CSS/JavaScript (kein Framework)
-- Supabase JS SDK (Trainer-Bewerbung)
+- Tabler 1.0.0-beta21 (Bootstrap 5, CDN) — CSS-Framework fuer Admin + Trainer Portal
+- FullCalendar 6.1.x (CDN) — Kalender-Ansichten (Admin + Trainer)
+- Tabler Icons (CDN) — `ti ti-*` Icon-Klassen
+- Supabase JS SDK (Auth, DB, Realtime)
+- Vanilla JS (kein Build-Prozess, kein React/Vue)
 - Puppeteer (Dev-Dependency, Screenshots)
 
 ---
@@ -38,7 +41,7 @@ trainer/                # Trainer-Bewerbungsseiten
 trainer-portal/         # Trainer-Portal (projektfit.net/trainer-portal)
 challenge/              # Challenge-Invite Landing
 api/                    # Vercel Serverless Functions
-shared/                 # Gemeinsame CSS/JS
+shared/                 # Gemeinsame CSS/JS (Tabler-Overrides, Layout, Theme, Toasts, Constants, Table-Utils)
 scripts/                # Build-/Screenshot-Hilfsskripte
 screenshots/            # App Store Screenshots
 ```

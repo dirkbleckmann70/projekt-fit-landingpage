@@ -82,21 +82,14 @@
 
       <!-- Editierbare Felder -->
       <form id="profile-edit-form">
+
+      <!-- Kontaktdaten -->
       <div class="card mb-3">
-        <div class="card-header"><h3 class="card-title">Persönliche Daten</h3></div>
+        <div class="card-header"><h3 class="card-title"><i class="ti ti-user me-2"></i>Kontaktdaten</h3></div>
         <div class="card-body">
           <div class="mb-3">
             <label class="form-label">Name</label>
             <input class="form-control" id="f-name" value="${t.full_name || ''}">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Bio / Über mich</label>
-            <textarea class="form-control" id="f-bio" rows="4">${t.bio || ''}</textarea>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Spezialisierungen</label>
-            <input class="form-control" id="f-spec" value="${t.specializations || ''}" placeholder="z.B. HIIT, Yoga, Krafttraining">
-            <small class="form-hint">Komma-getrennt</small>
           </div>
           <div class="row">
             <div class="col-md-6 mb-3">
@@ -104,17 +97,16 @@
               <input class="form-control" id="f-phone" value="${t.phone || ''}">
             </div>
             <div class="col-md-6 mb-3">
-              <label class="form-label">Stadt</label>
-              <input class="form-control" id="f-city" value="${t.city || ''}" disabled>
-              <small class="form-hint">Wird vom Projekt Fit Team festgelegt.</small>
+              <label class="form-label">E-Mail</label>
+              <input class="form-control" value="${t.email || ''}" disabled>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Adresse & Steuerdaten -->
+      <!-- Adresse -->
       <div class="card mb-3">
-        <div class="card-header"><h3 class="card-title">Adresse & Steuerdaten</h3></div>
+        <div class="card-header"><h3 class="card-title"><i class="ti ti-map-pin me-2"></i>Adresse</h3></div>
         <div class="card-body">
           <div class="row">
             <div class="col-md-8 mb-3">
@@ -126,6 +118,34 @@
               <input class="form-control" id="f-postal" value="${t.postal_code || ''}">
             </div>
           </div>
+          <div class="mb-3">
+            <label class="form-label">Wohnort</label>
+            <input class="form-control" id="f-city" value="${t.city || ''}">
+            <small class="form-hint">Dein Wohnort (nicht dein Trainingsort)</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Berufliches Profil -->
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title"><i class="ti ti-certificate me-2"></i>Berufliches Profil</h3></div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Bio / Über mich</label>
+            <textarea class="form-control" id="f-bio" rows="4">${t.bio || ''}</textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Spezialisierungen</label>
+            <input class="form-control" id="f-spec" value="${t.specializations || ''}" placeholder="z.B. HIIT, Yoga, Krafttraining">
+            <small class="form-hint">Komma-getrennt</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Steuerdaten -->
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title"><i class="ti ti-receipt-tax me-2"></i>Steuerdaten</h3></div>
+        <div class="card-body">
           <div class="row">
             <div class="col-md-6 mb-3">
               <label class="form-label">Steuernummer</label>
@@ -141,6 +161,7 @@
           </div>
         </div>
       </div>
+
       </form>
 
       <!-- Nur-Lese Felder (Admin setzt diese) -->
@@ -352,6 +373,7 @@
       bio: document.getElementById('f-bio').value.trim() || null,
       specializations: document.getElementById('f-spec').value.trim() || null,
       phone: document.getElementById('f-phone').value.trim() || null,
+      city: document.getElementById('f-city').value.trim() || null,
       street_address: document.getElementById('f-street').value.trim() || null,
       postal_code: document.getElementById('f-postal').value.trim() || null,
       steuernummer: document.getElementById('f-steuer').value.trim() || null,
