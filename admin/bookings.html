@@ -621,7 +621,7 @@
     try {
       const resp = await adminApi('/api/admin?action=data&type=calendar_trainers');
       var trainers = (resp.data || []).filter(function(t) {
-        return t.id !== booking.trainer_id && t.is_active;
+        return t.id !== booking.trainer_id;
       });
       trainers.forEach(function(t) {
         var opt = document.createElement('option');
