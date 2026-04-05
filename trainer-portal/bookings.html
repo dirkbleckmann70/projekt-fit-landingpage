@@ -455,12 +455,12 @@
     }
 
     const aktuell = items.filter(i => {
-      if (i._type === 'gt') return i.is_active;
+      if (i._type === 'gt') return i.is_active && !isTerminVorbei(i);
       if (!ACTIVE.includes(i.status)) return false;
       return !isTerminVorbei(i);
     });
     const vergangen = items.filter(i => {
-      if (i._type === 'gt') return !i.is_active;
+      if (i._type === 'gt') return !i.is_active || isTerminVorbei(i);
       if (i.status === BOOKING_STATUS.COMPLETED || i.status === BOOKING_STATUS.EXPIRED) return true;
       // Abgelaufene aktive Termine → Vergangen
       if (ACTIVE.includes(i.status) && isTerminVorbei(i)) return true;
