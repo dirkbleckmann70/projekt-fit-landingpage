@@ -23,19 +23,20 @@
 
       <div id="alert-box" class="alert"></div>
 
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:12px 16px">
-        Kundendaten werden über die App erfasst. Hier kannst du Kunden einsehen und verwalten.
-      </p>
-
       <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h3 class="card-title">Kunden-Verwaltung</h3>
-          <div>
-            <button class="btn btn-primary" onclick="openNewModal()">+ Kunde anlegen</button>
+        <div class="count-bar" style="font-size:12px;color:var(--tblr-secondary-color);padding:8px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span id="customers-count-cell">Kunden werden geladen...</span>
+          <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-ghost-secondary" onclick="document.querySelector('.filter-row')?.classList.toggle('d-none')">
+              <i class="ti ti-filter"></i> Filter &amp; Sortierung
+            </button>
+            <button class="btn btn-sm btn-primary" onclick="openNewModal()">
+              <i class="ti ti-plus"></i> Kunde anlegen
+            </button>
           </div>
         </div>
         <div class="table-responsive">
-          <table class="table table-vcenter card-table" id="customers-table">
+          <table class="table table-vcenter card-table table-hover" id="customers-table">
             <thead>
               <tr>
                 <th>Name</th>
@@ -199,6 +200,13 @@
 
   function renderCustomers() {
     let filtered = tableFilter ? tableFilter.apply(allCustomers) : allCustomers;
+
+    const countCell = document.getElementById('customers-count-cell');
+    if (filtered.length === allCustomers.length) {
+      countCell.textContent = `${allCustomers.length} Kunden`;
+    } else {
+      countCell.textContent = `${filtered.length} von ${allCustomers.length} Kunden`;
+    }
 
     const tbody = document.getElementById('customers-body');
 
