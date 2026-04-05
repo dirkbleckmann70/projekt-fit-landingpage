@@ -480,7 +480,8 @@
 
       showAlert('alert-box', 'Verfuegbarkeit gespeichert! (' + rows.length + ' Zeitfenster)', 'success');
       markClean();
-      // Refetch to get proper IDs from DB
+      // Alle Events entfernen (inkl. manuell hinzugefuegte), dann frisch aus DB laden
+      calendar.getEvents().forEach(function(e) { e.remove(); });
       calendar.refetchEvents();
     } catch (err) {
       alert('Speichern fehlgeschlagen: ' + err.message);
