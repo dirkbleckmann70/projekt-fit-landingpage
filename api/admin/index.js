@@ -2263,20 +2263,31 @@ async function handleLocationAccept(req, res, supabase) {
   const { bookingId } = body
   if (!bookingId) return res.status(400).json({ success: false, error: 'bookingId ist Pflicht' })
 
-  const { data: booking } = await supabase.from('bookings').select('selected_location_id, notes').eq('id', bookingId).single()
-  if (!booking?.selected_location_id) return res.status(400).json({ success: false, error: 'Kein Location-Vorschlag gefunden' })
+  const { data: booking } = await supabase.from('bookings').select('selected_location_id, location_name, location_address, notes').eq('id', bookingId).single()
+  if (!booking) return res.status(404).json({ success: false, error: 'Buchung nicht gefunden' })
 
-  const { data: loc } = await supabase.from('booking_locations').select('*').eq('id', booking.selected_location_id).single()
-  if (!loc) return res.status(404).json({ success: false, error: 'Location nicht gefunden' })
+  const update = {
+    status: 'confirmed',
+    notes: '',
+    updated_at: new Date().toISOString(),
+  }
 
-  const auditNote = `[Location ${new Date().toISOString()}] Kunde hat Trainer-Treffpunkt akzeptiert: ${loc.name}`
-  const newNotes = booking.notes ? `${booking.notes}\n${auditNote}` : auditNote
+  if (booking.selected_location_id) {
+    // Location aus booking_locations uebernehmen
+    const { data: loc } = await supabase.from('booking_locations').select('*').eq('id', booking.selected_location_id).single()
+    if (loc) {
+      update.location_name = loc.name
+      update.location_address = loc.address
+    }
+    const auditNote = `[Location ${new Date().toISOString()}] Kunde hat Treffpunkt akzeptiert: ${loc?.name || booking.location_name}`
+    update.notes = booking.notes ? `${booking.notes}\n${auditNote}` : auditNote
+  } else {
+    // Trainer-Vorschlag direkt in bookings (kein booking_location Eintrag)
+    const auditNote = `[Location ${new Date().toISOString()}] Kunde hat Trainer-Treffpunkt akzeptiert: ${booking.location_name}`
+    update.notes = booking.notes ? `${booking.notes}\n${auditNote}` : auditNote
+  }
 
-  const { error } = await supabase.from('bookings').update({
-    status: 'confirmed', location_name: loc.name, location_address: loc.address,
-    location_lat: loc.latitude, location_lng: loc.longitude,
-    location_proposed_by: null, location_proposed_at: null, notes: newNotes, updated_at: new Date().toISOString(),
-  }).eq('id', bookingId)
+  const { error } = await supabase.from('bookings').update(update).eq('id', bookingId)
 
   if (error) return res.status(500).json({ success: false, error: error.message })
   return res.json({ success: true })
@@ -2294,8 +2305,8 @@ async function handleLocationReject(req, res, supabase) {
   const newNotes = booking?.notes ? `${booking.notes}\n${auditNote}` : auditNote
 
   const { error } = await supabase.from('bookings').update({
-    status: 'cancelled_by_trainer', cancellation_reason: 'Treffpunkt-Vorschlag abgelehnt',
-    location_proposed_by: null, location_proposed_at: null, notes: newNotes, updated_at: new Date().toISOString(),
+    status: 'fully_cancelled',
+    notes: newNotes, updated_at: new Date().toISOString(),
   }).eq('id', bookingId)
 
   if (error) return res.status(500).json({ success: false, error: error.message })
