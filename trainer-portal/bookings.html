@@ -508,7 +508,7 @@
         <br><i class="ti ti-hourglass"></i> Wartet auf Kundenbestaetigung
       </div>`;
     } else if (item.status === 'location_proposed') {
-      warningLine = `<div class="text-warning mt-1" style="font-size:12px"><i class="ti ti-map-pin"></i> Ort-Vorschlag: ${item.location_name || '–'} – Wartet auf Kunde</div>`;
+      warningLine = `<div class="text-warning mt-1" style="font-size:12px"><i class="ti ti-map-pin"></i> Ort-Vorschlag: <strong>${item.location_name || '–'}</strong>${item.location_address ? ', ' + item.location_address : ''} – Wartet auf Kunde</div>`;
     }
 
     return `
@@ -729,10 +729,10 @@
         <div class="fw-bold" style="color:#F4A940">→ ${formatDate(b.proposed_date)} · ${b.proposed_time ? b.proposed_time.slice(0,5) : '–'} Uhr</div>
         <div class="text-secondary mt-1">Wartet auf Kundenbestaetigung (24h Frist)</div>
       </div>` : ''}
-      ${b.status === 'location_proposed' && b.location_name ? `<div class="alert alert-warning mb-3" style="font-size:13px">
+      ${b.status === 'location_proposed' ? `<div class="alert alert-warning mb-3" style="font-size:13px">
         <div class="fw-bold mb-1"><i class="ti ti-map-pin"></i> Dein Ort-Vorschlag</div>
-        <div class="fw-bold" style="color:#F4A940">${b.location_name}</div>
-        ${b.location_address ? '<div class="text-secondary">' + b.location_address + '</div>' : ''}
+        <div class="fw-bold" style="color:#F4A940;font-size:15px">${b.location_name || '–'}</div>
+        ${b.location_address ? '<div style="color:#F4A940">' + b.location_address + '</div>' : ''}
         <div class="text-secondary mt-1">Wartet auf Kundenbestaetigung (24h Frist)</div>
       </div>` : ''}
       ${contactHtml}
