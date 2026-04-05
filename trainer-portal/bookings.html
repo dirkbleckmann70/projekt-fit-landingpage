@@ -696,10 +696,10 @@
           }
         });
         if (isActionable) {
-          locationHtml += '<div class="mt-2 pt-2" style="border-top:1px dashed var(--tblr-border-color)">';
+          locationHtml += '<div class="mt-2 pt-2" id="alt-loc-section" style="border-top:1px dashed var(--tblr-border-color)">';
           locationHtml += '<div class="text-secondary fw-bold" style="font-size:12px;margin-bottom:6px">Oder alternativen Ort vorschlagen:</div>';
-          locationHtml += '<input type="text" class="form-control form-control-sm mb-1" id="detail-alt-loc-name" placeholder="Name (z.B. Stadtpark Nord)">';
-          locationHtml += '<input type="text" class="form-control form-control-sm" id="detail-alt-loc-address" placeholder="Adresse">';
+          locationHtml += '<input type="text" class="form-control form-control-sm mb-1" id="detail-alt-loc-name" placeholder="Name (z.B. Stadtpark Nord)" oninput="onAltLocInput()">';
+          locationHtml += '<input type="text" class="form-control form-control-sm" id="detail-alt-loc-address" placeholder="Adresse" oninput="onAltLocInput()">';
           locationHtml += '</div>';
         }
         locationHtml += '</div>';
@@ -1066,9 +1066,21 @@
   }
 
   // ─── Detail-Modal: Location auswaehlen ──────────────────────────────────
+  function deselectAllLocations() {
+    (window._detailLocations || []).forEach(function(loc) {
+      var card = document.getElementById('loc-card-' + loc.id);
+      if (!card) return;
+      card.style.borderColor = '';
+      card.style.background = '';
+      card.querySelector('i').className = 'ti ti-circle';
+      card.querySelector('i').style.color = 'var(--tblr-border-color)';
+    });
+    window._selectedLocationId = null;
+  }
+
   function selectDetailLocation(locId) {
     window._selectedLocationId = locId;
-    // Alle Karten zuruecksetzen
+    // Alle Karten zuruecksetzen, dann gewaehlte hervorheben
     (window._detailLocations || []).forEach(function(loc) {
       var card = document.getElementById('loc-card-' + loc.id);
       if (!card) return;
@@ -1084,11 +1096,23 @@
         card.querySelector('i').style.color = 'var(--tblr-border-color)';
       }
     });
-    // Alt-Loc Felder leeren wenn Kunden-Vorschlag gewaehlt
+    // Alt-Loc Felder leeren + Highlight entfernen
     var altName = document.getElementById('detail-alt-loc-name');
     var altAddr = document.getElementById('detail-alt-loc-address');
     if (altName) altName.value = '';
     if (altAddr) altAddr.value = '';
+    var altSection = document.getElementById('alt-loc-section');
+    if (altSection) altSection.style.borderColor = '';
+  }
+
+  function onAltLocInput() {
+    var altName = document.getElementById('detail-alt-loc-name');
+    if (altName && altName.value.trim()) {
+      // Kunden-Locations abwaehlen, Alternative hervorheben
+      deselectAllLocations();
+      var altSection = document.getElementById('alt-loc-section');
+      if (altSection) altSection.style.borderColor = 'var(--tblr-primary)';
+    }
   }
 
   async function confirmFromDetail(bookingId) {
