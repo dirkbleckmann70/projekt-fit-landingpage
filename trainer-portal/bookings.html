@@ -239,7 +239,7 @@
   let tableFilter;
   let _detailModal, _locationModal, _rescheduleModal;
 
-  const CANCELLED = [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.CANCELLED_BY_TRAINER, BOOKING_STATUS.REFUNDED];
+  const CANCELLED = [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.CANCELLED_BY_TRAINER, BOOKING_STATUS.REFUNDED, BOOKING_STATUS.FULLY_CANCELLED];
 
   function statusPriority(item) {
     if (item._type === 'gt') return item.is_active ? 1 : 3;
@@ -359,7 +359,7 @@
           (custResp.data || []).forEach(function(c) {
             customerNames[c.id] = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Kunde';
           });
-        } catch { /* fallback to Kunde */ }
+        } catch(e) { console.warn('Kundennamen laden fehlgeschlagen:', e.message); }
       }
 
       allBookings = (data || []).map(b => ({
@@ -437,13 +437,21 @@
     }
 
     // Card-based rendering for tabs
+    var today = new Date().toISOString().split('T')[0];
+    const ACTIVE = [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING];
+
     const aktuell = items.filter(i => {
       if (i._type === 'gt') return i.is_active;
-      return [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING].includes(i.status);
+      if (!ACTIVE.includes(i.status)) return false;
+      // Abgelaufene Termine gehoeren nicht in Aktuell
+      return !i.scheduled_date || i.scheduled_date >= today;
     });
     const vergangen = items.filter(i => {
       if (i._type === 'gt') return !i.is_active;
-      return i.status === BOOKING_STATUS.COMPLETED || i.status === BOOKING_STATUS.EXPIRED;
+      if (i.status === BOOKING_STATUS.COMPLETED || i.status === BOOKING_STATUS.EXPIRED) return true;
+      // Abgelaufene aktive Termine → Vergangen
+      if (ACTIVE.includes(i.status) && i.scheduled_date && i.scheduled_date < today) return true;
+      return false;
     });
     const storniert = items.filter(i => {
       if (i._type === 'gt') return false;
