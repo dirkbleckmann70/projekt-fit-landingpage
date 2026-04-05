@@ -1383,33 +1383,30 @@ async function handleBookingsDelete(req, res, supabase) {
     return res.status(400).json({ error: 'Maximal 50 Buchungen gleichzeitig loeschen' });
   }
 
-  // Nur echte Booking-UUIDs (keine gp_ group participant IDs)
   const realIds = bookingIds.filter(id => !id.startsWith('gp_'));
-  if (realIds.length === 0) {
-    return res.status(400).json({ error: 'Keine loeschbaren Buchungen (Gruppentraining-Teilnahmen werden ueber GT verwaltet)' });
-  }
+  const gpIds = bookingIds.filter(id => id.startsWith('gp_')).map(id => id.slice(3));
+  let deletedCount = 0;
 
   try {
-    // Abhaengige Datensaetze zuerst loeschen (FK Constraints)
-    const r1 = await supabase.from('trainer_reviews').delete().in('booking_id', realIds);
-    if (r1.error) console.warn('[Delete] trainer_reviews:', r1.error.message);
+    // 1. Echte Buchungen loeschen
+    if (realIds.length > 0) {
+      await supabase.from('trainer_reviews').delete().in('booking_id', realIds);
+      await supabase.from('invoices').delete().in('booking_id', realIds);
+      await supabase.from('bookings').update({ selected_location_id: null }).in('id', realIds);
+      await supabase.from('booking_locations').delete().in('booking_id', realIds);
+      const { error, count } = await supabase.from('bookings').delete({ count: 'exact' }).in('id', realIds);
+      if (error) return res.status(500).json({ error: 'Buchungen loeschen: ' + error.message });
+      deletedCount += count || realIds.length;
+    }
 
-    const r2 = await supabase.from('invoices').delete().in('booking_id', realIds);
-    if (r2.error) console.warn('[Delete] invoices:', r2.error.message);
+    // 2. GT-Teilnahmen loeschen
+    if (gpIds.length > 0) {
+      const { error, count } = await supabase.from('group_participants').delete({ count: 'exact' }).in('id', gpIds);
+      if (error) return res.status(500).json({ error: 'GT-Teilnahmen loeschen: ' + error.message });
+      deletedCount += count || gpIds.length;
+    }
 
-    const r3 = await supabase.from('bookings').update({ selected_location_id: null }).in('id', realIds);
-    if (r3.error) console.warn('[Delete] null location:', r3.error.message);
-
-    const r4 = await supabase.from('booking_locations').delete().in('booking_id', realIds);
-    if (r4.error) console.warn('[Delete] booking_locations:', r4.error.message);
-
-    const { error, count } = await supabase
-      .from('bookings')
-      .delete({ count: 'exact' })
-      .in('id', realIds);
-
-    if (error) return res.status(500).json({ error: 'Loeschen fehlgeschlagen: ' + error.message });
-    return res.json({ success: true, deleted: count || realIds.length });
+    return res.json({ success: true, deleted: deletedCount });
   } catch (err) {
     return res.status(500).json({ error: 'Loeschen fehlgeschlagen: ' + (err.message || err) });
   }
