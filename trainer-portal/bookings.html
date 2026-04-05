@@ -867,19 +867,16 @@
         var locAddress = document.getElementById('reschedule-loc-address').value.trim();
         if (!locName) { alert('Bitte einen Treffpunkt-Namen eingeben.'); btn.disabled = false; btn.textContent = 'Vorschlagen'; return; }
 
-        var sb = getSupabase();
-        var { error } = await sb.from('bookings').update({
-          status: 'location_proposed',
-          location_name: locName,
-          location_address: locAddress || null,
-          notes: (function() {
-            var b = allBookings.find(function(x) { return x.id === rescheduleBookingId; });
-            var ts = new Date().toISOString().slice(0,16).replace('T',' ');
-            var note = '[Ort-Vorschlag ' + ts + '] Trainer schlaegt vor: ' + locName + (locAddress ? ' (' + locAddress + ')' : '');
-            return b && b.notes ? b.notes + '\n' + note : note;
-          })()
-        }).eq('id', rescheduleBookingId);
-        if (error) throw error;
+        await adminApi('/api/admin?action=bookings', {
+          method: 'PUT',
+          body: JSON.stringify({
+            bookingId: rescheduleBookingId,
+            status: 'location_proposed',
+            location_name: locName,
+            location_address: locAddress || null,
+            admin_note: 'Trainer-Ort-Vorschlag: ' + locName + (locAddress ? ' (' + locAddress + ')' : '')
+          })
+        });
 
         if (_rescheduleModal) _rescheduleModal.hide();
         showAlert('Ort-Vorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
@@ -1123,19 +1120,19 @@
     var hasAltLoc = altName && altName.value.trim();
 
     if (hasAltLoc) {
-      // Trainer schlaegt alternativen Ort vor → location_proposed
-      var sb = getSupabase();
-      var b = allBookings.find(function(x) { return x.id === bookingId; });
-      var ts = new Date().toISOString().slice(0,16).replace('T',' ');
-      var note = '[Ort-Vorschlag ' + ts + '] Trainer schlaegt vor: ' + altName.value.trim() + (altAddr && altAddr.value.trim() ? ' (' + altAddr.value.trim() + ')' : '');
-      var newNotes = b && b.notes ? b.notes + '\n' + note : note;
-      var { error } = await sb.from('bookings').update({
-        status: 'location_proposed',
-        location_name: altName.value.trim(),
-        location_address: altAddr && altAddr.value.trim() ? altAddr.value.trim() : null,
-        notes: newNotes
-      }).eq('id', bookingId);
-      if (error) { alert('Fehler: ' + error.message); return; }
+      // Trainer schlaegt alternativen Ort vor → location_proposed (via Admin-API wegen RLS)
+      try {
+        await adminApi('/api/admin?action=bookings', {
+          method: 'PUT',
+          body: JSON.stringify({
+            bookingId: bookingId,
+            status: 'location_proposed',
+            location_name: altName.value.trim(),
+            location_address: altAddr && altAddr.value.trim() ? altAddr.value.trim() : null,
+            admin_note: 'Trainer-Ort-Vorschlag: ' + altName.value.trim() + (altAddr && altAddr.value.trim() ? ' (' + altAddr.value.trim() + ')' : '')
+          })
+        });
+      } catch(e) { alert('Fehler: ' + e.message); return; }
       document.querySelectorAll('.modal.show').forEach(function(m) { var inst = bootstrap.Modal.getInstance(m); if (inst) inst.hide(); });
       showAlert('Ort-Vorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
       await loadBookings();
@@ -1149,22 +1146,22 @@
       return;
     }
 
-    // Location als gewaehlt markieren + Buchung bestaetigen
+    // Location als gewaehlt markieren + Buchung bestaetigen (via Admin-API wegen RLS)
     try {
-      var sb = getSupabase();
-      // Alle Locations dieser Buchung auf nicht-gewaehlt setzen
-      await sb.from('booking_locations').update({ is_selected: false }).eq('booking_id', bookingId);
-      // Gewaehlte Location markieren
-      await sb.from('booking_locations').update({ is_selected: true }).eq('id', selectedLocId);
-
-      // Location-Name in Buchung uebernehmen
       var loc = (window._detailLocations || []).find(function(l) { return l.id === selectedLocId; });
       var locName = loc ? (loc.name || loc.location_name || '') : '';
+      var locAddr = loc ? ([loc.street, loc.zip_code, loc.city].filter(Boolean).join(', ') || loc.address || '') : '';
 
-      await sb.from('bookings').update({
-        status: BOOKING_STATUS.CONFIRMED,
-        location_name: locName
-      }).eq('id', bookingId);
+      await adminApi('/api/admin?action=bookings', {
+        method: 'PUT',
+        body: JSON.stringify({
+          bookingId: bookingId,
+          status: 'confirmed',
+          location_name: locName,
+          location_address: locAddr || null,
+          admin_note: 'Trainer hat Treffpunkt gewaehlt: ' + locName
+        })
+      });
 
       document.querySelectorAll('.modal.show').forEach(function(m) { var inst = bootstrap.Modal.getInstance(m); if (inst) inst.hide(); });
       showAlert('Buchung bestaetigt! Treffpunkt: ' + locName, 'success');

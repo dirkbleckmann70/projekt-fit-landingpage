@@ -38,9 +38,11 @@ export default async function handler(req, res) {
   }
 
   // ── Auth Check ──
-  // Bestimmte read-only Endpoints sind auch fuer Trainer zugaenglich
+  // Bestimmte Endpoints sind auch fuer Trainer zugaenglich
   const trainerAllowedTypes = ['customer_names', 'booking_locations'];
-  const isTrainerAllowed = action === 'data' && req.method === 'GET' && trainerAllowedTypes.includes(req.query.type);
+  const isTrainerAllowedRead = action === 'data' && req.method === 'GET' && trainerAllowedTypes.includes(req.query.type);
+  const isTrainerAllowedWrite = action === 'bookings' && req.method === 'PUT';
+  const isTrainerAllowed = isTrainerAllowedRead || isTrainerAllowedWrite;
 
   if (isTrainerAllowed) {
     const authError = await verifyAuthenticated(req);
@@ -1289,14 +1291,14 @@ async function handleDeleteTrainer(req, res, supabase) {
 
 async function handleBookingsPut(req, res, supabase) {
   const body = await getBody(req);
-  const { bookingId, status, paid, scheduled_date, scheduled_time, price_cents, final_price_cents, trainer_payout_cents, trainer_id, admin_note } = body;
+  const { bookingId, status, paid, scheduled_date, scheduled_time, price_cents, final_price_cents, trainer_payout_cents, trainer_id, location_name, location_address, admin_note } = body;
 
   if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
 
   const update = {};
 
   if (status !== undefined) {
-    const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'pending', 'confirmed', 'completed', 'cancelled', 'cancelled_by_trainer', 'expired', 'rejected', 'disputed', 'checked_in', 'paid', 'refunded', 'reschedule_proposed', 'finding_replacement', 'replacement_pending', 'replacement_found', 'fully_cancelled'];
+    const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'pending', 'confirmed', 'completed', 'cancelled', 'cancelled_by_trainer', 'expired', 'rejected', 'disputed', 'checked_in', 'paid', 'refunded', 'reschedule_proposed', 'location_proposed', 'finding_replacement', 'replacement_pending', 'replacement_found', 'fully_cancelled'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: `Ungültiger Status: ${status}` });
     }
@@ -1344,6 +1346,14 @@ async function handleBookingsPut(req, res, supabase) {
   // Trainer wechseln (Ersatztrainer zuweisen)
   if (trainer_id !== undefined) {
     update.trainer_id = trainer_id;
+  }
+
+  // Ort aendern (Trainer-Vorschlag)
+  if (location_name !== undefined) {
+    update.location_name = location_name;
+  }
+  if (location_address !== undefined) {
+    update.location_address = location_address;
   }
 
   // Admin-Notiz anfuegen (Audit-Trail)
