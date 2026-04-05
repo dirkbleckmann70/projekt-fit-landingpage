@@ -1,85 +1,146 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verfügbarkeit – Trainer-Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <style>
+    /* ── Availability Grid (unique to this page) ─── */
+    .avail-day-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--tblr-border-color);
+    }
+    .avail-day-row:last-child { border-bottom: none; }
+    .avail-day-label {
+      width: 36px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--tblr-secondary-color);
+      padding-top: 8px;
+      flex-shrink: 0;
+    }
+    .avail-slots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      flex: 1;
+    }
+    .avail-slot {
+      width: 38px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 500;
+      cursor: pointer;
+      background: rgba(255,255,255,0.03);
+      color: var(--tblr-secondary-color);
+      border: 1px solid transparent;
+      transition: all 0.12s;
+      user-select: none;
+    }
+    .avail-slot:hover { background: rgba(255,255,255,0.06); }
+    .avail-slot.active {
+      background: rgba(64,145,108,0.2);
+      border-color: var(--tblr-primary);
+      color: var(--tblr-primary);
+      font-weight: 700;
+    }
+  </style>
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<header class="top-header" id="top-header"></header>
+<div id="sidebar"></div>
 
-<div class="content">
-  <h1 class="page-title">Verfügbarkeit</h1>
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body" style="padding-bottom:80px">
+    <div class="container-xl">
 
-  <div id="alert-box" class="alert"></div>
+      <div id="alert-box" class="alert d-none"></div>
 
-  <!-- Urlaubs-Toggle -->
-  <div class="card" style="display:flex;align-items:center;justify-content:space-between">
-    <div>
-      <div style="font-size:15px;font-weight:700" id="status-label">Status wird geladen...</div>
-      <div class="form-hint">Wenn deaktiviert, bist du für Kunden nicht sichtbar.</div>
+      <!-- Urlaubs-Toggle -->
+      <div class="card mb-3">
+        <div class="card-body d-flex align-items-center justify-content-between">
+          <div>
+            <div style="font-size:15px;font-weight:700" id="status-label">Status wird geladen...</div>
+            <small class="form-hint">Wenn deaktiviert, bist du für Kunden nicht sichtbar.</small>
+          </div>
+          <button class="btn btn-sm" id="toggle-btn" onclick="toggleAvailability()" disabled>
+            <span class="spinner-border spinner-border-sm"></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Wochenkalender -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Wöchentliche Verfügbarkeit</h3>
+        </div>
+        <div class="card-body">
+          <small class="form-hint d-block mb-3">Tippe auf Zeitslots um sie zu aktivieren/deaktivieren</small>
+          <div id="avail-grid">
+            <div class="spinner-border spinner-border-sm me-2"></div> Laden...
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary w-100 btn-lg mb-3" id="save-btn" onclick="saveAvailability()" disabled>
+        Verfügbarkeit speichern
+      </button>
+
     </div>
-    <button class="btn btn-sm" id="toggle-btn" onclick="toggleAvailability()" disabled>
-      <span class="spinner"></span>
-    </button>
   </div>
-
-  <!-- Wochenkalender -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">Wöchentliche Verfügbarkeit</div>
-      <div class="form-hint">Tippe auf Zeitslots um sie zu aktivieren/deaktivieren</div>
-    </div>
-
-    <div id="avail-grid">
-      <div class="loading-center"><span class="spinner"></span> Laden...</div>
-    </div>
-  </div>
-
-  <button class="btn btn-primary btn-block btn-lg" id="save-btn" onclick="saveAvailability()" disabled>
-    Verfügbarkeit speichern
-  </button>
-  <div style="height:20px"></div>
 </div>
 
-<nav class="bottom-nav" id="bottom-nav"></nav>
+<div id="bottom-nav"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
 <script src="auth-check.js"></script>
 <script>
   // ISO 8601: 1=Mo, 2=Di, 3=Mi, 4=Do, 5=Fr, 6=Sa, 7=So
   const DAYS = { 1: 'Mo', 2: 'Di', 3: 'Mi', 4: 'Do', 5: 'Fr', 6: 'Sa', 7: 'So' };
   const DAY_NAMES = { 1: 'Montag', 2: 'Dienstag', 3: 'Mittwoch', 4: 'Donnerstag', 5: 'Freitag', 6: 'Samstag', 7: 'Sonntag' };
   const HOURS = [];
-  for (let h = 5; h <= 22; h++) HOURS.push(h); // 5:00 - 22:00 (letzter Block = 22:00-23:00)
+  for (let h = 5; h <= 22; h++) HOURS.push(h);
 
-  // Anzeige-Reihenfolge: Mo-So (ISO 1-7)
-  const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 7]; // Mo, Di, Mi, Do, Fr, Sa, So
+  const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 7];
 
-  // Helper: JS getDay() → ISO day
   function toISODay(d) { return d.getDay() === 0 ? 7 : d.getDay(); }
 
-  // State: { "Mo": [8, 9, 10, 16, 17, 18, 19], "Di": [...], ... }
   let availState = {};
   Object.values(DAYS).forEach(d => availState[d] = []);
 
   let isMouseDown = false;
-  let paintMode = true; // true = activate, false = deactivate
+  let paintMode = true;
 
   (async () => {
     const trainer = await checkTrainerAuth();
     if (!trainer) return;
 
-    document.getElementById('top-header').innerHTML = renderTopHeader();
-    document.getElementById('bottom-nav').innerHTML = renderNav('availability');
+    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('availability');
+    document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('availability');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Verfügbarkeit');
+    initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id) {
       document.getElementById('avail-grid').innerHTML =
-        '<div class="empty-state"><div class="empty-state-text">Kein Trainer-Profil verknüpft.</div></div>';
+        '<div class="text-center text-secondary py-3">Kein Trainer-Profil verknüpft.</div>';
       return;
     }
 
@@ -99,12 +160,12 @@
 
     if (isActive) {
       label.textContent = 'Ich bin verfügbar';
-      label.style.color = 'var(--success)';
+      label.style.color = 'var(--tblr-primary)';
       btn.className = 'btn btn-danger btn-sm';
       btn.textContent = 'Deaktivieren';
     } else {
       label.textContent = 'Ich bin im Urlaub / Pause';
-      label.style.color = 'var(--error)';
+      label.style.color = 'var(--tblr-danger)';
       btn.className = 'btn btn-success btn-sm';
       btn.textContent = 'Aktivieren';
     }
@@ -146,13 +207,12 @@
         .eq('trainer_id', window.currentTrainer.id);
 
       if (error) {
-        if (error.code === '42P01') return; // Tabelle existiert noch nicht
+        if (error.code === '42P01') return;
         throw error;
       }
 
-      // Parse availability data into state (ISO: 1=Mo, ..., 7=So)
       (data || []).forEach(row => {
-        const dayIndex = row.day_of_week; // ISO: 1=Mo, ..., 7=So
+        const dayIndex = row.day_of_week;
         if (dayIndex >= 1 && dayIndex <= 7) {
           const dayKey = DAYS[dayIndex];
           const startHour = row.start_hour;
@@ -195,7 +255,6 @@
       </div>
     `}).join('');
 
-    // Mouse up anywhere
     document.addEventListener('mouseup', () => { isMouseDown = false; });
     document.addEventListener('touchend', () => { isMouseDown = false; });
   }
@@ -204,7 +263,7 @@
     e.preventDefault();
     isMouseDown = true;
     const isActive = availState[day].includes(hour);
-    paintMode = !isActive; // If active, we deactivate; if inactive, we activate
+    paintMode = !isActive;
     toggleSlot(day, hour);
   }
 
@@ -232,7 +291,6 @@
       availState[day].splice(idx, 1);
     }
 
-    // Update DOM
     const el = document.querySelector(`[data-day="${day}"][data-hour="${hour}"]`);
     if (el) {
       el.classList.toggle('active', availState[day].includes(hour));
@@ -243,13 +301,12 @@
   async function saveAvailability() {
     const btn = document.getElementById('save-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Wird gespeichert...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird gespeichert...';
 
     const sb = getSupabase();
     const trainerId = window.currentTrainer.id;
 
     try {
-      // Alte Einträge löschen
       const { error: delError } = await sb
         .from('trainer_availability')
         .delete()
@@ -263,14 +320,12 @@
         throw delError;
       }
 
-      // Zeitblöcke aus State zusammenfassen (ISO: 1=Mo, ..., 7=So)
       const rows = [];
       DISPLAY_ORDER.forEach(isoDay => {
         const day = DAYS[isoDay];
         const hours = availState[day].sort((a, b) => a - b);
         if (hours.length === 0) return;
 
-        // Zusammenhängende Blöcke finden
         let blockStart = hours[0];
         let prev = hours[0];
 

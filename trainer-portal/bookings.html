@@ -1,255 +1,202 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Buchungen – Trainer-Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="../shared/table-utils.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <style>
-    .bk-page  { padding: 20px 24px 16px; }
-    .bk-outer { padding: 0 24px 24px; }
-    @media (max-width: 768px) {
-      .bk-page  { padding: 16px 16px 12px; }
-      .bk-outer { padding: 0 16px 16px; }
-    }
-
-    .bk-table-wrap {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-    }
-
-    #bookings-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    #bookings-table thead th {
-      text-align: left;
-      padding: 12px 16px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid var(--border);
-      white-space: nowrap;
-    }
-
-    #bookings-table tbody tr {
-      border-bottom: 1px solid var(--border);
-      transition: background 0.1s;
-    }
-    #bookings-table tbody tr:last-child  { border-bottom: none; }
-    #bookings-table tbody tr:hover       { background: rgba(255,255,255,0.025); }
+    /* Row highlights */
     #bookings-table tbody tr.row-pending { background: rgba(231,76,60,0.05); }
     #bookings-table tbody tr.row-pending:hover { background: rgba(231,76,60,0.09); }
-    #bookings-table tbody tr.row-done    { opacity: 0.55; }
+    #bookings-table tbody tr.row-done { opacity: 0.55; }
 
-    #bookings-table tbody td {
-      padding: 12px 16px;
-      font-size: 14px;
-      vertical-align: middle;
-    }
-
-    .bk-sub     { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
-    .bk-actions { display: flex; gap: 6px; flex-wrap: nowrap; align-items: center; }
-
+    /* Status badges */
     .badge-neue-anfrage { background: rgba(231,76,60,0.15); color: #e74c3c; border: 1px solid rgba(231,76,60,0.4); }
     .badge-bestaetigt   { background: rgba(39,174,96,0.15);  color: #27ae60; border: 1px solid rgba(39,174,96,0.4); }
     .badge-erledigt     { background: rgba(136,136,160,0.12); color: #8888a0; border: 1px solid rgba(136,136,160,0.3); }
     .badge-storniert    { background: rgba(85,85,106,0.12);   color: #55556a; border: 1px solid rgba(85,85,106,0.3); }
+    .badge-reschedule   { background: rgba(244,169,64,0.15); color: #F4A940; border: 1px solid rgba(244,169,64,0.4); }
+    .badge-overdue      { background: rgba(231,76,60,0.2); color: #e74c3c; }
 
     .btn-confirm { color: #27ae60; border: 1px solid rgba(39,174,96,0.5); background: rgba(39,174,96,0.08); }
     .btn-confirm:hover { background: rgba(39,174,96,0.18); }
     .btn-decline { color: #e74c3c; border: 1px solid rgba(231,76,60,0.5); background: rgba(231,76,60,0.08); }
     .btn-decline:hover { background: rgba(231,76,60,0.18); }
-
-    /* Modal */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.7); z-index: 200;
-      align-items: center; justify-content: center; padding: 20px;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: #1a1a1a; border: 1px solid #2a2a2a;
-      border-radius: 16px; width: 100%; max-width: 560px;
-      max-height: 90vh; overflow-y: auto;
-    }
-    .modal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 20px 24px; border-bottom: 1px solid #2a2a2a;
-    }
-    .modal-title  { font-size: 18px; font-weight: 700; }
-    .modal-close  { background: none; border: none; color: #55556a; font-size: 24px; cursor: pointer; padding: 4px; line-height: 1; }
-    .modal-close:hover { color: #f0f0f5; }
-    .modal-body   { padding: 24px; }
-    .modal-footer { display: flex; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid #2a2a2a; }
-    .detail-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .detail-field label { display: block; font-size: 12px; font-weight: 600; color: #8888a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .detail-field .dv   { font-size: 15px; color: #f0f0f5; }
-    .detail-id    { font-size: 11px; color: #55556a; margin-top: 16px; padding-top: 16px; border-top: 1px solid #2a2a2a; }
-
     .btn-reschedule { color: #F4A940; border: 1px solid rgba(244,169,64,0.5); background: rgba(244,169,64,0.08); }
     .btn-reschedule:hover { background: rgba(244,169,64,0.18); }
-    .badge-reschedule { background: rgba(244,169,64,0.15); color: #F4A940; border: 1px solid rgba(244,169,64,0.4); }
+    .bk-actions { display: flex; gap: 6px; flex-wrap: nowrap; align-items: center; }
+    .bk-sub { font-size: 12px; color: var(--tblr-secondary-color); margin-top: 2px; }
 
+    /* Reschedule modal time grid */
     .reschedule-modal .time-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
-    .reschedule-modal .time-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid #2a2a2a; background: #1a1a1a; color: #8888a0; cursor: pointer; font-weight: 600; }
+    .reschedule-modal .time-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--tblr-border-color); background: var(--tblr-card-bg); color: var(--tblr-secondary-color); cursor: pointer; font-weight: 600; }
     .reschedule-modal .time-btn:hover { border-color: #F4A940; color: #F4A940; }
-    .reschedule-modal .time-btn.selected { background: #40916C; border-color: #40916C; color: white; }
+    .reschedule-modal .time-btn.selected { background: var(--tblr-primary); border-color: var(--tblr-primary); color: white; }
 
     /* Location select modal */
     .location-proposal-card {
-      padding: 12px 14px; border-radius: 10px; border: 1px solid #2a2a2a;
+      padding: 12px 14px; border-radius: 10px; border: 1px solid var(--tblr-border-color);
       background: rgba(255,255,255,0.02); cursor: pointer; margin-bottom: 8px;
       transition: border-color 0.15s, background 0.15s;
     }
-    .location-proposal-card:hover { border-color: #40916C; background: rgba(64,145,108,0.06); }
-    .location-proposal-card.selected { border-color: #40916C; background: rgba(64,145,108,0.12); }
-    .location-proposal-card .lp-name { font-size: 14px; font-weight: 600; color: #f0f0f5; }
-    .location-proposal-card .lp-addr { font-size: 12px; color: #8888a0; margin-top: 3px; }
-    .alt-location-form label { display: block; font-size: 11px; font-weight: 600; color: #8888a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 12px; }
-    .alt-location-form input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid #2a2a2a; background: #0d0d15; color: #f0f0f5; font-size: 13px; box-sizing: border-box; }
-    .alt-location-form input:focus { outline: none; border-color: #40916C; }
+    .location-proposal-card:hover { border-color: var(--tblr-primary); background: rgba(64,145,108,0.06); }
+    .location-proposal-card.selected { border-color: var(--tblr-primary); background: rgba(64,145,108,0.12); }
+    .location-proposal-card .lp-name { font-size: 14px; font-weight: 600; }
+    .location-proposal-card .lp-addr { font-size: 12px; color: var(--tblr-secondary-color); margin-top: 3px; }
+    .alt-location-form label { display: block; font-size: 11px; font-weight: 600; color: var(--tblr-secondary-color); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; margin-top: 12px; }
+    .alt-location-form input { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--tblr-border-color); background: var(--tblr-body-bg); color: var(--tblr-body-color); font-size: 13px; box-sizing: border-box; }
+    .alt-location-form input:focus { outline: none; border-color: var(--tblr-primary); }
   </style>
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<header class="top-header" id="top-header"></header>
+<div id="sidebar"></div>
 
-<div class="bk-page">
-  <h1 class="page-title">Meine Buchungen</h1>
-  <div id="alert-box" class="alert"></div>
-</div>
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body" style="padding-bottom:80px">
+    <div class="container-xl">
 
-<div id="bk-tfoot" style="display:none;text-align:right;padding:0 24px 10px;font-size:14px;color:var(--text-secondary)">
-  Gesamt (best. + erl.): <strong id="bk-sum-value" style="color:var(--accent)">–</strong>
-</div>
+      <div id="alert-box" class="alert d-none"></div>
 
-<div class="bk-outer">
-  <div class="bk-table-wrap">
-    <div style="overflow-x:auto">
-      <table id="bookings-table">
-        <thead>
-          <tr>
-            <th>Status</th>
-            <th>Datum</th>
-            <th>Uhrzeit</th>
-            <th>Kunde</th>
-            <th>Kurs</th>
-            <th>Art</th>
-            <th>Stadt</th>
-            <th>Vergütung</th>
-            <th>Aktion</th>
-          </tr>
-        </thead>
-        <tbody id="bookings-body">
-          <tr><td colspan="9" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
-        </tbody>
-      </table>
+      <div id="bk-tfoot" style="display:none;text-align:right;font-size:14px" class="text-secondary mb-2">
+        Gesamt (best. + erl.): <strong id="bk-sum-value" style="color:var(--tblr-primary)">–</strong>
+      </div>
+
+      <div class="card mb-3">
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table" id="bookings-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Datum</th>
+                <th>Uhrzeit</th>
+                <th>Kunde</th>
+                <th>Kurs</th>
+                <th>Art</th>
+                <th>Stadt</th>
+                <th>Vergütung</th>
+                <th>Aktion</th>
+              </tr>
+            </thead>
+            <tbody id="bookings-body">
+              <tr><td colspan="9" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<nav class="bottom-nav" id="bottom-nav"></nav>
+<div id="bottom-nav"></div>
 
 <!-- Detail Modal -->
-<div class="modal-overlay" id="detail-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Buchungs-Details</div>
-      <button class="modal-close" onclick="closeDetailModal()">&times;</button>
-    </div>
-    <div class="modal-body" id="detail-modal-body"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost btn-sm" onclick="closeDetailModal()">Schließen</button>
+<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Buchungs-Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="detail-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schließen</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Location Select Modal -->
-<div class="modal-overlay" id="location-select-modal" style="display:none">
-  <div class="modal" style="max-width:500px">
-    <div class="modal-header">
-      <div class="modal-title">Treffpunkt wählen</div>
-      <button class="modal-close" onclick="closeLocationSelectModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <p style="color:rgba(255,255,255,0.6);margin-bottom:12px">Wähle einen der Kunden-Vorschläge:</p>
-      <div id="location-proposals-list"></div>
-      <!-- "Anderen Treffpunkt" section, shown only if > 24h until appointment -->
-      <div id="trainer-alt-location" style="display:none;margin-top:16px" class="alt-location-form">
-        <div style="font-size:12px;font-weight:600;color:#8888a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px">Alternativer Treffpunkt</div>
-        <label>Name / Bezeichnung</label>
-        <input type="text" id="alt-loc-name" placeholder="z.B. Stadtpark Haupteingang">
-        <label>Straße &amp; Hausnummer</label>
-        <input type="text" id="alt-loc-street" placeholder="z.B. Musterstraße 12">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <div>
-            <label>PLZ</label>
-            <input type="text" id="alt-loc-plz" placeholder="12345" maxlength="5">
+<div class="modal modal-blur fade" id="location-select-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:500px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Treffpunkt wählen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-secondary mb-3">Wähle einen der Kunden-Vorschläge:</p>
+        <div id="location-proposals-list"></div>
+        <div id="trainer-alt-location" style="display:none;margin-top:16px" class="alt-location-form">
+          <div class="text-secondary fw-bold text-uppercase" style="font-size:12px;letter-spacing:0.5px;margin-bottom:12px">Alternativer Treffpunkt</div>
+          <label>Name / Bezeichnung</label>
+          <input type="text" id="alt-loc-name" placeholder="z.B. Stadtpark Haupteingang">
+          <label>Straße &amp; Hausnummer</label>
+          <input type="text" id="alt-loc-street" placeholder="z.B. Musterstraße 12">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label>PLZ</label>
+              <input type="text" id="alt-loc-plz" placeholder="12345" maxlength="5">
+            </div>
+            <div>
+              <label>Stadt</label>
+              <input type="text" id="alt-loc-city" placeholder="München">
+            </div>
           </div>
-          <div>
-            <label>Stadt</label>
-            <input type="text" id="alt-loc-city" placeholder="München">
+          <div class="alert alert-warning mt-2" style="font-size:12px">
+            Hinweis: Der Kunde wird über den neuen Vorschlag benachrichtigt.
           </div>
-        </div>
-        <div style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(244,169,64,0.08);border:1px solid rgba(244,169,64,0.25);font-size:12px;color:#F4A940">
-          Hinweis: Der Kunde wird über den neuen Vorschlag benachrichtigt.
         </div>
       </div>
-    </div>
-    <div class="modal-footer" style="gap:10px">
-      <button class="btn btn-ghost btn-sm" onclick="closeLocationSelectModal()">Abbrechen</button>
-      <button class="btn btn-sm btn-reschedule" id="btn-alt-location" onclick="toggleTrainerLocation()" style="display:none">Anderen Treffpunkt</button>
-      <button class="btn btn-sm btn-confirm" onclick="submitLocationChoice()">Bestätigen</button>
+      <div class="modal-footer gap-2">
+        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-sm btn-reschedule" id="btn-alt-location" onclick="toggleTrainerLocation()" style="display:none">Anderen Treffpunkt</button>
+        <button class="btn btn-sm btn-confirm" onclick="submitLocationChoice()">Bestätigen</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Reschedule Modal -->
-<div class="modal-overlay" id="reschedule-modal">
-  <div class="modal reschedule-modal" style="max-width:460px">
-    <div class="modal-header">
-      <div class="modal-title">Termin ändern</div>
-      <button class="modal-close" onclick="closeRescheduleModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <div id="reschedule-current" style="margin-bottom:16px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid #2a2a2a">
-        <div style="font-size:11px;font-weight:600;color:#8888a0;text-transform:uppercase;margin-bottom:4px">Aktueller Termin</div>
-        <div id="reschedule-current-date" style="font-size:15px;color:#f0f0f5;font-weight:600"></div>
+<div class="modal modal-blur fade" id="reschedule-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered reschedule-modal" style="max-width:460px">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Termin ändern</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <label style="display:block;font-size:12px;font-weight:600;color:#8888a0;text-transform:uppercase;margin-bottom:6px">Neues Datum</label>
-      <input type="date" id="reschedule-date" style="width:100%;padding:10px;border-radius:8px;border:1px solid #2a2a2a;background:#0d0d15;color:#f0f0f5;font-size:14px;margin-bottom:16px" />
-      <label style="display:block;font-size:12px;font-weight:600;color:#8888a0;text-transform:uppercase;margin-bottom:6px">Neue Uhrzeit</label>
-      <div id="reschedule-time-grid" class="time-grid"></div>
-      <div id="reschedule-no-slots" style="display:none;color:#E05555;font-size:13px;margin:8px 0">Keine verfügbaren Zeiten an diesem Tag</div>
-    </div>
-    <div class="modal-footer" style="gap:10px">
-      <button class="btn btn-ghost btn-sm" onclick="closeRescheduleModal()">Abbrechen</button>
-      <button class="btn btn-sm btn-confirm" id="reschedule-submit" onclick="submitReschedule()">Vorschlagen</button>
+      <div class="modal-body">
+        <div id="reschedule-current" class="p-3 border rounded mb-3">
+          <div class="text-secondary text-uppercase fw-bold" style="font-size:11px;margin-bottom:4px">Aktueller Termin</div>
+          <div id="reschedule-current-date" class="fw-bold"></div>
+        </div>
+        <label class="form-label">Neues Datum</label>
+        <input type="date" id="reschedule-date" class="form-control mb-3" />
+        <label class="form-label">Neue Uhrzeit</label>
+        <div id="reschedule-time-grid" class="time-grid"></div>
+        <div id="reschedule-no-slots" style="display:none" class="text-danger" style="font-size:13px">Keine verfügbaren Zeiten an diesem Tag</div>
+      </div>
+      <div class="modal-footer gap-2">
+        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-sm btn-confirm" id="reschedule-submit" onclick="submitReschedule()">Vorschlagen</button>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-check.js"></script>
 <script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="auth-check.js"></script>
 <script>
   let allBookings  = [];
   let allGTClasses = [];
   let tableFilter;
+  let _detailModal, _locationModal, _rescheduleModal;
 
   const CANCELLED = [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.CANCELLED_BY_TRAINER, BOOKING_STATUS.REFUNDED];
 
-  // Sortier-Priorität: pending=0, confirmed=1, completed=2, cancelled+=3
   function statusPriority(item) {
     if (item._type === 'gt') return item.is_active ? 1 : 3;
     if (item.status === BOOKING_STATUS.PENDING)            return 0;
@@ -263,9 +210,7 @@
     return all.sort((a, b) => {
       const pa = statusPriority(a), pb = statusPriority(b);
       if (pa !== pb) return pa - pb;
-      // Bestätigt: aufsteigend nach Datum (nächster Termin oben)
       if (pa === 1) return (a.scheduled_date || '').localeCompare(b.scheduled_date || '');
-      // Alle anderen: absteigend nach Datum (neueste oben)
       return (b.scheduled_date || '').localeCompare(a.scheduled_date || '');
     });
   }
@@ -292,12 +237,12 @@
   function calcRevenue(item) {
     const rate = window.currentTrainer?.payout_cents ?? null;
     if (item._type === 'gt') {
-      if (!item.is_active) return '<span style="color:var(--text-muted)">0,00 €</span>';
+      if (!item.is_active) return '<span class="text-secondary">0,00 €</span>';
       const share = (rate && item.participant_count > 0) ? Math.round(rate / item.participant_count) : rate;
       return share ? formatEuro(share) : '–';
     }
-    if (CANCELLED.includes(item.status)) return '<span style="color:var(--text-muted)">0,00 €</span>';
-    if (item.status === BOOKING_STATUS.EXPIRED) return '<span style="color:var(--text-muted)">0,00 € (ausstehend)</span>';
+    if (CANCELLED.includes(item.status)) return '<span class="text-secondary">0,00 €</span>';
+    if (item.status === BOOKING_STATUS.EXPIRED) return '<span class="text-secondary">0,00 € (ausstehend)</span>';
     if (item.status === BOOKING_STATUS.PENDING) return '–';
     const payout = item.payout_cents ?? rate;
     return payout ? formatEuro(payout) : '–';
@@ -307,12 +252,14 @@
     const trainer = await checkTrainerAuth();
     if (!trainer) return;
 
-    document.getElementById('top-header').innerHTML = renderTopHeader();
-    document.getElementById('bottom-nav').innerHTML  = renderNav('bookings');
+    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('bookings');
+    document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('bookings');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Buchungen');
+    initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id) {
       document.getElementById('bookings-body').innerHTML =
-        '<tr><td colspan="9" class="text-muted" style="padding:20px">Kein Trainer-Profil verknüpft.</td></tr>';
+        '<tr><td colspan="9" class="text-secondary" style="padding:20px">Kein Trainer-Profil verknüpft.</td></tr>';
       return;
     }
 
@@ -389,7 +336,6 @@
       allGTClasses = [];
       if (gtClasses && gtClasses.length > 0) {
         const classIds = gtClasses.map(c => c.id);
-        // Nur aktive Teilnehmer (status != 'cancelled') zählen
         const { data: ptcps, error: ptcpErr } = await sb
           .from('group_participants')
           .select('group_class_id, status')
@@ -419,7 +365,7 @@
       renderBookings();
     } catch (err) {
       document.getElementById('bookings-body').innerHTML =
-        `<tr><td colspan="9" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="9" class="text-danger" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -441,7 +387,7 @@
     const tbody = document.getElementById('bookings-body');
 
     if (items.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:24px">Keine Buchungen vorhanden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-secondary" style="padding:24px">Keine Buchungen vorhanden</td></tr>';
       document.getElementById('bk-tfoot').style.display = 'none';
       return;
     }
@@ -465,22 +411,22 @@
          <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)">Ablehnen</button>`;
     } else if (b.status === BOOKING_STATUS.CONFIRMED) {
       actions = `<button class="btn btn-sm btn-reschedule" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
-         <button class="btn btn-ghost btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
+         <button class="btn btn-ghost-secondary btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
     } else if (b.status === 'reschedule_proposed') {
       actions = `<span class="badge badge-reschedule">Warte auf Kunden</span>`;
     } else {
-      actions = `<button class="btn btn-ghost btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
+      actions = `<button class="btn btn-ghost-secondary btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
     }
     return `
       <tr class="${rowClass(b)}">
-        <td>${statusBadgeBK(b)}${isOverdue(b) ? `<span class="badge badge-overdue">${overdueDays(b)}d überfällig</span>` : ''}</td>
+        <td>${statusBadgeBK(b)}${isOverdue(b) ? `<span class="badge badge-overdue ms-1">${overdueDays(b)}d überfällig</span>` : ''}</td>
         <td style="white-space:nowrap">${b.scheduled_date ? formatDate(b.scheduled_date) : '–'}</td>
-        <td style="white-space:nowrap;color:var(--text-secondary)">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
+        <td style="white-space:nowrap" class="text-secondary">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
         <td>${b.customer_name || 'Kunde'}</td>
-        <td style="color:var(--text-muted)">–</td>
+        <td class="text-secondary">–</td>
         <td><span class="badge" style="background:rgba(46,117,182,0.12);color:#5BB8FF;border:1px solid rgba(91,184,255,0.25)">PT</span></td>
         <td>${city}</td>
-        <td class="text-accent">${revenue}</td>
+        <td style="color:var(--tblr-primary)">${revenue}</td>
         <td><div class="bk-actions">${actions}</div></td>
       </tr>`;
   }
@@ -494,13 +440,13 @@
       <tr class="${rowClass(gc)}">
         <td>${statusBadgeBK(gc)}</td>
         <td style="white-space:nowrap">${gc.scheduled_date ? formatDate(gc.scheduled_date) : '–'}</td>
-        <td style="white-space:nowrap;color:var(--text-secondary)">${gc.scheduled_time ? gc.scheduled_time.slice(0,5) : '–'}</td>
-        <td style="color:var(--text-muted)">–</td>
-        <td style="font-weight:600">${ptLabel}</td>
-        <td><span class="badge" style="background:rgba(45,106,79,0.12);color:#40916C;border:1px solid rgba(64,145,108,0.25)">GT</span></td>
+        <td style="white-space:nowrap" class="text-secondary">${gc.scheduled_time ? gc.scheduled_time.slice(0,5) : '–'}</td>
+        <td class="text-secondary">–</td>
+        <td class="fw-bold">${ptLabel}</td>
+        <td><span class="badge" style="background:rgba(64,145,108,0.12);color:var(--tblr-primary);border:1px solid rgba(64,145,108,0.25)">GT</span></td>
         <td>${gc.city || '–'}</td>
-        <td class="text-accent">${revenue}</td>
-        <td><div class="bk-actions"><button class="btn btn-ghost btn-sm" onclick="showGTDetail('${gc.gc_id}')">Details</button></div></td>
+        <td style="color:var(--tblr-primary)">${revenue}</td>
+        <td><div class="bk-actions"><button class="btn btn-ghost-secondary btn-sm" onclick="showGTDetail('${gc.gc_id}')">Details</button></div></td>
       </tr>`;
   }
 
@@ -512,25 +458,26 @@
       ? `${gc.participant_count} / ${gc.max_participants}`
       : String(gc.participant_count);
     document.getElementById('detail-modal-body').innerHTML = `
-      <div class="detail-row">
-        <div class="detail-field"><label>Kurs</label><div class="dv">${gc.group_class_name}</div></div>
-        <div class="detail-field"><label>Art</label><div class="dv">Gruppentraining</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Kurs</label><div>${gc.group_class_name}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Art</label><div>Gruppentraining</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Datum</label><div class="dv">${gc.scheduled_date ? formatDate(gc.scheduled_date) : '–'}</div></div>
-        <div class="detail-field"><label>Uhrzeit</label><div class="dv">${gc.scheduled_time ? gc.scheduled_time.slice(0,5) : '–'}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Datum</label><div>${gc.scheduled_date ? formatDate(gc.scheduled_date) : '–'}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Uhrzeit</label><div>${gc.scheduled_time ? gc.scheduled_time.slice(0,5) : '–'}</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Stadt</label><div class="dv">${gc.city || '–'}</div></div>
-        <div class="detail-field"><label>Status</label><div class="dv">${statusBadgeBK(gc)}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Stadt</label><div>${gc.city || '–'}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Status</label><div>${statusBadgeBK(gc)}</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Teilnehmer</label><div class="dv">👥 ${participants}</div></div>
-        <div class="detail-field"><label>Vergütung</label><div class="dv" style="color:var(--accent);font-weight:700">${revenue}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Teilnehmer</label><div>${participants}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Vergütung</label><div style="color:var(--tblr-primary);font-weight:700">${revenue}</div></div>
       </div>
-      <div class="detail-id">Kurs-ID: ${gcId}</div>
+      <div class="text-secondary" style="font-size:11px;border-top:1px solid var(--tblr-border-color);padding-top:12px">Kurs-ID: ${gcId}</div>
     `;
-    document.getElementById('detail-modal').classList.add('open');
+    if (!_detailModal) _detailModal = new bootstrap.Modal(document.getElementById('detail-modal'));
+    _detailModal.show();
   }
 
   const HEALTH_LABELS = {
@@ -545,21 +492,21 @@
   };
 
   function renderHealthSection(hd) {
-    if (!hd) return '<div style="padding:12px;border-radius:10px;background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.25);margin-bottom:16px"><span style="color:#40916C;font-weight:700">✅ Keine besonderen Gesundheitshinweise</span></div>';
+    if (!hd) return '<div class="alert alert-success mb-3"><span class="fw-bold">Keine besonderen Gesundheitshinweise</span></div>';
 
     const concerns = Object.entries(HEALTH_LABELS).filter(([k]) => hd[k] === true).map(([,v]) => v);
     const notes = typeof hd.additional_notes === 'string' && hd.additional_notes.trim() ? hd.additional_notes.trim() : null;
 
     if (concerns.length === 0 && !notes) {
-      return '<div style="padding:12px;border-radius:10px;background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.25);margin-bottom:16px"><span style="color:#40916C;font-weight:700">✅ Keine besonderen Gesundheitshinweise</span></div>';
+      return '<div class="alert alert-success mb-3"><span class="fw-bold">Keine besonderen Gesundheitshinweise</span></div>';
     }
 
-    let html = '<div style="padding:12px;border-radius:10px;background:rgba(224,85,85,0.08);border:1px solid rgba(224,85,85,0.25);margin-bottom:16px">';
-    html += '<div style="color:#E05555;font-weight:700;margin-bottom:8px">⚠️ Gesundheitshinweise</div>';
-    html += '<ul style="margin:0;padding-left:18px;color:#f0f0f5;font-size:13px;line-height:1.8">';
+    let html = '<div class="alert alert-danger mb-3">';
+    html += '<div class="fw-bold mb-2">Gesundheitshinweise</div>';
+    html += '<ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.8">';
     concerns.forEach(c => { html += `<li>${c}</li>`; });
     html += '</ul>';
-    if (notes) html += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:13px;color:#8888a0"><strong>Ergänzung:</strong> ${notes}</div>`;
+    if (notes) html += `<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);font-size:13px" class="text-secondary"><strong>Ergänzung:</strong> ${notes}</div>`;
     html += '</div>';
     return html;
   }
@@ -571,7 +518,6 @@
     const vergütung = calcRevenue(b).replace(/<[^>]+>/g, '');
     const hasRating = b.rating && b.rating > 0;
 
-    // Kundendaten laden (Gesundheit + Telefon)
     let healthHtml = '';
     let contactHtml = '';
     if (b.customer_id) {
@@ -580,13 +526,12 @@
         const { data: cust } = await sb.from('customers').select('health_declaration, phone').eq('id', b.customer_id).single();
         healthHtml = renderHealthSection(cust?.health_declaration);
 
-        // Telefonnummer nur bei confirmed/checked_in anzeigen
         const showContact = [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.CHECKED_IN, BOOKING_STATUS.CHECKED_IN_TRAINER].includes(b.status);
         if (showContact && cust?.phone) {
-          contactHtml = `<div style="padding:12px;border-radius:10px;background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.25);margin-bottom:16px">
-            <div style="font-size:11px;font-weight:600;color:#8888a0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Kontakt zum Kunden</div>
-            <a href="tel:${cust.phone}" style="color:#40916C;font-size:16px;font-weight:700;text-decoration:none">📞 ${cust.phone}</a>
-            <div style="font-size:12px;color:#55556a;margin-top:4px">Bei Verspätung oder Fragen zum Treffpunkt</div>
+          contactHtml = `<div class="alert alert-success mb-3">
+            <div class="text-secondary text-uppercase fw-bold" style="font-size:11px;letter-spacing:0.5px;margin-bottom:6px">Kontakt zum Kunden</div>
+            <a href="tel:${cust.phone}" style="color:var(--tblr-primary);font-size:16px;font-weight:700;text-decoration:none"><i class="ti ti-phone me-1"></i>${cust.phone}</a>
+            <div class="text-secondary mt-1" style="font-size:12px">Bei Verspätung oder Fragen zum Treffpunkt</div>
           </div>`;
         }
       } catch {
@@ -595,39 +540,30 @@
     }
 
     document.getElementById('detail-modal-body').innerHTML = `
-      <div class="detail-row">
-        <div class="detail-field"><label>Kunde</label><div class="dv">${b.customer_name || '–'}</div></div>
-        <div class="detail-field"><label>Art</label><div class="dv">Personal Training</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Kunde</label><div>${b.customer_name || '–'}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Art</label><div>Personal Training</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Datum</label><div class="dv">${b.scheduled_date ? formatDate(b.scheduled_date) : '–'}</div></div>
-        <div class="detail-field"><label>Uhrzeit</label><div class="dv">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Datum</label><div>${b.scheduled_date ? formatDate(b.scheduled_date) : '–'}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Uhrzeit</label><div>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Stadt / Ort</label><div class="dv">${b.city || b.location_name || b.location || '–'}</div></div>
-        <div class="detail-field"><label>Status</label><div class="dv">${statusBadgeBK(b)}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Stadt / Ort</label><div>${b.city || b.location_name || b.location || '–'}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Status</label><div>${statusBadgeBK(b)}</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Vergütung</label><div class="dv" style="color:var(--accent);font-weight:700">${vergütung}</div></div>
-        ${hasRating ? `<div class="detail-field"><label>Bewertung</label><div class="dv">⭐ ${b.rating}/5${b.review_comment ? '<br><span style="font-size:13px;color:#8888a0">„' + b.review_comment + '"</span>' : ''}</div></div>` : '<div></div>'}
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Vergütung</label><div style="color:var(--tblr-primary);font-weight:700">${vergütung}</div></div>
+        ${hasRating ? `<div class="col-6"><label class="form-label text-secondary">Bewertung</label><div>${b.rating}/5${b.review_comment ? '<br><span class="text-secondary" style="font-size:13px">„' + b.review_comment + '"</span>' : ''}</div></div>` : '<div class="col-6"></div>'}
       </div>
       ${contactHtml}
       ${healthHtml}
-      ${b.notes ? `<div class="detail-field" style="margin-bottom:16px"><label>Notizen</label><div class="dv" style="font-size:14px;color:#8888a0">${b.notes}</div></div>` : ''}
-      <div class="detail-id">Buchungs-ID: ${b.id}</div>
+      ${b.notes ? `<div class="mb-3"><label class="form-label text-secondary">Notizen</label><div class="text-secondary" style="font-size:14px">${b.notes}</div></div>` : ''}
+      <div class="text-secondary" style="font-size:11px;border-top:1px solid var(--tblr-border-color);padding-top:12px">Buchungs-ID: ${b.id}</div>
     `;
-    document.getElementById('detail-modal').classList.add('open');
+    if (!_detailModal) _detailModal = new bootstrap.Modal(document.getElementById('detail-modal'));
+    _detailModal.show();
   }
-
-  function closeDetailModal() {
-    document.getElementById('detail-modal').classList.remove('open');
-  }
-
-  document.addEventListener('click', e => {
-    if (e.target === document.getElementById('detail-modal')) closeDetailModal();
-    if (e.target === document.getElementById('reschedule-modal')) closeRescheduleModal();
-    if (e.target === document.getElementById('location-select-modal')) closeLocationSelectModal();
-  });
 
   let rescheduleBookingId = null;
   let rescheduleSelectedHour = null;
@@ -659,7 +595,8 @@
     document.getElementById('reschedule-date').onchange = function() {
       updateTimeGrid(new Date(this.value + 'T00:00:00'));
     };
-    document.getElementById('reschedule-modal').classList.add('open');
+    if (!_rescheduleModal) _rescheduleModal = new bootstrap.Modal(document.getElementById('reschedule-modal'));
+    _rescheduleModal.show();
   }
 
   function updateTimeGrid(date) {
@@ -700,11 +637,6 @@
     });
   }
 
-  function closeRescheduleModal() {
-    document.getElementById('reschedule-modal').classList.remove('open');
-    rescheduleBookingId = null;
-  }
-
   async function submitReschedule() {
     if (!rescheduleBookingId || rescheduleSelectedHour === null) return;
 
@@ -727,7 +659,7 @@
       const result = await resp.json();
       if (!result.success) throw new Error(result.error || 'Fehler');
 
-      closeRescheduleModal();
+      if (_rescheduleModal) _rescheduleModal.hide();
       showAlert('Terminvorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
       await loadBookings();
     } catch (err) {
@@ -741,9 +673,9 @@
   function showAlert(msg, type) {
     const box = document.getElementById('alert-box');
     box.textContent = msg;
-    box.className = 'alert alert-' + type;
+    box.className = 'alert alert-' + (type === 'error' ? 'danger' : type);
     box.style.display = '';
-    setTimeout(() => { box.style.display = 'none'; }, 5000);
+    setTimeout(() => { box.style.display = 'none'; box.classList.add('d-none'); }, 5000);
   }
 
   async function updateBooking(bookingId, status) {
@@ -773,20 +705,17 @@
 
     const b = allBookings.find(x => x.id === bookingId);
 
-    // Check if appointment is > 24h away (alt-location only possible then)
     if (b && b.scheduled_date && b.scheduled_time) {
       const appt = new Date(`${b.scheduled_date}T${b.scheduled_time}`);
       locationBookingOver24h = (appt - Date.now()) > 24 * 60 * 60 * 1000;
     }
 
-    // Reset alt-location UI
     document.getElementById('trainer-alt-location').style.display = 'none';
     document.getElementById('btn-alt-location').style.display = locationBookingOver24h ? '' : 'none';
     ['alt-loc-name','alt-loc-street','alt-loc-plz','alt-loc-city'].forEach(id => {
       document.getElementById(id).value = '';
     });
 
-    // Load booking_locations from API
     try {
       const resp = await fetch(`/api/admin?action=data&type=booking_locations&bookingId=${bookingId}`);
       const result = await resp.json();
@@ -795,13 +724,11 @@
       locationProposals = [];
     }
 
-    // Backward compat: if no proposals → confirm directly without modal
     if (locationProposals.length === 0) {
       await updateBooking(bookingId, BOOKING_STATUS.CONFIRMED);
       return;
     }
 
-    // Render proposals
     const list = document.getElementById('location-proposals-list');
     list.innerHTML = locationProposals.map(p => `
       <div class="location-proposal-card" id="lp-${p.id}" onclick="selectProposal('${p.id}')">
@@ -810,17 +737,16 @@
       </div>
     `).join('');
 
-    // Pre-select first proposal
     if (locationProposals.length > 0) {
       selectProposal(locationProposals[0].id);
     }
 
-    document.getElementById('location-select-modal').style.display = 'flex';
+    if (!_locationModal) _locationModal = new bootstrap.Modal(document.getElementById('location-select-modal'));
+    _locationModal.show();
   }
 
   function selectProposal(id) {
     selectedProposalId = id;
-    // Deselect alt-location mode when a proposal is clicked
     if (locationAltVisible) toggleTrainerLocation();
     document.querySelectorAll('.location-proposal-card').forEach(card => {
       card.classList.toggle('selected', card.id === 'lp-' + id);
@@ -832,11 +758,9 @@
     document.getElementById('trainer-alt-location').style.display = locationAltVisible ? '' : 'none';
     document.getElementById('btn-alt-location').textContent = locationAltVisible ? 'Vorschlag wählen' : 'Anderen Treffpunkt';
     if (locationAltVisible) {
-      // Deselect all proposal cards
       selectedProposalId = null;
       document.querySelectorAll('.location-proposal-card').forEach(c => c.classList.remove('selected'));
     } else {
-      // Re-select first proposal
       if (locationProposals.length > 0) selectProposal(locationProposals[0].id);
     }
   }
@@ -847,7 +771,6 @@
     let body;
 
     if (locationAltVisible) {
-      // Trainer proposes a different location
       const name   = document.getElementById('alt-loc-name').value.trim();
       const street = document.getElementById('alt-loc-street').value.trim();
       const plz    = document.getElementById('alt-loc-plz').value.trim();
@@ -886,7 +809,7 @@
       const result = await resp.json();
       if (!result.success) throw new Error(result.error || 'Fehler');
 
-      closeLocationSelectModal();
+      if (_locationModal) _locationModal.hide();
       showAlert(
         locationAltVisible
           ? 'Treffpunkt-Vorschlag gesendet! Der Kunde wird benachrichtigt.'
@@ -897,14 +820,6 @@
     } catch (err) {
       showAlert('Fehler: ' + err.message, 'error');
     }
-  }
-
-  function closeLocationSelectModal() {
-    document.getElementById('location-select-modal').style.display = 'none';
-    locationBookingId  = null;
-    locationProposals  = [];
-    selectedProposalId = null;
-    locationAltVisible = false;
   }
 </script>
 

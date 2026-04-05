@@ -1,76 +1,111 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard – Trainer-Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<header class="top-header" id="top-header"></header>
+<!-- Desktop Sidebar (hidden on mobile) -->
+<div id="sidebar"></div>
 
-<div class="content">
-  <h1 class="page-title" id="welcome">Willkommen!</h1>
+<!-- Page Wrapper -->
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body" style="padding-bottom:80px">
+    <div class="container-xl">
 
-  <!-- KPIs -->
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="kpi-label">Nächste Buchung</div>
-      <div class="kpi-value" id="kpi-next" style="font-size:16px"><span class="spinner"></span></div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Buchungen (Monat)</div>
-      <div class="kpi-value" id="kpi-month"><span class="spinner"></span></div>
-      <div class="kpi-sub" id="kpi-month-total"></div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Bewertung</div>
-      <div class="kpi-value text-accent" id="kpi-rating"><span class="spinner"></span></div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">Verdienst (Monat)</div>
-      <div class="kpi-value text-success" id="kpi-earnings"><span class="spinner"></span></div>
-      <div class="kpi-sub" id="kpi-earnings-total"></div>
-    </div>
-  </div>
+      <h1 class="mb-3" id="welcome">Willkommen!</h1>
 
-  <!-- Pending Requests (wichtiger → oben) -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">Neue Anfragen</div>
-    </div>
-    <div id="pending-list">
-      <div class="loading-center"><span class="spinner"></span> Laden...</div>
-    </div>
-  </div>
+      <!-- KPIs -->
+      <div class="row row-deck row-cards mb-3">
+        <div class="col-6 col-lg-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Nächste Buchung</div>
+              <div class="kpi-value" id="kpi-next" style="font-size:1rem"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Buchungen (Monat)</div>
+              <div class="kpi-value" id="kpi-month"><div class="spinner-border spinner-border-sm"></div></div>
+              <div class="kpi-sub" id="kpi-month-total"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Bewertung</div>
+              <div class="kpi-value" style="color:var(--tblr-warning)" id="kpi-rating"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Verdienst (Monat)</div>
+              <div class="kpi-value" style="color:var(--tblr-primary)" id="kpi-earnings"><div class="spinner-border spinner-border-sm"></div></div>
+              <div class="kpi-sub" id="kpi-earnings-total"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-  <!-- Upcoming Bookings -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title">Nächste Termine</div>
-      <a href="/trainer-portal/bookings.html" class="btn btn-ghost btn-sm">Alle</a>
-    </div>
-    <div id="upcoming-list">
-      <div class="loading-center"><span class="spinner"></span> Laden...</div>
+      <!-- Pending Requests -->
+      <div class="card mb-3">
+        <div class="card-header">
+          <h3 class="card-title">Neue Anfragen</h3>
+        </div>
+        <div id="pending-list">
+          <div class="card-body"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</div>
+        </div>
+      </div>
+
+      <!-- Upcoming Bookings -->
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Nächste Termine</h3>
+          <a href="/trainer-portal/bookings.html" class="btn btn-ghost-secondary btn-sm">Alle</a>
+        </div>
+        <div id="upcoming-list">
+          <div class="card-body"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<nav class="bottom-nav" id="bottom-nav"></nav>
+<!-- Mobile Bottom Nav -->
+<div id="bottom-nav"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-check.js"></script>
 <script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-check.js"></script>
 <script>
   (async () => {
     const trainer = await checkTrainerAuth();
     if (!trainer) return;
 
-    document.getElementById('top-header').innerHTML = renderTopHeader();
-    document.getElementById('bottom-nav').innerHTML = renderNav('dashboard');
+    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('dashboard');
+    document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('dashboard');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Dashboard');
+    initRealtimeToasts(getSupabase(), 'trainer');
+
     document.getElementById('welcome').textContent = `Willkommen, ${trainer.full_name || 'Trainer'}!`;
 
     const sb = getSupabase();
@@ -81,7 +116,7 @@
       document.getElementById('kpi-month').textContent = '–';
       document.getElementById('kpi-rating').textContent = '–';
       document.getElementById('kpi-earnings').textContent = '–';
-      document.getElementById('upcoming-list').innerHTML = '<div class="empty-state"><div class="empty-state-text">Trainer-Profil nicht verknüpft.</div></div>';
+      document.getElementById('upcoming-list').innerHTML = '<div class="card-body text-center text-secondary">Trainer-Profil nicht verknüpft.</div>';
       document.getElementById('pending-list').innerHTML = '';
       return;
     }
@@ -111,7 +146,6 @@
     const monthISO = monthStart.toISOString().slice(0, 10);
 
     try {
-      // Alle relevanten Buchungen laden (confirmed + completed)
       const { data: allBookings } = await sb
         .from('bookings')
         .select('id, trainer_payout_cents, status, scheduled_date')
@@ -120,17 +154,14 @@
 
       const all = allBookings || [];
 
-      // Monat: confirmed + completed im aktuellen Monat
       const monthActive = all.filter(b => b.scheduled_date >= monthISO);
       document.getElementById('kpi-month').textContent = monthActive.length;
 
-      // Monat: Verdienst nur completed
       const monthEarnings = monthActive
         .filter(b => b.status === BOOKING_STATUS.COMPLETED)
         .reduce((sum, b) => sum + (b.trainer_payout_cents || 0), 0);
       document.getElementById('kpi-earnings').textContent = formatEuro(monthEarnings);
 
-      // Gesamt
       document.getElementById('kpi-month-total').textContent = `Gesamt: ${all.length}`;
       const totalEarnings = all
         .filter(b => b.status === BOOKING_STATUS.COMPLETED)
@@ -156,28 +187,30 @@
 
       const list = document.getElementById('upcoming-list');
       if (!upcoming || upcoming.length === 0) {
-        list.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">Keine kommenden Termine</div></div>';
+        list.innerHTML = '<div class="card-body text-center text-secondary"><i class="ti ti-calendar-off mb-2" style="font-size:2rem"></i><br>Keine kommenden Termine</div>';
         document.getElementById('kpi-next').textContent = 'Keine';
       } else {
         document.getElementById('kpi-next').textContent =
           formatDate(upcoming[0].scheduled_date) + ' ' + formatTime(upcoming[0].scheduled_time);
 
-        list.innerHTML = upcoming.map(b => `
-          <div class="booking-item">
-            <div class="booking-top">
-              <div class="booking-customer">${b.customer_name || 'Kunde'}</div>
+        list.innerHTML = '<div class="card-body p-0">' + upcoming.map(b => `
+          <div class="p-3 border-bottom" style="border-color:var(--tblr-border-color)!important">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="fw-bold">${b.customer_name || 'Kunde'}</div>
+                <div class="text-secondary" style="font-size:13px">
+                  <i class="ti ti-calendar" style="font-size:14px"></i> ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
+                  <i class="ti ti-map-pin" style="font-size:14px"></i> ${b.location_name || b.location || '–'}
+                </div>
+              </div>
               ${statusBadge(b.status)}
             </div>
-            <div class="booking-meta">
-              📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
-              📍 ${b.location_name || b.location || '–'}
-            </div>
           </div>
-        `).join('');
+        `).join('') + '</div>';
       }
     } catch (err) {
       console.error('Upcoming:', err);
-      document.getElementById('upcoming-list').innerHTML = '<div class="empty-state text-error">Fehler beim Laden</div>';
+      document.getElementById('upcoming-list').innerHTML = '<div class="card-body text-danger">Fehler beim Laden</div>';
       document.getElementById('kpi-next').textContent = '–';
     }
 
@@ -193,24 +226,26 @@
 
       const pList = document.getElementById('pending-list');
       if (!pending || pending.length === 0) {
-        pList.innerHTML = '<div class="empty-state"><div class="empty-state-text text-muted">Keine offenen Anfragen</div></div>';
+        pList.innerHTML = '<div class="card-body text-center text-secondary">Keine offenen Anfragen</div>';
       } else {
-        pList.innerHTML = pending.map(b => `
-          <div class="booking-item">
-            <div class="booking-top">
-              <div class="booking-customer">${b.customer_name || 'Kunde'}</div>
+        pList.innerHTML = '<div class="card-body p-0">' + pending.map(b => `
+          <div class="p-3 border-bottom" style="border-color:var(--tblr-border-color)!important">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <div>
+                <div class="fw-bold">${b.customer_name || 'Kunde'}</div>
+                <div class="text-secondary" style="font-size:13px">
+                  <i class="ti ti-calendar" style="font-size:14px"></i> ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
+                  <i class="ti ti-map-pin" style="font-size:14px"></i> ${b.location_name || b.location || '–'}
+                </div>
+              </div>
               ${statusBadge(BOOKING_STATUS.PENDING)}
             </div>
-            <div class="booking-meta">
-              📅 ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
-              📍 ${b.location_name || b.location || '–'}
-            </div>
-            <div class="booking-actions">
-              <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', BOOKING_STATUS.CONFIRMED)">Bestätigen</button>
-              <button class="btn btn-danger btn-sm" onclick="updateBooking('${b.id}', BOOKING_STATUS.CANCELLED_BY_TRAINER)">Ablehnen</button>
+            <div class="d-flex gap-2">
+              <button class="btn btn-success btn-sm" onclick="updateBooking('${b.id}', BOOKING_STATUS.CONFIRMED)"><i class="ti ti-check"></i> Bestätigen</button>
+              <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}', BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>
             </div>
           </div>
-        `).join('');
+        `).join('') + '</div>';
       }
     } catch (err) {
       console.error('Pending:', err);

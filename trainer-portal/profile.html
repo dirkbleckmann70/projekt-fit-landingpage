@@ -1,43 +1,57 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mein Profil – Trainer-Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<header class="top-header" id="top-header"></header>
+<div id="sidebar"></div>
 
-<div class="content">
-  <h1 class="page-title">Mein Profil</h1>
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body" style="padding-bottom:80px">
+    <div class="container-xl">
 
-  <div id="alert-box" class="alert"></div>
+      <div id="alert-box" class="alert d-none"></div>
 
-  <div id="profile-form-wrap">
-    <div class="loading-center"><span class="spinner"></span> Profil laden...</div>
+      <div id="profile-form-wrap">
+        <div class="text-center py-5"><div class="spinner-border spinner-border-sm me-2"></div> Profil laden...</div>
+      </div>
+
+    </div>
   </div>
 </div>
 
-<nav class="bottom-nav" id="bottom-nav"></nav>
+<div id="bottom-nav"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-check.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
 <script src="../shared/form-dirty.js"></script>
+<script src="auth-check.js"></script>
 <script>
   (async () => {
     const trainer = await checkTrainerAuth();
     if (!trainer) return;
 
-    document.getElementById('top-header').innerHTML = renderTopHeader();
-    document.getElementById('bottom-nav').innerHTML = renderNav('profile');
+    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('profile');
+    document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('profile');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Profil');
+    initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id || trainer._noProfile) {
       document.getElementById('profile-form-wrap').innerHTML =
-        '<div class="empty-state"><div class="empty-state-text">Kein Trainer-Profil gefunden.</div></div>';
+        '<div class="text-center text-secondary py-5">Kein Trainer-Profil gefunden.</div>';
       return;
     }
 
@@ -47,141 +61,147 @@
   function renderProfileForm(t) {
     document.getElementById('profile-form-wrap').innerHTML = `
       <!-- Avatar mit Upload -->
-      <div class="card" style="text-align:center">
-        <div style="position:relative;display:inline-block;margin-bottom:12px">
-          ${t.avatar_url
-            ? `<img id="avatar-img" src="${t.avatar_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`
-            : `<div id="avatar-img" style="width:80px;height:80px;border-radius:50%;background:#2a2a2a;display:flex;align-items:center;justify-content:center;font-size:32px;color:#55556a">${(t.full_name || 'T').charAt(0).toUpperCase()}</div>`
-          }
-          <label for="avatar-upload" style="position:absolute;bottom:0;right:-4px;width:28px;height:28px;border-radius:14px;background:#40916C;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #1a1a1a;font-size:12px">📷</label>
-          <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+      <div class="card mb-3">
+        <div class="card-body text-center">
+          <div style="position:relative;display:inline-block;margin-bottom:12px">
+            ${t.avatar_url
+              ? `<img id="avatar-img" src="${t.avatar_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover">`
+              : `<div id="avatar-img" style="width:80px;height:80px;border-radius:50%;background:var(--tblr-border-color);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--tblr-secondary-color);margin:0 auto">${(t.full_name || 'T').charAt(0).toUpperCase()}</div>`
+            }
+            <label for="avatar-upload" style="position:absolute;bottom:0;right:-4px;width:28px;height:28px;border-radius:14px;background:var(--tblr-primary);display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid var(--tblr-card-bg)">
+              <i class="ti ti-camera" style="font-size:14px;color:#fff"></i>
+            </label>
+            <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
+          </div>
+          ${t.avatar_url ? '<div><button class="btn btn-ghost-danger btn-sm" onclick="removeAvatar()" style="font-size:11px">Bild entfernen</button></div>' : ''}
+          <div style="font-size:18px;font-weight:700">${t.full_name || '–'}</div>
+          <div class="text-secondary" style="font-size:13px">${t.email || ''}</div>
+          ${t.rating ? `<div class="mt-1" style="color:var(--tblr-warning)">${t.rating} ★ (${t.review_count || 0} Bewertungen)</div>` : ''}
         </div>
-        ${t.avatar_url ? '<div><button class="btn btn-ghost btn-sm" onclick="removeAvatar()" style="font-size:11px;color:#E05555">Bild entfernen</button></div>' : ''}
-        <div style="font-size:18px;font-weight:700">${t.full_name || '–'}</div>
-        <div class="text-secondary" style="font-size:13px">${t.email || ''}</div>
-        ${t.rating ? `<div class="text-accent mt-1">${t.rating} ★ (${t.review_count || 0} Bewertungen)</div>` : ''}
       </div>
 
       <!-- Editierbare Felder -->
       <form id="profile-edit-form">
-      <div class="card">
-        <div class="card-title mb-2">Persönliche Daten</div>
-
-        <div class="form-group">
-          <label>Name</label>
-          <input class="form-control" id="f-name" value="${t.full_name || ''}">
-        </div>
-
-        <div class="form-group">
-          <label>Bio / Über mich</label>
-          <textarea class="form-control" id="f-bio" rows="4">${t.bio || ''}</textarea>
-        </div>
-
-        <div class="form-group">
-          <label>Spezialisierungen</label>
-          <input class="form-control" id="f-spec" value="${t.specializations || ''}" placeholder="z.B. HIIT, Yoga, Krafttraining">
-          <div class="form-hint">Komma-getrennt</div>
-        </div>
-
-        <div class="two-col">
-          <div class="form-group">
-            <label>Telefon</label>
-            <input class="form-control" id="f-phone" value="${t.phone || ''}">
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Persönliche Daten</h3></div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Name</label>
+            <input class="form-control" id="f-name" value="${t.full_name || ''}">
           </div>
-          <div class="form-group">
-            <label>Stadt</label>
-            <input class="form-control" id="f-city" value="${t.city || ''}" disabled>
-            <div class="form-hint">Wird vom Projekt Fit Team festgelegt.</div>
+          <div class="mb-3">
+            <label class="form-label">Bio / Über mich</label>
+            <textarea class="form-control" id="f-bio" rows="4">${t.bio || ''}</textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Spezialisierungen</label>
+            <input class="form-control" id="f-spec" value="${t.specializations || ''}" placeholder="z.B. HIIT, Yoga, Krafttraining">
+            <small class="form-hint">Komma-getrennt</small>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Telefon</label>
+              <input class="form-control" id="f-phone" value="${t.phone || ''}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Stadt</label>
+              <input class="form-control" id="f-city" value="${t.city || ''}" disabled>
+              <small class="form-hint">Wird vom Projekt Fit Team festgelegt.</small>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Adresse & Steuerdaten -->
-      <div class="card">
-        <div class="card-title mb-2">Adresse & Steuerdaten</div>
-
-        <div class="two-col">
-          <div class="form-group">
-            <label>Straße + Nr.</label>
-            <input class="form-control" id="f-street" value="${t.street_address || ''}">
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Adresse & Steuerdaten</h3></div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-8 mb-3">
+              <label class="form-label">Straße + Nr.</label>
+              <input class="form-control" id="f-street" value="${t.street_address || ''}">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">PLZ</label>
+              <input class="form-control" id="f-postal" value="${t.postal_code || ''}">
+            </div>
           </div>
-          <div class="form-group">
-            <label>PLZ</label>
-            <input class="form-control" id="f-postal" value="${t.postal_code || ''}">
-          </div>
-        </div>
-
-        <div class="two-col">
-          <div class="form-group">
-            <label>Steuernummer</label>
-            <input class="form-control" id="f-steuer" value="${t.steuernummer || ''}">
-          </div>
-          <div class="form-group">
-            <label>Kleinunternehmer</label>
-            <select class="form-control" id="f-klein">
-              <option value="false" ${!t.is_kleinunternehmer ? 'selected' : ''}>Nein</option>
-              <option value="true" ${t.is_kleinunternehmer ? 'selected' : ''}>Ja (§19 UStG)</option>
-            </select>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Steuernummer</label>
+              <input class="form-control" id="f-steuer" value="${t.steuernummer || ''}">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Kleinunternehmer</label>
+              <select class="form-select" id="f-klein">
+                <option value="false" ${!t.is_kleinunternehmer ? 'selected' : ''}>Nein</option>
+                <option value="true" ${t.is_kleinunternehmer ? 'selected' : ''}>Ja (§19 UStG)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
       </form>
 
       <!-- Nur-Lese Felder (Admin setzt diese) -->
-      <div class="card">
-        <div class="card-title mb-2">Vom Admin verwaltet</div>
-        <div class="form-hint mb-2">Diese Felder können nur vom Projekt Fit Team geändert werden.</div>
-
-        <div class="two-col">
-          <div class="form-group">
-            <label>Stundensatz</label>
-            <input class="form-control" value="${t.payout_cents ? formatEuro(t.payout_cents) : '–'}" disabled>
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Vom Admin verwaltet</h3></div>
+        <div class="card-body">
+          <small class="form-hint mb-3 d-block">Diese Felder können nur vom Projekt Fit Team geändert werden.</small>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Stundensatz</label>
+              <input class="form-control" value="${t.payout_cents ? formatEuro(t.payout_cents) : '–'}" disabled>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Status</label>
+              <input class="form-control" value="${t.status || '–'}" disabled>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Status</label>
-            <input class="form-control" value="${t.status || '–'}" disabled>
+          <div class="mb-3">
+            <label class="form-label">Mitglied seit</label>
+            <input class="form-control" value="${formatDate(t.created_at)}" disabled>
           </div>
-        </div>
-        <div class="form-group">
-          <label>Mitglied seit</label>
-          <input class="form-control" value="${formatDate(t.created_at)}" disabled>
         </div>
       </div>
 
       <!-- Lizenzen & Zertifikate -->
-      <div class="card">
-        <div class="card-title mb-2">Lizenzen & Zertifikate</div>
-        <div id="license-list">
-          ${renderFileList(t.license_files || [], 'license')}
-        </div>
-        <div style="margin-top:12px">
-          <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            <input type="file" id="license-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
-              onchange="uploadFiles('license')">
-            + Lizenz hochladen
-          </label>
-          <span id="license-upload-status" class="form-hint" style="margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Lizenzen & Zertifikate</h3></div>
+        <div class="card-body">
+          <div id="license-list">
+            ${renderFileList(t.license_files || [], 'license')}
+          </div>
+          <div class="mt-3">
+            <label class="btn btn-outline-secondary btn-sm" style="cursor:pointer">
+              <input type="file" id="license-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+                onchange="uploadFiles('license')">
+              <i class="ti ti-upload me-1"></i> Lizenz hochladen
+            </label>
+            <span id="license-upload-status" class="form-hint ms-2">PDF, JPG, PNG – max 10 MB</span>
+          </div>
         </div>
       </div>
 
       <!-- Vertrag -->
-      <div class="card">
-        <div class="card-title mb-2">Vertrag</div>
-        <div id="contract-list">
-          ${renderFileList(t.contract_files || [], 'contract')}
-        </div>
-        <div style="margin-top:12px">
-          <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            <input type="file" id="contract-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
-              onchange="uploadFiles('contract')">
-            + Vertrag hochladen
-          </label>
-          <span id="contract-upload-status" class="form-hint" style="margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Vertrag</h3></div>
+        <div class="card-body">
+          <div id="contract-list">
+            ${renderFileList(t.contract_files || [], 'contract')}
+          </div>
+          <div class="mt-3">
+            <label class="btn btn-outline-secondary btn-sm" style="cursor:pointer">
+              <input type="file" id="contract-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+                onchange="uploadFiles('contract')">
+              <i class="ti ti-upload me-1"></i> Vertrag hochladen
+            </label>
+            <span id="contract-upload-status" class="form-hint ms-2">PDF, JPG, PNG – max 10 MB</span>
+          </div>
         </div>
       </div>
 
-      <button class="btn btn-primary btn-block btn-lg" id="save-btn" onclick="saveProfile()">Profil speichern</button>
-      <div style="height:20px"></div>
+      <button class="btn btn-primary w-100 btn-lg mb-3" id="save-btn" onclick="saveProfile()">Profil speichern</button>
     `;
 
     if (window._profileDirty) window._profileDirty.destroy();
@@ -203,24 +223,24 @@
   function renderFileList(files, type) {
     if (!files || files.length === 0) {
       return type === 'contract'
-        ? '<p class="text-muted" style="font-size:13px">Kein Vertrag hochgeladen.</p>'
-        : '<p class="text-muted" style="font-size:13px">Keine Lizenzen hochgeladen.</p>';
+        ? '<p class="text-secondary" style="font-size:13px">Kein Vertrag hochgeladen.</p>'
+        : '<p class="text-secondary" style="font-size:13px">Keine Lizenzen hochgeladen.</p>';
     }
-    const iconColor = type === 'contract' ? 'rgba(46,117,182,0.12)' : 'rgba(232,147,10,0.12)';
-    const iconTextColor = type === 'contract' ? '#2E75B6' : '#e8930a';
     return files.map(f => {
       const date = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('de-DE') : '–';
       const size = f.size_bytes ? formatFileSize(f.size_bytes) : '–';
-      const icon = (f.content_type === 'application/pdf' || (f.filename && f.filename.endsWith('.pdf'))) ? 'PDF' : 'IMG';
+      const icon = (f.content_type === 'application/pdf' || (f.filename && f.filename.endsWith('.pdf'))) ? 'ti-file-type-pdf' : 'ti-photo';
       return `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px">
-          <div style="width:36px;height:36px;border-radius:8px;background:${iconColor};color:${iconTextColor};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${icon}</div>
+        <div class="d-flex align-items-center gap-2 p-2 border rounded mb-2">
+          <div class="d-flex align-items-center justify-content-center" style="width:36px;height:36px;border-radius:8px;background:rgba(var(--tblr-primary-rgb),0.1);flex-shrink:0">
+            <i class="ti ${icon}" style="color:var(--tblr-primary)"></i>
+          </div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.filename}</div>
-            <div style="font-size:11px;color:var(--text-muted)">${date} &middot; ${size}</div>
+            <div class="text-secondary" style="font-size:11px">${date} &middot; ${size}</div>
           </div>
-          <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewFile('${f.path}')">Anzeigen</button>
-          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteFile('${f.path}','${type}')">L&ouml;schen</button>
+          <button class="btn btn-outline-secondary btn-sm" style="font-size:11px" onclick="viewFile('${f.path}')">Anzeigen</button>
+          <button class="btn btn-outline-danger btn-sm" style="font-size:11px" onclick="deleteFile('${f.path}','${type}')">Löschen</button>
         </div>
       `;
     }).join('');
@@ -231,7 +251,7 @@
       const sb = getSupabase();
       const { data, error } = await sb.storage
         .from('trainer-documents')
-        .createSignedUrl(path, 300); // 5 min
+        .createSignedUrl(path, 300);
       if (error) throw error;
       if (data?.signedUrl) window.open(data.signedUrl, '_blank');
     } catch (err) {
@@ -266,7 +286,6 @@
 
       showAlert('alert-box', `${result.files.length} Datei(en) hochgeladen!`, 'success');
 
-      // Profil neu laden und UI updaten
       const sb = getSupabase();
       const { data: profile } = await sb
         .from('trainer_profiles')
@@ -298,13 +317,11 @@
     const currentFiles = window.currentTrainer[field] || [];
 
     try {
-      // Datei aus Storage löschen
       const { error: storageErr } = await sb.storage
         .from('trainer-documents')
         .remove([path]);
       if (storageErr) console.error('Storage delete error:', storageErr.message);
 
-      // JSONB Array updaten
       const updatedFiles = currentFiles.filter(f => f.path !== path);
       const { error: updateErr } = await sb
         .from('trainer_profiles')
@@ -325,7 +342,7 @@
   async function saveProfile() {
     const btn = document.getElementById('save-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Wird gespeichert...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird gespeichert...';
 
     const sb = getSupabase();
     const trainerId = window.currentTrainer.id;
@@ -349,7 +366,6 @@
 
       if (error) throw error;
 
-      // Update local state
       Object.assign(window.currentTrainer, update);
       if (window._profileDirty) window._profileDirty.reset();
       showAlert('alert-box', 'Profil gespeichert!', 'success');

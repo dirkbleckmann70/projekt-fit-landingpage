@@ -1,230 +1,80 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Passwort setzen – Projekt Fit Trainer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0a0a0a;
-      color: #f0f0f5;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .card {
-      background: #161618;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 40px;
-      max-width: 440px;
-      width: 100%;
-    }
-
-    .logo {
-      font-size: 28px;
-      font-weight: 800;
-      text-align: center;
-      margin-bottom: 8px;
-    }
-    .logo span { color: #e8930a; }
-
-    .subtitle {
-      text-align: center;
-      color: #8888a0;
-      font-size: 14px;
-      margin-bottom: 32px;
-    }
-
-    h1 {
-      font-size: 22px;
-      font-weight: 700;
-      text-align: center;
-      margin-bottom: 8px;
-    }
-
-    .desc {
-      text-align: center;
-      color: #8888a0;
-      font-size: 14px;
-      line-height: 1.5;
-      margin-bottom: 28px;
-    }
-
-    .field {
-      margin-bottom: 16px;
-    }
-    .field label {
-      display: block;
-      font-size: 13px;
-      font-weight: 600;
-      color: #aaa;
-      margin-bottom: 6px;
-    }
-    .field input {
-      width: 100%;
-      padding: 12px 14px;
-      background: #0e0e10;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
-      color: #f0f0f5;
-      font-size: 15px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-    .field input:focus {
-      border-color: #e8930a;
-    }
-
-    .hint {
-      font-size: 12px;
-      color: #55556a;
-      margin-top: 4px;
-    }
-
-    .error-text {
-      color: #e74c3c;
-      font-size: 13px;
-      margin-top: 4px;
-      display: none;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 14px;
-      background: #e8930a;
-      color: #fff;
-      font-size: 16px;
-      font-weight: 700;
-      font-family: inherit;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
-      margin-top: 24px;
-      transition: opacity 0.2s;
-    }
-    .btn:hover { opacity: 0.9; }
-    .btn:disabled {
-      opacity: 0.4;
-      cursor: not-allowed;
-    }
-
-    /* Status Messages */
-    .status {
-      text-align: center;
-      padding: 16px;
-      border-radius: 12px;
-      margin-top: 16px;
-      font-size: 14px;
-      display: none;
-    }
-    .status.success {
-      background: rgba(39,174,96,0.12);
-      color: #27ae60;
-      display: block;
-    }
-    .status.error {
-      background: rgba(231,76,60,0.12);
-      color: #e74c3c;
-      display: block;
-    }
-
-    /* Loading Spinner */
-    .spinner {
-      display: inline-block;
-      width: 18px;
-      height: 18px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-top-color: #fff;
-      border-radius: 50%;
-      animation: spin 0.6s linear infinite;
-      vertical-align: middle;
-      margin-right: 8px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Views */
-    #view-loading,
-    #view-form,
-    #view-success,
-    #view-error { display: none; }
-    #view-loading.active,
-    #view-form.active,
-    #view-success.active,
-    #view-error.active { display: block; }
-  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../../shared/tabler-custom.css">
 </head>
-<body>
+<body class="page page-center">
+<script src="../../shared/theme.js"></script>
 
-<div class="card">
-  <div class="logo">Projekt <span>Fit</span></div>
-  <p class="subtitle">Trainer-Portal</p>
+<div class="container container-tight py-4">
+  <div class="card card-md">
+    <div class="card-body">
+      <h1 class="navbar-brand navbar-brand-autodark text-center mb-1" style="font-size:1.6rem">
+        Projekt <span>Fit</span>
+      </h1>
+      <p class="text-secondary text-center mb-4">Trainer-Portal</p>
 
-  <!-- Loading: Token wird verifiziert -->
-  <div id="view-loading" class="active">
-    <h1>Einladung wird geprüft...</h1>
-    <p class="desc"><span class="spinner"></span> Bitte warte einen Moment.</p>
-  </div>
-
-  <!-- Formular: Passwort setzen -->
-  <div id="view-form">
-    <h1>Passwort setzen</h1>
-    <p class="desc">Willkommen bei Projekt Fit! Setze jetzt dein Passwort, um dein Trainer-Konto zu aktivieren.</p>
-
-    <form id="password-form" novalidate>
-      <div class="field">
-        <label for="password">Neues Passwort</label>
-        <input type="password" id="password" placeholder="Mindestens 8 Zeichen" autocomplete="new-password" required>
-        <p class="hint">Min. 8 Zeichen, Groß- und Kleinbuchstaben empfohlen</p>
+      <!-- Loading: Token wird verifiziert -->
+      <div id="view-loading" class="active">
+        <h2 class="h3 text-center mb-2">Einladung wird geprüft...</h2>
+        <p class="text-secondary text-center"><span class="spinner-border spinner-border-sm me-2"></span> Bitte warte einen Moment.</p>
       </div>
 
-      <div class="field">
-        <label for="password-confirm">Passwort bestätigen</label>
-        <input type="password" id="password-confirm" placeholder="Passwort wiederholen" autocomplete="new-password" required>
-        <p class="error-text" id="match-error">Passwörter stimmen nicht überein</p>
+      <!-- Formular: Passwort setzen -->
+      <div id="view-form" style="display:none">
+        <h2 class="h3 text-center mb-2">Passwort setzen</h2>
+        <p class="text-secondary text-center mb-3">Willkommen bei Projekt Fit! Setze jetzt dein Passwort, um dein Trainer-Konto zu aktivieren.</p>
+
+        <form id="password-form" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="password">Neues Passwort</label>
+            <input type="password" class="form-control" id="password" placeholder="Mindestens 8 Zeichen" autocomplete="new-password" required>
+            <small class="form-hint">Min. 8 Zeichen, Groß- und Kleinbuchstaben empfohlen</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="password-confirm">Passwort bestätigen</label>
+            <input type="password" class="form-control" id="password-confirm" placeholder="Passwort wiederholen" autocomplete="new-password" required>
+            <small class="form-hint text-danger" id="match-error" style="display:none">Passwörter stimmen nicht überein</small>
+          </div>
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary w-100" id="submit-btn">Passwort speichern</button>
+          </div>
+          <div class="alert mt-3 d-none" id="form-status"></div>
+        </form>
       </div>
 
-      <button type="submit" class="btn" id="submit-btn">Passwort speichern</button>
+      <!-- Erfolg -->
+      <div id="view-success" style="display:none">
+        <h2 class="h3 text-center mb-2">Passwort gesetzt!</h2>
+        <p class="text-secondary text-center mb-3">
+          Dein Trainer-Konto ist jetzt aktiv. Du kannst dich ab sofort in der
+          Projekt Fit App als Trainer einloggen.
+        </p>
+        <a href="https://projektfit.net" class="btn btn-primary w-100">Zur Startseite</a>
+      </div>
 
-      <div class="status" id="form-status"></div>
-    </form>
-  </div>
-
-  <!-- Erfolg -->
-  <div id="view-success">
-    <h1>Passwort gesetzt!</h1>
-    <p class="desc">
-      Dein Trainer-Konto ist jetzt aktiv. Du kannst dich ab sofort in der
-      Projekt Fit App als Trainer einloggen.
-    </p>
-    <a href="https://projektfit.net" class="btn" style="display:block;text-align:center;text-decoration:none;">
-      Zur Startseite
-    </a>
-  </div>
-
-  <!-- Fehler: Ungültiger/abgelaufener Link -->
-  <div id="view-error">
-    <h1>Link ungültig</h1>
-    <p class="desc" id="error-desc">
-      Dieser Einladungslink ist ungültig oder abgelaufen.
-      Bitte kontaktiere das Projekt Fit Team.
-    </p>
-    <a href="mailto:info@projektfit.net" class="btn" style="display:block;text-align:center;text-decoration:none;">
-      Support kontaktieren
-    </a>
+      <!-- Fehler: Ungültiger/abgelaufener Link -->
+      <div id="view-error" style="display:none">
+        <h2 class="h3 text-center mb-2">Link ungültig</h2>
+        <p class="text-secondary text-center mb-3" id="error-desc">
+          Dieser Einladungslink ist ungültig oder abgelaufen.
+          Bitte kontaktiere das Projekt Fit Team.
+        </p>
+        <a href="mailto:info@projektfit.net" class="btn btn-primary w-100">Support kontaktieren</a>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- Supabase JS (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   // ─── Config ─────────────────────────────────────────────────────────
@@ -247,15 +97,12 @@
   const formStatus  = document.getElementById('form-status');
 
   function showView(view) {
-    [viewLoading, viewForm, viewSuccess, viewError].forEach(v => v.classList.remove('active'));
-    view.classList.add('active');
+    [viewLoading, viewForm, viewSuccess, viewError].forEach(v => v.style.display = 'none');
+    view.style.display = 'block';
   }
 
   // ─── Init: Token aus URL verarbeiten ────────────────────────────────
   async function init() {
-    // Supabase sendet den Token als URL-Hash-Fragment
-    // Format: #access_token=...&type=invite&...
-    // Oder bei neueren Versionen: ?token=...&type=invite
     const hash = window.location.hash.substring(1);
     const params = new URLSearchParams(hash || window.location.search);
 
@@ -265,7 +112,6 @@
     // Methode 1: access_token im Hash (Standard Supabase Redirect)
     if (accessToken) {
       try {
-        // Session aus dem Token setzen
         const { data, error } = await sb.auth.setSession({
           access_token: accessToken,
           refresh_token: params.get('refresh_token') || '',
@@ -313,7 +159,7 @@
       }
     }
 
-    // Methode 3: Prüfe ob bereits eine Session existiert (z.B. Cookie/localStorage)
+    // Methode 3: Prüfe ob bereits eine Session existiert
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
       console.log('Bestehende Session gefunden:', session.user?.email);
@@ -321,7 +167,7 @@
       return;
     }
 
-    // Kein Token, kein Code, keine Session → Fehler
+    // Kein Token, kein Code, keine Session
     errorDesc.textContent = 'Kein gültiger Einladungslink. Bitte verwende den Link aus deiner E-Mail.';
     showView(viewError);
   }
@@ -330,8 +176,7 @@
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     matchError.style.display = 'none';
-    formStatus.style.display = 'none';
-    formStatus.className = 'status';
+    formStatus.classList.add('d-none');
 
     const pw = pwInput.value;
     const pwc = pwConfirm.value;
@@ -339,7 +184,7 @@
     // Validierung
     if (pw.length < 8) {
       formStatus.textContent = 'Passwort muss mindestens 8 Zeichen lang sein.';
-      formStatus.className = 'status error';
+      formStatus.className = 'alert alert-danger mt-3';
       return;
     }
 
@@ -350,7 +195,7 @@
 
     // Senden
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner"></span> Wird gespeichert...';
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird gespeichert...';
 
     try {
       const { data, error } = await sb.auth.updateUser({ password: pw });
@@ -358,7 +203,7 @@
       if (error) {
         console.error('Passwort setzen fehlgeschlagen:', error.message);
         formStatus.textContent = 'Fehler: ' + error.message;
-        formStatus.className = 'status error';
+        formStatus.className = 'alert alert-danger mt-3';
         submitBtn.disabled = false;
         submitBtn.textContent = 'Passwort speichern';
         return;
@@ -369,7 +214,7 @@
     } catch (err) {
       console.error('Passwort setzen Exception:', err);
       formStatus.textContent = 'Ein unerwarteter Fehler ist aufgetreten.';
-      formStatus.className = 'status error';
+      formStatus.className = 'alert alert-danger mt-3';
       submitBtn.disabled = false;
       submitBtn.textContent = 'Passwort speichern';
     }

@@ -1,108 +1,71 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Trainer Login – Projekt Fit</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #0a0a0a; color: #f0f0f5; min-height: 100vh;
-      display: flex; align-items: center; justify-content: center; padding: 20px;
-    }
-    .card {
-      background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 20px;
-      padding: 36px; max-width: 400px; width: 100%;
-    }
-    .logo { font-size: 28px; font-weight: 800; text-align: center; margin-bottom: 4px; }
-    .logo span { color: #e8930a; }
-    .subtitle { text-align: center; color: #8888a0; font-size: 14px; margin-bottom: 28px; }
-    h1 { font-size: 22px; font-weight: 700; text-align: center; margin-bottom: 24px; }
-    .field { margin-bottom: 16px; }
-    .field label { display: block; font-size: 13px; font-weight: 600; color: #aaa; margin-bottom: 6px; }
-    .field input {
-      width: 100%; padding: 12px 14px; background: #111; border: 1px solid #2a2a2a;
-      border-radius: 10px; color: #f0f0f5; font-size: 15px; font-family: inherit;
-      outline: none; transition: border-color 0.2s;
-    }
-    .field input:focus { border-color: #e8930a; }
-    .btn {
-      width: 100%; padding: 14px; background: #e8930a; color: #fff; font-size: 16px;
-      font-weight: 700; font-family: inherit; border: none; border-radius: 12px;
-      cursor: pointer; margin-top: 8px; transition: opacity 0.2s;
-    }
-    .btn:hover { opacity: 0.9; }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .error-msg {
-      background: rgba(231,76,60,0.12); color: #e74c3c; padding: 12px;
-      border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: none; text-align: center;
-    }
-    .error-msg.show { display: block; }
-    .links { text-align: center; margin-top: 20px; }
-    .links a { color: #8888a0; font-size: 13px; text-decoration: none; }
-    .links a:hover { color: #e8930a; }
-    .spinner {
-      display: inline-block; width: 18px; height: 18px;
-      border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
-      border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .reset-form { display: none; }
-    .reset-form.show { display: block; }
-    .success-msg {
-      background: rgba(39,174,96,0.12); color: #27ae60; padding: 12px;
-      border-radius: 8px; font-size: 14px; margin-bottom: 16px; display: none; text-align: center;
-    }
-    .success-msg.show { display: block; }
-  </style>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
 </head>
-<body>
+<body class="page page-center">
+<script src="../shared/theme.js"></script>
 
-<div class="card">
-  <div class="logo">Projekt <span>Fit</span></div>
-  <p class="subtitle">Trainer-Portal</p>
+<div class="container container-tight py-4">
+  <div class="card card-md">
+    <div class="card-body">
+      <h1 class="navbar-brand navbar-brand-autodark text-center mb-1" style="font-size:1.6rem">
+        Projekt <span>Fit</span>
+      </h1>
+      <p class="text-secondary text-center mb-4">Trainer-Portal</p>
 
-  <div class="error-msg" id="error-msg"></div>
-  <div class="success-msg" id="success-msg"></div>
+      <div class="alert alert-danger d-none" id="error-msg"></div>
+      <div class="alert alert-success d-none" id="success-msg"></div>
 
-  <!-- Login Form -->
-  <div id="login-view">
-    <h1>Anmelden</h1>
-    <form id="login-form" novalidate>
-      <div class="field">
-        <label for="email">E-Mail</label>
-        <input type="email" id="email" placeholder="deine@email.de" autocomplete="email" required>
+      <!-- Login Form -->
+      <div id="login-view">
+        <h2 class="h3 text-center mb-3">Anmelden</h2>
+        <form id="login-form" novalidate autocomplete="on">
+          <div class="mb-3">
+            <label class="form-label" for="email">E-Mail</label>
+            <input type="email" class="form-control" id="email" placeholder="deine@email.de" autocomplete="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="password">Passwort</label>
+            <input type="password" class="form-control" id="password" placeholder="Passwort" autocomplete="current-password" required>
+          </div>
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary w-100" id="submit-btn">Einloggen</button>
+          </div>
+        </form>
+        <div class="text-center mt-3">
+          <a href="#" id="forgot-link" class="text-secondary">Passwort vergessen?</a>
+        </div>
       </div>
-      <div class="field">
-        <label for="password">Passwort</label>
-        <input type="password" id="password" placeholder="Passwort" autocomplete="current-password" required>
-      </div>
-      <button type="submit" class="btn" id="submit-btn">Einloggen</button>
-    </form>
-    <div class="links">
-      <a href="#" id="forgot-link">Passwort vergessen?</a>
-    </div>
-  </div>
 
-  <!-- Password Reset Form -->
-  <div id="reset-view" class="reset-form">
-    <h1>Passwort zurücksetzen</h1>
-    <form id="reset-form" novalidate>
-      <div class="field">
-        <label for="reset-email">E-Mail</label>
-        <input type="email" id="reset-email" placeholder="deine@email.de" autocomplete="email" required>
+      <!-- Password Reset Form -->
+      <div id="reset-view" style="display:none">
+        <h2 class="h3 text-center mb-3">Passwort zurücksetzen</h2>
+        <form id="reset-form" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="reset-email">E-Mail</label>
+            <input type="email" class="form-control" id="reset-email" placeholder="deine@email.de" autocomplete="email" required>
+          </div>
+          <div class="form-footer">
+            <button type="submit" class="btn btn-primary w-100" id="reset-btn">Link senden</button>
+          </div>
+        </form>
+        <div class="text-center mt-3">
+          <a href="#" id="back-link" class="text-secondary">Zurück zum Login</a>
+        </div>
       </div>
-      <button type="submit" class="btn" id="reset-btn">Link senden</button>
-    </form>
-    <div class="links">
-      <a href="#" id="back-link">Zurück zum Login</a>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
   const SUPABASE_URL = 'https://ahsjydgknmysircubjsk.supabase.co';
@@ -124,34 +87,34 @@
   const urlError = new URLSearchParams(window.location.search).get('error');
   if (urlError === 'no_trainer') {
     errorMsg.textContent = 'Kein Trainer-Zugang. Bitte melde dich mit deinem Trainer-Account an.';
-    errorMsg.classList.add('show');
+    errorMsg.classList.remove('d-none');
   }
 
   // ─── Login ──────────────────────────────────────────────────────
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorMsg.classList.remove('show');
-    successMsg.classList.remove('show');
+    errorMsg.classList.add('d-none');
+    successMsg.classList.add('d-none');
 
     const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
 
     if (!email || !password) {
       errorMsg.textContent = 'Bitte E-Mail und Passwort eingeben.';
-      errorMsg.classList.add('show');
+      errorMsg.classList.remove('d-none');
       return;
     }
 
     const btn = document.getElementById('submit-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Wird geprüft...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird geprüft...';
 
     try {
       const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
       if (error) {
         errorMsg.textContent = 'Login fehlgeschlagen: ' + error.message;
-        errorMsg.classList.add('show');
+        errorMsg.classList.remove('d-none');
         btn.disabled = false;
         btn.textContent = 'Einloggen';
         return;
@@ -161,7 +124,7 @@
       if (!role.includes('trainer')) {
         await sb.auth.signOut();
         errorMsg.textContent = 'Kein Trainer-Zugang. Nur Trainer-Accounts können sich hier einloggen.';
-        errorMsg.classList.add('show');
+        errorMsg.classList.remove('d-none');
         btn.disabled = false;
         btn.textContent = 'Einloggen';
         return;
@@ -170,7 +133,7 @@
       window.location.href = '/trainer-portal/dashboard.html';
     } catch (err) {
       errorMsg.textContent = 'Verbindungsfehler: ' + err.message;
-      errorMsg.classList.add('show');
+      errorMsg.classList.remove('d-none');
       btn.disabled = false;
       btn.textContent = 'Einloggen';
     }
@@ -180,35 +143,35 @@
   document.getElementById('forgot-link').addEventListener('click', (e) => {
     e.preventDefault();
     document.getElementById('login-view').style.display = 'none';
-    document.getElementById('reset-view').classList.add('show');
-    errorMsg.classList.remove('show');
-    successMsg.classList.remove('show');
+    document.getElementById('reset-view').style.display = 'block';
+    errorMsg.classList.add('d-none');
+    successMsg.classList.add('d-none');
   });
 
   document.getElementById('back-link').addEventListener('click', (e) => {
     e.preventDefault();
-    document.getElementById('reset-view').classList.remove('show');
+    document.getElementById('reset-view').style.display = 'none';
     document.getElementById('login-view').style.display = 'block';
-    errorMsg.classList.remove('show');
-    successMsg.classList.remove('show');
+    errorMsg.classList.add('d-none');
+    successMsg.classList.add('d-none');
   });
 
   // ─── Password Reset ────────────────────────────────────────────
   document.getElementById('reset-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    errorMsg.classList.remove('show');
-    successMsg.classList.remove('show');
+    errorMsg.classList.add('d-none');
+    successMsg.classList.add('d-none');
 
     const email = document.getElementById('reset-email').value.trim();
     if (!email) {
       errorMsg.textContent = 'Bitte E-Mail eingeben.';
-      errorMsg.classList.add('show');
+      errorMsg.classList.remove('d-none');
       return;
     }
 
     const btn = document.getElementById('reset-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Wird gesendet...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird gesendet...';
 
     try {
       const { error } = await sb.auth.resetPasswordForEmail(email, {
@@ -217,14 +180,14 @@
 
       if (error) {
         errorMsg.textContent = 'Fehler: ' + error.message;
-        errorMsg.classList.add('show');
+        errorMsg.classList.remove('d-none');
       } else {
         successMsg.textContent = 'Reset-Link wurde an ' + email + ' gesendet. Prüfe dein Postfach.';
-        successMsg.classList.add('show');
+        successMsg.classList.remove('d-none');
       }
     } catch (err) {
       errorMsg.textContent = 'Verbindungsfehler: ' + err.message;
-      errorMsg.classList.add('show');
+      errorMsg.classList.remove('d-none');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Link senden';

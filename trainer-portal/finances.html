@@ -1,231 +1,171 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Finanzen – Trainer-Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <link rel="stylesheet" href="../shared/table-utils.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <style>
-    /* ── Seiten-Wrapper (kein max-width, kein margin: auto) ─── */
-    .fin-page  { padding: 20px 24px 4px; }
-    .fin-outer { padding: 0 24px 24px; }
-    @media (max-width: 768px) {
-      .fin-page  { padding: 16px 16px 4px; }
-      .fin-outer { padding: 0 16px 16px; }
-    }
-
-    /* ── Fehlende Klassen aus admin/style.css ─────────────────── */
-    .table-wrap {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-      margin-bottom: 16px;
-    }
-    .table-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .table-title { font-size: 16px; font-weight: 700; }
-    .loading-overlay {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 60px;
-      gap: 12px;
-      color: var(--text-secondary);
-      font-size: 14px;
-    }
-
-    /* ── KPI-Leiste ───────────────────────────────────────────── */
-    .fin-kpi-bar {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-    .fin-kpi-card {
-      flex: 1;
-      background: #161625;
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 10px;
-      padding: 16px 18px;
-      min-width: 0;
-    }
-    .fin-kpi-label {
-      font-size: 11px;
-      color: #55556A;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      margin-bottom: 8px;
-      white-space: nowrap;
-    }
-    .fin-kpi-value {
-      font-size: 20px;
-      font-weight: 700;
-      color: #F0F0F5;
-      letter-spacing: -0.4px;
-      white-space: nowrap;
-    }
-    .fin-month-highlight td { background: rgba(46,117,182,0.07); }
+    .fin-month-highlight td { background: rgba(64,145,108,0.07); }
     .fin-total-row td {
       font-weight: 700;
       border-top: 1px solid rgba(255,255,255,0.12) !important;
-      color: #F0F0F5;
     }
-
-    /* Modal */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.7); z-index: 200;
-      align-items: center; justify-content: center; padding: 20px;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: #1a1a1a; border: 1px solid #2a2a2a;
-      border-radius: 16px; width: 100%; max-width: 560px;
-      max-height: 90vh; overflow-y: auto;
-    }
-    .modal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 20px 24px; border-bottom: 1px solid #2a2a2a;
-    }
-    .modal-title  { font-size: 18px; font-weight: 700; }
-    .modal-close  { background: none; border: none; color: #55556a; font-size: 24px; cursor: pointer; padding: 4px; line-height: 1; }
-    .modal-close:hover { color: #f0f0f5; }
-    .modal-body   { padding: 24px; }
-    .modal-footer { display: flex; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid #2a2a2a; }
-    .detail-row   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-    .detail-field label { display: block; font-size: 12px; font-weight: 600; color: #8888a0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .detail-field .dv   { font-size: 15px; color: #f0f0f5; }
-    .detail-id    { font-size: 11px; color: #55556a; margin-top: 16px; padding-top: 16px; border-top: 1px solid #2a2a2a; }
   </style>
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<header class="top-header" id="top-header"></header>
+<div id="sidebar"></div>
 
-<div class="fin-page">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
-    <h1 class="page-title" style="margin:0">Finanzen</h1>
-    <div style="display:flex;align-items:center;gap:10px">
-      <a href="/trainer-portal/invoices.html" class="btn btn-ghost btn-sm" style="text-decoration:none">Gutschriften</a>
-      <select id="year-select" class="form-control" style="width:auto;padding:6px 14px;font-size:14px" onchange="onYearChange()"></select>
-      <button class="btn btn-ghost btn-sm" onclick="exportCSV()">CSV Export</button>
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body" style="padding-bottom:80px">
+    <div class="container-xl">
+
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <a href="/trainer-portal/invoices.html" class="btn btn-ghost-secondary btn-sm">Gutschriften</a>
+          <select id="year-select" class="form-select" style="width:auto" onchange="onYearChange()"></select>
+          <button class="btn btn-ghost-secondary btn-sm" onclick="exportCSV()"><i class="ti ti-download me-1"></i>CSV Export</button>
+        </div>
+      </div>
+
+      <!-- Ebene 1: Jahres-KPIs -->
+      <div class="row row-deck row-cards mb-3">
+        <div class="col-6 col-lg">
+          <div class="card"><div class="card-body">
+            <div class="kpi-label">Vergütung brutto</div>
+            <div class="kpi-value" id="kpi-brutto"><div class="spinner-border spinner-border-sm"></div></div>
+          </div></div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="card"><div class="card-body">
+            <div class="kpi-label" id="kpi-mwst-label">MwSt 19%</div>
+            <div class="kpi-value" id="kpi-mwst"><div class="spinner-border spinner-border-sm"></div></div>
+          </div></div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="card"><div class="card-body">
+            <div class="kpi-label">Vergütung netto</div>
+            <div class="kpi-value" id="kpi-netto"><div class="spinner-border spinner-border-sm"></div></div>
+          </div></div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="card"><div class="card-body">
+            <div class="kpi-label">Abzüge</div>
+            <div class="kpi-value" id="kpi-abzuege"><div class="spinner-border spinner-border-sm"></div></div>
+          </div></div>
+        </div>
+        <div class="col-6 col-lg">
+          <div class="card"><div class="card-body">
+            <div class="kpi-label">Auszahlung</div>
+            <div class="kpi-value" style="color:var(--tblr-primary)" id="kpi-auszahlung"><div class="spinner-border spinner-border-sm"></div></div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- Ebene 2: Monatsübersicht -->
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Monatsübersicht</h3></div>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table" id="month-table">
+            <thead>
+              <tr>
+                <th>Monat</th>
+                <th>Trainings</th>
+                <th>Vergütung brutto</th>
+                <th>MwSt</th>
+                <th>Vergütung netto</th>
+                <th>Abzüge</th>
+                <th>Auszahlung</th>
+              </tr>
+            </thead>
+            <tbody id="month-body">
+              <tr><td colspan="7" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Ebene 3: Einzelbuchungen -->
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Einzelbuchungen</h3></div>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table" id="finance-table">
+            <thead>
+              <tr id="finance-sum-row" style="display:none;font-size:12px" class="text-secondary">
+                <td colspan="6" style="text-align:right;font-style:italic" id="fin-count-cell"></td>
+                <td style="font-weight:700;color:var(--tblr-primary)" id="fin-vergutung-sum"></td>
+                <td></td>
+              </tr>
+              <tr>
+                <th>Datum</th>
+                <th>Uhrzeit</th>
+                <th>Kunde</th>
+                <th>Art</th>
+                <th>Stadt</th>
+                <th>Status</th>
+                <th>Vergütung</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody id="revenue-body">
+              <tr><td colspan="8" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Daten werden geladen...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<div class="fin-outer">
-
-  <!-- Ebene 1: Jahres-KPIs -->
-  <div class="fin-kpi-bar">
-    <div class="fin-kpi-card"><div class="fin-kpi-label">Vergütung brutto</div><div class="fin-kpi-value" id="kpi-brutto"><span class="spinner"></span></div></div>
-    <div class="fin-kpi-card"><div class="fin-kpi-label" id="kpi-mwst-label">MwSt 19%</div><div class="fin-kpi-value" id="kpi-mwst"><span class="spinner"></span></div></div>
-    <div class="fin-kpi-card"><div class="fin-kpi-label">Vergütung netto</div><div class="fin-kpi-value" id="kpi-netto"><span class="spinner"></span></div></div>
-    <div class="fin-kpi-card"><div class="fin-kpi-label">Abzüge</div><div class="fin-kpi-value" id="kpi-abzuege"><span class="spinner"></span></div></div>
-    <div class="fin-kpi-card"><div class="fin-kpi-label">Auszahlung</div><div class="fin-kpi-value" style="color:#27ae60" id="kpi-auszahlung"><span class="spinner"></span></div></div>
-  </div>
-
-  <!-- Ebene 2: Monatsübersicht -->
-  <div class="table-wrap mb-2">
-    <div class="table-header">
-      <div class="table-title">Monatsübersicht</div>
-    </div>
-    <table id="month-table">
-      <thead>
-        <tr>
-          <th>Monat</th>
-          <th>Trainings</th>
-          <th>Vergütung brutto</th>
-          <th>MwSt</th>
-          <th>Vergütung netto</th>
-          <th>Abzüge</th>
-          <th>Auszahlung</th>
-        </tr>
-      </thead>
-      <tbody id="month-body">
-        <tr><td colspan="7" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Ebene 3: Einzelbuchungen -->
-  <div class="table-wrap mb-2">
-    <div class="table-header">
-      <div class="table-title">Einzelbuchungen</div>
-    </div>
-    <div style="overflow-x:auto">
-      <table id="finance-table">
-        <thead>
-          <tr id="finance-sum-row" style="display:none;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
-            <td colspan="6" style="padding:6px 12px;text-align:right;font-style:italic" id="fin-count-cell"></td>
-            <td style="padding:6px 12px;font-weight:700;color:var(--accent)" id="fin-vergutung-sum"></td>
-            <td></td>
-          </tr>
-          <tr>
-            <th>Datum</th>
-            <th>Uhrzeit</th>
-            <th>Kunde</th>
-            <th>Art</th>
-            <th>Stadt</th>
-            <th>Status</th>
-            <th>Vergütung</th>
-            <th>Details</th>
-          </tr>
-        </thead>
-        <tbody id="revenue-body">
-          <tr><td colspan="8" class="loading-overlay"><span class="spinner"></span> Daten werden geladen...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-</div>
-
-<nav class="bottom-nav" id="bottom-nav"></nav>
+<div id="bottom-nav"></div>
 
 <!-- Detail Modal -->
-<div class="modal-overlay" id="finance-detail-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Buchungs-Details</div>
-      <button class="modal-close" onclick="closeFinanceModal()">&times;</button>
-    </div>
-    <div class="modal-body" id="finance-modal-body"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost btn-sm" onclick="closeFinanceModal()">Schließen</button>
+<div class="modal modal-blur fade" id="finance-detail-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Buchungs-Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="finance-modal-body"></div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schließen</button>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-check.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="auth-check.js"></script>
 <script>
   let allData      = [];
   let yearData     = [];
   let tableFilter  = null;
   let selectedYear = new Date().getFullYear();
   let _trainerRate = 0;
-  let _mwstSatz    = 19; // Default 19%, wird aus Trainer-Profil geladen
+  let _mwstSatz    = 19;
 
   const FIN_CANCELLED = ['cancelled', 'refunded', 'cancelled_by_trainer'];
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August',
                          'September','Oktober','November','Dezember'];
 
-  // ── Berechnungen ──────────────────────────────────────────────────────────
   function effBrutto(b)     { return b.status === 'completed' ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
   function effNetto(b)      { return _mwstSatz > 0 ? Math.round(effBrutto(b) / (1 + _mwstSatz / 100)) : effBrutto(b); }
   function effMwSt(b)       { return effBrutto(b) - effNetto(b); }
-  function effAuszahlung(b) { return effNetto(b); } // Abzüge = 0
+  function effAuszahlung(b) { return effNetto(b); }
 
   function f(cents) {
     return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
@@ -233,28 +173,29 @@
 
   function vergütungCell(b) {
     if (FIN_CANCELLED.includes((b.status || '').toLowerCase()))
-      return '<span style="color:var(--text-muted)">0,00 €</span>';
+      return '<span class="text-secondary">0,00 €</span>';
     if (b.status === 'expired')
-      return '<span style="color:#f39c12">0,00 € (ausstehend)</span>';
+      return '<span style="color:var(--tblr-warning)">0,00 € (ausstehend)</span>';
     if (b.status === 'pending' || b.status === 'confirmed')
-      return '<span style="color:var(--text-muted)">–</span>';
+      return '<span class="text-secondary">–</span>';
     const v = b.trainer_payout_cents ?? _trainerRate;
-    return `<span style="color:var(--accent);font-weight:600">${f(v)}</span>`;
+    return `<span style="color:var(--tblr-primary);font-weight:600">${f(v)}</span>`;
   }
 
-  // ── Init ──────────────────────────────────────────────────────────────────
   (async () => {
     const trainer = await checkTrainerAuth();
     if (!trainer) return;
 
-    document.getElementById('top-header').innerHTML = renderTopHeader();
-    document.getElementById('bottom-nav').innerHTML  = renderNav('finances');
+    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('finances');
+    document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('finances');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Finanzen');
+    initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id) {
       ['kpi-brutto','kpi-mwst','kpi-netto','kpi-abzuege','kpi-auszahlung'].forEach(id =>
         document.getElementById(id).textContent = '–');
       document.getElementById('month-body').innerHTML =
-        '<tr><td colspan="7" class="text-muted" style="padding:16px">Kein Trainer-Profil verknüpft.</td></tr>';
+        '<tr><td colspan="7" class="text-secondary" style="padding:16px">Kein Trainer-Profil verknüpft.</td></tr>';
       return;
     }
 
@@ -263,7 +204,6 @@
     await loadFinances(trainer.id);
   })();
 
-  // ── Daten laden ───────────────────────────────────────────────────────────
   async function loadFinances(trainerId) {
     const sb = getSupabase();
     try {
@@ -275,7 +215,6 @@
 
       if (error) throw error;
 
-      // Kundennamen nachladen
       const customerIds = [...new Set((data || []).map(b => b.customer_id).filter(Boolean))];
       const customerNames = {};
       if (customerIds.length > 0) {
@@ -293,7 +232,6 @@
         customer_name: customerNames[b.customer_id] || 'Kunde',
       }));
 
-      // Jahres-Dropdown
       const years = [...new Set(allData.map(b => (b.scheduled_date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
       if (!years.includes(String(selectedYear))) years.unshift(String(selectedYear));
       const sel = document.getElementById('year-select');
@@ -304,7 +242,7 @@
       applyYearFilter();
     } catch (err) {
       document.getElementById('revenue-body').innerHTML =
-        `<tr><td colspan="8" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="8" class="text-danger" style="padding:20px">Fehler: ${err.message}</td></tr>`;
       ['kpi-brutto','kpi-mwst','kpi-netto','kpi-abzuege','kpi-auszahlung'].forEach(id =>
         document.getElementById(id).textContent = '–');
     }
@@ -336,7 +274,6 @@
     renderBookingsTable();
   }
 
-  // ── Ebene 1: KPIs ─────────────────────────────────────────────────────────
   function updateKPIs() {
     const brutto  = yearData.reduce((s, b) => s + effBrutto(b), 0);
     const netto   = _mwstSatz > 0 ? Math.round(brutto / (1 + _mwstSatz / 100)) : brutto;
@@ -349,7 +286,6 @@
     document.getElementById('kpi-auszahlung').textContent = f(netto);
   }
 
-  // ── Ebene 2: Monatsübersicht ───────────────────────────────────────────────
   function renderMonthTable() {
     const now          = new Date();
     const currentMonth = now.getFullYear() === selectedYear ? now.getMonth() : -1;
@@ -366,15 +302,15 @@
 
       const cls = mi === currentMonth ? ' class="fin-month-highlight"' : '';
       if (count === 0) {
-        return `<tr${cls}><td>${name}</td><td class="text-muted">–</td><td class="text-muted">–</td><td class="text-muted">–</td><td class="text-muted">–</td><td class="text-muted">–</td><td class="text-muted">–</td></tr>`;
+        return `<tr${cls}><td>${name}</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td></tr>`;
       }
       return `<tr${cls}>
         <td>${name}</td>
         <td>${count}</td>
         <td>${f(brutto)}</td>
-        <td class="text-muted">${f(mwst)}</td>
+        <td class="text-secondary">${f(mwst)}</td>
         <td>${f(netto)}</td>
-        <td class="text-muted">${f(0)}</td>
+        <td class="text-secondary">${f(0)}</td>
         <td>${f(netto)}</td>
       </tr>`;
     });
@@ -392,14 +328,13 @@
     document.getElementById('month-body').innerHTML = rows.join('');
   }
 
-  // ── Ebene 3: Einzelbuchungen ──────────────────────────────────────────────
   function renderBookingsTable() {
     const filtered = tableFilter ? tableFilter.apply(yearData) : yearData;
     const tbody    = document.getElementById('revenue-body');
     const sumRow   = document.getElementById('finance-sum-row');
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-secondary" style="padding:24px">Keine Buchungen gefunden</td></tr>';
       sumRow.style.display = 'none';
       return;
     }
@@ -407,17 +342,17 @@
     tbody.innerHTML = filtered.map(b => {
       const city     = b.location_name || b.location_address || '–';
       const artBadge = b.booking_type === 'group'
-        ? '<span class="badge" style="background:rgba(45,106,79,0.12);color:#40916C;border:1px solid rgba(64,145,108,0.25)">GT</span>'
-        : '<span class="badge" style="background:rgba(46,117,182,0.12);color:#5BB8FF;border:1px solid rgba(91,184,255,0.25)">PT</span>';
+        ? '<span class="badge" style="background:rgba(64,145,108,0.12);color:var(--tblr-primary)">GT</span>'
+        : '<span class="badge" style="background:rgba(46,117,182,0.12);color:#5BB8FF">PT</span>';
       return `<tr>
         <td style="white-space:nowrap">${formatDate(b.scheduled_date)}</td>
-        <td style="white-space:nowrap;color:var(--text-secondary)">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
+        <td style="white-space:nowrap" class="text-secondary">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
         <td>${b.customer_name || '–'}</td>
         <td>${artBadge}</td>
         <td>${city}</td>
         <td>${statusBadge(b.status)}</td>
         <td>${vergütungCell(b)}</td>
-        <td><button class="btn btn-ghost btn-sm" onclick="openFinanceDetail('${b.id}')">Details</button></td>
+        <td><button class="btn btn-ghost-secondary btn-sm" onclick="openFinanceDetail('${b.id}')">Details</button></td>
       </tr>`;
     }).join('');
 
@@ -427,7 +362,6 @@
     document.getElementById('fin-vergutung-sum').textContent = f(sumB);
   }
 
-  // ── CSV Export ────────────────────────────────────────────────────────────
   function exportCSV() {
     if (yearData.length === 0) { alert('Keine Daten für ' + selectedYear + '.'); return; }
     const headers = ['Datum','Uhrzeit','Kunde','Art','Stadt','Status',
@@ -453,7 +387,7 @@
     URL.revokeObjectURL(url);
   }
 
-  // ── Detail Modal ──────────────────────────────────────────────────────────
+  let _financeModal;
   function openFinanceDetail(id) {
     const b = allData.find(x => x.id === id);
     if (!b) return;
@@ -461,39 +395,32 @@
     const netto  = effNetto(b);
     const mwst   = effMwSt(b);
     document.getElementById('finance-modal-body').innerHTML = `
-      <div class="detail-row">
-        <div class="detail-field"><label>Kunde</label><div class="dv">${b.customer_name || '–'}</div></div>
-        <div class="detail-field"><label>Art</label><div class="dv">${b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training'}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Kunde</label><div>${b.customer_name || '–'}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Art</label><div>${b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training'}</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Datum</label><div class="dv">${formatDate(b.scheduled_date)}</div></div>
-        <div class="detail-field"><label>Uhrzeit</label><div class="dv">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Datum</label><div>${formatDate(b.scheduled_date)}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Uhrzeit</label><div>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Stadt</label><div class="dv">${b.location_name || '–'}</div></div>
-        <div class="detail-field"><label>Status</label><div class="dv">${statusBadge(b.status)}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Stadt</label><div>${b.location_name || '–'}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Status</label><div>${statusBadge(b.status)}</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Vergütung brutto</label><div class="dv" style="color:var(--accent);font-weight:700">${f(brutto)}</div></div>
-        <div class="detail-field"><label>MwSt (${_mwstSatz}%)</label><div class="dv" style="color:var(--text-secondary)">${f(mwst)}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Vergütung brutto</label><div style="color:var(--tblr-primary);font-weight:700">${f(brutto)}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">MwSt (${_mwstSatz}%)</label><div class="text-secondary">${f(mwst)}</div></div>
       </div>
-      <div class="detail-row">
-        <div class="detail-field"><label>Vergütung netto</label><div class="dv" style="font-weight:600">${f(netto)}</div></div>
-        <div class="detail-field"><label>Auszahlung</label><div class="dv" style="color:#27ae60;font-weight:700">${f(netto)}</div></div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Vergütung netto</label><div style="font-weight:600">${f(netto)}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Auszahlung</label><div style="color:var(--tblr-primary);font-weight:700">${f(netto)}</div></div>
       </div>
-      ${b.notes ? `<div class="detail-field" style="margin-bottom:16px"><label>Notizen</label><div class="dv" style="font-size:14px;color:#8888a0">${b.notes}</div></div>` : ''}
-      <div class="detail-id">Buchungs-ID: ${b.id}</div>
+      ${b.notes ? `<div class="mb-3"><label class="form-label text-secondary">Notizen</label><div class="text-secondary" style="font-size:14px">${b.notes}</div></div>` : ''}
+      <div class="text-secondary" style="font-size:11px;border-top:1px solid var(--tblr-border-color);padding-top:12px">Buchungs-ID: ${b.id}</div>
     `;
-    document.getElementById('finance-detail-modal').classList.add('open');
+    if (!_financeModal) _financeModal = new bootstrap.Modal(document.getElementById('finance-detail-modal'));
+    _financeModal.show();
   }
-
-  function closeFinanceModal() {
-    document.getElementById('finance-detail-modal').classList.remove('open');
-  }
-
-  document.getElementById('finance-detail-modal').addEventListener('click', e => {
-    if (e.target === document.getElementById('finance-detail-modal')) closeFinanceModal();
-  });
 </script>
 
 </body>

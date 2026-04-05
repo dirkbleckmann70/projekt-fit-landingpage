@@ -1,327 +1,111 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="de" data-bs-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Onboarding – Trainer-Portal – Projekt Fit</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .onboarding-wrapper {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 24px;
-            position: relative;
-        }
-        .onboarding-wrapper::before {
-            content: '';
-            position: absolute;
-            top: -20%;
-            right: -10%;
-            width: 500px;
-            height: 500px;
-            background: radial-gradient(circle, rgba(45,106,79,0.08), transparent 70%);
-            border-radius: 50%;
-        }
-        .onboarding-wrapper::after {
-            content: '';
-            position: absolute;
-            bottom: -15%;
-            left: -10%;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(224,122,58,0.06), transparent 70%);
-            border-radius: 50%;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding – Trainer-Portal – Projekt Fit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <style>
+    /* Progress Bar */
+    .progress-bar-steps { display:flex; align-items:center; gap:0; margin-bottom:2rem; position:relative; }
+    .progress-step { flex:1; text-align:center; position:relative; }
+    .progress-step::before { content:''; position:absolute; top:18px; left:0; right:0; height:3px; background:var(--tblr-border-color); z-index:0; }
+    .progress-step:first-child::before { left:50%; }
+    .progress-step:last-child::before { right:50%; }
+    .progress-step.done::before, .progress-step.active::before { background:var(--tblr-primary); }
+    .step-circle {
+      width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+      margin:0 auto 8px; font-size:16px; font-weight:700; position:relative; z-index:1;
+      border:2px solid var(--tblr-border-color); background:var(--tblr-body-bg); color:var(--tblr-secondary-color);
+    }
+    .progress-step.done .step-circle { background:var(--tblr-primary); border-color:var(--tblr-primary); color:#fff; }
+    .progress-step.active .step-circle { border-color:var(--tblr-primary); color:var(--tblr-primary); box-shadow:0 0 20px rgba(64,145,108,0.3); background:rgba(64,145,108,0.15); }
+    .step-label { font-size:12px; font-weight:600; color:var(--tblr-secondary-color); }
+    .progress-step.done .step-label { color:var(--tblr-primary); }
+    .progress-step.active .step-label { color:var(--tblr-body-color); }
 
-        .onboarding-card {
-            width: 100%;
-            max-width: 620px;
-            position: relative;
-            z-index: 2;
-        }
-
-        /* Logo */
-        .ob-logo {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .ob-logo a {
-            font-size: 28px;
-            font-weight: 900;
-            color: var(--text);
-            text-decoration: none;
-            letter-spacing: -1px;
-        }
-        .ob-logo a span { color: var(--green-light); }
-        .ob-logo .ob-badge {
-            display: inline-block;
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-secondary);
-            background: rgba(255,255,255,0.06);
-            padding: 4px 10px;
-            border-radius: 6px;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-left: 10px;
-            vertical-align: middle;
-        }
-
-        /* Progress Bar */
-        .progress-bar {
-            display: flex;
-            align-items: center;
-            gap: 0;
-            margin-bottom: 40px;
-            position: relative;
-        }
-        .progress-step {
-            flex: 1;
-            text-align: center;
-            position: relative;
-        }
-        .progress-step::before {
-            content: '';
-            position: absolute;
-            top: 18px;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--border);
-            z-index: 0;
-        }
-        .progress-step:first-child::before { left: 50%; }
-        .progress-step:last-child::before { right: 50%; }
-        .progress-step.done::before,
-        .progress-step.active::before {
-            background: var(--green);
-        }
-        .step-circle {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 8px;
-            font-size: 16px;
-            font-weight: 700;
-            position: relative;
-            z-index: 1;
-            border: 2px solid var(--border);
-            background: var(--bg-primary);
-            color: var(--text-muted);
-        }
-        .progress-step.done .step-circle {
-            background: var(--green);
-            border-color: var(--green);
-            color: #FFFFFF;
-        }
-        .progress-step.active .step-circle {
-            border-color: var(--green-light);
-            color: var(--green-bright);
-            box-shadow: 0 0 20px rgba(45,106,79,0.3);
-            background: rgba(45,106,79,0.15);
-        }
-        .step-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-        .progress-step.done .step-label { color: var(--green-bright); }
-        .progress-step.active .step-label { color: var(--text); }
-
-        /* Headline */
-        .ob-headline {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-        .ob-headline h1 {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--text);
-            margin-bottom: 8px;
-            letter-spacing: -0.5px;
-        }
-        .ob-headline p {
-            font-size: 16px;
-            color: var(--text-secondary);
-            line-height: 1.5;
-        }
-
-        /* Info Card */
-        .info-card {
-            background: rgba(45,106,79,0.08);
-            border: 1px solid rgba(45,106,79,0.2);
-            border-radius: 20px;
-            padding: 28px;
-            margin-bottom: 28px;
-        }
-        .info-card-title {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text);
-            margin-bottom: 16px;
-        }
-        .info-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .info-list li {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 10px 0;
-            font-size: 15px;
-            color: var(--text-secondary);
-            border-bottom: 1px solid rgba(45,106,79,0.1);
-        }
-        .info-list li:last-child { border-bottom: none; }
-        .info-list .check {
-            color: var(--green-bright);
-            font-size: 18px;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-
-        /* Stripe Button */
-        .stripe-section {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-        .btn-stripe {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            padding: 18px 40px;
-            border-radius: 16px;
-            border: none;
-            background: linear-gradient(135deg, var(--green), var(--green-light));
-            color: #FFFFFF;
-            font-family: 'Outfit', sans-serif;
-            font-size: 17px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 6px 30px rgba(45,106,79,0.3);
-            margin-bottom: 12px;
-        }
-        .btn-stripe:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 40px rgba(45,106,79,0.5);
-        }
-        .stripe-hint {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        /* Skip Option */
-        .skip-option {
-            text-align: center;
-            padding: 20px;
-            border-top: 1px solid var(--border);
-            margin-top: 8px;
-        }
-        .skip-option a {
-            font-size: 14px;
-            color: var(--text-muted);
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        .skip-option a:hover { color: var(--text-secondary); }
-        .skip-option a span { color: var(--green-light); }
-
-        /* Footer Hint */
-        .ob-footer {
-            text-align: center;
-            padding: 24px 0 0;
-            font-size: 12px;
-            color: var(--text-muted);
-            max-width: 400px;
-            margin: 0 auto;
-            line-height: 1.5;
-        }
-
-        /* Mobile */
-        @media (max-width: 600px) {
-            .onboarding-wrapper { padding: 24px 16px; }
-            .ob-headline h1 { font-size: 22px; }
-            .info-card { padding: 20px; }
-            .btn-stripe { padding: 16px 28px; font-size: 15px; }
-            .step-label { font-size: 11px; }
-        }
-    </style>
+    .info-list { list-style:none; padding:0; margin:0; }
+    .info-list li { display:flex; align-items:flex-start; gap:12px; padding:10px 0; font-size:15px; color:var(--tblr-secondary-color); border-bottom:1px solid rgba(64,145,108,0.1); }
+    .info-list li:last-child { border-bottom:none; }
+    .info-list .check { color:var(--tblr-primary); font-size:18px; font-weight:700; flex-shrink:0; }
+  </style>
 </head>
-<body>
+<body class="page page-center">
+<script src="../shared/theme.js"></script>
 
-<div class="onboarding-wrapper">
-    <div class="onboarding-card">
+<div class="container container-tight py-4" style="max-width:620px">
 
-        <!-- Logo -->
-        <div class="ob-logo">
-            <a href="https://projektfit.net">Projekt<span>Fit</span></a>
-            <span class="ob-badge">Trainer-Portal</span>
-        </div>
+  <!-- Logo -->
+  <div class="text-center mb-4">
+    <h1 class="navbar-brand navbar-brand-autodark" style="font-size:1.6rem">
+      <a href="https://projektfit.net" style="text-decoration:none;color:inherit">Projekt<span>Fit</span></a>
+    </h1>
+    <span class="badge bg-secondary-lt">Trainer-Portal</span>
+  </div>
 
-        <!-- Progress Bar -->
-        <div class="progress-bar">
-            <div class="progress-step done">
-                <div class="step-circle">&#10003;</div>
-                <div class="step-label">Profil erstellt</div>
-            </div>
-            <div class="progress-step active">
-                <div class="step-circle">2</div>
-                <div class="step-label">Auszahlung einrichten</div>
-            </div>
-            <div class="progress-step">
-                <div class="step-circle">3</div>
-                <div class="step-label">Live gehen</div>
-            </div>
-        </div>
-
-        <!-- Headline -->
-        <div class="ob-headline">
-            <h1>Fast geschafft! Richte deine Auszahlung ein.</h1>
-            <p>Du ben&ouml;tigst nur deine IBAN f&uuml;r automatische Auszahlungen via Stripe.</p>
-        </div>
-
-        <!-- Info Card -->
-        <div class="info-card">
-            <div class="info-card-title">&#128184; So funktioniert deine Verg&uuml;tung</div>
-            <ul class="info-list">
-                <li><span class="check">&#10003;</span> Deine Verg&uuml;tung wird individuell mit dir vereinbart</li>
-                <li><span class="check">&#10003;</span> +10% vom Kursumsatz f&uuml;r jeden zus&auml;tzlichen Kurs den du eigenst&auml;ndig einstellst</li>
-                <li><span class="check">&#10003;</span> Auszahlung automatisch nach jeder best&auml;tigten Session</li>
-                <li><span class="check">&#10003;</span> W&ouml;chentliche &Uuml;berweisung auf dein Konto</li>
-            </ul>
-        </div>
-
-        <!-- Stripe Connect Button -->
-        <div class="stripe-section">
-            <button class="btn-stripe" onclick="alert('Stripe Connect wird in Phase 2 aktiviert.\nDein Konto wird manuell eingerichtet.')">
-                &#128179; Bankkonto verbinden (via Stripe)
-            </button>
-            <div class="stripe-hint">Sicher verschl&uuml;sselt &middot; Stripe ist PCI-DSS zertifiziert</div>
-        </div>
-
-        <!-- Skip Option -->
-        <div class="skip-option">
-            <a href="dashboard.html">Noch keine IBAN zur Hand? <span>&rarr; Sp&auml;ter einrichten</span></a>
-        </div>
-
-        <!-- Footer Hint -->
-        <div class="ob-footer">
-            Deine Bankdaten werden ausschlie&szlig;lich f&uuml;r Auszahlungen verwendet und niemals an Dritte weitergegeben.
-        </div>
-
+  <!-- Progress Bar -->
+  <div class="progress-bar-steps">
+    <div class="progress-step done">
+      <div class="step-circle">&#10003;</div>
+      <div class="step-label">Profil erstellt</div>
     </div>
+    <div class="progress-step active">
+      <div class="step-circle">2</div>
+      <div class="step-label">Auszahlung einrichten</div>
+    </div>
+    <div class="progress-step">
+      <div class="step-circle">3</div>
+      <div class="step-label">Live gehen</div>
+    </div>
+  </div>
+
+  <div class="card card-md">
+    <div class="card-body text-center">
+      <h2 class="h3 mb-2">Fast geschafft! Richte deine Auszahlung ein.</h2>
+      <p class="text-secondary mb-4">Du benötigst nur deine IBAN für automatische Auszahlungen via Stripe.</p>
+    </div>
+
+    <div class="card-body pt-0">
+      <!-- Info Card -->
+      <div class="alert alert-success">
+        <h4 class="alert-title mb-3">&#128184; So funktioniert deine Vergütung</h4>
+        <ul class="info-list">
+          <li><span class="check">&#10003;</span> Deine Vergütung wird individuell mit dir vereinbart</li>
+          <li><span class="check">&#10003;</span> +10% vom Kursumsatz für jeden zusätzlichen Kurs den du eigenständig einstellst</li>
+          <li><span class="check">&#10003;</span> Auszahlung automatisch nach jeder bestätigten Session</li>
+          <li><span class="check">&#10003;</span> Wöchentliche Überweisung auf dein Konto</li>
+        </ul>
+      </div>
+
+      <!-- Stripe Connect Button -->
+      <div class="text-center mb-3">
+        <button class="btn btn-primary btn-lg" onclick="alert('Stripe Connect wird in Phase 2 aktiviert.\nDein Konto wird manuell eingerichtet.')">
+          <i class="ti ti-credit-card me-2"></i> Bankkonto verbinden (via Stripe)
+        </button>
+        <div class="form-hint mt-2">Sicher verschlüsselt &middot; Stripe ist PCI-DSS zertifiziert</div>
+      </div>
+    </div>
+
+    <!-- Skip Option -->
+    <div class="card-footer text-center">
+      <a href="dashboard.html" class="text-secondary">
+        Noch keine IBAN zur Hand? <span class="text-primary">&rarr; Später einrichten</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Footer Hint -->
+  <div class="text-center mt-3">
+    <small class="text-secondary">
+      Deine Bankdaten werden ausschließlich für Auszahlungen verwendet und niemals an Dritte weitergegeben.
+    </small>
+  </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 </body>
 </html>
