@@ -66,6 +66,29 @@ async function checkTrainerAuth() {
   return profile;
 }
 
+async function adminApi(endpoint, options = {}) {
+  const sb = getSupabase();
+  const { data: { session } } = await sb.auth.getSession();
+
+  if (!session) {
+    window.location.href = '/trainer-portal/';
+    throw new Error('Nicht eingeloggt');
+  }
+
+  const res = await fetch(endpoint, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + session.access_token,
+      ...(options.headers || {}),
+    },
+  });
+
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'HTTP ' + res.status);
+  return json;
+}
+
 async function trainerLogout() {
   const sb = getSupabase();
   await sb.auth.signOut();
