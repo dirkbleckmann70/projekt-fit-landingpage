@@ -42,7 +42,8 @@ export default async function handler(req, res) {
   const trainerAllowedTypes = ['customer_names', 'booking_locations'];
   const isTrainerAllowedRead = action === 'data' && req.method === 'GET' && trainerAllowedTypes.includes(req.query.type);
   const isTrainerAllowedWrite = action === 'bookings' && req.method === 'PUT';
-  const isTrainerAllowed = isTrainerAllowedRead || isTrainerAllowedWrite;
+  const isCustomerAllowed = ['location-accept', 'location-reject', 'reschedule-accept', 'reschedule-reject'].includes(action) && req.method === 'PUT';
+  const isTrainerAllowed = isTrainerAllowedRead || isTrainerAllowedWrite || isCustomerAllowed;
 
   if (isTrainerAllowed) {
     const authError = await verifyAuthenticated(req);
