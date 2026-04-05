@@ -325,6 +325,21 @@
     }
   }
 
+  async function activateFromModal(id) {
+    if (!confirm('Trainer aktivieren und Einladungs-E-Mail senden?')) return;
+    try {
+      const res = await adminApi('/api/admin?action=activate-trainer', {
+        method: 'POST',
+        body: JSON.stringify({ trainerId: id }),
+      });
+      alert(res.message || 'Trainer aktiviert! Einladungs-E-Mail wurde gesendet.');
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('detail-modal')).hide();
+      await loadTrainers();
+    } catch (err) {
+      alert('Aktivierung fehlgeschlagen: ' + err.message);
+    }
+  }
+
   // ─── Deactivate Trainer ──────────────────────────────────────
   async function deactivateTrainer(id) {
     if (!confirm('Trainer wirklich deaktivieren? Er wird für Kunden nicht mehr sichtbar sein.')) return;
@@ -488,6 +503,13 @@
         </div>
       </div>
 
+      <!-- Aktivieren-Button fuer nicht-aktive Trainer -->
+      ${t.status !== 'active' ? `
+      <div class="alert alert-warning mt-3 d-flex align-items-center justify-content-between">
+        <span><i class="ti ti-alert-circle me-2"></i>Trainer ist <strong>${t.status || 'pending'}</strong> — noch nicht aktiv.</span>
+        <button class="btn btn-success btn-sm" onclick="activateFromModal('${t.id}')"><i class="ti ti-check me-1"></i>Aktivieren & Einladung senden</button>
+      </div>` : ''}
+
       ${t.auth_user_id ? `<p class="text-muted mt-2" style="font-size:12px">Auth User ID: ${t.auth_user_id}</p>` : ''}
       </form>
 
@@ -526,14 +548,15 @@
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Verfügbarkeit</h3>
 
-      <div id="availability-grid" style="margin-bottom:12px">
-        <div style="font-size:12px;color:#8888A0;text-align:center;padding:16px">Wird geladen...</div>
+      <div class="alert" style="background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.2);color:var(--tblr-body-color)">
+        <div class="d-flex align-items-center gap-2">
+          <i class="ti ti-calendar" style="font-size:20px;color:var(--tblr-primary)"></i>
+          <div>
+            <div style="font-weight:600">Wird über den Kalender verwaltet</div>
+            <div style="font-size:12px;color:var(--tblr-secondary-color)">Verfügbarkeit und Termine sieht der Trainer in seinem Portal-Kalender. Admin-Ansicht: <a href="/admin/calendar" style="color:var(--tblr-primary)">Admin-Kalender</a></div>
+          </div>
+        </div>
       </div>
-
-      <button class="btn btn-primary btn-sm" onclick="saveAvailability('${id}')" id="save-availability-btn" style="display:none">
-        Verfügbarkeit speichern
-      </button>
-      <span id="availability-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
 
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Urlaub / Abwesenheit</h3>
