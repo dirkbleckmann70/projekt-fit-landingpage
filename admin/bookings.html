@@ -322,15 +322,22 @@
           <input class="form-control" type="time" id="edit-booking-time" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : ''}">
         </div>
       </div>
-      ${b.proposed_date ? `<div class="two-col" style="background:rgba(244,169,64,0.08);border:1px solid rgba(244,169,64,0.25);border-radius:10px;padding:12px;margin-bottom:12px">
-        <div class="form-group" style="margin:0">
-          <label style="color:#F4A940">Vorgeschlagenes Datum</label>
-          <input class="form-control" value="${formatDate(b.proposed_date)}" disabled style="color:#F4A940;font-weight:700">
-        </div>
-        <div class="form-group" style="margin:0">
-          <label style="color:#F4A940">Vorgeschlagene Uhrzeit</label>
-          <input class="form-control" value="${b.proposed_time ? b.proposed_time.slice(0,5) + ' Uhr' : '–'}" disabled style="color:#F4A940;font-weight:700">
-        </div>
+      ${(b.proposed_date || b.status === 'reschedule_proposed' || b.status === 'location_proposed') ? `<div style="background:rgba(244,169,64,0.08);border:1px solid rgba(244,169,64,0.25);border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-weight:700;color:#F4A940;margin-bottom:8px"><i class="ti ti-alert-triangle"></i> Trainer-Vorschlag (wartet auf Kundenbestaetigung)</div>
+        ${b.proposed_date ? `<div class="two-col">
+          <div class="form-group" style="margin:0">
+            <label style="color:#F4A940">Neues Datum</label>
+            <input class="form-control" value="${formatDate(b.proposed_date)}" disabled style="color:#F4A940;font-weight:700">
+          </div>
+          <div class="form-group" style="margin:0">
+            <label style="color:#F4A940">Neue Uhrzeit</label>
+            <input class="form-control" value="${b.proposed_time ? b.proposed_time.slice(0,5) + ' Uhr' : '–'}" disabled style="color:#F4A940;font-weight:700">
+          </div>
+        </div>` : ''}
+        ${b.status === 'location_proposed' ? `<div class="form-group" style="margin:${b.proposed_date ? '8px 0 0' : '0'}">
+          <label style="color:#F4A940">Vorgeschlagener Treffpunkt</label>
+          <input class="form-control" value="${b.location_name || '–'}" disabled style="color:#F4A940;font-weight:700">
+        </div>` : ''}
       </div>` : ''}
       <div class="two-col">
         <div class="form-group">
