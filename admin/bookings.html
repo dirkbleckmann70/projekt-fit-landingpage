@@ -307,6 +307,7 @@
           ${b.status === 'cancelled_by_trainer' || b.status === 'finding_replacement'
             ? `<select class="form-control" id="edit-booking-trainer">
                 <option value="${b.trainer_id}">${b.trainer_name || '–'} (aktuell – hat abgesagt)</option>
+                <option value="__cancel__">Kein Trainer verfuegbar – Buchung absagen</option>
               </select>
               <button class="btn btn-warning btn-sm mt-2" type="button" onclick="assignReplacementTrainer()"><i class="ti ti-replace"></i> Ersatztrainer zuweisen</button>`
             : `<input class="form-control" value="${b.trainer_name || '–'}" disabled>`}
@@ -639,6 +640,28 @@
 
     var b = allBookings.find(function(x) { return x.id === editingBookingId; });
     if (!b) return;
+
+    // Absage: Kein Trainer verfuegbar
+    if (newTrainerId === '__cancel__') {
+      if (!confirm('Buchung endgueltig absagen? Der Kunde wird informiert.')) return;
+      try {
+        await adminApi('/api/admin?action=bookings', {
+          method: 'PUT',
+          body: JSON.stringify({
+            bookingId: editingBookingId,
+            status: 'fully_cancelled',
+            admin_note: 'Kein Ersatztrainer verfuegbar – Buchung abgesagt'
+          }),
+        });
+        showAlert('alert-box', 'Buchung abgesagt. Kunde wird informiert.', 'success');
+        bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();
+        await loadBookings();
+      } catch(e) {
+        alert('Fehler: ' + e.message);
+      }
+      return;
+    }
+
     if (newTrainerId === b.trainer_id) {
       alert('Bitte einen anderen Trainer auswaehlen.');
       return;
