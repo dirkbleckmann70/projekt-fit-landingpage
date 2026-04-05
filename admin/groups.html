@@ -6,28 +6,32 @@
   <title>Gruppentrainings – Projekt Fit Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <div id="alert-box" class="alert"></div>
 
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Gruppentrainings</div>
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Gruppentrainings</h3>
           <div class="table-actions">
             <button class="btn btn-primary" onclick="openNewModal()">+ Neues Gruppentraining</button>
           </div>
         </div>
-        <div style="overflow-x:auto">
-          <table id="groups-table">
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table" id="groups-table">
             <thead>
               <tr>
                 <th>Stadt</th>
@@ -43,7 +47,7 @@
               </tr>
             </thead>
             <tbody id="groups-body">
-              <tr><td colspan="10" class="loading-overlay"><span class="spinner"></span> Laden...</td></tr>
+              <tr><td colspan="10" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</td></tr>
             </tbody>
           </table>
         </div>
@@ -54,112 +58,121 @@
 </div>
 
 <!-- New / Edit Group Modal -->
-<div class="modal-overlay" id="group-modal">
-  <div class="modal" style="max-width:650px">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-title">Neues Gruppentraining</div>
-      <button class="modal-close" onclick="closeModal()">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="group-form">
-        <div id="duplicate-hint" style="display:none;background:rgba(232,147,10,0.1);border:1px solid rgba(232,147,10,0.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#e8930a">
-          &#9888; Kurs dupliziert — bitte neues Datum eintragen
-        </div>
+<div class="modal modal-blur fade" id="group-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-title">Neues Gruppentraining</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="group-form">
+          <div id="duplicate-hint" style="display:none;background:rgba(232,147,10,0.1);border:1px solid rgba(232,147,10,0.3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#e8930a">
+            &#9888; Kurs dupliziert — bitte neues Datum eintragen
+          </div>
 
-        <div class="two-col">
-          <div class="form-group">
-            <label>Datum *</label>
-            <input class="form-control" type="date" id="f-date" required>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Datum *</label>
+              <input class="form-control" type="date" id="f-date" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Uhrzeit *</label>
+              <input class="form-control" type="time" id="f-time" required>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Uhrzeit *</label>
-            <input class="form-control" type="time" id="f-time" required>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Kursname *</label>
+              <input class="form-control" id="f-name" required placeholder="z.B. Outdoor Bootcamp">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Trainer *</label>
+              <select class="form-select" id="f-trainer">
+                <option value="">Trainer wählen...</option>
+              </select>
+            </div>
           </div>
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Kursname *</label>
-            <input class="form-control" id="f-name" required placeholder="z.B. Outdoor Bootcamp">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Stadt *</label>
+              <select class="form-select" id="f-city" required>
+                <option value="">Stadt wählen...</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ort / Treffpunkt</label>
+              <input class="form-control" id="f-location-name" placeholder="z.B. Stadtpark Eingang Nord">
+            </div>
           </div>
-          <div class="form-group">
-            <label>Trainer *</label>
-            <select class="form-control" id="f-trainer">
-              <option value="">Trainer wählen...</option>
-            </select>
+          <div class="mb-3">
+            <label class="form-label">Adresse</label>
+            <input class="form-control" id="f-location-address" placeholder="z.B. Musterstraße 1, 50667 Köln">
           </div>
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Stadt *</label>
-            <select class="form-control" id="f-city" required>
-              <option value="">Stadt wählen...</option>
-            </select>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Dauer (Minuten)</label>
+              <input class="form-control" type="number" id="f-duration" value="60" min="15">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Max. Teilnehmer</label>
+              <input class="form-control" type="number" id="f-max" value="12" min="1">
+            </div>
           </div>
-          <div class="form-group">
-            <label>Ort / Treffpunkt</label>
-            <input class="form-control" id="f-location-name" placeholder="z.B. Stadtpark Eingang Nord">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Preis pro Person (EUR) *</label>
+              <input class="form-control" type="number" id="f-price" placeholder="Preis in EUR eingeben" step="0.01" min="0.01" required>
+            </div>
+            <div class="col-md-6" style="display:flex;align-items:center;padding-top:24px">
+              <label class="form-check">
+                <input class="form-check-input" type="checkbox" id="f-active" checked>
+                <span class="form-check-label">Aktiv</span>
+              </label>
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label>Adresse</label>
-          <input class="form-control" id="f-location-address" placeholder="z.B. Musterstraße 1, 50667 Köln">
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Dauer (Minuten)</label>
-            <input class="form-control" type="number" id="f-duration" value="60" min="15">
+        </form>
+        <div id="modal-participants-section" style="display:none;margin-top:24px">
+          <hr style="border-color:rgba(255,255,255,0.08);margin-bottom:20px">
+          <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:#F0F0F5">Angemeldete Teilnehmer</h3>
+          <div id="modal-participants-content">
+            <div class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</div>
           </div>
-          <div class="form-group">
-            <label>Max. Teilnehmer</label>
-            <input class="form-control" type="number" id="f-max" value="12" min="1">
-          </div>
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Preis pro Person (EUR) *</label>
-            <input class="form-control" type="number" id="f-price" placeholder="Preis in EUR eingeben" step="0.01" min="0.01" required>
-          </div>
-          <div class="form-group" style="display:flex;align-items:center;padding-top:24px">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-              <input type="checkbox" id="f-active" checked> Aktiv
-            </label>
-          </div>
-        </div>
-      </form>
-      <div id="modal-participants-section" style="display:none;margin-top:24px">
-        <hr style="border-color:rgba(255,255,255,0.08);margin-bottom:20px">
-        <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:#F0F0F5">Angemeldete Teilnehmer</h3>
-        <div id="modal-participants-content">
-          <div class="loading-overlay"><span class="spinner"></span> Laden...</div>
         </div>
       </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal()">Abbrechen</button>
-      <button class="btn btn-primary" id="modal-save-btn" onclick="saveGroup()">Speichern</button>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" id="modal-save-btn" onclick="saveGroup()">Speichern</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- Participants Modal -->
-<div class="modal-overlay" id="participants-modal">
-  <div class="modal" style="max-width:800px">
-    <div class="modal-header">
-      <div class="modal-title" id="participants-title">Teilnehmer</div>
-      <button class="modal-close" onclick="closeParticipants()">&times;</button>
-    </div>
-    <div class="modal-body" id="participants-body">
-      <div class="loading-overlay"><span class="spinner"></span> Laden...</div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeParticipants()">Schließen</button>
+<div class="modal modal-blur fade" id="participants-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="participants-title">Teilnehmer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="participants-body">
+        <div class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schließen</button>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-guard.js"></script>
+<script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-guard.js"></script>
 <script>
   let allGroups = [];
   let activeTrainers = [];
@@ -174,8 +187,9 @@
     const user = await checkAdminAuth();
     if (!user) return;
 
-    document.getElementById('sidebar').innerHTML = renderSidebar('groups');
-    document.getElementById('header').innerHTML = renderHeader('Gruppentrainings');
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('groups');
+    document.getElementById('header').innerHTML = renderAdminHeader('Gruppentrainings', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
 
     // Load trainers
     try {
@@ -273,8 +287,8 @@
           <td>
             <div class="action-cell">
               <button class="btn btn-secondary btn-sm" onclick="editGroup('${g.id}')">Bearbeiten</button>
-              <button class="btn btn-ghost btn-sm" onclick="duplicateGroup('${g.id}')" title="Kurs duplizieren">Duplizieren</button>
-              <button class="btn btn-ghost btn-sm" onclick="showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')">Teilnehmer</button>
+              <button class="btn btn-ghost-secondary btn-sm" onclick="duplicateGroup('${g.id}')" title="Kurs duplizieren">Duplizieren</button>
+              <button class="btn btn-ghost-secondary btn-sm" onclick="showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')">Teilnehmer</button>
               <button class="btn btn-sm ${g.is_active ? 'btn-danger' : 'btn-success'}"
                 onclick="toggleActive('${g.id}', ${!g.is_active})">
                 ${g.is_active ? 'Deaktivieren' : 'Aktivieren'}
@@ -298,7 +312,7 @@
     document.getElementById('f-active').checked = true;
     document.getElementById('modal-participants-section').style.display = 'none';
     document.getElementById('duplicate-hint').style.display = 'none';
-    document.getElementById('group-modal').classList.add('open');
+    new bootstrap.Modal(document.getElementById('group-modal')).show();
   }
 
   function duplicateGroup(id) {
@@ -319,7 +333,7 @@
     document.getElementById('f-active').checked = true;
     document.getElementById('modal-participants-section').style.display = 'none';
     document.getElementById('duplicate-hint').style.display = 'block';
-    document.getElementById('group-modal').classList.add('open');
+    new bootstrap.Modal(document.getElementById('group-modal')).show();
   }
 
   function editGroup(id) {
@@ -339,11 +353,11 @@
     document.getElementById('f-price').value = g.price_per_person_cents ? (g.price_per_person_cents / 100).toFixed(2) : '';
     document.getElementById('f-active').checked = g.is_active !== false;
     document.getElementById('duplicate-hint').style.display = 'none';
-    document.getElementById('group-modal').classList.add('open');
+    new bootstrap.Modal(document.getElementById('group-modal')).show();
     const section = document.getElementById('modal-participants-section');
     section.style.display = 'block';
     document.getElementById('modal-participants-content').innerHTML =
-      '<div class="loading-overlay"><span class="spinner"></span> Laden...</div>';
+      '<div class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</div>';
     loadEditParticipants(id, g.price_per_person_cents || 0);
   }
 
@@ -360,8 +374,8 @@
 
       const totalEur = formatEuro(participants.length * priceCents);
       container.innerHTML = `
-        <div style="overflow-x:auto">
-          <table style="font-size:13px">
+        <div class="table-responsive">
+          <table class="table table-vcenter" style="font-size:13px">
             <thead><tr>
               <th>Name</th>
               <th>Telefon / E-Mail</th>
@@ -434,7 +448,7 @@
 
     const btn = document.getElementById('modal-save-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span>';
+    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
 
     try {
       if (editingGroupId) {
@@ -443,7 +457,7 @@
       } else {
         await adminApi('/api/admin?action=groups', { method: 'POST', body: JSON.stringify(payload) });
       }
-      closeModal();
+      closeModal('group-modal');
       showAlert('alert-box', editingGroupId ? 'Kurs aktualisiert!' : 'Kurs erstellt!', 'success');
       await loadGroups();
     } catch (err) {
@@ -481,8 +495,8 @@
     currentParticipantsGroupId = groupId;
     const dateStr = date ? formatDate(date) : '';
     document.getElementById('participants-title').textContent = `${groupName} – ${dateStr} ${time}`;
-    document.getElementById('participants-body').innerHTML = '<div class="loading-overlay"><span class="spinner"></span> Laden...</div>';
-    document.getElementById('participants-modal').classList.add('open');
+    document.getElementById('participants-body').innerHTML = '<div class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</div>';
+    new bootstrap.Modal(document.getElementById('participants-modal')).show();
     await loadParticipants(groupId);
   }
 
@@ -509,8 +523,8 @@
 
       if (participants.length > 0) {
         html += `
-          <div style="overflow-x:auto">
-            <table>
+          <div class="table-responsive">
+            <table class="table table-vcenter">
               <thead><tr>
                 <th>Name</th>
                 <th>E-Mail</th>
@@ -541,13 +555,13 @@
       html += `
         <hr style="border-color:#2a2a2a;margin:20px 0">
         <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Teilnehmer hinzufügen</h3>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Name *</label>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <label class="form-label">Name *</label>
             <input class="form-control" id="add-p-name" placeholder="Max Mustermann">
           </div>
-          <div class="form-group">
-            <label>E-Mail</label>
+          <div class="col-md-6">
+            <label class="form-label">E-Mail</label>
             <input class="form-control" type="email" id="add-p-email" placeholder="max@beispiel.de">
           </div>
         </div>
@@ -596,20 +610,18 @@
   }
 
   // Modal Helpers
-  function closeModal() {
-    document.getElementById('group-modal').classList.remove('open');
+  function closeModal(id) {
+    const el = document.getElementById(id);
+    const inst = bootstrap.Modal.getInstance(el);
+    if (inst) inst.hide();
     editingGroupId = null;
   }
   function closeParticipants() {
-    document.getElementById('participants-modal').classList.remove('open');
+    const el = document.getElementById('participants-modal');
+    const inst = bootstrap.Modal.getInstance(el);
+    if (inst) inst.hide();
     currentParticipantsGroupId = null;
   }
-
-  document.querySelectorAll('.modal-overlay').forEach(o => {
-    o.addEventListener('click', e => {
-      if (e.target === o) { o.classList.remove('open'); editingGroupId = null; currentParticipantsGroupId = null; }
-    });
-  });
 </script>
 
 </body>

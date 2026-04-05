@@ -6,44 +6,50 @@
   <title>Trainer – Projekt Fit Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
-<body>
+<body class="page">
+<script src="../shared/theme.js"></script>
 
-<div class="layout">
-  <aside class="sidebar" id="sidebar"></aside>
-  <div class="main">
-    <header class="header" id="header"></header>
-    <div class="content">
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
 
       <div id="alert-box" class="alert"></div>
 
       <!-- Trainer Table -->
-      <div class="table-wrap">
-        <div class="table-header">
-          <div class="table-title">Trainer-Verwaltung</div>
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h3 class="card-title">Trainer-Verwaltung</h3>
           <div class="table-actions">
             <button class="btn btn-primary" onclick="openNewTrainerModal()">+ Neuer Trainer</button>
           </div>
         </div>
-        <table id="trainers-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Stadt</th>
-              <th>E-Mail</th>
-              <th>Status</th>
-              <th>Lizenzen</th>
-              <th>Bewertung</th>
-              <th>Erstellt am</th>
-              <th>Aktionen</th>
-            </tr>
-          </thead>
-          <tbody id="trainers-body">
-            <tr><td colspan="8" class="loading-overlay"><span class="spinner"></span> Trainer werden geladen...</td></tr>
-          </tbody>
-        </table>
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table" id="trainers-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Stadt</th>
+                <th>E-Mail</th>
+                <th>Status</th>
+                <th>Lizenzen</th>
+                <th>Bewertung</th>
+                <th>Erstellt am</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="trainers-body">
+              <tr><td colspan="8" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Trainer werden geladen...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
     </div>
@@ -51,147 +57,156 @@
 </div>
 
 <!-- ─── Trainer Detail Modal ──────────────────────────────────────── -->
-<div class="modal-overlay" id="detail-modal">
-  <div class="modal" style="max-width:700px">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-title">Trainer-Details</div>
-      <button class="modal-close" onclick="closeModal('detail-modal')">&times;</button>
-    </div>
-    <div class="modal-body" id="modal-body">
-      <!-- Filled dynamically -->
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('detail-modal')">Abbrechen</button>
-      <button class="btn btn-primary" id="modal-save-btn" onclick="saveTrainer()">Speichern</button>
+<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modal-title">Trainer-Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <!-- Filled dynamically -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" onclick="closeModal('detail-modal')">Abbrechen</button>
+        <button class="btn btn-primary" id="modal-save-btn" onclick="saveTrainer()">Speichern</button>
+      </div>
     </div>
   </div>
 </div>
 
 <!-- ─── New Trainer Modal ─────────────────────────────────────────── -->
-<div class="modal-overlay" id="new-modal">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title">Neuen Trainer anlegen</div>
-      <button class="modal-close" onclick="closeModal('new-modal')">&times;</button>
-    </div>
-    <div class="modal-body">
-      <form id="new-trainer-form">
-        <div class="two-col">
-          <div class="form-group">
-            <label>Vorname *</label>
-            <input class="form-control" id="new-firstname" required>
+<div class="modal modal-blur fade" id="new-modal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Neuen Trainer anlegen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="new-trainer-form">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Vorname *</label>
+              <input class="form-control" id="new-firstname" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Nachname *</label>
+              <input class="form-control" id="new-lastname" required>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Nachname *</label>
-            <input class="form-control" id="new-lastname" required>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">E-Mail *</label>
+              <input class="form-control" type="email" id="new-email" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Telefon</label>
+              <input class="form-control" id="new-phone">
+            </div>
           </div>
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>E-Mail *</label>
-            <input class="form-control" type="email" id="new-email" required>
-          </div>
-          <div class="form-group">
-            <label>Telefon</label>
-            <input class="form-control" id="new-phone">
-          </div>
-        </div>
 
-        <hr style="border-color:#2a2a2a;margin:20px 0">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Adresse</h3>
+          <hr style="border-color:#2a2a2a;margin:20px 0">
+          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Adresse</h3>
 
-        <div class="form-group">
-          <label>Straße und Hausnummer</label>
-          <input class="form-control" id="new-street">
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>PLZ</label>
-            <input class="form-control" id="new-postal">
+          <div class="mb-3">
+            <label class="form-label">Straße und Hausnummer</label>
+            <input class="form-control" id="new-street">
           </div>
-          <div class="form-group">
-            <label>Ort (Wohnort)</label>
-            <input class="form-control" id="new-wohnort">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">PLZ</label>
+              <input class="form-control" id="new-postal">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Ort (Wohnort)</label>
+              <input class="form-control" id="new-wohnort">
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label>Einsatzort *</label>
-          <select class="form-control" id="new-city" required>
-            <option value="">Einsatzort wählen...</option>
-          </select>
-        </div>
-
-        <hr style="border-color:#2a2a2a;margin:20px 0">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Profil</h3>
-
-        <div class="form-group">
-          <label>Qualifikation / Spezialisierung</label>
-          <textarea class="form-control" id="new-specializations" rows="2"></textarea>
-        </div>
-        <div class="form-group">
-          <label>Bio</label>
-          <textarea class="form-control" id="new-bio" rows="3"></textarea>
-        </div>
-
-        <hr style="border-color:#2a2a2a;margin:20px 0">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Steuerdaten & Preise</h3>
-
-        <div class="two-col">
-          <div class="form-group">
-            <label>Steuernummer</label>
-            <input class="form-control" id="new-steuernummer">
+          <div class="mb-3">
+            <label class="form-label">Einsatzort *</label>
+            <select class="form-select" id="new-city" required>
+              <option value="">Einsatzort wählen...</option>
+            </select>
           </div>
-          <div class="form-group" style="display:flex;align-items:center;padding-top:24px">
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-              <input type="checkbox" id="new-kleinunternehmer"> Kleinunternehmer
+
+          <hr style="border-color:#2a2a2a;margin:20px 0">
+          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Profil</h3>
+
+          <div class="mb-3">
+            <label class="form-label">Qualifikation / Spezialisierung</label>
+            <textarea class="form-control" id="new-specializations" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Bio</label>
+            <textarea class="form-control" id="new-bio" rows="3"></textarea>
+          </div>
+
+          <hr style="border-color:#2a2a2a;margin:20px 0">
+          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Steuerdaten & Preise</h3>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Steuernummer</label>
+              <input class="form-control" id="new-steuernummer">
+            </div>
+            <div class="col-md-6" style="display:flex;align-items:center;padding-top:24px">
+              <label class="form-check">
+                <input class="form-check-input" type="checkbox" id="new-kleinunternehmer">
+                <span class="form-check-label">Kleinunternehmer</span>
+              </label>
+            </div>
+          </div>
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Kundenpreis / Stundensatz (EUR)</label>
+              <input class="form-control" type="number" id="new-hourly-rate" placeholder="79.00" step="0.01" min="0">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Trainer-Vergütung (EUR)</label>
+              <input class="form-control" type="number" id="new-payout" placeholder="35.00" step="0.01" min="0">
+            </div>
+          </div>
+          <hr style="border-color:#2a2a2a;margin:20px 0">
+          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Lizenzen & Zertifikate</h3>
+
+          <div class="mb-3">
+            <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+              <input type="file" id="new-license-files" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+                onchange="updateNewFilePreview()">
+              + Lizenzen hochladen
             </label>
+            <span style="font-size:12px;color:var(--text-muted);margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
           </div>
-        </div>
-        <div class="two-col">
-          <div class="form-group">
-            <label>Kundenpreis / Stundensatz (EUR)</label>
-            <input class="form-control" type="number" id="new-hourly-rate" placeholder="79.00" step="0.01" min="0">
+          <div id="new-file-preview"></div>
+          <p style="font-size:12px;color:var(--text-muted);margin-top:4px">Optional – Lizenzen können auch später im Trainer-Detail hochgeladen werden</p>
+
+          <hr style="border-color:#2a2a2a;margin:20px 0">
+
+          <div class="mb-3">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="new-status">
+              <option value="pending">Pending</option>
+              <option value="active">Active</option>
+            </select>
           </div>
-          <div class="form-group">
-            <label>Trainer-Vergütung (EUR)</label>
-            <input class="form-control" type="number" id="new-payout" placeholder="35.00" step="0.01" min="0">
-          </div>
-        </div>
-        <hr style="border-color:#2a2a2a;margin:20px 0">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Lizenzen & Zertifikate</h3>
-
-        <div class="form-group">
-          <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            <input type="file" id="new-license-files" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
-              onchange="updateNewFilePreview()">
-            + Lizenzen hochladen
-          </label>
-          <span style="font-size:12px;color:var(--text-muted);margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
-        </div>
-        <div id="new-file-preview"></div>
-        <p style="font-size:12px;color:var(--text-muted);margin-top:4px">Optional – Lizenzen können auch später im Trainer-Detail hochgeladen werden</p>
-
-        <hr style="border-color:#2a2a2a;margin:20px 0">
-
-        <div class="form-group">
-          <label>Status</label>
-          <select class="form-control" id="new-status">
-            <option value="pending">Pending</option>
-            <option value="active">Active</option>
-          </select>
-        </div>
-      </form>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost" onclick="closeModal('new-modal')">Abbrechen</button>
-      <button class="btn btn-primary" onclick="createTrainer()">Anlegen</button>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" onclick="createTrainer()">Anlegen</button>
+      </div>
     </div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="auth-guard.js"></script>
+<script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-guard.js"></script>
 <script src="../shared/form-dirty.js"></script>
 <script>
   let allTrainers = [];
@@ -203,8 +218,9 @@
     const user = await checkAdminAuth();
     if (!user) return;
 
-    document.getElementById('sidebar').innerHTML = renderSidebar('trainers');
-    document.getElementById('header').innerHTML = renderHeader('Trainer-Verwaltung');
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('trainers');
+    document.getElementById('header').innerHTML = renderAdminHeader('Trainer-Verwaltung', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
 
     // Load service locations for city dropdowns
     try {
@@ -360,23 +376,23 @@
         </div>
         <div id="avatar-status" style="font-size:12px;color:var(--text-secondary);margin-top:6px;min-height:18px"></div>
       </div>
-      <div class="two-col">
-        <div class="form-group">
-          <label>Vorname *</label>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Vorname *</label>
           <input class="form-control" id="edit-firstname" value="${firstName}">
         </div>
-        <div class="form-group">
-          <label>Nachname *</label>
+        <div class="col-md-6">
+          <label class="form-label">Nachname *</label>
           <input class="form-control" id="edit-lastname" value="${lastName}">
         </div>
       </div>
-      <div class="two-col">
-        <div class="form-group">
-          <label>E-Mail</label>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">E-Mail</label>
           <input class="form-control" id="edit-email" type="email" value="${t.email || ''}">
         </div>
-        <div class="form-group">
-          <label>Telefon</label>
+        <div class="col-md-6">
+          <label class="form-label">Telefon</label>
           <input class="form-control" id="edit-phone" value="${t.phone || ''}">
         </div>
       </div>
@@ -384,23 +400,23 @@
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Adresse</h3>
 
-      <div class="form-group">
-        <label>Straße und Hausnummer</label>
+      <div class="mb-3">
+        <label class="form-label">Straße und Hausnummer</label>
         <input class="form-control" id="edit-street" value="${t.street_address || ''}">
       </div>
-      <div class="two-col">
-        <div class="form-group">
-          <label>PLZ</label>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">PLZ</label>
           <input class="form-control" id="edit-postal" value="${t.postal_code || ''}">
         </div>
-        <div class="form-group">
-          <label>Ort (Wohnort)</label>
+        <div class="col-md-6">
+          <label class="form-label">Ort (Wohnort)</label>
           <input class="form-control" id="edit-wohnort" value="${t.wohnort || ''}">
         </div>
       </div>
-      <div class="form-group">
-        <label>Einsatzort</label>
-        <select class="form-control" id="edit-city">
+      <div class="mb-3">
+        <label class="form-label">Einsatzort</label>
+        <select class="form-select" id="edit-city">
           <option value="">Einsatzort wählen...</option>
           ${serviceLocations.map(l => `<option value="${l.city}" ${t.city === l.city ? 'selected' : ''}>${l.city}</option>`).join('')}
         </select>
@@ -409,26 +425,27 @@
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Profil</h3>
 
-      <div class="form-group">
-        <label>Qualifikation / Spezialisierung</label>
+      <div class="mb-3">
+        <label class="form-label">Qualifikation / Spezialisierung</label>
         <textarea class="form-control" id="edit-specializations" rows="2">${t.specializations || ''}</textarea>
       </div>
-      <div class="form-group">
-        <label>Bio</label>
+      <div class="mb-3">
+        <label class="form-label">Bio</label>
         <textarea class="form-control" id="edit-bio" rows="3">${t.bio || ''}</textarea>
       </div>
 
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Steuerdaten & Preise</h3>
 
-      <div class="two-col">
-        <div class="form-group">
-          <label>Steuernummer</label>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Steuernummer</label>
           <input class="form-control" id="edit-steuernummer" value="${t.steuernummer || ''}">
         </div>
-        <div class="form-group" style="display:flex;align-items:center;padding-top:24px">
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="edit-kleinunternehmer" ${t.is_kleinunternehmer ? 'checked' : ''}> Kleinunternehmer
+        <div class="col-md-6" style="display:flex;align-items:center;padding-top:24px">
+          <label class="form-check">
+            <input class="form-check-input" type="checkbox" id="edit-kleinunternehmer" ${t.is_kleinunternehmer ? 'checked' : ''}>
+            <span class="form-check-label">Kleinunternehmer</span>
           </label>
         </div>
       </div>
@@ -436,37 +453,37 @@
       <hr style="border-color:#2a2a2a;margin:20px 0">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Status & Preise</h3>
 
-      <div class="two-col">
-        <div class="form-group">
-          <label>Status</label>
-          <select class="form-control" id="edit-status">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="edit-status">
             <option value="pending" ${t.status === 'pending' ? 'selected' : ''}>Pending</option>
             <option value="active" ${t.status === 'active' ? 'selected' : ''}>Active</option>
             <option value="pausiert" ${t.status === 'pausiert' ? 'selected' : ''}>Pausiert</option>
             <option value="gesperrt" ${t.status === 'gesperrt' ? 'selected' : ''}>Gesperrt</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Aktiv (sichtbar für Kunden)</label>
-          <select class="form-control" id="edit-is-active">
+        <div class="col-md-6">
+          <label class="form-label">Aktiv (sichtbar für Kunden)</label>
+          <select class="form-select" id="edit-is-active">
             <option value="false" ${!t.is_active ? 'selected' : ''}>Nein</option>
             <option value="true" ${t.is_active ? 'selected' : ''}>Ja</option>
           </select>
         </div>
       </div>
-      <div class="two-col">
-        <div class="form-group">
-          <label>Kundenpreis / Stundensatz (EUR)</label>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Kundenpreis / Stundensatz (EUR)</label>
           <input class="form-control" type="number" id="edit-hourly-rate" step="0.01" min="0" value="${t.hourly_rate_cents ? (t.hourly_rate_cents / 100).toFixed(2) : ''}">
         </div>
-        <div class="form-group">
-          <label>Trainer-Vergütung (EUR)</label>
+        <div class="col-md-6">
+          <label class="form-label">Trainer-Vergütung (EUR)</label>
           <input class="form-control" type="number" id="edit-payout" step="0.01" min="0" value="${t.payout_cents ? (t.payout_cents / 100).toFixed(2) : ''}">
         </div>
       </div>
-      <div class="two-col">
-        <div class="form-group">
-          <label>MwSt-Satz (%)</label>
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">MwSt-Satz (%)</label>
           <input class="form-control" type="number" id="edit-mwst-satz" step="1" min="0" max="100" value="${t.mwst_satz ?? 19}">
           <div class="form-hint">Standard 19. Kleinunternehmer (§19 UStG) = 0.</div>
         </div>
@@ -520,7 +537,7 @@
       <span id="availability-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
     `;
 
-    document.getElementById('detail-modal').classList.add('open');
+    new bootstrap.Modal(document.getElementById('detail-modal')).show();
 
     if (window._trainerDirty) window._trainerDirty.destroy();
     window._trainerDirty = initFormDirty({
@@ -819,7 +836,7 @@
 
     const btn = document.getElementById('modal-save-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Speichern...';
+    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Speichern...';
 
     const payload = {
       trainerId: editingTrainerId,
@@ -875,7 +892,7 @@
     }
 
     const status = document.getElementById('avatar-status');
-    status.innerHTML = '<span class="spinner"></span> Wird hochgeladen...';
+    status.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Wird hochgeladen...';
 
     try {
       const session = (await getSupabase().auth.getSession()).data.session;
@@ -925,7 +942,7 @@
     if (!confirm('Profilbild wirklich löschen?')) return;
 
     const status = document.getElementById('avatar-status');
-    status.innerHTML = '<span class="spinner"></span> Wird gelöscht...';
+    status.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Wird gelöscht...';
 
     try {
       await adminApi('/api/admin?action=trainer-avatar', {
@@ -960,7 +977,7 @@
     document.getElementById('new-trainer-form').reset();
     newTrainerFiles = [];
     document.getElementById('new-file-preview').innerHTML = '';
-    document.getElementById('new-modal').classList.add('open');
+    new bootstrap.Modal(document.getElementById('new-modal')).show();
   }
 
   function updateNewFilePreview() {
@@ -1115,7 +1132,9 @@
       window._trainerDirty.confirmDiscard(function () {
         window._trainerDirty = null;
         editingTrainerId = null;
-        document.getElementById('detail-modal').classList.remove('open');
+        const el = document.getElementById('detail-modal');
+        const inst = bootstrap.Modal.getInstance(el);
+        if (inst) inst.hide();
       });
       return;
     }
@@ -1123,23 +1142,11 @@
       window._trainerDirty.destroy();
       window._trainerDirty = null;
     }
-    document.getElementById(id).classList.remove('open');
+    const el = document.getElementById(id);
+    const inst = bootstrap.Modal.getInstance(el);
+    if (inst) inst.hide();
     editingTrainerId = null;
   }
-
-  // Close modal on overlay click
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        if (overlay.id === 'detail-modal') {
-          closeModal('detail-modal');
-        } else {
-          overlay.classList.remove('open');
-          editingTrainerId = null;
-        }
-      }
-    });
-  });
 </script>
 
 </body>
