@@ -69,3 +69,14 @@ screenshots/            # App Store Screenshots
 | /impressum | impressum.html | §5 TMG Impressum |
 | /admin | admin/ | Admin-Portal |
 | /trainer-portal | trainer-portal/ | Trainer-Portal |
+
+---
+
+## Portal-Entwicklungsregeln
+
+- **Alle Buchungs-Updates ueber Admin-API** — Kein direktes `sb.from('bookings').update()` im Trainer-Portal (RLS). Immer `/api/admin?action=bookings` PUT.
+- **adminApi() Funktion** — Definiert in `auth-guard.js` (Admin) und `auth-check.js` (Trainer). Sendet Bearer Token automatisch.
+- **Modals nach Aktion schliessen** — `document.querySelectorAll('.modal.show').forEach(m => bootstrap.Modal.getInstance(m)?.hide())` vor/nach jeder Aktion.
+- **Variablen-Scope** — Funktionen wie `renderBookingCard()` muessen auf Script-Ebene definierte Variablen zugreifen koennen. Nicht in innere Bloecke packen.
+- **isTerminVorbei()** — Lokales Datum-Parsing: `new Date(y, mo-1, da, h+1, m)`. Nicht `new Date(dateString)` (UTC-Bug).
+- **Trainer-erlaubte API-Endpoints** — `customer_names`, `booking_locations` (GET) + `bookings` (PUT) + `location-accept/reject`, `reschedule-accept/reject` (PUT).
