@@ -413,7 +413,8 @@
         return e.extendedProps.type === 'availability';
       });
 
-      // Convert events to rows: extract day_of_week, start_hour, end_hour
+      // Convert events to rows, deduplicate by day+start+end
+      var seen = {};
       var rows = [];
       allEvents.forEach(function(e) {
         var start = e.start;
@@ -424,10 +425,12 @@
         var isoDay = jsDay === 0 ? 7 : jsDay;
         var startHour = start.getHours();
         var endHour = end.getHours();
-        // If end is exactly on the hour boundary with minutes=0, use that hour
-        // If end has minutes > 0, round up to next hour
         if (end.getMinutes() > 0) endHour = endHour + 1;
-        if (endHour <= startHour) return; // invalid
+        if (endHour <= startHour) return;
+
+        var key = isoDay + '-' + startHour + '-' + endHour;
+        if (seen[key]) return; // Duplikat ueberspringen
+        seen[key] = true;
 
         rows.push({
           trainer_id: trainerId,
@@ -448,17 +451,15 @@
         }
       }
 
-      showAlert('alert-box', 'Verfuegbarkeit gespeichert!', 'success');
+      showAlert('alert-box', 'Verfuegbarkeit gespeichert! (' + rows.length + ' Zeitfenster)', 'success');
       markClean();
       // Refetch to get proper IDs from DB
       calendar.refetchEvents();
     } catch (err) {
-      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+      alert('Speichern fehlgeschlagen: ' + err.message);
     } finally {
       btn.disabled = false;
-      if (!availabilityChanged) {
-        btn.innerHTML = '<i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern';
-      }
+      btn.innerHTML = '<i class="ti ti-device-floppy"></i> Verfuegbarkeit speichern';
     }
   }
 
