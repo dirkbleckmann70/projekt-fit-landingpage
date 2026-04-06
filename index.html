@@ -287,20 +287,18 @@
         .timeline-card h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
         .timeline-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
 
-        /* ═══ TRAINING BUCHEN (Parallax Hero-Stil) ═══ */
+        /* ═══ TRAINING BUCHEN ═══ */
         .training-buchen {
-            position: relative; min-height: 80vh;
-            background-image: url('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1920&q=80');
-            background-size: cover; background-position: center; background-attachment: fixed;
-            display: flex; align-items: center;
+            padding: 120px 24px; background: var(--bg-primary); position: relative;
         }
         .training-buchen::before {
-            content: ''; position: absolute; inset: 0;
-            background: linear-gradient(165deg, rgba(13,13,21,0.88) 0%, rgba(13,13,21,0.65) 40%, rgba(13,13,21,0.45) 60%, rgba(13,13,21,0.85) 100%);
+            content: ''; position: absolute; top: 10%; left: -5%;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(212,160,84,0.06), transparent 70%);
+            border-radius: 50%;
         }
         .training-content {
-            position: relative; z-index: 2; max-width: 1200px; margin: 0 auto;
-            padding: 120px 24px 80px; width: 100%;
+            max-width: 1200px; margin: 0 auto; position: relative; z-index: 2;
         }
         .training-grid {
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px;
@@ -311,7 +309,6 @@
             border-radius: 24px; padding: 48px 36px; text-align: center;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative; overflow: hidden;
-            backdrop-filter: blur(20px);
         }
         .training-card::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
@@ -559,7 +556,7 @@
             .waitlist-form { flex-direction: column; }
             .beta-steps { flex-direction: column; gap: 16px; }
             .hero { background-attachment: scroll; }
-            .training-buchen { background-attachment: scroll; min-height: 60vh; }
+            /* training-buchen: kein Parallax noetig */
             .img-divider { background-attachment: scroll; height: 300px; }
             .pricing { background-attachment: scroll; }
             .waitlist { background-attachment: scroll; }
@@ -737,8 +734,8 @@
 <section class="training-buchen" id="training-buchen">
     <div class="training-content">
         <div class="section-label reveal">Training</div>
-        <h2 class="section-title reveal" style="text-shadow: 0 2px 20px rgba(0,0,0,0.3);">Echte Trainer. Echte Ergebnisse.</h2>
-        <p class="section-sub reveal" style="text-shadow: 0 1px 10px rgba(0,0,0,0.3);">Buche dein Training direkt in der App – persönlich oder in der Gruppe.</p>
+        <h2 class="section-title reveal">Echte Trainer. Echte Ergebnisse.</h2>
+        <p class="section-sub reveal">Buche dein Training direkt in der App – persönlich oder in der Gruppe.</p>
         <div class="training-grid">
             <div class="training-card reveal">
                 <div class="training-icon">🏋️</div>
