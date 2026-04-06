@@ -562,8 +562,77 @@
             .waitlist { background-attachment: scroll; }
         }
 
+        /* ═══ WERBESPRUCH ═══ */
+        .werbespruch {
+            position: relative; min-height: 70vh;
+            background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            display: flex; align-items: center;
+        }
+        .werbespruch::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(165deg, rgba(13,13,21,0.88) 0%, rgba(13,13,21,0.65) 40%, rgba(13,13,21,0.45) 60%, rgba(13,13,21,0.85) 100%);
+        }
+        .werbespruch-content {
+            position: relative; z-index: 2; max-width: 1200px; margin: 0 auto;
+            padding: 80px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+        }
+        .werbespruch h2 {
+            font-size: clamp(36px, 5vw, 64px); font-weight: 900; color: var(--text);
+            line-height: 1.1; letter-spacing: -2px; margin-bottom: 20px;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+        .werbespruch .gradient-text {
+            background: linear-gradient(135deg, var(--gold-light), var(--orange), var(--gold));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .werbespruch p {
+            font-size: 18px; color: var(--text-secondary); line-height: 1.6; max-width: 500px;
+            text-shadow: 0 1px 10px rgba(0,0,0,0.3);
+        }
+        .pulse-visual {
+            display: flex; justify-content: center; align-items: center; position: relative;
+        }
+        .pulse-core {
+            width: 100px; height: 100px; border-radius: 50%;
+            background: linear-gradient(135deg, rgba(64,145,108,0.3), rgba(45,106,79,0.2));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 40px; position: relative; z-index: 2;
+            border: 2px solid rgba(64,145,108,0.4);
+        }
+        .pulse-ring {
+            position: absolute; border-radius: 50%;
+            border: 2px solid rgba(64,145,108,0.3);
+            animation: pulseRing 3s ease-out infinite;
+        }
+        .pulse-ring-1 { width: 160px; height: 160px; animation-delay: 0s; }
+        .pulse-ring-2 { width: 240px; height: 240px; animation-delay: 0.5s; }
+        .pulse-ring-3 { width: 320px; height: 320px; animation-delay: 1s; }
+        @keyframes pulseRing {
+            0% { transform: scale(0.8); opacity: 0.6; }
+            100% { transform: scale(1.3); opacity: 0; }
+        }
+
+        /* ═══ TRAINING PREVIEW ═══ */
+        .training-preview {
+            height: 160px; border-radius: 16px; display: flex;
+            align-items: center; justify-content: center;
+            font-weight: 700; font-size: 18px; color: rgba(255,255,255,0.6);
+            margin-bottom: 20px;
+        }
+        .training-preview.pt { background: linear-gradient(135deg, rgba(45,106,79,0.3), rgba(64,145,108,0.15)); }
+        .training-preview.gt { background: linear-gradient(135deg, rgba(224,122,58,0.3), rgba(212,160,84,0.15)); }
+
         .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
         .reveal.visible { opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 900px) {
+            .werbespruch { background-attachment: scroll; min-height: 50vh; }
+            .werbespruch-content { grid-template-columns: 1fr; text-align: center; }
+            .werbespruch p { margin: 0 auto; }
+            .pulse-visual { margin-top: 20px; }
+            .pulse-ring-3 { display: none; }
+        }
     </style>
 </head>
 <body>
@@ -687,6 +756,84 @@
     </div>
 </section>
 
+<!-- ═══════════════════ BLOCK 2: KI APP ═══════════════════ -->
+<!-- (Screenshots + Features bleiben oben, hier weiter mit How It Works) -->
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+    <div class="section-inner">
+        <div class="section-label reveal">So funktioniert's</div>
+        <h2 class="section-title reveal">In 4 Schritten zum personalisierten Training</h2>
+        <div class="steps">
+            <div class="step reveal">
+                <div class="step-num">1</div>
+                <h3>Profil erstellen</h3>
+                <p>Ziele, Fitnesslevel und Verfügbarkeit angeben – dauert nur 2 Minuten.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">2</div>
+                <h3>Plan erhalten</h3>
+                <p>Die KI erstellt deinen persönlichen Trainingsplan – angepasst an dich.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">3</div>
+                <h3>Trainieren</h3>
+                <p>Starte dein Workout mit Sprachsteuerung. Überall. Ohne Equipment.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">4</div>
+                <h3>Fortschritt sehen</h3>
+                <p>Tracke deine Streaks, feiere Meilensteine und werde stärker.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- IMAGE DIVIDER: 105 Übungen (Ende Block 2) -->
+<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1920&q=80');">
+    <div class="img-divider-content">
+        <h2>105 Übungen für jedes Level</h2>
+        <p>Von Anfänger bis Profi – ohne Equipment, überall machbar</p>
+    </div>
+</div>
+
+<!-- ═══════════════════ BLOCK 3: ECHTE TRAINER ═══════════════════ -->
+
+<!-- IMAGE DIVIDER: Trainiere wo es am schönsten ist (Intro Block 3) -->
+<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');">
+    <div class="img-divider-content">
+        <h2>Trainiere wo es am schönsten ist</h2>
+        <p>Im Park, am See, auf der Wiese – dein Outdoor-Gym wartet</p>
+    </div>
+</div>
+
+<!-- TRAINING BUCHEN: PT + GT -->
+<section class="training-buchen" id="training-buchen">
+    <div class="training-content">
+        <div class="section-label reveal">Training</div>
+        <h2 class="section-title reveal">Echte Trainer. Echte Ergebnisse.</h2>
+        <p class="section-sub reveal">Buche dein Training direkt in der App – persönlich oder in der Gruppe.</p>
+        <div class="training-grid">
+            <div class="training-card reveal">
+                <div class="training-preview pt">Personal Training</div>
+                <div class="training-icon">🏋️</div>
+                <h3>Personal Training</h3>
+                <div class="training-subtitle">1:1 mit deinem Trainer</div>
+                <p>Individuelles Training, abgestimmt auf deine Ziele. Dein Trainer kommt zu dir in den Park – flexibel, persönlich und effektiv.</p>
+                <a href="/training" class="btn btn-primary">Personal Training →</a>
+            </div>
+            <div class="training-card reveal">
+                <div class="training-preview gt">Gruppentraining</div>
+                <div class="training-icon">👥</div>
+                <h3>Gruppentraining</h3>
+                <div class="training-subtitle">Gemeinsam trainieren</div>
+                <p>Trainiere in kleinen Gruppen mit Gleichgesinnten. Mehr Motivation, mehr Spaß – und günstiger als Einzeltraining.</p>
+                <a href="/training" class="btn btn-primary">Gruppentraining →</a>
+            </div>
+        </div>
+    </div>
+</section>
+
 <!-- BOOKING FLOW -->
 <section class="booking-flow" id="booking">
     <div class="section-inner">
@@ -730,105 +877,24 @@
     </div>
 </section>
 
-<!-- TRAINING BUCHEN -->
-<section class="training-buchen" id="training-buchen">
-    <div class="training-content">
-        <div class="section-label reveal">Training</div>
-        <h2 class="section-title reveal">Echte Trainer. Echte Ergebnisse.</h2>
-        <p class="section-sub reveal">Buche dein Training direkt in der App – persönlich oder in der Gruppe.</p>
-        <div class="training-grid">
-            <div class="training-card reveal">
-                <div class="training-icon">🏋️</div>
-                <h3>Personal Training</h3>
-                <div class="training-subtitle">1:1 mit deinem Trainer</div>
-                <p>Individuelles Training, abgestimmt auf deine Ziele. Dein Trainer kommt zu dir in den Park – flexibel, persönlich und effektiv.</p>
-                <a href="/training" class="btn btn-primary">Personal Training →</a>
-            </div>
-            <div class="training-card reveal">
-                <div class="training-icon">👥</div>
-                <h3>Gruppentraining</h3>
-                <div class="training-subtitle">Gemeinsam trainieren</div>
-                <p>Trainiere in kleinen Gruppen mit Gleichgesinnten. Mehr Motivation, mehr Spaß – und günstiger als Einzeltraining.</p>
-                <a href="/training" class="btn btn-primary">Gruppentraining →</a>
-            </div>
+<!-- ═══════════════════ BLOCK 4: WERBESPRUCH ═══════════════════ -->
+
+<section class="werbespruch">
+    <div class="werbespruch-content">
+        <div>
+            <h2>Dein Pocket Coach.<br><span class="gradient-text">Überall.</span></h2>
+            <p>KI-gestützte Workouts + echte Trainer in deiner Nähe. Dein persönlicher Fitness-Coach — vom Smartphone in den Park.</p>
+        </div>
+        <div class="pulse-visual">
+            <div class="pulse-ring pulse-ring-1"></div>
+            <div class="pulse-ring pulse-ring-2"></div>
+            <div class="pulse-ring pulse-ring-3"></div>
+            <div class="pulse-core">💚</div>
         </div>
     </div>
 </section>
 
-<!-- IMAGE DIVIDER 1 (nach Training) -->
-<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');">
-    <div class="img-divider-content">
-        <h2>Trainiere wo es am schönsten ist</h2>
-        <p>Im Park, am See, auf der Wiese – dein Outdoor-Gym wartet</p>
-    </div>
-</div>
-
-<!-- HOW IT WORKS -->
-<section class="how" id="how">
-    <div class="section-inner">
-        <div class="section-label reveal">So funktioniert's</div>
-        <h2 class="section-title reveal">In 4 Schritten zum personalisierten Training</h2>
-        <div class="steps">
-            <div class="step reveal">
-                <div class="step-num">1</div>
-                <h3>Profil erstellen</h3>
-                <p>Ziele, Fitnesslevel und Verfügbarkeit angeben – dauert nur 2 Minuten.</p>
-            </div>
-            <div class="step reveal">
-                <div class="step-num">2</div>
-                <h3>Plan erhalten</h3>
-                <p>Die KI erstellt deinen persönlichen Trainingsplan – angepasst an dich.</p>
-            </div>
-            <div class="step reveal">
-                <div class="step-num">3</div>
-                <h3>Trainieren</h3>
-                <p>Starte dein Workout mit Sprachsteuerung. Überall. Ohne Equipment.</p>
-            </div>
-            <div class="step reveal">
-                <div class="step-num">4</div>
-                <h3>Fortschritt sehen</h3>
-                <p>Tracke deine Streaks, feiere Meilensteine und werde stärker.</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- TRAINER WERDEN -->
-<section class="trainer-werden" id="trainer-werden">
-    <div class="section-inner">
-        <div class="section-label reveal">Trainer werden</div>
-        <h2 class="section-title reveal">Werde Pulsly-Trainer</h2>
-        <p class="section-sub reveal">Nutze Pulsly als Plattform für dein Trainer-Business – ohne Overhead, ohne Risiko.</p>
-        <div class="trainer-grid">
-            <div class="trainer-card reveal">
-                <div class="feature-icon fi-5">💰</div>
-                <h3>Eigene Kunden, eigene Preise</h3>
-                <p>Du bestimmst deine Preise und baust deinen eigenen Kundenstamm auf. Pulsly bringt dir die Kunden – du behältst die Kontrolle.</p>
-            </div>
-            <div class="trainer-card reveal">
-                <div class="feature-icon fi-2">🕐</div>
-                <h3>Flexible Zeiten, keine Bindung</h3>
-                <p>Trainiere wann und wo du willst. Kein Vertrag, keine Mindestzeiten. Perfekt als Haupt- oder Nebenjob.</p>
-            </div>
-            <div class="trainer-card reveal">
-                <div class="feature-icon fi-6">⚙️</div>
-                <h3>Admin übernimmt Pulsly</h3>
-                <p>Buchungen, Zahlungen, Kundenmanagement – darum kümmert sich die Plattform. Du konzentrierst dich aufs Training.</p>
-            </div>
-        </div>
-        <div class="trainer-cta reveal">
-            <a href="/trainer" class="btn btn-primary">Jetzt bewerben</a>
-        </div>
-    </div>
-</section>
-
-<!-- IMAGE DIVIDER 2 -->
-<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1920&q=80');">
-    <div class="img-divider-content">
-        <h2>105 Übungen für jedes Level</h2>
-        <p>Von Anfänger bis Profi – ohne Equipment, überall machbar</p>
-    </div>
-</div>
+<!-- ═══════════════════ BLOCK 5: BOTTOM ═══════════════════ -->
 
 <!-- PRICING -->
 <section class="pricing" id="pricing">
@@ -874,6 +940,35 @@
                 </ul>
                 <button class="price-btn price-btn-outline" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Premium wählen</button>
             </div>
+        </div>
+    </div>
+</section>
+
+<!-- TRAINER WERDEN -->
+<section class="trainer-werden" id="trainer-werden">
+    <div class="section-inner">
+        <div class="section-label reveal">Trainer werden</div>
+        <h2 class="section-title reveal">Werde Pulsly-Trainer</h2>
+        <p class="section-sub reveal">Nutze Pulsly als Plattform für dein Trainer-Business – ohne Overhead, ohne Risiko.</p>
+        <div class="trainer-grid">
+            <div class="trainer-card reveal">
+                <div class="feature-icon fi-5">💰</div>
+                <h3>Eigene Kunden, eigene Preise</h3>
+                <p>Du bestimmst deine Preise und baust deinen eigenen Kundenstamm auf. Pulsly bringt dir die Kunden – du behältst die Kontrolle.</p>
+            </div>
+            <div class="trainer-card reveal">
+                <div class="feature-icon fi-2">🕐</div>
+                <h3>Flexible Zeiten, keine Bindung</h3>
+                <p>Trainiere wann und wo du willst. Kein Vertrag, keine Mindestzeiten. Perfekt als Haupt- oder Nebenjob.</p>
+            </div>
+            <div class="trainer-card reveal">
+                <div class="feature-icon fi-6">⚙️</div>
+                <h3>Admin übernimmt Pulsly</h3>
+                <p>Buchungen, Zahlungen, Kundenmanagement – darum kümmert sich die Plattform. Du konzentrierst dich aufs Training.</p>
+            </div>
+        </div>
+        <div class="trainer-cta reveal">
+            <a href="/trainer" class="btn btn-primary">Jetzt bewerben</a>
         </div>
     </div>
 </section>
