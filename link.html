@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulsly — Links</title>
+  <meta name="description" content="Alle wichtigen Links zu Pulsly — App, Training, Trainer werden und mehr." />
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: #0D0D15;
+      color: #F0F0F5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+      -webkit-font-smoothing: antialiased;
+    }
+    .link-container {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .link-logo {
+      margin-bottom: 24px;
+    }
+    .link-logo img {
+      height: 36px;
+      width: auto;
+    }
+    .link-btn {
+      display: block;
+      width: 100%;
+      background: #161625;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'Outfit', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #F0F0F5;
+      text-align: center;
+      text-decoration: none;
+      transition: background 0.25s ease;
+    }
+    .link-btn:hover {
+      background: #1A1A2E;
+    }
+  </style>
+</head>
+<body>
+  <div class="link-container">
+    <div class="link-logo">
+      <img src="/assets/logo-pulsly.svg" alt="Pulsly" />
+    </div>
+    <a href="https://testflight.apple.com/join/KpXvf213" class="link-btn" target="_blank" rel="noopener noreferrer">App testen (iOS Beta)</a>
+    <a href="/training" class="link-btn">Training buchen</a>
+    <a href="/trainer" class="link-btn">Trainer werden</a>
+    <a href="https://instagram.com/pulsly.app" class="link-btn" target="_blank" rel="noopener noreferrer">Instagram</a>
+    <a href="/" class="link-btn">Website</a>
+  </div>
+</body>
+</html>

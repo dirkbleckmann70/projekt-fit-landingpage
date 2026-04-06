@@ -1,5 +1,6 @@
 User-agent: *
 Allow: /
+Disallow: /admin/
 Disallow: /trainer-portal/
 
-Sitemap: https://projektfit.net/sitemap.xml
+Sitemap: https://pulsly.de/sitemap.xml

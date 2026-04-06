@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projekt Fit – KI-Trainer & Outdoor Personal Training App</title>
+    <meta name="description" content="Projekt Fit: KI-gest&uuml;tztes Fitness-Coaching & buchbares Outdoor Personal Training. Dein pers&ouml;nlicher KI-Trainer vom Smartphone in den Park. Jetzt kostenlos starten.">
+    <meta name="keywords" content="Fitness App, Personal Training, KI Coach, Outdoor Training, Personal Trainer buchen, Fitness App Deutschland">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="Projekt Fit">
+    <link rel="canonical" href="https://projektfit.net">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Projekt Fit – KI-Trainer & Outdoor Personal Training">
+    <meta property="og:description" content="KI-gest&uuml;tztes Fitness-Coaching & buchbares Outdoor Personal Training. Kostenlos starten.">
+    <meta property="og:url" content="https://projektfit.net">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://projektfit.net/og-image.jpg">
+    <meta property="og:locale" content="de_DE">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Projekt Fit – KI-Trainer & Outdoor Personal Training">
+    <meta name="twitter:description" content="KI-gest&uuml;tztes Fitness-Coaching & buchbares Outdoor Personal Training.">
+
+    <!-- Schema.org -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "MobileApplication",
+      "name": "Projekt Fit",
+      "description": "KI-gestütztes Fitness-Coaching & Outdoor Personal Training App",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "iOS, Android",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "url": "https://projektfit.net"
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0D0D15;
+            --bg-card: #161625;
+            --bg-surface: #1A1A2E;
+            --border: rgba(255,255,255,0.06);
+            --glass: rgba(22,22,37,0.85);
+            --glass-border: rgba(255,255,255,0.08);
+            --green: #2D6A4F;
+            --green-light: #40916C;
+            --blue: #2E75B6;
+            --blue-light: #5BB8FF;
+            --orange: #E07A3A;
+            --gold: #D4A054;
+            --gold-light: #F0C97A;
+            --gold-dark: #8B6530;
+            --text: #F0F0F5;
+            --text-secondary: #8888A0;
+            --text-muted: #55556A;
+            --success: #27AE60;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            color: var(--text);
+            background: var(--bg-primary);
+            overflow-x: hidden;
+        }
+
+        /* ═══ NAV ═══ */
+        nav {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            padding: 16px 24px; transition: all 0.3s;
+        }
+        nav.scrolled {
+            background: rgba(13,13,21,0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 30px rgba(0,0,0,0.4);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 24px; font-weight: 900; color: var(--text); text-decoration: none; letter-spacing: -1px; }
+        .logo span { color: var(--green-light); }
+        .nav-links { display: flex; gap: 32px; align-items: center; }
+        .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 500; transition: color 0.3s; }
+        .nav-links a:hover { color: var(--text); }
+        .nav-cta { background: var(--green) !important; color: var(--text) !important; padding: 10px 24px !important; border-radius: 10px !important; transition: all 0.3s !important; }
+        .nav-cta:hover { background: var(--green-light) !important; }
+        .mobile-menu { display: none; background: none; border: none; cursor: pointer; }
+
+        /* ═══ HERO ═══ */
+        .hero {
+            position: relative; min-height: 100vh;
+            background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            display: flex; align-items: center;
+        }
+        .hero::before {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(165deg, rgba(13,13,21,0.88) 0%, rgba(13,13,21,0.65) 40%, rgba(13,13,21,0.45) 60%, rgba(13,13,21,0.85) 100%);
+        }
+        .hero-content {
+            position: relative; z-index: 2; max-width: 1200px; margin: 0 auto;
+            padding: 120px 24px 80px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
+        }
+        .hero-tag {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(45,106,79,0.15); border: 1px solid rgba(45,106,79,0.3);
+            border-radius: 50px; padding: 8px 20px; font-size: 14px; font-weight: 500;
+            color: var(--green-light); margin-bottom: 24px; backdrop-filter: blur(10px);
+            animation: fadeInUp 0.8s ease;
+        }
+        .hero-tag .dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; animation: blink 2s ease infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+        .hero h1 {
+            font-size: clamp(40px, 6vw, 72px); font-weight: 900; color: var(--text);
+            line-height: 1.05; margin-bottom: 24px; letter-spacing: -2px;
+            animation: fadeInUp 0.8s ease 0.1s both; text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+        }
+        .hero h1 .gradient-text {
+            background: linear-gradient(135deg, var(--gold-light), var(--orange), var(--gold));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .hero-sub {
+            font-size: 20px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 40px;
+            max-width: 500px; animation: fadeInUp 0.8s ease 0.2s both;
+        }
+        .hero-buttons { display: flex; gap: 16px; animation: fadeInUp 0.8s ease 0.3s both; }
+
+        .btn {
+            display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px;
+            border-radius: 14px; font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 600;
+            text-decoration: none; cursor: pointer; border: none; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--orange), #e8944f);
+            color: #FFFFFF; box-shadow: 0 4px 30px rgba(224,122,58,0.3);
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 40px rgba(224,122,58,0.5); }
+        .btn-secondary {
+            background: var(--glass); color: var(--text); border: 1px solid var(--glass-border);
+            backdrop-filter: blur(10px);
+        }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); transform: translateY(-3px); }
+
+        /* Phone Mockup */
+        .phone-wrapper { display: flex; justify-content: center; animation: fadeInUp 1s ease 0.4s both; }
+        .phone-mockup {
+            width: 280px; height: 570px; background: #000; border-radius: 40px;
+            border: 3px solid rgba(255,255,255,0.12); padding: 8px;
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 60px rgba(212,160,84,0.1);
+            position: relative; overflow: hidden;
+        }
+        .phone-notch {
+            position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 28px; background: #000; border-radius: 20px; z-index: 5;
+        }
+        .phone-mockup img {
+            width: 100%; height: 100%; object-fit: cover; border-radius: 32px; display: block;
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ═══ SCREENSHOTS SHOWCASE ═══ */
+        .screenshots {
+            padding: 120px 24px;
+            background: var(--bg-primary);
+            position: relative; overflow: hidden;
+        }
+        .screenshots::before {
+            content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+            width: 600px; height: 600px; background: radial-gradient(circle, rgba(212,160,84,0.06), transparent 70%);
+            border-radius: 50%;
+        }
+        .section-inner { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; }
+        .section-label {
+            display: inline-block; font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 3px; color: var(--gold); margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: clamp(32px, 4vw, 52px); font-weight: 800; color: var(--text);
+            line-height: 1.1; letter-spacing: -1.5px; margin-bottom: 20px;
+        }
+        .section-sub { font-size: 18px; color: var(--text-secondary); max-width: 600px; line-height: 1.6; margin-bottom: 60px; }
+
+        .screenshots-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+            max-width: 1000px; margin: 0 auto;
+        }
+        .screenshot-item { text-align: center; }
+        .screenshot-phone {
+            background: #000; border-radius: 24px; border: 2px solid rgba(255,255,255,0.1);
+            padding: 6px; overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5), 0 0 30px rgba(212,160,84,0.05);
+            transition: transform 0.4s, box-shadow 0.4s;
+        }
+        .screenshot-phone:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 30px 70px rgba(0,0,0,0.6), 0 0 40px rgba(212,160,84,0.1);
+        }
+        .screenshot-phone img { width: 100%; display: block; border-radius: 18px; }
+        .screenshot-label {
+            margin-top: 16px; font-size: 14px; font-weight: 600; color: var(--text-secondary);
+        }
+
+        /* ═══ FEATURES ═══ */
+        .features { padding: 120px 24px; background: var(--bg-primary); }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+
+        .feature-card {
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 36px; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative; overflow: hidden;
+        }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            border-radius: 20px 20px 0 0; opacity: 0; transition: opacity 0.4s;
+        }
+        .feature-card:hover { transform: translateY(-8px); box-shadow: 0 20px 60px rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.12); }
+        .feature-card:hover::before { opacity: 1; }
+
+        .feature-card:nth-child(1)::before { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+        .feature-card:nth-child(2)::before { background: linear-gradient(90deg, var(--green), var(--green-light)); }
+        .feature-card:nth-child(3)::before { background: linear-gradient(90deg, var(--green), var(--green-light)); }
+        .feature-card:nth-child(4)::before { background: linear-gradient(90deg, var(--blue), var(--blue-light)); }
+        .feature-card:nth-child(5)::before { background: linear-gradient(90deg, var(--orange), var(--gold)); }
+        .feature-card:nth-child(6)::before { background: linear-gradient(90deg, var(--green), var(--success)); }
+
+        .feature-icon {
+            width: 56px; height: 56px; border-radius: 16px; display: flex;
+            align-items: center; justify-content: center; font-size: 28px; margin-bottom: 20px;
+        }
+        .feature-card h3 { font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+        .feature-card p { font-size: 15px; color: var(--text-secondary); line-height: 1.6; }
+
+        .fi-1 { background: linear-gradient(135deg, rgba(46,117,182,0.2), rgba(91,184,255,0.1)); }
+        .fi-2 { background: linear-gradient(135deg, rgba(45,106,79,0.25), rgba(64,145,108,0.1)); }
+        .fi-3 { background: linear-gradient(135deg, rgba(45,106,79,0.3), rgba(64,145,108,0.15)); }
+        .fi-4 { background: linear-gradient(135deg, rgba(91,184,255,0.15), rgba(46,117,182,0.1)); }
+        .fi-5 { background: linear-gradient(135deg, rgba(224,122,58,0.2), rgba(212,160,84,0.1)); }
+        .fi-6 { background: linear-gradient(135deg, rgba(39,174,96,0.2), rgba(45,106,79,0.15)); }
+
+        /* ═══ BOOKING FLOW ═══ */
+        .booking-flow { padding: 120px 24px; background: var(--bg-primary); position: relative; }
+        .booking-flow::before {
+            content: ''; position: absolute; top: 10%; right: -5%;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(45,106,79,0.06), transparent 70%);
+            border-radius: 50%;
+        }
+        .booking-timeline {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-top: 60px;
+            position: relative;
+        }
+        .booking-timeline::before {
+            content: ''; position: absolute; top: 36px; left: 12%; right: 12%;
+            height: 2px; background: linear-gradient(90deg, var(--green), var(--green-light), var(--green));
+            opacity: 0.3; z-index: 0;
+        }
+        .timeline-step { position: relative; z-index: 1; text-align: center; }
+        .timeline-num {
+            width: 48px; height: 48px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--green), var(--green-light));
+            color: #FFFFFF; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; font-weight: 800; margin: 0 auto 20px;
+            box-shadow: 0 4px 20px rgba(45,106,79,0.3);
+        }
+        .timeline-card {
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 20px; padding: 32px 24px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .timeline-card:hover {
+            transform: translateY(-8px); box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border-color: rgba(255,255,255,0.12);
+        }
+        .timeline-icon { font-size: 36px; margin-bottom: 16px; }
+        .timeline-card h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+        .timeline-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
+
+        /* ═══ IMAGE DIVIDER ═══ */
+        .img-divider {
+            height: 400px; background-size: cover; background-position: center; background-attachment: fixed;
+            position: relative; display: flex; align-items: center; justify-content: center;
+        }
+        .img-divider::before { content: ''; position: absolute; inset: 0; background: rgba(13,13,21,0.55); }
+        .img-divider-content { position: relative; z-index: 2; text-align: center; padding: 0 24px; }
+        .img-divider-content h2 {
+            font-size: clamp(28px, 4vw, 48px); font-weight: 800; color: var(--text);
+            margin-bottom: 12px; text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+        }
+        .img-divider-content p { font-size: 20px; color: var(--text-secondary); text-shadow: 0 1px 10px rgba(0,0,0,0.3); }
+        @media (max-width: 768px) { .img-divider { background-attachment: scroll; height: 300px; } }
+
+        /* ═══ HOW IT WORKS ═══ */
+        .how { padding: 120px 24px; background: var(--bg-primary); }
+        .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-top: 60px; }
+        .step { text-align: center; position: relative; }
+        .step::after { content: '→'; position: absolute; right: -20px; top: 40px; font-size: 24px; color: var(--gold); font-weight: 700; }
+        .step:last-child::after { display: none; }
+        .step-num {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+            color: var(--text); display: flex; align-items: center; justify-content: center;
+            font-size: 28px; font-weight: 800; margin: 0 auto 20px;
+            box-shadow: 0 8px 30px rgba(212,160,84,0.3);
+        }
+        .step h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .step p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+
+        /* ═══ PRICING ═══ */
+        .pricing {
+            padding: 120px 24px;
+            background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            position: relative;
+        }
+        .pricing::before { content: ''; position: absolute; inset: 0; background: rgba(13,13,21,0.92); }
+        .pricing .section-inner { position: relative; z-index: 2; }
+
+        .pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1000px; margin: 60px auto 0; }
+
+        .price-card {
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 24px; padding: 40px 32px; text-align: center;
+            transition: all 0.3s; position: relative;
+        }
+        .price-card:hover { transform: translateY(-5px); box-shadow: 0 20px 60px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.12); }
+
+        .price-card.popular {
+            border-color: var(--orange);
+            background: linear-gradient(180deg, rgba(224,122,58,0.1) 0%, var(--glass) 30%);
+        }
+        .price-badge {
+            position: absolute; top: -14px; left: 50%; transform: translateX(-50%);
+            background: linear-gradient(135deg, var(--orange), var(--gold));
+            color: #FFFFFF; padding: 6px 24px; border-radius: 50px; font-size: 13px; font-weight: 700;
+        }
+        .price-card h3 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+        .price-amount { font-size: 48px; font-weight: 900; color: var(--text); margin: 16px 0; letter-spacing: -2px; }
+        .price-amount span { font-size: 18px; font-weight: 500; color: var(--text-secondary); }
+
+        .price-features { list-style: none; text-align: left; margin: 24px 0; }
+        .price-features li {
+            padding: 10px 0; font-size: 15px; color: var(--text-secondary);
+            display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border);
+        }
+        .price-features li:last-child { border: none; }
+        .check { color: var(--green-light); font-weight: 700; font-size: 18px; }
+
+        .price-btn {
+            display: block; width: 100%; padding: 14px; border-radius: 12px;
+            font-family: 'Outfit', sans-serif; font-size: 16px; font-weight: 700;
+            cursor: pointer; transition: all 0.3s; border: none; margin-top: 8px;
+        }
+        .price-btn-outline { background: transparent; border: 2px solid var(--green); color: var(--green-light); }
+        .price-btn-outline:hover { background: var(--green); color: var(--text); }
+        .price-btn-fill { background: linear-gradient(135deg, var(--orange), var(--gold)); color: #FFFFFF; box-shadow: 0 4px 20px rgba(224,122,58,0.3); }
+        .price-btn-fill:hover { box-shadow: 0 8px 30px rgba(224,122,58,0.5); transform: translateY(-2px); }
+
+        /* ═══ BETA ═══ */
+        .beta { padding: 120px 24px; background: var(--bg-primary); text-align: center; }
+        .beta-card {
+            max-width: 700px; margin: 40px auto 0;
+            background: var(--glass); border: 1px solid var(--glass-border);
+            border-radius: 28px; padding: 60px 40px; color: var(--text);
+            position: relative; overflow: hidden;
+        }
+        .beta-card::before {
+            content: ''; position: absolute; top: -50%; right: -30%;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(212,160,84,0.1), transparent 70%);
+            border-radius: 50%;
+        }
+        .beta-card h3 { font-size: 28px; font-weight: 800; margin-bottom: 12px; position: relative; }
+        .beta-card p { color: var(--text-secondary); margin-bottom: 32px; font-size: 16px; position: relative; }
+
+        .qr-placeholder {
+            width: 200px; height: 200px; background: #FFFFFF; border-radius: 16px;
+            margin: 0 auto 24px; display: flex; align-items: center; justify-content: center; position: relative;
+        }
+        .beta-download {
+            display: inline-flex; align-items: center; gap: 10px; padding: 16px 40px;
+            border-radius: 14px; background: linear-gradient(135deg, var(--orange), var(--gold));
+            color: #FFFFFF; font-family: 'Outfit', sans-serif; font-size: 17px; font-weight: 700;
+            text-decoration: none; transition: all 0.3s; position: relative; margin-bottom: 32px;
+            box-shadow: 0 4px 20px rgba(224,122,58,0.3);
+        }
+        .beta-download:hover { transform: translateY(-3px); box-shadow: 0 8px 40px rgba(224,122,58,0.5); }
+
+        .beta-steps { display: flex; justify-content: center; gap: 40px; margin-top: 24px; position: relative; }
+        .beta-step { text-align: center; }
+        .beta-step .num {
+            width: 32px; height: 32px; background: var(--green); border-radius: 50%;
+            color: var(--text); display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px; margin: 0 auto 8px;
+        }
+        .beta-step span { font-size: 13px; color: var(--text-secondary); }
+
+        .beta-platform-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 12px; font-weight: 700; padding: 5px 14px;
+            border-radius: 50px; margin-bottom: 16px; position: relative;
+        }
+        .badge-android { background: var(--green); color: var(--text); }
+        .badge-ios { background: var(--bg-surface); color: var(--text-secondary); }
+        .beta-hidden { display: none; }
+
+        /* ═══ WAITLIST ═══ */
+        .waitlist {
+            padding: 120px 24px;
+            background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            text-align: center; position: relative;
+        }
+        .waitlist::before { content: ''; position: absolute; inset: 0; background: linear-gradient(165deg, rgba(13,13,21,0.94) 0%, rgba(26,26,46,0.92) 100%); }
+        .waitlist .section-inner { position: relative; z-index: 2; }
+        .waitlist-form { max-width: 500px; margin: 0 auto; display: flex; gap: 12px; }
+        .waitlist-form input {
+            flex: 1; padding: 16px 24px; border-radius: 14px;
+            border: 2px solid var(--glass-border); background: var(--glass);
+            color: var(--text); font-family: 'Outfit', sans-serif; font-size: 16px;
+            outline: none; transition: border-color 0.3s; backdrop-filter: blur(10px);
+        }
+        .waitlist-form input::placeholder { color: var(--text-muted); }
+        .waitlist-form input:focus { border-color: var(--gold); }
+        .waitlist-form button {
+            padding: 16px 32px; border-radius: 14px;
+            background: linear-gradient(135deg, var(--orange), var(--gold));
+            color: #FFFFFF; border: none; font-family: 'Outfit', sans-serif;
+            font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; white-space: nowrap;
+        }
+        .waitlist-form button:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(212,160,84,0.4); }
+        .waitlist-note { font-size: 13px; color: var(--text-muted); margin-top: 16px; }
+        .waitlist-success {
+            display: none; background: rgba(39,174,96,0.12); border: 1px solid rgba(39,174,96,0.25);
+            border-radius: 14px; padding: 20px; max-width: 500px; margin: 20px auto 0;
+            color: var(--success); font-weight: 600;
+        }
+
+        /* ═══ FOOTER ═══ */
+        footer {
+            padding: 60px 24px 30px; background: #08080E;
+            text-align: center; border-top: 1px solid var(--border);
+        }
+        .footer-inner { max-width: 1200px; margin: 0 auto; }
+        .footer-logo { font-size: 28px; font-weight: 900; color: var(--text); margin-bottom: 16px; letter-spacing: -1px; }
+        .footer-logo span { color: var(--green-light); }
+        .footer-tagline { color: var(--text-muted); font-size: 14px; margin-bottom: 32px; }
+        .footer-links { display: flex; justify-content: center; gap: 32px; margin-bottom: 32px; }
+        .footer-links a { color: var(--text-muted); text-decoration: none; font-size: 14px; transition: color 0.3s; }
+        .footer-links a:hover { color: var(--text); }
+        .footer-copy { color: var(--text-muted); font-size: 13px; padding-top: 24px; border-top: 1px solid var(--border); }
+
+        /* ═══ RESPONSIVE ═══ */
+        @media (max-width: 900px) {
+            .hero::before { background: linear-gradient(165deg, rgba(13,13,21,0.92) 0%, rgba(13,13,21,0.75) 50%, rgba(13,13,21,0.9) 100%); }
+            .hero-content { grid-template-columns: 1fr; text-align: center; padding-top: 140px; }
+            .hero-sub { margin: 0 auto 40px; }
+            .hero-buttons { justify-content: center; flex-wrap: wrap; }
+            .phone-wrapper { order: -1; }
+            .phone-mockup { width: 220px; height: 450px; }
+            .screenshots-grid { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .steps { grid-template-columns: repeat(2, 1fr); }
+            .step::after { display: none; }
+            .pricing-grid { grid-template-columns: 1fr; max-width: 400px; }
+            .booking-timeline { grid-template-columns: repeat(2, 1fr); }
+            .booking-timeline::before { display: none; }
+            .nav-links { display: none; }
+            .mobile-menu { display: block; }
+            .waitlist-form { flex-direction: column; }
+            .beta-steps { flex-direction: column; gap: 16px; }
+            .hero { background-attachment: scroll; }
+            .img-divider { background-attachment: scroll; height: 300px; }
+            .pricing { background-attachment: scroll; }
+            .waitlist { background-attachment: scroll; }
+        }
+
+        .reveal { opacity: 0; transform: translateY(40px); transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+        .reveal.visible { opacity: 1; transform: translateY(0); }
+    </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="navbar">
+    <div class="nav-inner">
+        <a href="#" class="logo">Projekt<span>Fit</span></a>
+        <div class="nav-links">
+            <a href="#screenshots">App</a>
+            <a href="#features">Features</a>
+            <a href="#pricing">Preise</a>
+            <a href="#beta">Download</a>
+            <a href="/trainer">Trainer werden</a>
+            <a href="#beta" class="nav-cta">App herunterladen</a>
+        </div>
+        <button class="mobile-menu" onclick="document.querySelector('.nav-links').style.display=document.querySelector('.nav-links').style.display==='flex'?'none':'flex'">
+            <svg width="28" height="28" fill="white" viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+        </button>
+    </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+    <div class="hero-content">
+        <div>
+            <div class="hero-tag">
+                <span class="dot"></span>
+                Jetzt verfügbar
+            </div>
+            <h1>Dein <span class="gradient-text">KI-Trainer</span> – vom Smartphone in den Park</h1>
+            <p class="hero-sub">Personalisierte Trainingspläne per KI, Sprachsteuerung beim Workout, Apple Health Integration und buchbares Outdoor-Personal-Training – alles in einer App.</p>
+            <div class="hero-buttons">
+                <a href="#beta" class="btn btn-primary">App herunterladen</a>
+                <a href="#waitlist" class="btn btn-secondary">Android Warteliste →</a>
+            </div>
+        </div>
+        <div class="phone-wrapper">
+            <div class="phone-mockup">
+                <div class="phone-notch"></div>
+                <img src="screenshots/screenshot-1-dashboard.png" alt="Projekt Fit Dashboard">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- APP SCREENSHOTS -->
+<section class="screenshots" id="screenshots">
+    <div class="section-inner">
+        <div class="section-label reveal">Die App</div>
+        <h2 class="section-title reveal">Dein komplettes Fitness-Studio in einer App</h2>
+        <p class="section-sub reveal">Dashboard mit Apple Health, KI-Trainingsplan, persönlicher Coach und detaillierte Statistiken.</p>
+        <div class="screenshots-grid">
+            <div class="screenshot-item reveal">
+                <div class="screenshot-phone">
+                    <img src="screenshots/screenshot-1-dashboard.png" alt="Dashboard mit Health-Daten" loading="lazy">
+                </div>
+                <div class="screenshot-label">Dashboard</div>
+            </div>
+            <div class="screenshot-item reveal">
+                <div class="screenshot-phone">
+                    <img src="screenshots/screenshot-2-training.png" alt="Training-Übersicht" loading="lazy">
+                </div>
+                <div class="screenshot-label">Training</div>
+            </div>
+            <div class="screenshot-item reveal">
+                <div class="screenshot-phone">
+                    <img src="screenshots/screenshot-3-coach.png" alt="KI-Coach Chat" loading="lazy">
+                </div>
+                <div class="screenshot-label">KI-Coach</div>
+            </div>
+            <div class="screenshot-item reveal">
+                <div class="screenshot-phone">
+                    <img src="screenshots/screenshot-4-profil.png" alt="Profil mit Statistiken" loading="lazy">
+                </div>
+                <div class="screenshot-label">Profil</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+    <div class="section-inner">
+        <div class="section-label reveal">Features</div>
+        <h2 class="section-title reveal">Alles was du für dein Training brauchst</h2>
+        <p class="section-sub reveal">Kein anderer Anbieter kombiniert KI-Coaching mit echtem Outdoor-Training.</p>
+        <div class="features-grid">
+            <div class="feature-card reveal">
+                <div class="feature-icon fi-1">🤖</div>
+                <h3>KI-Coach</h3>
+                <p>Dein persönlicher Trainer erstellt Pläne basierend auf deinen Zielen, deinem Level und deiner Zeit.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon fi-2">🎙️</div>
+                <h3>Sprachsteuerung</h3>
+                <p>Hände frei trainieren. Die KI leitet dich mit Stimme durch jede Übung und zählt deine Pausen.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon fi-3">🌳</div>
+                <h3>Outdoor-Training</h3>
+                <p>Buche echte Personal Trainer für Outdoor-Sessions im Park. Ab Phase 2 in 5 deutschen Städten.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon fi-4">📊</div>
+                <h3>Apple Health Sync</h3>
+                <p>Schritte, Distanz und Kalorien direkt aus Apple Health oder Health Connect – alles im Dashboard auf einen Blick.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon fi-5">💪</div>
+                <h3>105 Übungen</h3>
+                <p>Ganzkörper, Oberkörper, Core, Cardio, Stretching – mit detaillierten Erklärungen, Korrektur-Tipps und Variationen.</p>
+            </div>
+            <div class="feature-card reveal">
+                <div class="feature-icon fi-6">❤️</div>
+                <h3>Fortschritts-Tracking</h3>
+                <p>Streaks, Wochen-Chart, Meilensteine und Trainingsminuten. Sieh genau wie du stärker wirst – Woche für Woche.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- BOOKING FLOW -->
+<section class="booking-flow" id="booking">
+    <div class="section-inner">
+        <div class="section-label reveal">Outdoor-Training</div>
+        <h2 class="section-title reveal">So funktioniert die Buchung</h2>
+        <p class="section-sub reveal">Von der Empfehlung bis zum Training im Park – in 4 einfachen Schritten.</p>
+        <div class="booking-timeline">
+            <div class="timeline-step reveal">
+                <div class="timeline-num">1</div>
+                <div class="timeline-card">
+                    <div class="timeline-icon">&#129302;</div>
+                    <h3>KI-Coach w&auml;hlt deinen Trainer</h3>
+                    <p>Basierend auf deinen Zielen empfiehlt dir der KI-Coach den passenden Trainer.</p>
+                </div>
+            </div>
+            <div class="timeline-step reveal">
+                <div class="timeline-num">2</div>
+                <div class="timeline-card">
+                    <div class="timeline-icon">&#128197;</div>
+                    <h3>Termin buchen</h3>
+                    <p>W&auml;hle Zeit und Treffpunkt direkt in der App. Flexibel, kein Vertrag.</p>
+                </div>
+            </div>
+            <div class="timeline-step reveal">
+                <div class="timeline-num">3</div>
+                <div class="timeline-card">
+                    <div class="timeline-icon">&#128274;</div>
+                    <h3>Sicher bezahlen</h3>
+                    <p>Zahlung wird reserviert &ndash; erst nach Trainer-Best&auml;tigung eingezogen. Powered by Stripe.</p>
+                </div>
+            </div>
+            <div class="timeline-step reveal">
+                <div class="timeline-num">4</div>
+                <div class="timeline-card">
+                    <div class="timeline-icon">&#128170;</div>
+                    <h3>Los geht&rsquo;s</h3>
+                    <p>Triff deinen Trainer im Park. Nach der Session kannst du bewerten.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- IMAGE DIVIDER 1 -->
+<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');">
+    <div class="img-divider-content">
+        <h2>Trainiere wo es am schönsten ist</h2>
+        <p>Im Park, am See, auf der Wiese – dein Outdoor-Gym wartet</p>
+    </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<section class="how" id="how">
+    <div class="section-inner">
+        <div class="section-label reveal">So funktioniert's</div>
+        <h2 class="section-title reveal">In 4 Schritten zum personalisierten Training</h2>
+        <div class="steps">
+            <div class="step reveal">
+                <div class="step-num">1</div>
+                <h3>Profil erstellen</h3>
+                <p>Ziele, Fitnesslevel und Verfügbarkeit angeben – dauert nur 2 Minuten.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">2</div>
+                <h3>Plan erhalten</h3>
+                <p>Die KI erstellt deinen persönlichen Trainingsplan – angepasst an dich.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">3</div>
+                <h3>Trainieren</h3>
+                <p>Starte dein Workout mit Sprachsteuerung. Überall. Ohne Equipment.</p>
+            </div>
+            <div class="step reveal">
+                <div class="step-num">4</div>
+                <h3>Fortschritt sehen</h3>
+                <p>Tracke deine Streaks, feiere Meilensteine und werde stärker.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- IMAGE DIVIDER 2 -->
+<div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1920&q=80');">
+    <div class="img-divider-content">
+        <h2>105 Übungen für jedes Level</h2>
+        <p>Von Anfänger bis Profi – ohne Equipment, überall machbar</p>
+    </div>
+</div>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+    <div class="section-inner">
+        <div class="section-label reveal">Preise</div>
+        <h2 class="section-title reveal">Starte kostenlos. Upgrade wenn du bereit bist.</h2>
+        <p class="section-sub reveal">Kein Vertrag. Jederzeit kündbar.</p>
+        <div class="pricing-grid">
+            <div class="price-card reveal">
+                <h3>Free</h3>
+                <div class="price-amount">0€ <span>/Mon.</span></div>
+                <ul class="price-features">
+                    <li><span class="check">✓</span> 1 Workout pro Woche</li>
+                    <li><span class="check">✓</span> KI-Trainingsplan</li>
+                    <li><span class="check">✓</span> Sprachsteuerung</li>
+                    <li><span class="check">✓</span> Apple Health Sync</li>
+                </ul>
+                <button class="price-btn price-btn-outline" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Kostenlos starten</button>
+            </div>
+            <div class="price-card popular reveal">
+                <div class="price-badge">Beliebteste Wahl</div>
+                <h3>Basic</h3>
+                <div class="price-amount">4,99€ <span>/Mon.</span></div>
+                <ul class="price-features">
+                    <li><span class="check">✓</span> 3 Workouts pro Woche</li>
+                    <li><span class="check">✓</span> KI-Trainingsplan</li>
+                    <li><span class="check">✓</span> Sprachsteuerung</li>
+                    <li><span class="check">✓</span> Apple Health Sync</li>
+                    <li><span class="check">✓</span> Alle Statistiken</li>
+                </ul>
+                <button class="price-btn price-btn-fill" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Basic wählen</button>
+            </div>
+            <div class="price-card reveal">
+                <h3>Premium</h3>
+                <div class="price-amount">9,99€ <span>/Mon.</span></div>
+                <ul class="price-features">
+                    <li><span class="check">✓</span> Unbegrenzte Workouts</li>
+                    <li><span class="check">✓</span> KI-Trainingsplan</li>
+                    <li><span class="check">✓</span> Sprachsteuerung</li>
+                    <li><span class="check">✓</span> Apple Health Sync</li>
+                    <li><span class="check">✓</span> Erweiterte Analysen</li>
+                    <li><span class="check">✓</span> Prio-Support</li>
+                </ul>
+                <button class="price-btn price-btn-outline" onclick="document.getElementById('waitlist').scrollIntoView({behavior:'smooth'})">Premium wählen</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- BETA -->
+<section class="beta" id="beta">
+    <div class="section-inner">
+        <div class="section-label reveal">Download</div>
+        <h2 class="section-title reveal">Jetzt herunterladen – kostenlos</h2>
+        <p class="section-sub reveal" style="margin: 0 auto 20px;" id="beta-subtitle">Lade die App herunter und teste alle aktuellen Features.</p>
+        <div class="beta-card reveal">
+            <h3>📱 Projekt Fit</h3>
+
+            <!-- Android: Warteliste -->
+            <div id="beta-android" class="beta-hidden">
+                <p>Die Android-Version kommt bald! Trag dich in die Warteliste ein.</p>
+                <a href="#waitlist" class="beta-download">🔔 Auf die Warteliste</a>
+                <div class="beta-steps">
+                    <div class="beta-step"><div class="num">1</div><span>E-Mail eintragen</span></div>
+                    <div class="beta-step"><div class="num">2</div><span>Benachrichtigung erhalten</span></div>
+                    <div class="beta-step"><div class="num">3</div><span>Als Erster testen</span></div>
+                </div>
+            </div>
+
+            <!-- iOS: Download -->
+            <div id="beta-ios" class="beta-hidden">
+                <p>Klicke auf den Button, um die App aus dem App Store zu laden</p>
+                <a href="https://apps.apple.com/de/app/projekt-fit-app/id6759870854" target="_blank" rel="noopener" class="beta-download">⬇ Im App Store laden</a>
+                <div class="beta-steps">
+                    <div class="beta-step"><div class="num">1</div><span>App herunterladen</span></div>
+                    <div class="beta-step"><div class="num">2</div><span>Profil erstellen</span></div>
+                    <div class="beta-step"><div class="num">3</div><span>Loslegen</span></div>
+                </div>
+            </div>
+
+            <!-- Desktop: QR-Code + beide Plattform-Infos -->
+            <div id="beta-desktop" class="beta-hidden">
+                <p>Scanne den QR-Code mit deinem Handy – die richtige Version wird automatisch erkannt</p>
+                <div class="qr-placeholder">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https%3A%2F%2Fapps.apple.com%2Fde%2Fapp%2Fprojekt-fit-app%2Fid6759870854" alt="QR-Code zum Download" style="width:180px; height:180px; border-radius:8px;" loading="lazy">
+                </div>
+                <div style="display:flex; gap:10px; justify-content:center; margin-bottom:28px; flex-wrap:wrap;">
+                    <span class="beta-platform-badge badge-android">✓ iOS – verfügbar</span>
+                    <span class="beta-platform-badge badge-android">⏳ Android – bald verfügbar</span>
+                </div>
+                <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+                    <a href="https://apps.apple.com/de/app/projekt-fit-app/id6759870854" class="beta-download" style="margin-bottom:0;">⬇ Im App Store laden</a>
+                    <a href="#waitlist" class="beta-download" style="margin-bottom:0;">🔔 Android Warteliste</a>
+                </div>
+                <div class="beta-steps">
+                    <div class="beta-step"><div class="num">1</div><span>App herunterladen</span></div>
+                    <div class="beta-step"><div class="num">2</div><span>Profil erstellen</span></div>
+                    <div class="beta-step"><div class="num">3</div><span>Loslegen</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- WAITLIST -->
+<section class="waitlist" id="waitlist">
+    <div class="section-inner">
+        <div class="section-label">Warteliste</div>
+        <h2 class="section-title">Android kommt bald</h2>
+        <p class="section-sub" style="margin: 0 auto 40px;">Die iOS-App ist live im App Store. Für Android trag dich in die Warteliste ein.</p>
+        <form class="waitlist-form" onsubmit="handleWaitlist(event)">
+            <input type="email" placeholder="Deine E-Mail-Adresse" required id="waitlist-email">
+            <button type="submit">Eintragen →</button>
+        </form>
+        <p class="waitlist-note">Kein Spam. Nur Updates zu Projekt Fit. Jederzeit abmeldbar.</p>
+        <div class="waitlist-success" id="waitlist-success">
+            ✅ Du bist auf der Warteliste! Wir melden uns bald.
+        </div>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+    <div class="footer-inner">
+        <div class="footer-logo">Projekt<span>Fit</span></div>
+        <p class="footer-tagline">Dein KI-Trainer – vom Smartphone in den Park</p>
+        <div class="footer-links">
+            <a href="#features">Features</a>
+            <a href="#pricing">Preise</a>
+            <a href="#beta">Download</a>
+            <a href="/datenschutz">Datenschutz</a>
+            <a href="/agb">AGB</a>
+            <a href="/dienstleistungsvertrag">Dienstleistungsvertrag</a>
+            <a href="/impressum">Impressum</a>
+        </div>
+        <p class="footer-copy">© 2026 Projekt Fit. Alle Rechte vorbehalten.</p>
+    </div>
+</footer>
+
+<script>
+    window.addEventListener('scroll', () => {
+        document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Beta section: device detection
+    (function() {
+        const ua = navigator.userAgent || '';
+        const isAndroid = /android/i.test(ua);
+        const isIOS = /iphone|ipad|ipod/i.test(ua);
+        const subtitle = document.getElementById('beta-subtitle');
+
+        if (isAndroid) {
+            document.getElementById('beta-android').classList.remove('beta-hidden');
+            if (subtitle) subtitle.textContent = 'Die Android-Version kommt bald. Trag dich in die Warteliste ein!';
+        } else if (isIOS) {
+            document.getElementById('beta-ios').classList.remove('beta-hidden');
+            if (subtitle) subtitle.textContent = 'Lade die App aus dem App Store und starte sofort mit deinem Training.';
+        } else {
+            document.getElementById('beta-desktop').classList.remove('beta-hidden');
+            if (subtitle) subtitle.textContent = 'Scanne den QR-Code mit deinem Handy, um die App herunterzuladen.';
+        }
+    })();
+
+    async function handleWaitlist(e) {
+        e.preventDefault();
+        const email = document.getElementById('waitlist-email').value;
+        const btn = document.querySelector('.waitlist-form button');
+        btn.textContent = 'Wird eingetragen...';
+        btn.disabled = true;
+        try {
+            const res = await fetch('/api/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email })
+            });
+            if (res.ok) {
+                document.querySelector('.waitlist-form').style.display = 'none';
+                document.getElementById('waitlist-success').style.display = 'block';
+            } else {
+                btn.textContent = 'Eintragen →';
+                btn.disabled = false;
+                alert('Fehler bei der Anmeldung. Bitte versuche es erneut.');
+            }
+        } catch (err) {
+            btn.textContent = 'Eintragen →';
+            btn.disabled = false;
+            alert('Verbindungsfehler. Bitte versuche es erneut.');
+        }
+    }
+</script>
+
+</body>
+</html>
