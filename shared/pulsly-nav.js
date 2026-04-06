@@ -439,13 +439,13 @@ function renderPulslyFooter() {
           <!-- Social -->
           <div>
             <div class="pf-col-title">Social</div>
-            <a href="https://instagram.com/pulsly.app" target="_blank" rel="noopener noreferrer" class="pf-social-link">
+            <a href="https://instagram.com/pulsly.coach" target="_blank" rel="noopener noreferrer" class="pf-social-link">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2" y="2" width="20" height="20" rx="5"/>
                 <circle cx="12" cy="12" r="5"/>
                 <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/>
               </svg>
-              @pulsly.app
+              @pulsly.coach
             </a>
           </div>
 
