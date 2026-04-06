@@ -85,7 +85,7 @@
             border-bottom: 1px solid var(--border);
         }
         .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-        .logo { font-size: 24px; font-weight: 900; color: var(--text); text-decoration: none; letter-spacing: -1px; }
+        .logo { font-size: 36px; font-weight: 900; color: var(--text); text-decoration: none; letter-spacing: -1px; }
         .nav-links { display: flex; gap: 32px; align-items: center; }
         .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 15px; font-weight: 500; transition: color 0.3s; }
         .nav-links a:hover { color: var(--text); }
@@ -287,13 +287,20 @@
         .timeline-card h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
         .timeline-card p { font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
 
-        /* ═══ TRAINING BUCHEN ═══ */
-        .training-buchen { padding: 120px 24px; background: var(--bg-primary); position: relative; }
+        /* ═══ TRAINING BUCHEN (Parallax Hero-Stil) ═══ */
+        .training-buchen {
+            position: relative; min-height: 80vh;
+            background-image: url('https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1920&q=80');
+            background-size: cover; background-position: center; background-attachment: fixed;
+            display: flex; align-items: center;
+        }
         .training-buchen::before {
-            content: ''; position: absolute; top: 10%; left: -5%;
-            width: 500px; height: 500px;
-            background: radial-gradient(circle, rgba(212,160,84,0.06), transparent 70%);
-            border-radius: 50%;
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(165deg, rgba(13,13,21,0.88) 0%, rgba(13,13,21,0.65) 40%, rgba(13,13,21,0.45) 60%, rgba(13,13,21,0.85) 100%);
+        }
+        .training-content {
+            position: relative; z-index: 2; max-width: 1200px; margin: 0 auto;
+            padding: 120px 24px 80px; width: 100%;
         }
         .training-grid {
             display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px;
@@ -304,6 +311,7 @@
             border-radius: 24px; padding: 48px 36px; text-align: center;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative; overflow: hidden;
+            backdrop-filter: blur(20px);
         }
         .training-card::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
@@ -551,6 +559,7 @@
             .waitlist-form { flex-direction: column; }
             .beta-steps { flex-direction: column; gap: 16px; }
             .hero { background-attachment: scroll; }
+            .training-buchen { background-attachment: scroll; min-height: 60vh; }
             .img-divider { background-attachment: scroll; height: 300px; }
             .pricing { background-attachment: scroll; }
             .waitlist { background-attachment: scroll; }
@@ -567,11 +576,12 @@
     <div class="nav-inner">
         <a href="/" class="logo"><span style="color:#40916C">puls</span><span style="color:#E07A3A">ly</span></a>
         <div class="nav-links">
-            <a href="#screenshots">App</a>
+            <a href="/app">App</a>
+            <a href="/training">Training</a>
             <a href="#features">Features</a>
             <a href="#pricing">Preise</a>
-            <a href="#beta">Download</a>
-            <a href="#trainer-werden">Trainer werden</a>
+            <a href="/trainer">Trainer werden</a>
+            <a href="/blog">Blog</a>
             <a href="#beta" class="nav-cta">App herunterladen</a>
         </div>
         <button class="mobile-menu" onclick="document.querySelector('.nav-links').style.display=document.querySelector('.nav-links').style.display==='flex'?'none':'flex'">
@@ -691,8 +701,8 @@
                 <div class="timeline-num">1</div>
                 <div class="timeline-card">
                     <div class="timeline-icon">&#129302;</div>
-                    <h3>KI-Coach w&auml;hlt deinen Trainer</h3>
-                    <p>Basierend auf deinen Zielen empfiehlt dir der KI-Coach den passenden Trainer.</p>
+                    <h3>Trainer finden</h3>
+                    <p>Durchsuche Trainer-Profile in deiner N&auml;he. Finde den passenden Trainer f&uuml;r deine Ziele.</p>
                 </div>
             </div>
             <div class="timeline-step reveal">
@@ -725,30 +735,30 @@
 
 <!-- TRAINING BUCHEN -->
 <section class="training-buchen" id="training-buchen">
-    <div class="section-inner">
+    <div class="training-content">
         <div class="section-label reveal">Training</div>
-        <h2 class="section-title reveal">Echte Trainer. Echte Ergebnisse.</h2>
-        <p class="section-sub reveal">Buche dein Training direkt in der App – persönlich oder in der Gruppe.</p>
+        <h2 class="section-title reveal" style="text-shadow: 0 2px 20px rgba(0,0,0,0.3);">Echte Trainer. Echte Ergebnisse.</h2>
+        <p class="section-sub reveal" style="text-shadow: 0 1px 10px rgba(0,0,0,0.3);">Buche dein Training direkt in der App – persönlich oder in der Gruppe.</p>
         <div class="training-grid">
             <div class="training-card reveal">
                 <div class="training-icon">🏋️</div>
                 <h3>Personal Training</h3>
                 <div class="training-subtitle">1:1 mit deinem Trainer</div>
                 <p>Individuelles Training, abgestimmt auf deine Ziele. Dein Trainer kommt zu dir in den Park – flexibel, persönlich und effektiv.</p>
-                <a href="#booking" class="btn btn-primary">Training buchen</a>
+                <a href="/training" class="btn btn-primary">Personal Training →</a>
             </div>
             <div class="training-card reveal">
                 <div class="training-icon">👥</div>
                 <h3>Gruppentraining</h3>
                 <div class="training-subtitle">Gemeinsam trainieren</div>
                 <p>Trainiere in kleinen Gruppen mit Gleichgesinnten. Mehr Motivation, mehr Spaß – und günstiger als Einzeltraining.</p>
-                <a href="#booking" class="btn btn-primary">Gruppe finden</a>
+                <a href="/training" class="btn btn-primary">Gruppentraining →</a>
             </div>
         </div>
     </div>
 </section>
 
-<!-- IMAGE DIVIDER 1 -->
+<!-- IMAGE DIVIDER 1 (nach Training) -->
 <div class="img-divider" style="background-image: url('https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=1920&q=80');">
     <div class="img-divider-content">
         <h2>Trainiere wo es am schönsten ist</h2>
