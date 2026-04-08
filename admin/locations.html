@@ -136,13 +136,6 @@
 
     .loc-item-actions { display: flex; gap: 6px; }
 
-    /* ─── Location Modal ────────────────────────────────────────────── */
-    .two-col {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
-    }
-
     /* Image upload */
     .upload-zone {
       border: 2px dashed var(--tblr-border-color);
@@ -278,13 +271,13 @@
             <input class="form-control" id="f-loc-street" placeholder="Hauptstraße 12"
               onblur="geocodeAddress()">
           </div>
-          <div class="two-col mb-3">
-            <div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
               <label class="form-label">PLZ</label>
               <input class="form-control" id="f-loc-plz" maxlength="5" placeholder="50667"
                 onblur="geocodeAddress()">
             </div>
-            <div>
+            <div class="col-md-6">
               <label class="form-label">Ort</label>
               <input class="form-control" id="f-loc-ort" placeholder="Köln"
                 onblur="geocodeAddress()">

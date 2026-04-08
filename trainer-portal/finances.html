@@ -64,7 +64,7 @@
         <div class="col-6 col-lg">
           <div class="card"><div class="card-body">
             <div class="kpi-label">Auszahlung</div>
-            <div class="kpi-value" style="color:var(--tblr-primary)" id="kpi-auszahlung"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="kpi-value text-primary" id="kpi-auszahlung"><div class="spinner-border spinner-border-sm"></div></div>
           </div></div>
         </div>
       </div>
@@ -100,7 +100,7 @@
             <thead>
               <tr id="finance-sum-row" style="display:none;font-size:12px" class="text-secondary">
                 <td colspan="6" style="text-align:right;font-style:italic" id="fin-count-cell"></td>
-                <td style="font-weight:700;color:var(--tblr-primary)" id="fin-vergutung-sum"></td>
+                <td class="text-primary" style="font-weight:700" id="fin-vergutung-sum"></td>
                 <td></td>
               </tr>
               <tr>
@@ -207,6 +207,7 @@
   async function loadFinances(trainerId) {
     const sb = getSupabase();
     try {
+      // ── 1. PT-Buchungen ──
       const { data, error } = await sb
         .from('bookings')
         .select('id, scheduled_date, scheduled_time, customer_id, location_name, location_address, status, trainer_payout_cents, booking_type, notes, created_at')
@@ -214,6 +215,45 @@
         .order('scheduled_date', { ascending: false });
 
       if (error) throw error;
+
+      // ── 2. GT-Teilnahmen für diesen Trainer (Phase B) ──
+      // Erst alle Group-Classes des Trainers laden, dann die Teilnehmer.
+      const { data: trainerClasses } = await sb
+        .from('group_classes')
+        .select('id, name, scheduled_date, scheduled_time, location_name, city, price_per_person_cents')
+        .eq('trainer_id', trainerId);
+
+      const classMap = {};
+      (trainerClasses || []).forEach(c => { classMap[c.id] = c; });
+      const classIds = (trainerClasses || []).map(c => c.id);
+
+      let gtRows = [];
+      if (classIds.length > 0) {
+        const { data: participants } = await sb
+          .from('group_participants')
+          .select('id, group_class_id, customer_id, customer_name, customer_email, status, customer_paid, price_cents, final_price_cents, trainer_payout_cents, stripe_payment_status, created_at')
+          .in('group_class_id', classIds);
+
+        gtRows = (participants || []).map(p => {
+          const gc = classMap[p.group_class_id] || {};
+          const isCancelled = ['cancelled', 'refunded'].includes((p.status || '').toLowerCase());
+          return {
+            id: `gp_${p.id}`,
+            scheduled_date: gc.scheduled_date || null,
+            scheduled_time: gc.scheduled_time || null,
+            customer_id: p.customer_id || null,
+            location_name: gc.location_name || gc.city || null,
+            location_address: null,
+            status: p.status || 'confirmed',
+            // Trainer-Vergütung aus participant-Spalte (Phase B) oder null-Fallback
+            trainer_payout_cents: isCancelled ? 0 : (p.trainer_payout_cents ?? 0),
+            booking_type: 'group',
+            notes: gc.name ? `Gruppentraining: ${gc.name}` : 'Gruppentraining',
+            created_at: p.created_at || null,
+            customer_name: p.customer_name || p.customer_email || 'Teilnehmer',
+          };
+        });
+      }
 
       const customerIds = [...new Set((data || []).map(b => b.customer_id).filter(Boolean))];
       const customerNames = {};
@@ -227,10 +267,13 @@
         });
       }
 
-      allData = (data || []).map(b => ({
+      const ptRows = (data || []).map(b => ({
         ...b,
         customer_name: customerNames[b.customer_id] || 'Kunde',
       }));
+
+      allData = [...ptRows, ...gtRows]
+        .sort((a, b) => (b.scheduled_date || '').localeCompare(a.scheduled_date || ''));
 
       const years = [...new Set(allData.map(b => (b.scheduled_date || '').slice(0, 4)).filter(Boolean))].sort().reverse();
       if (!years.includes(String(selectedYear))) years.unshift(String(selectedYear));

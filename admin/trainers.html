@@ -100,7 +100,7 @@
             </div>
           </div>
 
-          <hr style="border-color:#2a2a2a;margin:20px 0">
+          <hr class="form-divider">
           <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Adresse</h3>
 
           <div class="mb-3">
@@ -124,7 +124,7 @@
             </select>
           </div>
 
-          <hr style="border-color:#2a2a2a;margin:20px 0">
+          <hr class="form-divider">
           <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Profil</h3>
 
           <div class="mb-3">
@@ -136,7 +136,7 @@
             <textarea class="form-control" id="new-bio" rows="3"></textarea>
           </div>
 
-          <hr style="border-color:#2a2a2a;margin:20px 0">
+          <hr class="form-divider">
           <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Steuerdaten & Preise</h3>
 
           <div class="row mb-3">
@@ -161,7 +161,7 @@
               <input class="form-control" type="number" id="new-payout" placeholder="35.00" step="0.01" min="0">
             </div>
           </div>
-          <hr style="border-color:#2a2a2a;margin:20px 0">
+          <hr class="form-divider">
           <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Lizenzen & Zertifikate</h3>
 
           <div class="mb-3">
@@ -175,7 +175,7 @@
           <div id="new-file-preview"></div>
           <p style="font-size:12px;color:var(--text-muted);margin-top:4px">Optional – Lizenzen können auch später im Trainer-Detail hochgeladen werden</p>
 
-          <hr style="border-color:#2a2a2a;margin:20px 0">
+          <hr class="form-divider">
 
           <div class="mb-3">
             <label class="form-label">Status</label>
@@ -416,7 +416,7 @@
         </div>
       </div>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <hr class="form-divider">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Adresse</h3>
 
       <div class="mb-3">
@@ -441,7 +441,7 @@
         </select>
       </div>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <hr class="form-divider">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Profil</h3>
 
       <div class="mb-3">
@@ -453,7 +453,7 @@
         <textarea class="form-control" id="edit-bio" rows="3">${t.bio || ''}</textarea>
       </div>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <hr class="form-divider">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Steuerdaten & Preise</h3>
 
       <div class="row mb-3">
@@ -469,7 +469,7 @@
         </div>
       </div>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <hr class="form-divider">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Status & Preise</h3>
 
       <div class="row mb-3">
@@ -523,7 +523,7 @@
       ${t.auth_user_id ? `<p class="text-muted mt-2" style="font-size:12px">Auth User ID: ${t.auth_user_id}</p>` : ''}
       </form>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <hr class="form-divider">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Lizenzen & Zertifikate</h3>
 
       <div id="license-list">
@@ -539,7 +539,7 @@
         <span id="admin-upload-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
       </div>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <hr class="form-divider">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Vertrag</h3>
 
       <div id="contract-list">
@@ -555,7 +555,7 @@
         <span id="admin-contract-upload-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
       </div>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <hr class="form-divider">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Verfügbarkeit</h3>
 
       <div class="alert" style="background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.2);color:var(--tblr-body-color)">
@@ -568,7 +568,7 @@
         </div>
       </div>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
+      <hr class="form-divider">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Urlaub / Abwesenheit</h3>
 
       <button class="btn btn-secondary btn-sm mb-3" onclick="document.getElementById('vacation-form').classList.toggle('d-none')">

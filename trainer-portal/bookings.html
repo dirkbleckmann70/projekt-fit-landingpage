@@ -66,7 +66,7 @@
       <div id="alert-box" class="alert d-none"></div>
 
       <div id="bk-tfoot" style="display:none;text-align:right;font-size:14px" class="text-secondary mb-2">
-        Gesamt (best. + erl.): <strong id="bk-sum-value" style="color:var(--tblr-primary)">--</strong>
+        Gesamt (best. + erl.): <strong id="bk-sum-value" class="text-primary">--</strong>
       </div>
 
       <!-- Tabs: Aktuell / Vergangen / Storniert -->
@@ -132,7 +132,7 @@
 
 <!-- Location Select Modal -->
 <div class="modal modal-blur fade" id="location-select-modal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered" style="max-width:500px">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Treffpunkt wählen</h5>
@@ -143,17 +143,17 @@
         <div id="location-proposals-list"></div>
         <div id="trainer-alt-location" style="display:none;margin-top:16px" class="alt-location-form">
           <div class="text-secondary fw-bold text-uppercase" style="font-size:12px;letter-spacing:0.5px;margin-bottom:12px">Alternativer Treffpunkt</div>
-          <label>Name / Bezeichnung</label>
+          <label class="form-label">Name / Bezeichnung</label>
           <input type="text" id="alt-loc-name" placeholder="z.B. Stadtpark Haupteingang">
-          <label>Straße &amp; Hausnummer</label>
+          <label class="form-label">Straße &amp; Hausnummer</label>
           <input type="text" id="alt-loc-street" placeholder="z.B. Musterstraße 12">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
             <div>
-              <label>PLZ</label>
+              <label class="form-label">PLZ</label>
               <input type="text" id="alt-loc-plz" placeholder="12345" maxlength="5">
             </div>
             <div>
-              <label>Stadt</label>
+              <label class="form-label">Stadt</label>
               <input type="text" id="alt-loc-city" placeholder="München">
             </div>
           </div>
@@ -173,7 +173,7 @@
 
 <!-- Reschedule Modal -->
 <div class="modal modal-blur fade" id="reschedule-modal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered reschedule-modal" style="max-width:460px">
+  <div class="modal-dialog modal-dialog-centered reschedule-modal modal-sm">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Termin / Ort aendern</h5>
@@ -269,8 +269,10 @@
     return all.sort((a, b) => {
       const pa = statusPriority(a), pb = statusPriority(b);
       if (pa !== pb) return pa - pb;
-      if (pa === 1) return (a.scheduled_date || '').localeCompare(b.scheduled_date || '');
-      return (b.scheduled_date || '').localeCompare(a.scheduled_date || '');
+      // immer alt → neu (aufsteigend)
+      const da = `${a.scheduled_date || ''}T${a.scheduled_time || '00:00'}`;
+      const db = `${b.scheduled_date || ''}T${b.scheduled_time || '00:00'}`;
+      return da.localeCompare(db);
     });
   }
 

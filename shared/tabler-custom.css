@@ -1,6 +1,18 @@
-/* ProjektFit Tabler Overrides */
+/* ProjektFit Tabler Overrides – v2 (Phase A Refactor Preview)
+ *
+ * Änderungen gegenüber v1:
+ *  [10] :root setzt keine direkten color/background mehr (Light-Mode Fix)
+ *  [8]  Heading-Hierarchie fest definiert (h1..h4, body)
+ *  [4]  Neue .form-divider Klasse ersetzt inline <hr style>
+ *  [9]  Button-Varianten auf 4 reduziert + Ghost-Danger ergänzt
+ *  [1]  .two-col entfernt → stattdessen .row .col-md-6 nutzen
+ *  [6]  .text-muted als Alias auf .text-secondary gemappt
+ *  [7]  Modal-Konvention via Kommentar dokumentiert (keine inline max-width)
+ *
+ *  Punkte 2, 3, 5 sind reine HTML-Anpassungen (kein CSS)
+ */
 
-/* ── Markenfarben (hohe Spezifitaet um Tabler-Defaults zu ueberschreiben) ── */
+/* ── Markenfarben (Variablen pro Theme, KEIN direktes color/background auf :root) ── */
 :root,
 [data-bs-theme="dark"],
 .page[data-bs-theme="dark"],
@@ -18,8 +30,8 @@ body[data-bs-theme="dark"] {
   --tblr-muted-color: #666680 !important;
   --tblr-card-border-color: #2a2a2a !important;
   --tblr-navbar-bg: #111 !important;
-  color: #f0f0f5;
-  background-color: #0a0a0a;
+  /* FIX [10]: KEIN direktes color / background-color hier — das würde
+     via Inheritance den Light-Mode kaputtmachen. Variablen reichen. */
 }
 
 [data-bs-theme="light"],
@@ -30,23 +42,104 @@ body[data-bs-theme="light"] {
   --tblr-border-color: #e6e7e9 !important;
   --tblr-body-color: #1e293b !important;
   --tblr-secondary-color: #626976 !important;
+  --tblr-muted-color: #8a94a6 !important;
   --tblr-navbar-bg: #ffffff !important;
 }
 
-/* Sicherstellen dass body die Farben uebernimmt */
-body { color: var(--tblr-body-color); background-color: var(--tblr-body-bg); }
+/* ── Body + Basis-Farben ─────────────────────────────────────────────────── */
+body {
+  color: var(--tblr-body-color);
+  background-color: var(--tblr-body-bg);
+  font-family: var(--tblr-font-sans-serif);
+}
 .page-body { color: var(--tblr-body-color); }
-.card { background-color: var(--tblr-card-bg); border-color: var(--tblr-card-border-color, var(--tblr-border-color)); }
+
+/* ── [8] Heading-Hierarchie (global, fest) ──────────────────────────────── */
+h1, .h1, .page-title { font-size: 1.75rem;   font-weight: 700; line-height: 1.25; color: var(--tblr-body-color); margin-bottom: 0.5rem; }
+h2, .h2             { font-size: 1.375rem;  font-weight: 700; line-height: 1.3;  color: var(--tblr-body-color); margin-bottom: 0.5rem; }
+h3, .h3, .card-title { font-size: 1.125rem; font-weight: 600; line-height: 1.35; color: var(--tblr-body-color); margin-bottom: 0.5rem; }
+h4, .h4             { font-size: 1rem;      font-weight: 600; line-height: 1.4;  color: var(--tblr-body-color); margin-bottom: 0.5rem; }
+h5, .h5             { font-size: 0.9375rem; font-weight: 600; line-height: 1.45; color: var(--tblr-body-color); margin-bottom: 0.5rem; }
+body, p, td, th, input, textarea, select, label, button, .btn {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+small, .small { font-size: 0.8125rem; }
+.subheader {
+  font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--tblr-secondary-color);
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.card {
+  background-color: var(--tblr-card-bg);
+  border-color: var(--tblr-card-border-color, var(--tblr-border-color));
+}
+.card-header { border-bottom-color: var(--tblr-border-color); }
+
+/* ── Tabellen ────────────────────────────────────────────────────────────── */
 .table { color: var(--tblr-body-color); }
-.page-header { color: var(--tblr-body-color); }
-.page-title { color: var(--tblr-body-color); }
-.card-title { color: var(--tblr-body-color); }
-.form-control, .form-select { color: var(--tblr-body-color); background-color: var(--tblr-card-bg); border-color: var(--tblr-border-color); }
-.modal-content { background-color: var(--tblr-card-bg); color: var(--tblr-body-color); }
+.table-hover > tbody > tr:hover { --tblr-table-hover-bg: rgba(255,255,255,0.03); }
+[data-bs-theme="light"] .table-hover > tbody > tr:hover { --tblr-table-hover-bg: rgba(0,0,0,0.02); }
+
+/* ── Formulare ───────────────────────────────────────────────────────────── */
+.form-control, .form-select {
+  color: var(--tblr-body-color);
+  background-color: var(--tblr-card-bg);
+  border-color: var(--tblr-border-color);
+}
+.form-control:focus, .form-select:focus {
+  background-color: var(--tblr-card-bg);
+  border-color: var(--tblr-primary);
+  color: var(--tblr-body-color);
+  box-shadow: 0 0 0 2px rgba(64,145,108,0.2);
+}
+.form-label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--tblr-secondary-color);
+  text-decoration: underline;
+  text-decoration-color: var(--tblr-border-color);
+  text-underline-offset: 3px;
+  text-transform: none;
+  letter-spacing: 0.2px;
+  margin-bottom: 0.375rem;
+}
+.form-hint {
+  font-size: 0.75rem;
+  color: var(--tblr-secondary-color);
+  margin-top: 0.25rem;
+}
+
+/* ── [4] Form-Divider (ersetzt inline <hr style="border-color:..."> ) ──── */
+.form-divider {
+  border: none;
+  border-top: 1px solid var(--tblr-border-color);
+  margin: 20px 0;
+  opacity: 1;
+}
+
+/* ── Modals ──────────────────────────────────────────────────────────────── */
+/* [7] Konvention: NUR Bootstrap-Standards verwenden.
+   Detail/Form = modal-lg, Create/Edit = (default md), Quick-Action = modal-sm
+   KEINE inline max-width Styles mehr verwenden. */
+.modal-content {
+  background-color: var(--tblr-card-bg);
+  color: var(--tblr-body-color);
+  border: 1px solid var(--tblr-border-color);
+}
+.modal-header, .modal-footer {
+  border-color: var(--tblr-border-color);
+}
+.modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+/* ── Sidebar / Nav ───────────────────────────────────────────────────────── */
 .nav-link { color: var(--tblr-secondary-color); }
 .nav-link.active { color: var(--tblr-primary); }
 
-/* Sidebar Farben forcieren */
 .navbar-vertical { background-color: #111 !important; }
 [data-bs-theme="light"] .navbar-vertical { background-color: #fff !important; }
 .navbar-vertical .nav-link { color: #8888a0; }
@@ -56,50 +149,79 @@ body { color: var(--tblr-body-color); background-color: var(--tblr-body-bg); }
 [data-bs-theme="light"] .navbar-vertical .nav-link.active { color: var(--tblr-primary); }
 [data-bs-theme="light"] .navbar-vertical .nav-link:hover { color: #1e293b; }
 
-/* Tabellen-Zeilen Hover */
-.table-hover > tbody > tr:hover { --tblr-table-hover-bg: rgba(255,255,255,0.03); }
-[data-bs-theme="light"] .table-hover > tbody > tr:hover { --tblr-table-hover-bg: rgba(0,0,0,0.02); }
+.navbar-vertical .navbar-brand { font-weight: 800; font-size: 1.1rem; }
+.navbar-vertical .navbar-brand span { color: var(--tblr-primary); }
 
-/* Buttons sichtbarer */
-.btn-primary { background-color: #40916C; border-color: #40916C; color: #fff; }
-.btn-primary:hover { background-color: #357a5b; border-color: #357a5b; }
-.btn-ghost-secondary { color: var(--tblr-secondary-color); }
-.btn-ghost-secondary:hover { color: var(--tblr-body-color); background: rgba(255,255,255,0.05); }
+/* ── [9] Buttons – reduzierte Varianten ──────────────────────────────────── */
+/* Zugelassen: btn-primary, btn-outline-secondary, btn-danger, btn-ghost-secondary, btn-ghost-danger */
+
+.btn { font-weight: 600; }
+
+.btn-primary {
+  background-color: var(--tblr-primary);
+  border-color: var(--tblr-primary);
+  color: #fff;
+}
+.btn-primary:hover, .btn-primary:focus {
+  background-color: #357a5b;
+  border-color: #357a5b;
+  color: #fff;
+}
+
+.btn-outline-secondary {
+  color: var(--tblr-body-color);
+  border-color: var(--tblr-border-color);
+  background: transparent;
+}
+.btn-outline-secondary:hover {
+  background-color: rgba(255,255,255,0.05);
+  color: var(--tblr-body-color);
+  border-color: var(--tblr-border-color);
+}
+[data-bs-theme="light"] .btn-outline-secondary:hover {
+  background-color: rgba(0,0,0,0.04);
+}
+
+.btn-danger {
+  background-color: #e74c3c;
+  border-color: #e74c3c;
+  color: #fff;
+}
+.btn-danger:hover { background-color: #c0392b; border-color: #c0392b; color: #fff; }
+
+.btn-ghost-secondary {
+  color: var(--tblr-secondary-color);
+  background: transparent;
+  border-color: transparent;
+}
+.btn-ghost-secondary:hover {
+  color: var(--tblr-body-color);
+  background: rgba(255,255,255,0.05);
+}
 [data-bs-theme="light"] .btn-ghost-secondary:hover { background: rgba(0,0,0,0.04); }
 
-/* Accent-Farbe (orange) fuer Preise */
+.btn-ghost-danger {
+  color: #e74c3c;
+  background: transparent;
+  border-color: transparent;
+}
+.btn-ghost-danger:hover {
+  background: rgba(231,76,60,0.1);
+  color: #c0392b;
+}
+
+/* ── [6] text-muted als Alias auf text-secondary (Migration) ─────────────── */
+.text-muted { color: var(--tblr-secondary-color) !important; }
+
+/* ── Accent-Farbe ────────────────────────────────────────────────────────── */
 .text-accent { color: #e8930a !important; }
 
-/* ── Sidebar ───────────────────────────────────────────── */
-.navbar-vertical .navbar-brand {
-  font-weight: 800;
-  font-size: 1.1rem;
-}
+/* ── KPI Cards ───────────────────────────────────────────────────────────── */
+.kpi-value { font-size: 1.75rem; font-weight: 700; line-height: 1.2; color: var(--tblr-body-color); }
+.kpi-label { font-size: 0.8125rem; color: var(--tblr-secondary-color); margin-bottom: 0.25rem; }
+.kpi-sub   { font-size: 0.75rem;  color: var(--tblr-secondary-color); margin-top: 0.25rem; }
 
-.navbar-vertical .navbar-brand span {
-  color: var(--tblr-primary);
-}
-
-/* ── KPI Cards ─────────────────────────────────────────── */
-.kpi-value {
-  font-size: 1.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.kpi-label {
-  font-size: 0.8125rem;
-  color: var(--tblr-secondary-color);
-  margin-bottom: 0.25rem;
-}
-
-.kpi-sub {
-  font-size: 0.75rem;
-  color: var(--tblr-secondary-color);
-  margin-top: 0.25rem;
-}
-
-/* ── Status Badges (bestehende Farben beibehalten) ─────── */
+/* ── Status Badges (unverändert) ─────────────────────────────────────────── */
 .badge-pending { background: rgba(232, 147, 10, 0.15); color: #e8930a; }
 .badge-confirmed { background: rgba(64, 145, 108, 0.15); color: #40916C; }
 .badge-completed { background: rgba(39, 174, 96, 0.15); color: #27ae60; }
@@ -114,29 +236,39 @@ body { color: var(--tblr-body-color); background-color: var(--tblr-body-bg); }
   color: #e74c3c;
   animation: pulse-overdue 2s ease-in-out infinite;
 }
+@keyframes pulse-overdue { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-@keyframes pulse-overdue {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
-}
+/* ── [1] .two-col DEPRECATED: nicht mehr definieren, Bootstrap-Grid nutzen ── */
+/* Migration: <div class="two-col"> ... </div>
+   →          <div class="row g-3">
+                <div class="col-md-6"> ... </div>
+                <div class="col-md-6"> ... </div>
+              </div>
+*/
 
-/* ── Toast-Container ───────────────────────────────────── */
+/* ── Toast + Loading + Action-Cell (unverändert) ─────────────────────────── */
 .toast-container-pf {
-  position: fixed;
-  top: 1rem;
-  right: 1rem;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  position: fixed; top: 1rem; right: 1rem; z-index: 9999;
+  display: flex; flex-direction: column; gap: 0.5rem;
 }
-
-/* ── Tabellen: Overdue-Zeile ───────────────────────────── */
-tr.row-overdue {
-  border-left: 3px solid #e74c3c;
+.loading-overlay {
+  display: flex; align-items: center; justify-content: center;
+  padding: 60px; gap: 12px;
+  color: var(--tblr-secondary-color); font-size: 14px;
 }
+.action-cell { display: flex; gap: 6px; align-items: center; flex-wrap: nowrap; }
+.action-cell .btn-sm { min-width: unset; justify-content: center; text-align: center; padding: 4px 8px; border-radius: 4px; }
+.action-cell .btn-icon { min-width: 32px; flex-shrink: 0; }
 
-/* ── FullCalendar Dark Theme Overrides ─────────────────── */
+/* ── Scrollbar (Dark Mode) ───────────────────────────────────────────────── */
+[data-bs-theme="dark"] ::-webkit-scrollbar { width: 8px; }
+[data-bs-theme="dark"] ::-webkit-scrollbar-track { background: #111; }
+[data-bs-theme="dark"] ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+/* ── Tabellen: Overdue-Zeile ─────────────────────────────────────────────── */
+tr.row-overdue { border-left: 3px solid #e74c3c; }
+
+/* ── FullCalendar (unverändert) ──────────────────────────────────────────── */
 .fc {
   --fc-border-color: var(--tblr-border-color);
   --fc-page-bg-color: var(--tblr-card-bg);
@@ -168,7 +300,6 @@ tr.row-overdue {
 .fc .fc-scrollgrid { border-color: var(--tblr-border-color); }
 .fc .fc-scrollgrid td, .fc .fc-scrollgrid th { border-color: var(--tblr-border-color); }
 
-/* Calendar Event Colors */
 .fc-event-pt-confirmed { background: rgba(64,145,108,0.85); border-left: 3px solid #40916C; }
 .fc-event-pt-pending { background: rgba(232,147,10,0.7); border-left: 3px solid #e8930a; }
 .fc-event-gt { background: rgba(155,89,182,0.7); border-left: 3px solid #9b59b6; }
@@ -178,49 +309,3 @@ tr.row-overdue {
 .fc-event-avail { background: rgba(64,145,108,0.3); border: 1px solid rgba(64,145,108,0.6); border-radius: 4px; cursor: pointer; color: var(--tblr-primary); font-weight: 600; }
 .fc-event-avail:hover { background: rgba(64,145,108,0.45); }
 .fc-event-vacation { background: rgba(231,76,60,0.4); border-left: 3px solid #e74c3c; color: #fff; }
-
-/* ── Layout-Helfer (ehemals admin/style.css) ─────────────── */
-.two-col {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-
-@media (max-width: 768px) {
-  .two-col { grid-template-columns: 1fr; }
-}
-
-.loading-overlay {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 60px;
-  gap: 12px;
-  color: var(--tblr-secondary-color);
-  font-size: 14px;
-}
-
-.action-cell {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex-wrap: nowrap;
-}
-
-.action-cell .btn-sm {
-  min-width: unset;
-  justify-content: center;
-  text-align: center;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-.action-cell .btn-icon {
-  min-width: 32px;
-  flex-shrink: 0;
-}
-
-/* ── Scrollbar (Dark Mode) ─────────────────────────────── */
-[data-bs-theme="dark"] ::-webkit-scrollbar { width: 8px; }
-[data-bs-theme="dark"] ::-webkit-scrollbar-track { background: #111; }
-[data-bs-theme="dark"] ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
