@@ -6,7 +6,8 @@
 
 ## Deploy
 
-- **URL:** projektfit.net
+- **URL:** pulsly.de (ehemals projektfit.net, Redirect aktiv)
+- **Domain:** DNS bei Strato, A-Record 216.198.79.1
 - **Hosting:** Vercel (Auto-Deploy via GitHub Push)
 - **Repo:** github.com/dirkbleckmann70/projekt-fit-landingpage
 - **Config:** `vercel.json` (cleanUrls: true, Redirects fuer `/admin` → `/admin/` und `/trainer-portal` → `/trainer-portal/`)
@@ -55,7 +56,19 @@ api/                    # Vercel Serverless Functions
 shared/                 # Gemeinsame CSS/JS (Tabler-Overrides, Layout, Theme, Toasts, Constants, Table-Utils)
 scripts/                # Build-/Screenshot-Hilfsskripte
 screenshots/            # App Store Screenshots
+assets/                 # Logo SVGs, Favicon, QR-Code, PT/GT Bilder
+blog/                   # Blog (Uebersicht + Artikel)
 ```
+
+---
+
+## Pulsly Branding
+
+- Logo: "pulsly" — "puls" #40916C + "ly" #E07A3A, Outfit Bold 800
+- Favicon: "p." (gruen + orangener Punkt), assets/favicon.svg
+- Startseite: Self-contained (inline Styles + Nav, NICHT pulsly-nav.js)
+- Unterseiten (/app, /training, /blog etc.): Nutzen shared/pulsly-nav.js + shared/pulsly-styles.css
+- Portale (admin/, trainer-portal/): Nutzen weiterhin shared/layout.js + shared/tabler-custom.css
 
 ---
 

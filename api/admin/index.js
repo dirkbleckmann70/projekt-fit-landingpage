@@ -524,27 +524,50 @@ async function fetchGroupParticipantsAsBookings(supabase) {
   return participants.map(p => {
     const gc      = classMap[p.group_class_id] || {};
     const trainer = trainerMap[gc.trainer_id]  || {};
-    const count   = activeCountByClass[p.group_class_id] || 1;
-    const payoutShare = trainer.payout_cents ? Math.round(trainer.payout_cents / count) : 0;
     const isCancelled = ['cancelled', 'refunded'].includes((p.status || '').toLowerCase());
+
+    // Phase B: neue Payment-Spalten bevorzugen, Fallback auf alte Logik
+    const priceFromParticipant     = p.price_cents;
+    const finalPriceFromParticipant = p.final_price_cents;
+    const payoutFromParticipant     = p.trainer_payout_cents;
+    const mwstFromParticipant       = p.mwst_satz;
+
+    // Fallback (alte GT-Buchungen ohne Payment-Spalten): anteiliger Payout
+    const count = activeCountByClass[p.group_class_id] || 1;
+    const payoutShare = trainer.payout_cents ? Math.round(trainer.payout_cents / count) : 0;
+
+    const priceCents      = priceFromParticipant     ?? (gc.price_per_person_cents || 0);
+    const finalPriceCents = finalPriceFromParticipant ?? priceCents;
+    const payoutCents     = payoutFromParticipant    ?? payoutShare;
+    const mwstSatz        = mwstFromParticipant      ?? (trainer.mwst_satz ?? null);
+
+    // Payment-Status aus Stripe-Status ableiten (Phase B), sonst customer_paid-Flag
+    let paymentStatus = 'pending';
+    if (p.stripe_payment_status) {
+      paymentStatus = p.stripe_payment_status;
+    } else if (p.customer_paid) {
+      paymentStatus = 'paid';
+    }
 
     return {
       id:                 `gp_${p.id}`,
       booking_type:       'group',
       customer_name:      p.customer_name || p.customer_email || '–',
-      customer_id:        null,
+      customer_id:        p.customer_id || null,
       trainer_id:         gc.trainer_id    || null,
       trainer_name:       trainer.full_name || null,
       trainer_city:       trainer.city || gc.city || null,
-      trainer_mwst_satz:  trainer.mwst_satz ?? null,
+      trainer_mwst_satz:  mwstSatz,
       scheduled_date:     gc.scheduled_date  || null,
       scheduled_time:     gc.scheduled_time  || null,
       status:             p.status || 'confirmed',
-      price_cents:        isCancelled ? 0 : (gc.price_per_person_cents || 0),
-      final_price_cents:  isCancelled ? 0 : (gc.price_per_person_cents || 0),
-      payout_cents:       isCancelled ? 0 : payoutShare,
-      trainer_rate_cents: isCancelled ? 0 : payoutShare,
-      payment_status:     p.customer_paid ? 'paid' : 'pending',
+      price_cents:        isCancelled ? 0 : priceCents,
+      final_price_cents:  isCancelled ? 0 : finalPriceCents,
+      payout_cents:       isCancelled ? 0 : payoutCents,
+      trainer_rate_cents: isCancelled ? 0 : payoutCents,
+      payment_status:     paymentStatus,
+      stripe_payment_intent_id: p.stripe_payment_intent_id || null,
+      stripe_payment_id:  p.stripe_payment_id || null,
       location_name:      gc.city || null,
       location:           gc.city || null,
       notes:              gc.name ? `Kurs: ${gc.name}` : null,
@@ -1864,7 +1887,7 @@ async function handleCustomers(req, res, supabase) {
 
 async function handleUpdateParticipant(req, res, supabase) {
   const body = await getBody(req);
-  const { id, attended, customer_paid, trainer_paid } = body;
+  const { id, attended, customer_paid, trainer_paid, trainer_checked_out_at } = body;
 
   if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
 
@@ -1872,6 +1895,7 @@ async function handleUpdateParticipant(req, res, supabase) {
   if (attended !== undefined) update.attended = !!attended;
   if (customer_paid !== undefined) update.customer_paid = !!customer_paid;
   if (trainer_paid !== undefined) update.trainer_paid = !!trainer_paid;
+  if (trainer_checked_out_at !== undefined) update.trainer_checked_out_at = trainer_checked_out_at;
 
   if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });
 

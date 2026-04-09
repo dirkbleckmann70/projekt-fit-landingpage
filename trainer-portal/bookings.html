@@ -396,13 +396,16 @@
         const classIds = gtClasses.map(c => c.id);
         const { data: ptcps, error: ptcpErr } = await sb
           .from('group_participants')
-          .select('group_class_id, status')
+          .select('id, group_class_id, status, customer_name, customer_email, customer_paid, trainer_checked_out_at, trainer_payout_cents')
           .in('group_class_id', classIds)
           .neq('status', BOOKING_STATUS.CANCELLED);
 
         const pcMap = {};
+        const participantsMap = {};
         (ptcps || []).forEach(p => {
           pcMap[p.group_class_id] = (pcMap[p.group_class_id] || 0) + 1;
+          if (!participantsMap[p.group_class_id]) participantsMap[p.group_class_id] = [];
+          participantsMap[p.group_class_id].push(p);
         });
 
         allGTClasses = gtClasses.map(gc => ({
@@ -417,6 +420,7 @@
           participant_count:      pcMap[gc.id] || 0,
           max_participants:       gc.max_participants,
           price_per_person_cents: gc.price_per_person_cents,
+          participants:           participantsMap[gc.id] || [],
         }));
       }
 
@@ -639,9 +643,31 @@
     const gc = allGTClasses.find(x => x.gc_id === gcId);
     if (!gc) return;
     const revenue = calcRevenue(gc).replace(/<[^>]+>/g, '');
-    const participants = gc.max_participants
+    const participantLabel = gc.max_participants
       ? `${gc.participant_count} / ${gc.max_participants}`
       : String(gc.participant_count);
+
+    const alreadyCheckedOut = gc.participants.length > 0 && gc.participants.every(p => p.trainer_checked_out_at);
+    const terminVorbei = isTerminVorbei(gc);
+
+    // Teilnehmerliste
+    let participantListHtml = '';
+    if (gc.participants.length > 0) {
+      participantListHtml = `<div class="mb-3"><label class="form-label text-secondary">Teilnehmer</label>
+        <div class="list-group list-group-flush" style="font-size:13px">
+          ${gc.participants.map(p => {
+            const name = p.customer_name || p.customer_email || 'Teilnehmer';
+            const paidBadge = p.customer_paid
+              ? '<span class="badge bg-success-lt ms-2">Bezahlt</span>'
+              : '<span class="badge bg-warning-lt ms-2">Offen</span>';
+            const checkedOutBadge = p.trainer_checked_out_at
+              ? '<span class="badge bg-primary-lt ms-2">Abgeschlossen</span>'
+              : '';
+            return `<div class="list-group-item" style="background:transparent;border-color:var(--tblr-border-color);padding:6px 0">${name}${paidBadge}${checkedOutBadge}</div>`;
+          }).join('')}
+        </div></div>`;
+    }
+
     document.getElementById('detail-modal-body').innerHTML = `
       <div class="row mb-3">
         <div class="col-6"><label class="form-label text-secondary">Kurs</label><div>${gc.group_class_name}</div></div>
@@ -653,14 +679,26 @@
       </div>
       <div class="row mb-3">
         <div class="col-6"><label class="form-label text-secondary">Stadt</label><div>${gc.city || '–'}</div></div>
-        <div class="col-6"><label class="form-label text-secondary">Status</label><div>${statusBadgeBK(gc)}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Status</label><div>${statusBadgeBK(gc)}${alreadyCheckedOut ? ' <span class="badge bg-primary-lt">Abgeschlossen</span>' : ''}</div></div>
       </div>
       <div class="row mb-3">
-        <div class="col-6"><label class="form-label text-secondary">Teilnehmer</label><div>${participants}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Anzahl Teilnehmer</label><div>${participantLabel}</div></div>
         <div class="col-6"><label class="form-label text-secondary">Vergütung</label><div style="color:var(--tblr-primary);font-weight:700">${revenue}</div></div>
       </div>
+      ${participantListHtml}
       <div class="text-secondary" style="font-size:11px;border-top:1px solid var(--tblr-border-color);padding-top:12px">Kurs-ID: ${gcId}</div>
     `;
+
+    // Footer: Checkout-Button wenn Termin vorbei + noch nicht ausgecheckt + Teilnehmer vorhanden
+    let footerHtml = '';
+    if (terminVorbei && !alreadyCheckedOut && gc.participants.length > 0) {
+      footerHtml = `<button class="btn btn-success btn-sm" onclick="gtCheckout('${gcId}')"><i class="ti ti-check"></i> Kurs abschliessen</button>`;
+    } else if (alreadyCheckedOut) {
+      footerHtml = `<span class="badge bg-success-lt"><i class="ti ti-check"></i> Bereits abgeschlossen</span>`;
+    }
+    footerHtml += '<button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schliessen</button>';
+    document.getElementById('detail-modal-footer').innerHTML = footerHtml;
+
     if (!_detailModal) _detailModal = new bootstrap.Modal(document.getElementById('detail-modal'));
     _detailModal.show();
   }
@@ -984,6 +1022,42 @@
       showAlert(status === BOOKING_STATUS.CONFIRMED ? 'Buchung bestätigt!' : 'Buchung abgelehnt.', 'success');
       await loadBookings();
     }
+  }
+
+  // ─── GT Checkout ───────────────────────────────────────────────────────────
+
+  async function gtCheckout(gcId) {
+    const gc = allGTClasses.find(x => x.gc_id === gcId);
+    if (!gc || gc.participants.length === 0) return;
+
+    if (!confirm(`Kurs "${gc.group_class_name}" als abgeschlossen markieren? Damit wird die Trainer-Vergütung für ${gc.participants.length} Teilnehmer freigegeben.`)) return;
+
+    // Alle offenen Modals schliessen
+    document.querySelectorAll('.modal.show').forEach(function(m) {
+      var inst = bootstrap.Modal.getInstance(m);
+      if (inst) inst.hide();
+    });
+
+    const now = new Date().toISOString();
+    let errors = 0;
+    for (const p of gc.participants) {
+      if (p.trainer_checked_out_at) continue; // schon ausgecheckt
+      try {
+        const res = await adminApi('/api/admin?action=update-participant', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: p.id, trainer_checked_out_at: now }),
+        });
+        if (!res.ok) errors++;
+      } catch (e) { errors++; }
+    }
+
+    if (errors > 0) {
+      showAlert(`Checkout teilweise fehlgeschlagen (${errors} Fehler)`, 'error');
+    } else {
+      showAlert(`Kurs "${gc.group_class_name}" abgeschlossen – Vergütung freigegeben`, 'success');
+    }
+    await loadBookings();
   }
 
   // ─── Location Select Modal ─────────────────────────────────────────────────
