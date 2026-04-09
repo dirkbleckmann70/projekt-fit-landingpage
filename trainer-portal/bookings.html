@@ -1014,13 +1014,16 @@
       var inst = bootstrap.Modal.getInstance(m);
       if (inst) inst.hide();
     });
-    const sb = getSupabase();
-    const { error } = await sb.from('bookings').update({ status }).eq('id', bookingId);
-    if (error) {
-      showAlert('Fehler: ' + error.message, 'error');
-    } else {
+    try {
+      await adminApi('/api/admin?action=bookings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, status: status.toLowerCase() }),
+      });
       showAlert(status === BOOKING_STATUS.CONFIRMED ? 'Buchung bestätigt!' : 'Buchung abgelehnt.', 'success');
       await loadBookings();
+    } catch (err) {
+      showAlert('Fehler: ' + (err.message || err), 'error');
     }
   }
 
@@ -1043,12 +1046,11 @@
     for (const p of gc.participants) {
       if (p.trainer_checked_out_at) continue; // schon ausgecheckt
       try {
-        const res = await adminApi('/api/admin?action=update-participant', {
-          method: 'POST',
+        await adminApi('/api/admin?action=update-participant', {
+          method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: p.id, trainer_checked_out_at: now }),
         });
-        if (!res.ok) errors++;
       } catch (e) { errors++; }
     }
 

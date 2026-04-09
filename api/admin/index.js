@@ -41,7 +41,8 @@ export default async function handler(req, res) {
   // Bestimmte Endpoints sind auch fuer Trainer zugaenglich
   const trainerAllowedTypes = ['customer_names', 'booking_locations'];
   const isTrainerAllowedRead = action === 'data' && req.method === 'GET' && trainerAllowedTypes.includes(req.query.type);
-  const isTrainerAllowedWrite = action === 'bookings' && req.method === 'PUT';
+  const isTrainerAllowedWrite = (action === 'bookings' && req.method === 'PUT') ||
+                               (action === 'update-participant' && req.method === 'PUT');
   const isCustomerAllowed = ['location-accept', 'location-reject', 'reschedule-accept', 'reschedule-reject'].includes(action) && req.method === 'PUT';
   const isTrainerAllowed = isTrainerAllowedRead || isTrainerAllowedWrite || isCustomerAllowed;
 
@@ -180,7 +181,7 @@ export default async function handler(req, res) {
           scheduled_date: d,
           scheduled_time: time + ':00',
           start_time: time + ':00',
-          day_of_week: new Date(d + 'T12:00:00Z').getDay(),
+          day_of_week: new Date(d + 'T12:00:00Z').getDay() || 7,
           duration_minutes: duration_minutes || 60,
           max_participants: max_participants || 12,
           price_per_person_cents: Math.round(price_per_person_cents),
@@ -649,7 +650,7 @@ async function handleData(req, res, supabase) {
         .from('bookings')
         .select('price_cents')
         .gte('created_at', monthStart.toISOString())
-        .in('status', ['CONFIRMED', 'COMPLETED']);
+        .in('status', ['confirmed', 'completed']);
       if (error) throw error;
       const total = (data || []).reduce((sum, b) => sum + (b.price_cents || 0), 0);
       return res.json({ total_cents: total });
@@ -1322,7 +1323,7 @@ async function handleBookingsPut(req, res, supabase) {
   const update = {};
 
   if (status !== undefined) {
-    const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'pending', 'confirmed', 'completed', 'cancelled', 'cancelled_by_trainer', 'expired', 'rejected', 'disputed', 'checked_in', 'paid', 'refunded', 'reschedule_proposed', 'location_proposed', 'finding_replacement', 'replacement_pending', 'replacement_found', 'fully_cancelled'];
+    const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'pending', 'confirmed', 'completed', 'cancelled', 'cancelled_by_trainer', 'expired', 'rejected', 'disputed', 'checked_in', 'paid', 'refunded', 'reschedule_proposed', 'location_proposed', 'finding_replacement', 'replacement_pending', 'replacement_found', 'fully_cancelled', 'awaiting_checkout'];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ error: `Ungültiger Status: ${status}` });
     }
@@ -1566,7 +1567,7 @@ async function handleGroups(req, res, supabase) {
     // Calculate day_of_week from scheduled_date if provided
     let computedDayOfWeek = day_of_week;
     if (scheduled_date && computedDayOfWeek == null) {
-      computedDayOfWeek = new Date(scheduled_date + 'T12:00:00Z').getDay();
+      computedDayOfWeek = new Date(scheduled_date + 'T12:00:00Z').getDay() || 7;
     }
 
     const { data, error } = await supabase.from('group_classes').insert({
@@ -1598,7 +1599,7 @@ async function handleGroups(req, res, supabase) {
 
     // Recalculate day_of_week if scheduled_date changed
     if (update.scheduled_date) {
-      update.day_of_week = new Date(update.scheduled_date + 'T12:00:00Z').getDay();
+      update.day_of_week = new Date(update.scheduled_date + 'T12:00:00Z').getDay() || 7;
     }
 
     if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });

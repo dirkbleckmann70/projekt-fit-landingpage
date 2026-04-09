@@ -162,7 +162,7 @@
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August',
                          'September','Oktober','November','Dezember'];
 
-  function effBrutto(b)     { return b.status === 'completed' ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
+  function effBrutto(b)     { return ['completed', 'paid', 'awaiting_checkout'].includes(b.status) ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
   function effNetto(b)      { return _mwstSatz > 0 ? Math.round(effBrutto(b) / (1 + _mwstSatz / 100)) : effBrutto(b); }
   function effMwSt(b)       { return effBrutto(b) - effNetto(b); }
   function effAuszahlung(b) { return effNetto(b); }
