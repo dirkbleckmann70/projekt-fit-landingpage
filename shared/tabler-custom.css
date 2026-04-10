@@ -225,7 +225,20 @@ small, .small { font-size: 0.8125rem; }
 .badge-pending { background: rgba(232, 147, 10, 0.15); color: #e8930a; }
 .badge-confirmed { background: rgba(64, 145, 108, 0.15); color: #40916C; }
 .badge-completed { background: rgba(39, 174, 96, 0.15); color: #27ae60; }
+/* Stornierungen: abgeschlossen, kein Admin-Todo */
 .badge-cancelled { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+.badge-cancelled-done { background: rgba(136, 136, 160, 0.18); color: #999; }
+
+/* Admin-Todo: Trainer-Stornierung, Dispute, Eskalation — Aktion nötig! */
+.badge-action-needed {
+  background: rgba(232, 147, 10, 0.2);
+  color: #e8930a;
+  font-weight: 600;
+  border: 1px solid rgba(232, 147, 10, 0.4);
+  animation: pulse-action 2s ease-in-out infinite;
+}
+@keyframes pulse-action { 0%,100% { border-color: rgba(232, 147, 10, 0.4); } 50% { border-color: rgba(232, 147, 10, 0.8); } }
+
 .badge-expired { background: rgba(136, 136, 160, 0.15); color: #8888a0; }
 .badge-warning { background: rgba(232, 147, 10, 0.15); color: #e8930a; }
 .badge-active { background: rgba(64, 145, 108, 0.15); color: #40916C; }
@@ -237,6 +250,19 @@ small, .small { font-size: 0.8125rem; }
   animation: pulse-overdue 2s ease-in-out infinite;
 }
 @keyframes pulse-overdue { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+/* ── Tabellen-Overflow-Fix: Spaltenbreiten + horizontaler Scroll ────────── */
+.table-responsive { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+.table-responsive > .table { min-width: 900px; }
+
+/* Kompakte Tabellenzellen: kein Umbruch, kleinere Schrift */
+.table th, .table td { white-space: nowrap; padding: 0.4rem 0.5rem !important; font-size: 0.8125rem; }
+
+/* Spalten die umbrechen duerfen (explizite Klasse statt nth-child) */
+.td-wrap { white-space: normal !important; min-width: 80px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+
+/* Betrags-Spalten: rechtsbuendig, kompakt */
+.td-amount { text-align: right; min-width: 60px; font-variant-numeric: tabular-nums; }
 
 /* ── [1] .two-col DEPRECATED: nicht mehr definieren, Bootstrap-Grid nutzen ── */
 /* Migration: <div class="two-col"> ... </div>

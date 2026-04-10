@@ -353,15 +353,15 @@
       const art = b.booking_type === 'group' ? 'GT' : 'PT';
       return `<tr>
         <td>${formatDate(b.scheduled_date)}</td>
-        <td>${b.customer_name || '–'}</td>
-        <td>${b.trainer_name || '–'}</td>
+        <td class="td-wrap">${b.customer_name || '–'}</td>
+        <td class="td-wrap">${b.trainer_name || '–'}</td>
         <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${art}</span></td>
-        <td>${f(effBrutto(b))}</td>
-        <td class="text-warning">${b.discount_code ? `<span title="${b.discount_code}">-${f(b.discount_amount_cents || 0)}</span>` : '–'}</td>
-        <td class="text-muted">${f(effMwSt(b))}</td>
-        <td>${f(effNetto(b))}</td>
-        <td class="text-muted">${f(effKosten(b))}</td>
-        <td>${f(effErloese(b))}</td>
+        <td class="td-amount">${f(effBrutto(b))}</td>
+        <td class="td-amount text-warning">${b.discount_code ? `<span title="${b.discount_code}">-${f(b.discount_amount_cents || 0)}</span>` : '–'}</td>
+        <td class="td-amount text-muted">${f(effMwSt(b))}</td>
+        <td class="td-amount">${f(effNetto(b))}</td>
+        <td class="td-amount text-muted">${f(effKosten(b))}</td>
+        <td class="td-amount">${f(effErloese(b))}</td>
         <td>${statusBadge(b.status)}</td>
         <td><button class="btn btn-secondary btn-sm" onclick="openFinanceDetail('${b.id}')">Details</button></td>
       </tr>`;
