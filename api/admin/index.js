@@ -990,6 +990,19 @@ async function handleData(req, res, supabase) {
       })) });
     }
 
+    case 'discount_codes': {
+      const trainerId = req.query.trainer_id;
+      let query = supabase.from('discount_codes').select('*, trainer_profiles:source_trainer_id(full_name)');
+      if (trainerId) query = query.eq('source_trainer_id', trainerId);
+      query = query.order('created_at', { ascending: false });
+      const { data, error } = await query;
+      if (error) throw error;
+      return res.json({ data: (data || []).map(dc => ({
+        ...dc,
+        source_trainer_name: dc.trainer_profiles?.full_name || null
+      })) });
+    }
+
     default:
       return res.status(400).json({ error: `Unbekannter Datentyp: ${type}` });
   }

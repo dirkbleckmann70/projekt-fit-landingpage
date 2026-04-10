@@ -111,11 +111,12 @@
                 <th>Stadt</th>
                 <th>Status</th>
                 <th>Vergütung</th>
+                <th>Rabatt-Abzug</th>
                 <th>Details</th>
               </tr>
             </thead>
             <tbody id="revenue-body">
-              <tr><td colspan="8" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Daten werden geladen...</td></tr>
+              <tr><td colspan="9" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Daten werden geladen...</td></tr>
             </tbody>
           </table>
         </div>
@@ -310,6 +311,7 @@
         { key: 'city',       type: 'select', getValue: b => b.location_name || '' },
         { key: 'status',     type: 'select', getValue: b => b.status || '' },
         { key: 'verguetung', type: 'number', getValue: b => effBrutto(b) / 100 },
+        { key: 'rabatt',    type: 'number', getValue: b => (b.discount_amount_cents || 0) / 100 },
         null,
       ]);
       tableFilter.onFilterChange(() => renderBookingsTable());
@@ -325,23 +327,26 @@
     document.getElementById('kpi-mwst-label').textContent = `MwSt ${_mwstSatz}%`;
     document.getElementById('kpi-mwst').textContent      = f(mwst);
     document.getElementById('kpi-netto').textContent     = f(netto);
-    document.getElementById('kpi-abzuege').textContent   = f(0);
-    document.getElementById('kpi-auszahlung').textContent = f(netto);
+    // Rabatt-Abzüge: Summe aller discount_amount_cents bei Buchungen dieses Trainers
+    const abzuege = yearData.reduce((s, b) => s + (b.discount_amount_cents || 0), 0);
+    document.getElementById('kpi-abzuege').textContent   = abzuege > 0 ? `-${f(abzuege)}` : f(0);
+    document.getElementById('kpi-auszahlung').textContent = f(Math.max(0, netto - abzuege));
   }
 
   function renderMonthTable() {
     const now          = new Date();
     const currentMonth = now.getFullYear() === selectedYear ? now.getMonth() : -1;
-    let totCount = 0, totB = 0, totM = 0, totN = 0;
+    let totCount = 0, totB = 0, totM = 0, totN = 0, totA = 0;
 
     const rows = MONTHS_DE.map((name, mi) => {
       const prefix = `${selectedYear}-${String(mi + 1).padStart(2, '0')}`;
       const mb     = yearData.filter(b => (b.scheduled_date || '').startsWith(prefix));
       const count  = mb.length;
       const brutto = mb.reduce((s, b) => s + effBrutto(b), 0);
+      const abzug  = mb.reduce((s, b) => s + (b.discount_amount_cents || 0), 0);
       const netto  = _mwstSatz > 0 ? Math.round(brutto / (1 + _mwstSatz / 100)) : brutto;
       const mwst   = brutto - netto;
-      totCount += count; totB += brutto; totM += mwst; totN += netto;
+      totCount += count; totB += brutto; totM += mwst; totN += netto; totA += abzug;
 
       const cls = mi === currentMonth ? ' class="fin-month-highlight"' : '';
       if (count === 0) {
@@ -353,8 +358,8 @@
         <td>${f(brutto)}</td>
         <td class="text-secondary">${f(mwst)}</td>
         <td>${f(netto)}</td>
-        <td class="text-secondary">${f(0)}</td>
-        <td>${f(netto)}</td>
+        <td class="text-warning">${abzug > 0 ? `-${f(abzug)}` : f(0)}</td>
+        <td>${f(Math.max(0, netto - abzug))}</td>
       </tr>`;
     });
 
@@ -364,8 +369,8 @@
       <td>${f(totB)}</td>
       <td>${f(totM)}</td>
       <td>${f(totN)}</td>
-      <td>${f(0)}</td>
-      <td>${f(totN)}</td>
+      <td class="text-warning">${totA > 0 ? `-${f(totA)}` : f(0)}</td>
+      <td>${f(Math.max(0, totN - totA))}</td>
     </tr>`);
 
     document.getElementById('month-body').innerHTML = rows.join('');
@@ -395,6 +400,7 @@
         <td>${city}</td>
         <td>${statusBadge(b.status)}</td>
         <td>${vergütungCell(b)}</td>
+        <td class="text-warning">${b.discount_amount_cents > 0 ? `<span title="${b.discount_code || ''}">-${f(b.discount_amount_cents)}</span>` : '–'}</td>
         <td><button class="btn btn-ghost-secondary btn-sm" onclick="openFinanceDetail('${b.id}')">Details</button></td>
       </tr>`;
     }).join('');

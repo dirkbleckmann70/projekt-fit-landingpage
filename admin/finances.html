@@ -110,6 +110,7 @@
               <tr id="finance-sum-row" style="display:none;border-bottom:1px solid rgba(255,255,255,0.1);font-size:12px;color:var(--text-secondary)">
                 <td colspan="4" style="padding:6px 12px;text-align:right;font-style:italic" id="fin-count-cell"></td>
                 <td style="padding:6px 12px" id="fin-brutto-sum"></td>
+                <td style="padding:6px 12px" id="fin-discount-sum" class="text-warning"></td>
                 <td style="padding:6px 12px" id="fin-mwst-sum"></td>
                 <td style="padding:6px 12px" id="fin-netto-sum"></td>
                 <td style="padding:6px 12px" id="fin-kosten-sum"></td>
@@ -122,6 +123,7 @@
                 <th>Trainer</th>
                 <th>Art</th>
                 <th>Einnahmen brutto</th>
+                <th>Rabatt</th>
                 <th>MwSt</th>
                 <th>Netto</th>
                 <th>Trainer-Kosten</th>
@@ -131,7 +133,7 @@
               </tr>
             </thead>
             <tbody id="revenue-body">
-              <tr><td colspan="11" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Daten werden geladen...</td></tr>
+              <tr><td colspan="12" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Daten werden geladen...</td></tr>
             </tbody>
           </table>
         </div>
@@ -239,7 +241,7 @@
       applyYearFilter();
     } catch (err) {
       document.getElementById('revenue-body').innerHTML =
-        `<tr><td colspan="11" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="12" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
       ['kpi-brutto','kpi-mwst','kpi-netto','kpi-kosten','kpi-erloese'].forEach(id =>
         document.getElementById(id).textContent = '–'
       );
@@ -342,7 +344,7 @@
     const sumRow   = document.getElementById('finance-sum-row');
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="11" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted" style="padding:24px">Keine Buchungen gefunden</td></tr>';
       sumRow.style.display = 'none';
       return;
     }
@@ -355,6 +357,7 @@
         <td>${b.trainer_name || '–'}</td>
         <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${art}</span></td>
         <td>${f(effBrutto(b))}</td>
+        <td class="text-warning">${b.discount_code ? `<span title="${b.discount_code}">-${f(b.discount_amount_cents || 0)}</span>` : '–'}</td>
         <td class="text-muted">${f(effMwSt(b))}</td>
         <td>${f(effNetto(b))}</td>
         <td class="text-muted">${f(effKosten(b))}</td>
@@ -364,11 +367,12 @@
       </tr>`;
     }).join('');
 
-    let sB = 0, sM = 0, sN = 0, sK = 0, sE = 0;
-    filtered.forEach(b => { sB += effBrutto(b); sM += effMwSt(b); sN += effNetto(b); sK += effKosten(b); sE += effErloese(b); });
+    let sB = 0, sM = 0, sN = 0, sK = 0, sE = 0, sD = 0;
+    filtered.forEach(b => { sB += effBrutto(b); sM += effMwSt(b); sN += effNetto(b); sK += effKosten(b); sE += effErloese(b); sD += (b.discount_amount_cents || 0); });
     sumRow.style.display = '';
     document.getElementById('fin-count-cell').textContent  = `${filtered.length} von ${yearData.length} Buchungen`;
     document.getElementById('fin-brutto-sum').textContent  = f(sB);
+    document.getElementById('fin-discount-sum').textContent = sD > 0 ? `-${f(sD)}` : '–';
     document.getElementById('fin-mwst-sum').textContent    = f(sM);
     document.getElementById('fin-netto-sum').textContent   = f(sN);
     document.getElementById('fin-kosten-sum').textContent  = f(sK);
