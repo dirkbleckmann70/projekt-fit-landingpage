@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>10er-Karten – pulsly Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
+</head>
+<body class="page">
+<script src="../shared/theme.js"></script>
+
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
+
+      <!-- KPI Row -->
+      <div class="row row-deck row-cards mb-3" id="kpi-row">
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Aktive Karten</div>
+              <div class="kpi-value" id="kpi-active">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Kartenumsatz</div>
+              <div class="kpi-value text-primary" id="kpi-revenue">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Offene Einheiten</div>
+              <div class="kpi-value" id="kpi-remaining">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Abgelaufen</div>
+              <div class="kpi-value text-warning" id="kpi-expired">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <ul class="nav nav-tabs mb-3" id="card-tabs" role="tablist">
+        <li class="nav-item">
+          <a class="nav-link active" data-bs-toggle="tab" href="#tab-active" onclick="switchTab('active')">
+            <i class="ti ti-ticket me-1"></i> Aktive Karten
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-expired" onclick="switchTab('expired')">
+            <i class="ti ti-clock-off me-1"></i> Abgelaufen
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" data-bs-toggle="tab" href="#tab-types" onclick="switchTab('types')">
+            <i class="ti ti-settings me-1"></i> Kartentypen
+          </a>
+        </li>
+      </ul>
+
+      <div class="tab-content">
+        <!-- Tab: Aktive Karten -->
+        <div class="tab-pane active show" id="tab-active">
+          <div class="card">
+            <div class="table-responsive">
+              <table class="table table-vcenter card-table table-hover" id="active-cards-table">
+                <thead>
+                  <tr>
+                    <th>Kunde</th>
+                    <th>Typ</th>
+                    <th>Guthaben</th>
+                    <th>Gekauft am</th>
+                    <th>Gueltig bis</th>
+                    <th>Bezahlt</th>
+                    <th>Rechnung</th>
+                    <th>Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody id="active-cards-body">
+                  <tr><td colspan="8" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Karten werden geladen...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Abgelaufen -->
+        <div class="tab-pane" id="tab-expired">
+          <div class="card">
+            <div class="table-responsive">
+              <table class="table table-vcenter card-table table-hover" id="expired-cards-table">
+                <thead>
+                  <tr>
+                    <th>Kunde</th>
+                    <th>Typ</th>
+                    <th>Guthaben</th>
+                    <th>Gekauft am</th>
+                    <th>Abgelaufen am</th>
+                    <th>Bezahlt</th>
+                    <th>Rechnung</th>
+                    <th>Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody id="expired-cards-body">
+                  <tr><td colspan="8" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Karten werden geladen...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab: Kartentypen -->
+        <div class="tab-pane" id="tab-types">
+          <div class="card">
+            <div class="card-body">
+              <div id="card-types-container">
+                <div class="text-center text-secondary p-4"><div class="spinner-border spinner-border-sm"></div> Kartentypen werden geladen...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Karte manuell anlegen -->
+<div class="modal modal-blur fade" id="create-card-modal" tabindex="-1">
+  <div class="modal-dialog modal-md">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="ti ti-ticket me-2"></i>Karte manuell anlegen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Kunde</label>
+          <select class="form-select" id="modal-customer">
+            <option value="">Kunde waehlen...</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Kartentyp</label>
+          <select class="form-select" id="modal-card-type" onchange="updateModalPrice()">
+            <option value="">Typ waehlen...</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Preis (EUR)</label>
+          <input type="number" class="form-control" id="modal-price" step="0.01" min="0">
+          <small class="form-hint" id="modal-price-hint">Wird automatisch berechnet</small>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Zahlungsart</label>
+          <select class="form-select" id="modal-payment-method">
+            <option value="cash">Barzahlung</option>
+            <option value="transfer">Ueberweisung</option>
+            <option value="admin">Admin-Gutschrift</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" onclick="createManualCard()"><i class="ti ti-plus me-1"></i>Karte anlegen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Guthaben anpassen -->
+<div class="modal modal-blur fade" id="adjust-balance-modal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Guthaben anpassen</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Verbleibende Einheiten</label>
+          <input type="number" class="form-control" id="adjust-remaining" min="0" max="99">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Grund</label>
+          <input type="text" class="form-control" id="adjust-reason" placeholder="z.B. Kulanz, Korrektur...">
+        </div>
+        <input type="hidden" id="adjust-card-id">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" onclick="saveBalanceAdjustment()"><i class="ti ti-device-floppy me-1"></i>Speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/table-utils.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  let allCards = [];
+  let allCardTypes = [];
+  let allCustomers = [];
+  let activeTableFilter = null;
+  let expiredTableFilter = null;
+  let currentTab = 'active';
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  function fmtEur(cents) {
+    return (cents / 100).toFixed(2).replace('.', ',') + ' \u20AC';
+  }
+  function fmtDate(iso) {
+    if (!iso) return '\u2013';
+    return new Date(iso).toLocaleDateString('de-DE');
+  }
+  function isExpired(card) {
+    if (!card.is_active) return true;
+    if (card.expires_at && new Date(card.expires_at) < new Date()) return true;
+    return false;
+  }
+  function guthabenBadge(used, total) {
+    const remaining = total - used;
+    let color = 'bg-green-lt';
+    if (remaining <= 0) color = 'bg-red-lt';
+    else if (remaining <= 4) color = 'bg-orange-lt';
+    return `<span class="badge ${color}">${remaining}/${total}</span>`;
+  }
+  function paymentBadge(card) {
+    if (card.stripe_payment_status === 'succeeded') return '<span class="badge bg-green-lt">Stripe</span>';
+    if (card.paid) return '<span class="badge bg-blue-lt">Admin</span>';
+    return '<span class="badge bg-orange-lt">Offen</span>';
+  }
+  function invoiceLink(card) {
+    if (card.invoice_id) {
+      return `<a href="/admin/invoices.html?search=${card.invoice_id}" class="btn btn-sm btn-ghost-secondary" title="Rechnung"><i class="ti ti-file-invoice"></i></a>`;
+    }
+    return '<span class="text-secondary">\u2013</span>';
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────────────
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('cards');
+    document.getElementById('header').innerHTML = renderAdminHeader('10er-Karten', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
+
+    await loadData();
+  })();
+
+  async function loadData() {
+    try {
+      const [cardsRes, typesRes, customersRes] = await Promise.all([
+        adminApi('/api/admin?action=data&type=gt_cards'),
+        adminApi('/api/admin?action=data&type=gt_card_types'),
+        adminApi('/api/admin?action=data&type=customers'),
+      ]);
+      allCards = cardsRes.data || [];
+      allCardTypes = typesRes.data || [];
+      allCustomers = customersRes.data || [];
+
+      updateKPIs();
+      renderActiveCards();
+      renderExpiredCards();
+      renderCardTypes();
+      populateCreateModal();
+    } catch (err) {
+      document.getElementById('active-cards-body').innerHTML =
+        `<tr><td colspan="8" class="text-danger" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+    }
+  }
+
+  // ─── KPIs ─────────────────────────────────────────────────────────────────
+  function updateKPIs() {
+    const now = new Date();
+    const active = allCards.filter(c => c.is_active && (!c.expires_at || new Date(c.expires_at) >= now));
+    const expired = allCards.filter(c => isExpired(c));
+    const paidCards = allCards.filter(c => c.paid || c.stripe_payment_status === 'succeeded');
+    const revenue = paidCards.reduce((s, c) => s + (c.final_price_cents || c.price_cents || 0), 0);
+    const remaining = active.reduce((s, c) => s + ((c.sessions_total || 10) - (c.sessions_used || 0)), 0);
+
+    document.getElementById('kpi-active').textContent = active.length;
+    document.getElementById('kpi-revenue').textContent = fmtEur(revenue);
+    document.getElementById('kpi-remaining').textContent = remaining;
+    document.getElementById('kpi-expired').textContent = expired.length;
+  }
+
+  // ─── Tab Switch ───────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    currentTab = tab;
+  }
+
+  // ─── Active Cards Table ───────────────────────────────────────────────────
+  function renderActiveCards() {
+    const now = new Date();
+    const active = allCards.filter(c => c.is_active && (!c.expires_at || new Date(c.expires_at) >= now));
+    const tbody = document.getElementById('active-cards-body');
+
+    if (active.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine aktiven Karten</td></tr>';
+    } else {
+      tbody.innerHTML = active.map(c => cardRow(c)).join('');
+    }
+
+    if (!activeTableFilter) {
+      activeTableFilter = initSortableTable('active-cards-table', [
+        { key: 'customer_name', type: 'text', getValue: c => customerName(c) },
+        { key: 'type_name', type: 'select', getValue: c => typeName(c) },
+        { key: 'balance', type: 'number', getValue: c => (c.sessions_total || 10) - (c.sessions_used || 0) },
+        { key: 'purchased_at', type: 'date', getValue: c => c.purchased_at || c.created_at || '' },
+        { key: 'expires_at', type: 'date', getValue: c => c.expires_at || '' },
+        { key: 'paid', type: 'select', getValue: c => c.stripe_payment_status === 'succeeded' ? 'Stripe' : (c.paid ? 'Admin' : 'Offen') },
+        null,
+        null,
+      ], {
+        extraButtons: [
+          { label: 'Karte anlegen', icon: 'ti-plus', className: 'btn btn-sm btn-primary', onClick: 'openCreateModal()' },
+        ],
+        countLabel: 'Karten'
+      });
+    }
+  }
+
+  function renderExpiredCards() {
+    const expired = allCards.filter(c => isExpired(c));
+    const tbody = document.getElementById('expired-cards-body');
+
+    if (expired.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine abgelaufenen Karten</td></tr>';
+    } else {
+      tbody.innerHTML = expired.map(c => cardRow(c, true)).join('');
+    }
+
+    if (!expiredTableFilter) {
+      expiredTableFilter = initSortableTable('expired-cards-table', [
+        { key: 'customer_name', type: 'text', getValue: c => customerName(c) },
+        { key: 'type_name', type: 'select', getValue: c => typeName(c) },
+        { key: 'balance', type: 'number', getValue: c => (c.sessions_total || 10) - (c.sessions_used || 0) },
+        { key: 'purchased_at', type: 'date', getValue: c => c.purchased_at || c.created_at || '' },
+        { key: 'expires_at', type: 'date', getValue: c => c.expires_at || '' },
+        { key: 'paid', type: 'select', getValue: c => c.stripe_payment_status === 'succeeded' ? 'Stripe' : (c.paid ? 'Admin' : 'Offen') },
+        null,
+        null,
+      ], {
+        countLabel: 'Karten'
+      });
+    }
+  }
+
+  function customerName(c) {
+    if (c.customer_name) return c.customer_name;
+    if (c.customer_email) return c.customer_email;
+    const cust = allCustomers.find(cu => cu.id === c.customer_id);
+    return cust ? (cust.full_name || cust.email || c.customer_id) : (c.customer_id || '\u2013');
+  }
+
+  function typeName(c) {
+    if (c.type_name) return c.type_name;
+    const t = allCardTypes.find(t => t.id === c.card_type_id);
+    return t ? t.name : '10er-Karte';
+  }
+
+  function cardRow(c, isExpiredTab) {
+    const total = c.sessions_total || 10;
+    const used = c.sessions_used || 0;
+    return `<tr>
+      <td>${customerName(c)}</td>
+      <td>${typeName(c)}</td>
+      <td>${guthabenBadge(used, total)}</td>
+      <td>${fmtDate(c.purchased_at || c.created_at)}</td>
+      <td>${fmtDate(c.expires_at)}</td>
+      <td>${paymentBadge(c)}</td>
+      <td>${invoiceLink(c)}</td>
+      <td>
+        <div class="d-flex gap-1">
+          ${!isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Guthaben anpassen" onclick="openAdjustModal('${c.id}', ${total - used})"><i class="ti ti-edit"></i></button>` : ''}
+          ${!isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Deaktivieren" onclick="deactivateCard('${c.id}')" style="color:var(--tblr-danger)"><i class="ti ti-ban"></i></button>` : ''}
+          ${isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Reaktivieren" onclick="reactivateCard('${c.id}')"><i class="ti ti-refresh"></i></button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  // ─── Card Types Tab ───────────────────────────────────────────────────────
+  function renderCardTypes() {
+    const container = document.getElementById('card-types-container');
+    if (allCardTypes.length === 0) {
+      container.innerHTML = `
+        <div class="text-center p-4">
+          <p class="text-secondary mb-3">Noch keine Kartentypen konfiguriert.</p>
+          <button class="btn btn-primary" onclick="addCardType()"><i class="ti ti-plus me-1"></i>Kartentyp anlegen</button>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = allCardTypes.map(t => {
+      const sessions = t.sessions || 10;
+      const discount = t.discount_percent || 0;
+      const validityMonths = t.validity_months || 36;
+      const isActive = t.is_active !== false;
+      // Price preview: sessions x avg GT price x (1 - discount%)
+      // We use a placeholder avg price since we dont know exact GT price per trainer
+      const avgPriceCents = t.base_price_cents || 2500; // fallback 25 EUR
+      const totalCents = Math.round(sessions * avgPriceCents * (1 - discount / 100));
+
+      return `<div class="card mb-3">
+        <div class="card-body">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <div class="d-flex align-items-center gap-3 mb-2">
+                <h3 class="mb-0">${t.name || '10er-Karte'}</h3>
+                <span class="badge ${isActive ? 'bg-green-lt' : 'bg-red-lt'}">${isActive ? 'Aktiv' : 'Inaktiv'}</span>
+              </div>
+              <div class="row g-3 mt-1">
+                <div class="col-auto">
+                  <span class="text-secondary">Einheiten:</span> <strong>${sessions}</strong>
+                </div>
+                <div class="col-auto">
+                  <span class="text-secondary">Rabatt:</span> <strong>${discount}%</strong>
+                </div>
+                <div class="col-auto">
+                  <span class="text-secondary">Gueltigkeit:</span> <strong>${validityMonths} Monate</strong>
+                </div>
+              </div>
+              <div class="mt-2">
+                <span class="text-secondary">Preisvorschau:</span>
+                <span class="text-primary">${sessions} Einheiten &times; ${fmtEur(avgPriceCents)} &times; (1 - ${discount}%) = <strong>${fmtEur(totalCents)}</strong></span>
+              </div>
+            </div>
+            <div class="col-md-4 text-end">
+              <button class="btn btn-ghost-secondary btn-sm me-1" title="Bearbeiten" onclick="editCardType('${t.id}')"><i class="ti ti-edit"></i> Bearbeiten</button>
+              <button class="btn btn-ghost-secondary btn-sm" title="${isActive ? 'Deaktivieren' : 'Aktivieren'}" onclick="toggleCardType('${t.id}', ${!isActive})">
+                <i class="ti ti-${isActive ? 'eye-off' : 'eye'}"></i> ${isActive ? 'Deaktivieren' : 'Aktivieren'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+
+    container.innerHTML += `<button class="btn btn-ghost-primary btn-sm mt-2" onclick="addCardType()"><i class="ti ti-plus me-1"></i>Weiteren Typ anlegen</button>`;
+  }
+
+  // ─── Create Modal ─────────────────────────────────────────────────────────
+  function populateCreateModal() {
+    const custSelect = document.getElementById('modal-customer');
+    // Keep first option
+    custSelect.innerHTML = '<option value="">Kunde waehlen...</option>' +
+      allCustomers.map(c => `<option value="${c.id}">${c.full_name || c.email || c.id}</option>`).join('');
+
+    const typeSelect = document.getElementById('modal-card-type');
+    typeSelect.innerHTML = '<option value="">Typ waehlen...</option>' +
+      allCardTypes.filter(t => t.is_active !== false).map(t => `<option value="${t.id}" data-sessions="${t.sessions || 10}" data-discount="${t.discount_percent || 0}" data-base="${t.base_price_cents || 2500}">${t.name || '10er-Karte'}</option>`).join('');
+  }
+
+  function openCreateModal() {
+    document.getElementById('modal-price').value = '';
+    document.getElementById('modal-customer').value = '';
+    document.getElementById('modal-card-type').value = '';
+    document.getElementById('modal-payment-method').value = 'cash';
+    document.getElementById('modal-price-hint').textContent = 'Wird automatisch berechnet';
+    new bootstrap.Modal(document.getElementById('create-card-modal')).show();
+  }
+
+  function updateModalPrice() {
+    const sel = document.getElementById('modal-card-type');
+    const opt = sel.options[sel.selectedIndex];
+    if (!opt || !opt.value) {
+      document.getElementById('modal-price').value = '';
+      document.getElementById('modal-price-hint').textContent = 'Wird automatisch berechnet';
+      return;
+    }
+    const sessions = parseInt(opt.dataset.sessions) || 10;
+    const discount = parseFloat(opt.dataset.discount) || 0;
+    const baseCents = parseInt(opt.dataset.base) || 2500;
+    const totalCents = Math.round(sessions * baseCents * (1 - discount / 100));
+    const totalEur = (totalCents / 100).toFixed(2);
+    document.getElementById('modal-price').value = totalEur;
+    document.getElementById('modal-price-hint').textContent =
+      `${sessions} \u00D7 ${fmtEur(baseCents)} \u00D7 (1 - ${discount}%) = ${fmtEur(totalCents)}`;
+  }
+
+  async function createManualCard() {
+    const customerId = document.getElementById('modal-customer').value;
+    const cardTypeId = document.getElementById('modal-card-type').value;
+    const priceEur = parseFloat(document.getElementById('modal-price').value);
+    const paymentMethod = document.getElementById('modal-payment-method').value;
+
+    if (!customerId || !cardTypeId || isNaN(priceEur)) {
+      showPfToast('Bitte alle Felder ausfuellen', 'error');
+      return;
+    }
+
+    try {
+      await adminApi('/api/admin?action=create_gt_card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer_id: customerId,
+          card_type_id: cardTypeId,
+          price_cents: Math.round(priceEur * 100),
+          payment_method: paymentMethod,
+          paid: true,
+        })
+      });
+      // Close modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('create-card-modal'));
+      if (modal) modal.hide();
+      showPfToast('Karte erfolgreich angelegt', 'success');
+      await loadData();
+    } catch (err) {
+      showPfToast('Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Adjust Balance Modal ─────────────────────────────────────────────────
+  function openAdjustModal(cardId, currentRemaining) {
+    document.getElementById('adjust-card-id').value = cardId;
+    document.getElementById('adjust-remaining').value = currentRemaining;
+    document.getElementById('adjust-reason').value = '';
+    new bootstrap.Modal(document.getElementById('adjust-balance-modal')).show();
+  }
+
+  async function saveBalanceAdjustment() {
+    const cardId = document.getElementById('adjust-card-id').value;
+    const newRemaining = parseInt(document.getElementById('adjust-remaining').value);
+    const reason = document.getElementById('adjust-reason').value || 'Admin-Korrektur';
+
+    if (isNaN(newRemaining) || newRemaining < 0) {
+      showPfToast('Ungueltige Anzahl', 'error');
+      return;
+    }
+
+    try {
+      const card = allCards.find(c => c.id === cardId);
+      const total = card ? (card.sessions_total || 10) : 10;
+      const newUsed = total - newRemaining;
+
+      await adminApi('/api/admin?action=update_gt_card', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: cardId,
+          sessions_used: Math.max(0, newUsed),
+          notes: reason,
+        })
+      });
+      const modal = bootstrap.Modal.getInstance(document.getElementById('adjust-balance-modal'));
+      if (modal) modal.hide();
+      showPfToast('Guthaben angepasst', 'success');
+      await loadData();
+    } catch (err) {
+      showPfToast('Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Card Actions ─────────────────────────────────────────────────────────
+  async function deactivateCard(cardId) {
+    if (!confirm('Karte wirklich deaktivieren?')) return;
+    try {
+      await adminApi('/api/admin?action=update_gt_card', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: cardId, is_active: false })
+      });
+      showPfToast('Karte deaktiviert', 'success');
+      await loadData();
+    } catch (err) {
+      showPfToast('Fehler: ' + err.message, 'error');
+    }
+  }
+
+  async function reactivateCard(cardId) {
+    try {
+      await adminApi('/api/admin?action=update_gt_card', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: cardId, is_active: true })
+      });
+      showPfToast('Karte reaktiviert', 'success');
+      await loadData();
+    } catch (err) {
+      showPfToast('Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Card Type Actions ────────────────────────────────────────────────────
+  async function toggleCardType(typeId, newState) {
+    try {
+      await adminApi('/api/admin?action=update_gt_card_type', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: typeId, is_active: newState })
+      });
+      showPfToast(newState ? 'Kartentyp aktiviert' : 'Kartentyp deaktiviert', 'success');
+      await loadData();
+    } catch (err) {
+      showPfToast('Fehler: ' + err.message, 'error');
+    }
+  }
+
+  function editCardType(typeId) {
+    const t = allCardTypes.find(ct => ct.id === typeId);
+    if (!t) return;
+    // Inline editing via prompt (simple approach — can be replaced with modal later)
+    const name = prompt('Name:', t.name || '10er-Karte');
+    if (name === null) return;
+    const sessions = prompt('Einheiten:', t.sessions || 10);
+    if (sessions === null) return;
+    const discount = prompt('Rabatt %:', t.discount_percent || 0);
+    if (discount === null) return;
+    const validity = prompt('Gueltigkeit (Monate):', t.validity_months || 36);
+    if (validity === null) return;
+
+    adminApi('/api/admin?action=update_gt_card_type', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: typeId,
+        name: name,
+        sessions: parseInt(sessions),
+        discount_percent: parseFloat(discount),
+        validity_months: parseInt(validity),
+      })
+    }).then(() => {
+      showPfToast('Kartentyp aktualisiert', 'success');
+      loadData();
+    }).catch(err => showPfToast('Fehler: ' + err.message, 'error'));
+  }
+
+  function addCardType() {
+    const name = prompt('Name des neuen Kartentyps:', '10er-Karte GT');
+    if (!name) return;
+    const sessions = prompt('Anzahl Einheiten:', '10');
+    if (sessions === null) return;
+    const discount = prompt('Rabatt in %:', '10');
+    if (discount === null) return;
+    const validity = prompt('Gueltigkeit in Monaten:', '36');
+    if (validity === null) return;
+
+    adminApi('/api/admin?action=create_gt_card_type', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        sessions: parseInt(sessions),
+        discount_percent: parseFloat(discount),
+        validity_months: parseInt(validity),
+        is_active: true,
+      })
+    }).then(() => {
+      showPfToast('Kartentyp angelegt', 'success');
+      loadData();
+    }).catch(err => showPfToast('Fehler: ' + err.message, 'error'));
+  }
+</script>
+</body>
+</html>

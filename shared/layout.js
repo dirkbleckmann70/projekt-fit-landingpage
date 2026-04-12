@@ -17,6 +17,7 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
     { id: 'customers',        label: 'Kunden',            icon: 'user',             href: '/admin/customers.html' },
     { id: 'finances',         label: 'Finanzen',          icon: 'currency-euro',    href: '/admin/finances.html' },
     { id: 'groups',           label: 'Gruppentrainings',  icon: 'users-group',      href: '/admin/groups.html' },
+    { id: 'cards',            label: '10er-Karten',       icon: 'ticket',           href: '/admin/cards.html' },
     { id: 'documents',        label: 'Dokumente',         icon: 'file-text',        href: '/admin/documents.html' },
     { id: 'locations',        label: 'Einsatzorte',       icon: 'map-pin',          href: '/admin/locations.html' },
     { id: 'testers',          label: 'Tester & Admins',   icon: 'settings',         href: '/admin/testers.html' },
