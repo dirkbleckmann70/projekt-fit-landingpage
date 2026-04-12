@@ -380,6 +380,103 @@ export default async function handler(req, res) {
         return await handleTrainerVacation(req, res, supabase);
       }
 
+      // ═══════════════════════════════════════════════════════════════════
+      // GT-KARTEN – Kartentypen, manuelle Erstellung, Karten-Update
+      // ═══════════════════════════════════════════════════════════════════
+      case 'gt_card_type': {
+        if (req.method === 'POST') {
+          const body = await getBody(req);
+          const { id, name, sessions_count, discount_percent, validity_months, is_active } = body;
+          if (id) {
+            // Update existing
+            const { data, error } = await supabase.from('gt_card_types')
+              .update({ name, sessions_count, discount_percent, validity_months, is_active, updated_at: new Date().toISOString() })
+              .eq('id', id).select().single();
+            if (error) return res.status(500).json({ error: error.message });
+            return res.json(data);
+          } else {
+            // Create new
+            const { data, error } = await supabase.from('gt_card_types')
+              .insert({ name, sessions_count, discount_percent, validity_months }).select().single();
+            if (error) return res.status(500).json({ error: error.message });
+            return res.json(data);
+          }
+        }
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+
+      case 'gt_card_manual': {
+        if (req.method === 'POST') {
+          const body = await getBody(req);
+          const { customer_id, card_type_id, price_cents_override } = body;
+
+          // Kartentyp laden
+          const { data: ct, error: ctErr } = await supabase.from('gt_card_types').select('*').eq('id', card_type_id).single();
+          if (ctErr || !ct) return res.status(404).json({ error: 'Kartentyp nicht gefunden' });
+
+          // Kunde laden (brauchen auth_user_id)
+          const { data: cust, error: custErr } = await supabase.from('customers').select('auth_user_id').eq('id', customer_id).single();
+          if (custErr || !cust) return res.status(404).json({ error: 'Kunde nicht gefunden' });
+
+          // Preis berechnen oder Override
+          let priceCents = price_cents_override;
+          if (!priceCents) {
+            const { data: classes } = await supabase.from('group_classes')
+              .select('price_per_person_cents').eq('is_active', true).gt('price_per_person_cents', 0);
+            const avg = classes && classes.length > 0
+              ? Math.round(classes.reduce((s, c) => s + c.price_per_person_cents, 0) / classes.length)
+              : 1500;
+            priceCents = Math.round(ct.sessions_count * avg * (1 - ct.discount_percent / 100));
+          }
+
+          const expiresAt = new Date();
+          expiresAt.setMonth(expiresAt.getMonth() + ct.validity_months);
+
+          const { data: card, error: cardErr } = await supabase.from('gt_cards').insert({
+            customer_id,
+            auth_user_id: cust.auth_user_id,
+            card_type_id,
+            sessions_total: ct.sessions_count,
+            sessions_remaining: ct.sessions_count,
+            price_cents: priceCents,
+            discount_percent: ct.discount_percent,
+            expires_at: expiresAt.toISOString(),
+            paid: true,
+            payment_source: 'admin_manual',
+            mwst_satz: 19,
+          }).select().single();
+
+          if (cardErr) return res.status(500).json({ error: cardErr.message });
+
+          // Rechnung generieren
+          try {
+            await supabase.functions.invoke('generate-invoice', {
+              body: { type: 'rechnung_gt_card', gt_card_id: card.id, customer_id }
+            });
+          } catch (e) { console.error('Invoice generation failed:', e); }
+
+          return res.json({ success: true, card });
+        }
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+
+      case 'gt_card_update': {
+        if (req.method === 'PUT') {
+          const body = await getBody(req);
+          const { id, is_active, sessions_remaining, deactivated_reason } = body;
+          const update = { updated_at: new Date().toISOString() };
+          if (is_active !== undefined) update.is_active = is_active;
+          if (sessions_remaining !== undefined) update.sessions_remaining = sessions_remaining;
+          if (deactivated_reason) update.deactivated_reason = deactivated_reason;
+          if (is_active === false) update.deactivated_at = new Date().toISOString();
+
+          const { data, error } = await supabase.from('gt_cards').update(update).eq('id', id).select().single();
+          if (error) return res.status(500).json({ error: error.message });
+          return res.json(data);
+        }
+        return res.status(405).json({ error: 'Method not allowed' });
+      }
+
       default:
         return res.status(404).json({ error: `Unbekannte Action: ${action}` });
     }
@@ -1001,6 +1098,36 @@ async function handleData(req, res, supabase) {
         ...dc,
         source_trainer_name: dc.trainer_profiles?.full_name || null
       })) });
+    }
+
+    case 'gt_card_types': {
+      const { data, error } = await supabase
+        .from('gt_card_types')
+        .select('*')
+        .order('created_at');
+      if (error) throw error;
+      return res.json(data || []);
+    }
+
+    case 'gt_cards': {
+      const { data, error } = await supabase
+        .from('gt_cards')
+        .select('*, gt_card_types(name), customers(full_name, email)')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return res.json(data || []);
+    }
+
+    case 'gt_card_bookings': {
+      const cardId = req.query.card_id;
+      if (!cardId) return res.status(400).json({ error: 'card_id required' });
+      const { data, error } = await supabase
+        .from('group_participants')
+        .select('*, group_classes(name, scheduled_date, scheduled_time)')
+        .eq('gt_card_id', cardId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return res.json(data || []);
     }
 
     default:
