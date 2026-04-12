@@ -396,7 +396,7 @@
         const classIds = gtClasses.map(c => c.id);
         const { data: ptcps, error: ptcpErr } = await sb
           .from('group_participants')
-          .select('id, group_class_id, status, customer_name, customer_email, customer_paid, trainer_checked_out_at, trainer_payout_cents')
+          .select('id, group_class_id, status, customer_name, customer_email, customer_paid, trainer_checked_out_at, trainer_payout_cents, gt_card_id')
           .in('group_class_id', classIds)
           .neq('status', BOOKING_STATUS.CANCELLED);
 
@@ -663,7 +663,10 @@
             const checkedOutBadge = p.trainer_checked_out_at
               ? '<span class="badge bg-primary-lt ms-2">Abgeschlossen</span>'
               : '';
-            return `<div class="list-group-item" style="background:transparent;border-color:var(--tblr-border-color);padding:6px 0">${name}${paidBadge}${checkedOutBadge}</div>`;
+            const cardBadge = p.gt_card_id
+              ? '<span class="badge bg-green-lt ms-2">10er-Karte</span>'
+              : '<span class="badge bg-blue-lt ms-2">Einzelbuchung</span>';
+            return `<div class="list-group-item" style="background:transparent;border-color:var(--tblr-border-color);padding:6px 0">${name}${paidBadge}${cardBadge}${checkedOutBadge}</div>`;
           }).join('')}
         </div></div>`;
     }
