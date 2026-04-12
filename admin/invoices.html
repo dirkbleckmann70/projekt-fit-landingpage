@@ -133,6 +133,7 @@
               <option value="invoice">Rechnungen</option>
               <option value="credit_note">Gutschriften</option>
               <option value="cancellation">Stornos</option>
+              <option value="rechnung_gt_card">GT-Karte</option>
             </select>
             <input type="text" class="form-control form-control-sm" id="filter-search" placeholder="Suche (Nr., Empfänger...)" oninput="applyFilters()">
           </div>
@@ -247,7 +248,7 @@
     filteredInvoices = allInvoices.filter(inv => {
       if (month && inv.issued_at?.slice(5, 7) !== month) return false;
       if (type) {
-        const typeMap = { invoice: 'invoice', credit_note: 'credit_note', cancellation: 'cancellation' };
+        const typeMap = { invoice: 'invoice', credit_note: 'credit_note', cancellation: 'cancellation', rechnung_gt_card: 'rechnung_gt_card' };
         if (inv.invoice_type !== typeMap[type]) return false;
       }
       if (search) {
@@ -267,15 +268,17 @@
 
   function typeBadge(inv) {
     const t = inv.invoice_type || 'invoice';
-    if (t === 'credit_note')  return '<span class="badge badge-gs">GS</span>';
-    if (t === 'cancellation') return '<span class="badge badge-sb">SB</span>';
+    if (t === 'credit_note')      return '<span class="badge badge-gs">GS</span>';
+    if (t === 'cancellation')     return '<span class="badge badge-sb">SB</span>';
+    if (t === 'rechnung_gt_card') return '<span class="badge badge-gt">GT-Karte</span>';
     return '<span class="badge badge-rg">RG</span>';
   }
 
   function typeLabel(inv) {
     const t = inv.invoice_type || 'invoice';
-    if (t === 'credit_note')  return 'Gutschrift';
-    if (t === 'cancellation') return 'Storno';
+    if (t === 'credit_note')      return 'Gutschrift';
+    if (t === 'cancellation')     return 'Storno';
+    if (t === 'rechnung_gt_card') return 'GT-Karte';
     return 'Rechnung';
   }
 

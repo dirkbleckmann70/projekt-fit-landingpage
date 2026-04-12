@@ -72,6 +72,14 @@
             </div>
           </div>
         </div>
+        <div class="col-sm-6 col-lg">
+          <div class="card">
+            <div class="card-body">
+              <div class="kpi-label">Kartenumsatz</div>
+              <div class="kpi-value" id="kpi-kartenumsatz"><div class="spinner-border spinner-border-sm"></div></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Ebene 2: Monatsübersicht -->
@@ -221,7 +229,7 @@
     document.getElementById('sidebar').innerHTML = renderAdminSidebar('finances');
     document.getElementById('header').innerHTML  = renderAdminHeader('Finanzen', user.email);
     initRealtimeToasts(getSupabase(), 'admin');
-    await Promise.all([loadFinances(), loadCredits()]);
+    await Promise.all([loadFinances(), loadCredits(), loadCardRevenue()]);
   })();
 
   // ── Daten laden ───────────────────────────────────────────────────────────
@@ -404,6 +412,18 @@
     } catch (err) {
       document.getElementById('credits-body').innerHTML =
         `<tr><td colspan="8" class="text-error" style="padding:16px">Fehler: ${err.message}</td></tr>`;
+    }
+  }
+
+  // ── Kartenumsatz ──────────────────────────────────────────────────────────
+  async function loadCardRevenue() {
+    try {
+      const cardsResp = await adminApi('/api/admin?action=data&type=gt_cards');
+      const cards = cardsResp.data || [];
+      const cardRevenue = cards.filter(c => c.paid).reduce((s, c) => s + (c.price_cents || 0), 0);
+      document.getElementById('kpi-kartenumsatz').textContent = f(cardRevenue);
+    } catch (err) {
+      document.getElementById('kpi-kartenumsatz').textContent = '–';
     }
   }
 
