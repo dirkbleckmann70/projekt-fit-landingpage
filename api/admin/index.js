@@ -466,7 +466,14 @@ export default async function handler(req, res) {
           const { id, is_active, sessions_remaining, deactivated_reason } = body;
           const update = { updated_at: new Date().toISOString() };
           if (is_active !== undefined) update.is_active = is_active;
-          if (sessions_remaining !== undefined) update.sessions_remaining = sessions_remaining;
+          if (sessions_remaining !== undefined) {
+            // Cap: sessions_remaining darf sessions_total nicht ueberschreiten
+            const { data: card } = await supabase.from('gt_cards').select('sessions_total').eq('id', id).single();
+            if (card && sessions_remaining > card.sessions_total) {
+              return res.status(400).json({ error: `sessions_remaining (${sessions_remaining}) darf sessions_total (${card.sessions_total}) nicht ueberschreiten` });
+            }
+            update.sessions_remaining = sessions_remaining;
+          }
           if (deactivated_reason) update.deactivated_reason = deactivated_reason;
           if (is_active === false) update.deactivated_at = new Date().toISOString();
 
