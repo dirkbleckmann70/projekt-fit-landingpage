@@ -1717,6 +1717,7 @@ async function handleGroups(req, res, supabase) {
       computedDayOfWeek = new Date(scheduled_date + 'T12:00:00Z').getDay() || 7;
     }
 
+    const { equipment } = body;
     const { data, error } = await supabase.from('group_classes').insert({
       name, trainer_id, city,
       location_name: location_name || null,
@@ -1729,6 +1730,7 @@ async function handleGroups(req, res, supabase) {
       max_participants: max_participants || 12,
       price_per_person_cents: price_per_person_cents || null,
       is_active: is_active !== false,
+      equipment: Array.isArray(equipment) ? equipment : null,
     }).select();
 
     if (error) throw error;
@@ -1740,7 +1742,7 @@ async function handleGroups(req, res, supabase) {
     const { id, ...fields } = body;
     if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
 
-    const allowed = ['name', 'trainer_id', 'city', 'location_name', 'location_address', 'day_of_week', 'start_time', 'duration_minutes', 'max_participants', 'price_per_person_cents', 'is_active', 'scheduled_date', 'scheduled_time'];
+    const allowed = ['name', 'trainer_id', 'city', 'location_name', 'location_address', 'day_of_week', 'start_time', 'duration_minutes', 'max_participants', 'price_per_person_cents', 'is_active', 'scheduled_date', 'scheduled_time', 'equipment'];
     const update = {};
     for (const key of allowed) { if (key in fields) update[key] = fields[key]; }
 

@@ -175,6 +175,11 @@
             <label class="form-label">Adresse</label>
             <input class="form-control" id="f-location-address" placeholder="z.B. Musterstraße 1, 50667 Köln">
           </div>
+          <div class="mb-3">
+            <label class="form-label">Was Teilnehmer mitbringen sollen</label>
+            <input class="form-control" id="f-equipment" placeholder="Sportkleidung, Wasser, Handtuch">
+            <small class="form-hint">Komma-getrennt. Leer lassen für Standard (Sportkleidung, Wasser, Handtuch).</small>
+          </div>
           <div class="row mb-3">
             <div class="col-md-6">
               <label class="form-label">Dauer (Minuten)</label>
@@ -549,6 +554,7 @@
     document.getElementById('f-city').value = g.city || '';
     document.getElementById('f-location-name').value = g.location_name || '';
     document.getElementById('f-location-address').value = g.location_address || '';
+    document.getElementById('f-equipment').value = Array.isArray(g.equipment) ? g.equipment.join(', ') : '';
     document.getElementById('f-date').value = ''; // Datum LEER — muss manuell eingetragen werden
     document.getElementById('f-time').value = (g.scheduled_time || g.start_time || '').slice(0, 5);
     document.getElementById('f-duration').value = g.duration_minutes || 60;
@@ -570,6 +576,7 @@
     document.getElementById('f-city').value = g.city || '';
     document.getElementById('f-location-name').value = g.location_name || '';
     document.getElementById('f-location-address').value = g.location_address || '';
+    document.getElementById('f-equipment').value = Array.isArray(g.equipment) ? g.equipment.join(', ') : '';
     document.getElementById('f-date').value = g.scheduled_date || '';
     document.getElementById('f-time').value = (g.scheduled_time || g.start_time || '').slice(0, 5);
     document.getElementById('f-duration').value = g.duration_minutes || 60;
@@ -661,6 +668,9 @@
       city,
       location_name: document.getElementById('f-location-name').value.trim() || null,
       location_address: document.getElementById('f-location-address').value.trim() || null,
+      equipment: document.getElementById('f-equipment').value.trim()
+        ? document.getElementById('f-equipment').value.split(',').map(s => s.trim()).filter(Boolean)
+        : null,
       scheduled_date: scheduledDate,
       scheduled_time: scheduledTime + ':00',
       start_time: scheduledTime + ':00',
