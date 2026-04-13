@@ -81,7 +81,6 @@
           <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#view-calendar" onclick="switchView('calendar')"><i class="ti ti-calendar"></i> Kalender</a></li>
         </ul>
         <div class="d-flex gap-2">
-          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#series-modal"><i class="ti ti-repeat"></i> Serientermin</button>
           <button class="btn btn-primary" onclick="openNewModal()">+ Neues Gruppentraining</button>
         </div>
       </div>
@@ -139,12 +138,61 @@
 
           <div class="row mb-3">
             <div class="col-md-6">
-              <label class="form-label">Datum *</label>
+              <label class="form-label" id="f-date-label">Datum *</label>
               <input class="form-control" type="date" id="f-date" required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Uhrzeit *</label>
               <input class="form-control" type="time" id="f-time" required>
+            </div>
+          </div>
+          <!-- Serien-Toggle (Outlook-Pattern) -->
+          <div class="mb-3">
+            <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="f-series-toggle">
+              <span class="form-check-label"><i class="ti ti-repeat"></i> Serientermin</span>
+            </label>
+          </div>
+          <!-- Serien-Felder (nur sichtbar wenn Toggle aktiv) -->
+          <div id="series-section" style="display:none">
+            <div class="alert alert-info mb-3">
+              <div class="d-flex">
+                <i class="ti ti-info-circle alert-icon"></i>
+                <div>Erstellt mehrere Termine auf einmal. Datum oben wird zum Startdatum, jeder Termin wird als einzelner Kurs angelegt.</div>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-md-4">
+                <label class="form-label required">Enddatum</label>
+                <input type="date" class="form-control" id="f-series-end">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label required">Rhythmus</label>
+                <select class="form-select" id="f-series-rhythm">
+                  <option value="weekly">Wöchentlich</option>
+                  <option value="biweekly">Alle 2 Wochen</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Wochentage</label>
+                <div class="d-flex gap-1 flex-wrap" id="f-series-days">
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="1"><span class="form-check-label">Mo</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="2"><span class="form-check-label">Di</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="3"><span class="form-check-label">Mi</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="4"><span class="form-check-label">Do</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="5"><span class="form-check-label">Fr</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="6"><span class="form-check-label">Sa</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="7"><span class="form-check-label">So</span></label>
+                </div>
+              </div>
+            </div>
+            <div class="card mb-3" style="border:1px dashed var(--tblr-border-color)">
+              <div class="card-header py-2">
+                <h4 class="card-title" style="font-size:13px"><i class="ti ti-calendar-event"></i> Vorschau</h4>
+              </div>
+              <div class="card-body py-2" id="f-series-preview" style="max-height:120px;overflow-y:auto;font-size:12px">
+                Wochentage und Zeitraum wählen...
+              </div>
             </div>
           </div>
           <div class="row mb-3">
@@ -219,114 +267,7 @@
   </div>
 </div>
 
-<!-- Series Modal -->
-<div class="modal modal-blur fade" id="series-modal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title"><i class="ti ti-repeat"></i> Serientermin erstellen</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="alert alert-info">
-          <div class="d-flex">
-            <i class="ti ti-info-circle alert-icon"></i>
-            <div>Erstellt mehrere GT-Termine auf einmal. Jeder Termin wird als einzelner Kurs angelegt und kann danach individuell bearbeitet werden.</div>
-          </div>
-        </div>
-
-        <div class="row g-3">
-          <div class="col-md-6">
-            <label class="form-label required">Kursname</label>
-            <input type="text" class="form-control" id="series-name" placeholder="z.B. HIIT Outdoor">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label required">Trainer</label>
-            <select class="form-select" id="series-trainer">
-              <option value="">Waehlen...</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label required">Stadt</label>
-            <select class="form-select" id="series-city">
-              <option value="">Waehlen...</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Ort / Treffpunkt</label>
-            <input type="text" class="form-control" id="series-location" placeholder="Treffpunkt">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label required">Preis/Person</label>
-            <div class="input-group">
-              <input type="number" class="form-control" id="series-price" value="15.00" step="0.50" min="0">
-              <span class="input-group-text">&euro;</span>
-            </div>
-          </div>
-
-          <div class="col-12"><hr class="my-1"><h4 class="mb-0" style="font-size:14px;font-weight:600"><i class="ti ti-repeat"></i> Wiederholung</h4></div>
-
-          <div class="col-md-4">
-            <label class="form-label required">Rhythmus</label>
-            <select class="form-select" id="series-rhythm">
-              <option value="weekly">Woechentlich</option>
-              <option value="biweekly">Alle 2 Wochen</option>
-            </select>
-          </div>
-          <div class="col-md-4">
-            <label class="form-label required">Uhrzeit</label>
-            <input type="time" class="form-control" id="series-time" value="10:00">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Dauer (Min)</label>
-            <input type="number" class="form-control" id="series-duration" value="60" min="15" step="15">
-          </div>
-
-          <div class="col-12">
-            <label class="form-label">Wochentage</label>
-            <div class="d-flex gap-2 flex-wrap" id="series-days">
-              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="1"><span class="form-check-label">Mo</span></label>
-              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="2"><span class="form-check-label">Di</span></label>
-              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="3"><span class="form-check-label">Mi</span></label>
-              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="4"><span class="form-check-label">Do</span></label>
-              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="5"><span class="form-check-label">Fr</span></label>
-              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="6"><span class="form-check-label">Sa</span></label>
-              <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="7"><span class="form-check-label">So</span></label>
-            </div>
-          </div>
-
-          <div class="col-md-4">
-            <label class="form-label required">Startdatum</label>
-            <input type="date" class="form-control" id="series-start">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label required">Enddatum</label>
-            <input type="date" class="form-control" id="series-end">
-          </div>
-          <div class="col-md-4">
-            <label class="form-label">Max. Teilnehmer</label>
-            <input type="number" class="form-control" id="series-max" value="12" min="1">
-          </div>
-
-          <div class="col-12">
-            <div class="card" style="border:1px dashed var(--tblr-border-color)">
-              <div class="card-header py-2">
-                <h4 class="card-title" style="font-size:13px"><i class="ti ti-calendar-event"></i> Vorschau</h4>
-              </div>
-              <div class="card-body py-2" id="series-preview" style="max-height:150px;overflow-y:auto;font-size:12px">
-                Wochentage und Zeitraum waehlen...
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-primary" id="series-submit-btn" onclick="createSeries()"><i class="ti ti-repeat"></i> Termine erstellen</button>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- Altes Serien-Modal entfernt — Serie ist jetzt im group-modal integriert -->
 
 <!-- Participants Modal -->
 <div class="modal modal-blur fade" id="participants-modal" tabindex="-1">
@@ -523,6 +464,15 @@
   }
 
   // Create / Edit
+  function resetSeriesToggle() {
+    document.getElementById('f-series-toggle').checked = false;
+    document.getElementById('series-section').style.display = 'none';
+    document.getElementById('f-date-label').textContent = 'Datum *';
+    document.getElementById('f-series-end').value = '';
+    document.querySelectorAll('#f-series-days input').forEach(function(cb) { cb.checked = false; });
+    document.getElementById('f-series-preview').textContent = 'Wochentage und Zeitraum wählen...';
+  }
+
   function openNewModal() {
     editingGroupId = null;
     document.getElementById('modal-title').textContent = 'Neues Gruppentraining';
@@ -530,6 +480,7 @@
     document.getElementById('f-active').checked = true;
     document.getElementById('modal-participants-section').style.display = 'none';
     document.getElementById('duplicate-hint').style.display = 'none';
+    resetSeriesToggle();
     new bootstrap.Modal(document.getElementById('group-modal')).show();
   }
 
@@ -547,7 +498,8 @@
   function duplicateGroup(id) {
     const g = allGroups.find(x => x.id === id);
     if (!g) return;
-    editingGroupId = null; // Neuer Kurs, nicht bearbeiten
+    editingGroupId = null;
+    resetSeriesToggle();
     document.getElementById('modal-title').textContent = 'Gruppentraining duplizieren';
     document.getElementById('f-name').value = g.name || '';
     document.getElementById('f-trainer').value = g.trainer_id || '';
@@ -570,6 +522,7 @@
     const g = allGroups.find(x => x.id === id);
     if (!g) return;
     editingGroupId = id;
+    resetSeriesToggle();
     document.getElementById('modal-title').textContent = 'Gruppentraining bearbeiten';
     document.getElementById('f-name').value = g.name || '';
     document.getElementById('f-trainer').value = g.trainer_id || '';
@@ -680,21 +633,57 @@
       is_active: document.getElementById('f-active').checked,
     };
 
+    const isSeries = document.getElementById('f-series-toggle').checked && !editingGroupId;
+
     const btn = document.getElementById('modal-save-btn');
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
 
     try {
-      if (editingGroupId) {
+      if (isSeries) {
+        // ── Serientermin: Mehrere Kurse auf einmal anlegen ──
+        const dates = generateSeriesDates();
+        if (dates.length === 0) {
+          alert('Bitte Wochentage und Zeitraum für die Serie wählen.');
+          return;
+        }
+        const result = await adminApi('/api/admin?action=group_series', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: payload.name,
+            trainer_id: payload.trainer_id,
+            city: payload.city,
+            location_name: payload.location_name,
+            location_address: payload.location_address,
+            equipment: payload.equipment,
+            time: document.getElementById('f-time').value,
+            duration_minutes: payload.duration_minutes,
+            max_participants: payload.max_participants,
+            price_per_person_cents: payload.price_per_person_cents,
+            dates: dates.map(function(d) {
+              var y = d.getFullYear();
+              var m = String(d.getMonth() + 1).padStart(2, '0');
+              var day = String(d.getDate()).padStart(2, '0');
+              return y + '-' + m + '-' + day;
+            })
+          })
+        });
+        closeModal('group-modal');
+        showAlert('alert-box', result.count + ' Termine erstellt!', 'success');
+      } else if (editingGroupId) {
+        // ── Bestehenden Kurs bearbeiten ──
         payload.id = editingGroupId;
         await adminApi('/api/admin?action=groups', { method: 'PUT', body: JSON.stringify(payload) });
+        closeModal('group-modal');
+        showAlert('alert-box', 'Kurs aktualisiert!', 'success');
       } else {
-        const res = await adminApi('/api/admin?action=groups', { method: 'POST', body: JSON.stringify(payload) });
-        console.log('[Groups] created:', res);
+        // ── Einzelnen neuen Kurs erstellen ──
+        await adminApi('/api/admin?action=groups', { method: 'POST', body: JSON.stringify(payload) });
+        closeModal('group-modal');
+        showAlert('alert-box', 'Kurs erstellt!', 'success');
       }
-      closeModal('group-modal');
-      showAlert('alert-box', editingGroupId ? 'Kurs aktualisiert!' : 'Kurs erstellt!', 'success');
       await loadGroups();
+      if (calendarInstance) calendarInstance.refetchEvents();
     } catch (err) {
       console.error('[Groups] saveGroup error:', err);
       alert('Speichern fehlgeschlagen: ' + err.message);
@@ -925,37 +914,27 @@
   // SERIENTERMIN
   // ═══════════════════════════════════════════════════════════════════
 
-  function populateSeriesDropdowns() {
-    const trainerSel = document.getElementById('series-trainer');
-    const citySel = document.getElementById('series-city');
-    // Clear existing options except first placeholder
-    while (trainerSel.options.length > 1) trainerSel.remove(1);
-    while (citySel.options.length > 1) citySel.remove(1);
+  // ── Serien-Toggle Logik (im group-modal integriert) ──────────────────────
 
-    activeTrainers.forEach(t => {
-      const opt = document.createElement('option');
-      opt.value = t.id;
-      opt.textContent = t.full_name;
-      trainerSel.appendChild(opt);
-    });
-
-    // Copy cities from existing dropdown
-    const mainCitySel = document.getElementById('f-city');
-    for (let i = 1; i < mainCitySel.options.length; i++) {
-      const opt = document.createElement('option');
-      opt.value = mainCitySel.options[i].value;
-      opt.textContent = mainCitySel.options[i].textContent;
-      citySel.appendChild(opt);
+  function toggleSeriesSection() {
+    var isOn = document.getElementById('f-series-toggle').checked;
+    document.getElementById('series-section').style.display = isOn ? 'block' : 'none';
+    document.getElementById('f-date-label').textContent = isOn ? 'Startdatum *' : 'Datum *';
+    // Save-Button Text anpassen
+    var btn = document.getElementById('modal-save-btn');
+    if (!isOn) {
+      btn.textContent = 'Speichern';
     }
+    if (isOn) updateSeriesPreview();
   }
 
   function updateSeriesPreview() {
     var dates = generateSeriesDates();
-    var preview = document.getElementById('series-preview');
-    var btn = document.getElementById('series-submit-btn');
+    var preview = document.getElementById('f-series-preview');
+    var btn = document.getElementById('modal-save-btn');
     if (dates.length === 0) {
-      preview.textContent = 'Wochentage und Zeitraum waehlen...';
-      btn.innerHTML = '<i class="ti ti-repeat"></i> Termine erstellen';
+      preview.textContent = 'Wochentage und Zeitraum wählen...';
+      btn.textContent = 'Speichern';
       return;
     }
     var dayNamesShort = ['So','Mo','Di','Mi','Do','Fr','Sa'];
@@ -970,11 +949,11 @@
   }
 
   function generateSeriesDates() {
-    var rhythm = document.getElementById('series-rhythm').value;
-    var startStr = document.getElementById('series-start').value;
-    var endStr = document.getElementById('series-end').value;
+    var rhythm = document.getElementById('f-series-rhythm').value;
+    var startStr = document.getElementById('f-date').value;
+    var endStr = document.getElementById('f-series-end').value;
     var days = [];
-    document.querySelectorAll('#series-days input:checked').forEach(function(cb) {
+    document.querySelectorAll('#f-series-days input:checked').forEach(function(cb) {
       days.push(parseInt(cb.value));
     });
     if (!startStr || !endStr || days.length === 0) return [];
@@ -1001,71 +980,16 @@
     return dates;
   }
 
-  async function createSeries() {
-    var name = document.getElementById('series-name').value.trim();
-    var trainerId = document.getElementById('series-trainer').value;
-    var city = document.getElementById('series-city').value;
-    var price = parseFloat(document.getElementById('series-price').value);
-    var time = document.getElementById('series-time').value;
-    var duration = parseInt(document.getElementById('series-duration').value) || 60;
-    var maxP = parseInt(document.getElementById('series-max').value) || 12;
-    var location = document.getElementById('series-location').value.trim();
-    var dates = generateSeriesDates();
-
-    if (!name || !trainerId || !city || !price || !time || dates.length === 0) {
-      alert('Bitte alle Pflichtfelder ausfuellen und Termine generieren.');
-      return;
-    }
-
-    var btn = document.getElementById('series-submit-btn');
-    btn.disabled = true;
-    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Wird erstellt...';
-
-    try {
-      var result = await adminApi('/api/admin?action=group_series', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: name,
-          trainer_id: trainerId,
-          city: city,
-          location_name: location || null,
-          time: time,
-          duration_minutes: duration,
-          max_participants: maxP,
-          price_per_person_cents: Math.round(price * 100),
-          dates: dates.map(function(d) {
-            var y = d.getFullYear();
-            var m = String(d.getMonth() + 1).padStart(2, '0');
-            var day = String(d.getDate()).padStart(2, '0');
-            return y + '-' + m + '-' + day;
-          })
-        })
-      });
-      bootstrap.Modal.getOrCreateInstance(document.getElementById('series-modal')).hide();
-      showAlert('alert-box', result.count + ' Termine erstellt!', 'success');
-      await loadGroups();
-      if (calendarInstance) calendarInstance.refetchEvents();
-    } catch(e) {
-      console.error('[Groups] createSeries error:', e);
-      alert('Serie erstellen fehlgeschlagen: ' + e.message);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="ti ti-repeat"></i> Termine erstellen';
-    }
-  }
-
-  // Attach preview listeners to series form inputs
+  // Attach series listeners on DOMContentLoaded
   document.addEventListener('DOMContentLoaded', function() {
-    ['series-rhythm', 'series-start', 'series-end', 'series-time'].forEach(function(id) {
+    document.getElementById('f-series-toggle').addEventListener('change', toggleSeriesSection);
+    ['f-series-rhythm', 'f-date', 'f-series-end'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.addEventListener('change', updateSeriesPreview);
     });
-    document.querySelectorAll('#series-days input').forEach(function(cb) {
+    document.querySelectorAll('#f-series-days input').forEach(function(cb) {
       cb.addEventListener('change', updateSeriesPreview);
     });
-
-    // Populate series dropdowns when modal opens
-    document.getElementById('series-modal').addEventListener('show.bs.modal', populateSeriesDropdowns);
   });
 </script>
 
