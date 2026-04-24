@@ -5,7 +5,9 @@
 // Prüft Session + role=admin, sonst Redirect zu /admin/
 
 const SUPABASE_URL = 'https://ahsjydgknmysircubjsk.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_8tZaFMrIrzJXjDbYAF2huw_ygDY9K2Q';
+// Klassisches JWT (eyJ...) — sb_publishable_* wird vom Edge-Function-Gateway abgelehnt
+// (Memory: reference_supabase_edge_function_keys.md)
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc2p5ZGdrbm15c2lyY3VianNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjk5NDAsImV4cCI6MjA4ODc0NTk0MH0.nGPKA30cm-EPsyt0Pn5YWxcMjMdNzg_1yN87LdK0rZI';
 
 let _sb = null;
 let _adminUser = null;
