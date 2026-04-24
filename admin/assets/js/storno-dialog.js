@@ -128,14 +128,14 @@
         },
         body: JSON.stringify(payload),
       });
-      // Diagnose-Wrapper: echten Server-Response-Body sichtbar machen,
-      // wenn der nicht JSON ist (Gateway/CORS/HTML-Error → der Standard resp.json()
-      // wirft dann den nichtssagenden „JSON.parse: unexpected character"-Fehler).
+      // Robustes Response-Parsing: erst text(), dann JSON.parse mit Fallback.
+      // So landet bei Gateway-/CORS-/HTML-Error-Pages der echte Server-Body in der
+      // Fehlermeldung, statt des nichtssagenden "JSON.parse: unexpected character"-Toasts.
       const rawBody = await resp.text();
       let result;
       try {
         result = rawBody ? JSON.parse(rawBody) : {};
-      } catch (parseErr) {
+      } catch {
         throw new Error(`HTTP ${resp.status} (kein JSON): ${rawBody.slice(0, 250)}`);
       }
       if (!resp.ok) throw new Error(result.error || `HTTP ${resp.status}`);
