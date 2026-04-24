@@ -128,7 +128,16 @@
         },
         body: JSON.stringify(payload),
       });
-      const result = await resp.json();
+      // Diagnose-Wrapper: echten Server-Response-Body sichtbar machen,
+      // wenn der nicht JSON ist (Gateway/CORS/HTML-Error → der Standard resp.json()
+      // wirft dann den nichtssagenden „JSON.parse: unexpected character"-Fehler).
+      const rawBody = await resp.text();
+      let result;
+      try {
+        result = rawBody ? JSON.parse(rawBody) : {};
+      } catch (parseErr) {
+        throw new Error(`HTTP ${resp.status} (kein JSON): ${rawBody.slice(0, 250)}`);
+      }
       if (!resp.ok) throw new Error(result.error || `HTTP ${resp.status}`);
 
       const refundStr = fmtEur(result.refund_amount_cents ?? 0);
