@@ -457,12 +457,12 @@
       to   = `${year}-12-31`;
     }
 
-    // Typ auf export-invoices-Schema mappen (Edge Function erwartet 'all' | 'rechnung' | 'gutschrift' | 'storno')
+    // Typ auf export-invoices-Schema mappen (Edge Function erwartet 'all' | 'rechnung' | 'gutschrift' | 'stornobeleg')
     const typeMap = {
       '': 'all',
       'invoice': 'rechnung',
       'credit_note': 'gutschrift',
-      'cancellation': 'storno',
+      'cancellation': 'stornobeleg',
       'rechnung_gt_card': 'rechnung',
     };
     const type = typeMap[typeSelect] || 'all';
