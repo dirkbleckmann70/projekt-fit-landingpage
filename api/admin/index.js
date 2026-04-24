@@ -1138,6 +1138,18 @@ async function handleData(req, res, supabase) {
       return res.json(data || []);
     }
 
+    case 'customers': {
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, full_name, first_name, last_name, email, phone')
+        .order('full_name', { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return res.json({ data: (data || []).map((c) => ({
+        ...c,
+        full_name: c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ').trim() || c.email || '–',
+      })) });
+    }
+
     default:
       return res.status(400).json({ error: `Unbekannter Datentyp: ${type}` });
   }
