@@ -107,6 +107,7 @@
 <script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
 <script src="../shared/form-dirty.js"></script>
+<script src="assets/js/storno-dialog.js"></script>
 <script>
   let allBookings = [];
   let editingBookingId = null;
@@ -175,9 +176,17 @@
     const cancelBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Stornieren" onclick="quickStatusChange('${id}',BOOKING_STATUS.CANCELLED)" style="color:var(--tblr-danger)"><i class="ti ti-x"></i></button>`;
     const deleteBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Löschen" onclick="deleteBooking('${id}')" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>`;
 
+    // Storno-Dialog (mit Stornobeleg + Rückzahlung): nur bei nicht-stornierten, nicht-abgelaufenen Buchungen
+    const custName = (b.customer_name || '').replace(/'/g,"\\'");
+    const gross = b.final_price_cents || b.price_cents || 0;
+    const excluded = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED'];
+    const stornoBtn = (!b.storno_invoice_id && !excluded.includes(s))
+      ? `<button class="btn btn-sm btn-ghost-secondary" title="Stornobeleg + Rückzahlung" onclick="stornoBooking('${id}','${custName}',${gross})" style="color:var(--tblr-danger)"><i class="ti ti-receipt-refund"></i></button>`
+      : '';
+
     // Abgeschlossene/unveränderliche Zustände → Ansehen + Löschen
     if (['COMPLETED', 'CANCELLED', 'REFUNDED', 'DISPUTED', 'ESCALATED'].includes(s)) {
-      return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
     // EXPIRED → Ansehen + Bearbeiten + Löschen
     if (s === BOOKING_STATUS.EXPIRED.toUpperCase()) {
@@ -185,18 +194,41 @@
     }
     // In Bearbeitung → Ansehen + Löschen
     if (['CHECKED_IN', 'IN_PROGRESS'].includes(s)) {
-      return `<div class="d-flex gap-1">${viewBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
     // PENDING → Ansehen + Bestätigen + Stornieren + Löschen
     if (s === BOOKING_STATUS.PENDING.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${confirmBtn} ${cancelBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${confirmBtn} ${cancelBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
     // CONFIRMED → Ansehen + Abschließen + Stornieren + Löschen
     if (s === BOOKING_STATUS.CONFIRMED.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${completeBtn} ${cancelBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${completeBtn} ${cancelBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
     // Fallback
-    return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${deleteBtn}</div>`;
+    return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${stornoBtn} ${deleteBtn}</div>`;
+  }
+
+  function stornoBooking(bookingId, customerName, grossCents) {
+    // GT-Einträge kommen als "gp_<uuid>" — für Edge Function group_participant_id statt booking_id
+    if (typeof bookingId === 'string' && bookingId.startsWith('gp_')) {
+      const participantId = bookingId.slice(3);
+      openStornoDialog({
+        kind: 'group_participant',
+        id: participantId,
+        title: `GT-Teilnahme: ${customerName || 'Kunde'}`,
+        grossCents: Number(grossCents),
+        onSuccess: () => loadBookings(),
+      });
+    } else {
+      openStornoDialog({
+        kind: 'booking',
+        id: bookingId,
+        title: `PT-Buchung mit ${customerName || 'Kunde'}`,
+        grossCents: Number(grossCents),
+        onSuccess: () => loadBookings(),
+      });
+    }
+    return false;
   }
 
   // Nutzt CANCELLED_STATUSES aus shared/constants.js (lowercase)

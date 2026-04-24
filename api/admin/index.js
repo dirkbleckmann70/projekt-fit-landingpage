@@ -680,6 +680,9 @@ async function fetchGroupParticipantsAsBookings(supabase) {
       created_at:         p.created_at || null,
       group_class_id:     p.group_class_id || null,
       group_class_name:   gc.name || null,
+      storno_invoice_id:  p.storno_invoice_id || null,
+      invoice_id:         p.invoice_id || null,
+      is_test_data:       p.is_test_data || false,
     };
   });
 }
@@ -1114,16 +1117,16 @@ async function handleData(req, res, supabase) {
         .select('*')
         .order('created_at');
       if (error) throw error;
-      return res.json(data || []);
+      return res.json({ data: data || [] });
     }
 
     case 'gt_cards': {
       const { data, error } = await supabase
         .from('gt_cards')
-        .select('*, gt_card_types(name), customers(full_name, email)')
+        .select('*, gt_card_types(name, unit_price_cents, sessions, discount_percent), customers(full_name, email)')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return res.json(data || []);
+      return res.json({ data: data || [] });
     }
 
     case 'gt_card_bookings': {

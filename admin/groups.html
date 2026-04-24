@@ -295,6 +295,7 @@
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
+<script src="assets/js/storno-dialog.js"></script>
 <script>
   let allGroups = [];
   let activeTrainers = [];
@@ -415,6 +416,7 @@
               <button class="btn btn-sm btn-ghost-secondary" onclick="editGroup('${g.id}')" title="Bearbeiten"><i class="ti ti-edit"></i></button>
               <button class="btn btn-sm btn-ghost-secondary" onclick="duplicateGroup('${g.id}')" title="Duplizieren"><i class="ti ti-copy"></i></button>
               <button class="btn btn-sm btn-ghost-secondary" onclick="showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')" title="Teilnehmer"><i class="ti ti-users"></i></button>
+              <button class="btn btn-sm btn-ghost-danger" onclick="stornoGroupClass('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}')" title="Kurs absagen"><i class="ti ti-ban"></i></button>
               <button class="btn btn-sm btn-ghost-secondary" onclick="toggleActive('${g.id}', ${!g.is_active})" title="${g.is_active ? 'Deaktivieren' : 'Aktivieren'}" style="color:${g.is_active ? 'var(--tblr-danger)' : 'var(--tblr-success)'}"><i class="ti ${g.is_active ? 'ti-player-pause' : 'ti-check'}"></i></button>
               ${!g.is_active ? `<button class="btn btn-sm btn-ghost-secondary" onclick="deleteGroup('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}')\" title="Löschen" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>` : ''}
             </div>
@@ -772,9 +774,17 @@
                 <th>Bezahlt (Kunde)</th>
                 <th>Bezahlt (Trainer)</th>
                 <th>Teilgenommen</th>
+                <th>Aktionen</th>
               </tr></thead>
               <tbody>
-                ${participants.map(p => `
+                ${participants.map(p => {
+                  const stornoBtn = (!p.storno_invoice_id && p.status !== 'cancelled' && p.status !== 'refunded')
+                    ? `<button class="btn btn-sm btn-ghost-danger" title="Teilnehmer stornieren"
+                        onclick="stornoParticipant('${p.id}', '${(p.customer_name || p.name || '').replace(/'/g,"\\'")}', ${p.final_price_cents ?? p.price_cents ?? priceCents})">
+                        <i class="ti ti-user-minus"></i>
+                      </button>`
+                    : '';
+                  return `
                   <tr>
                     <td>${p.customer_name || p.name || '–'}</td>
                     <td class="text-secondary">${p.customer_email || p.email || '–'}</td>
@@ -782,8 +792,9 @@
                     <td><input type="checkbox" ${p.customer_paid ? 'checked' : ''} onchange="updateParticipant('${p.id}', 'customer_paid', this.checked)"></td>
                     <td><input type="checkbox" ${p.trainer_paid ? 'checked' : ''} onchange="updateParticipant('${p.id}', 'trainer_paid', this.checked)"></td>
                     <td><input type="checkbox" ${p.attended ? 'checked' : ''} onchange="updateParticipant('${p.id}', 'attended', this.checked)"></td>
-                  </tr>
-                `).join('')}
+                    <td>${stornoBtn}</td>
+                  </tr>`;
+                }).join('')}
               </tbody>
             </table>
           </div>
@@ -846,6 +857,70 @@
       await loadParticipants(currentParticipantsGroupId);
     } catch (err) {
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── Storno: Einzel-Teilnehmer ────────────────────────────────────────────
+  function stornoParticipant(gpId, name, grossCents) {
+    openStornoDialog({
+      kind: 'group_participant',
+      id: gpId,
+      title: `GT-Teilnahme: ${name || 'Kunde'}`,
+      grossCents: Number(grossCents) || 0,
+      onSuccess: () => {
+        if (currentParticipantsGroupId) loadParticipants(currentParticipantsGroupId);
+        loadGroups();
+      },
+    });
+  }
+
+  // ─── Storno: kompletter Kurs (alle Teilnehmer) ────────────────────────────
+  async function stornoGroupClass(groupClassId, name) {
+    if (!confirm(`Wirklich den Kurs „${name}" für ALLE Teilnehmer absagen?`)) return;
+    try {
+      const r = await adminApi(`/api/admin?action=data&type=group_participants&group_id=${groupClassId}`);
+      const confirmedParts = (r.data || []).filter(p => p.status !== 'cancelled' && p.status !== 'refunded' && !p.storno_invoice_id);
+      if (!confirmedParts.length) {
+        showPfToast('Kurs-Absage', 'Keine aktiven Teilnehmer', 'warning');
+        return;
+      }
+      showPfToast('Kurs-Absage', `Storniere ${confirmedParts.length} Teilnehmer...`, 'info');
+      const supabase = getSupabase();
+      const { data: s } = await supabase.auth.getSession();
+      const token = s?.session?.access_token;
+      if (!token) {
+        showPfToast('Fehler', 'Nicht angemeldet', 'danger');
+        return;
+      }
+      const calls = confirmedParts.map(p =>
+        fetch(`${SUPABASE_URL}/functions/v1/cancel-or-refund`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'apikey': SUPABASE_ANON_KEY,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            group_participant_id: p.id,
+            reason: 'trainer',
+            actor_type: 'admin',
+            actor_id: null,
+          }),
+        }).then(resp => resp.json().then(b => ({ ok: resp.ok, b, pid: p.id, name: p.customer_name || p.name })))
+      );
+      const results = await Promise.allSettled(calls);
+      const failed = results
+        .filter(r => r.status === 'rejected' || !r.value.ok)
+        .map(r => r.status === 'fulfilled' ? (r.value.name || r.value.pid) : 'unbekannt');
+      const done = results.length - failed.length;
+      showPfToast(
+        'Kurs-Absage',
+        `${done}/${results.length} storniert${failed.length ? '. Fehlgeschlagen: ' + failed.join(', ') : ''}`,
+        failed.length ? 'warning' : 'success'
+      );
+      loadGroups();
+    } catch (err) {
+      showPfToast('Kurs-Absage fehlgeschlagen', err.message || String(err), 'danger');
     }
   }
 

@@ -102,7 +102,10 @@
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h3 class="card-title">Belege</h3>
-          <button class="btn btn-ghost-secondary btn-sm" onclick="exportCSV()">CSV-Export</button>
+          <div class="d-flex gap-2">
+            <button class="btn btn-ghost-secondary btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i> CSV-Export</button>
+            <button class="btn btn-primary btn-sm" onclick="exportZip()"><i class="ti ti-file-zip"></i> Export für Steuerberater (ZIP)</button>
+          </div>
         </div>
         <div class="card-body">
 
@@ -317,9 +320,14 @@
 
     tbody.innerHTML = filteredInvoices.map(inv => {
       const rowClass = isStorno(inv) ? 'row-storno' : '';
+      const numberCell = inv.storno_ref
+        ? `${inv.invoice_number || '–'} <span class="text-muted small">(storniert via SB ${inv.storno_ref})</span>`
+        : (inv.status === 'cancelled'
+           ? `<s>${inv.invoice_number || '–'}</s> <span class="text-danger small">storniert</span>`
+           : (inv.invoice_number || '–'));
       return `
         <tr class="${rowClass}" style="cursor:pointer" onclick="openDetail('${inv.id}')">
-          <td><strong>${inv.invoice_number || '–'}</strong></td>
+          <td><strong>${numberCell}</strong></td>
           <td>${typeBadge(inv)}</td>
           <td>${trainingBadge(inv)}</td>
           <td>${formatDate(inv.issued_at)}</td>
@@ -428,6 +436,71 @@
       if (win) win.addEventListener('load', () => win.print(), { once: true });
     } catch (err) {
       showAlert('alert-box', 'PDF-Fehler: ' + err.message, 'error');
+    }
+  }
+
+  // ─── ZIP-Export (für Steuerberater) ───────────────────────────────────────
+
+  async function exportZip() {
+    const year  = document.getElementById('filter-year').value || String(new Date().getFullYear());
+    const month = document.getElementById('filter-month').value; // '' oder '01'..'12'
+    const typeSelect = document.getElementById('filter-type').value || '';
+
+    // Datumsfenster aus year+month bilden
+    let from, to;
+    if (month) {
+      from = `${year}-${month}-01`;
+      const lastDay = new Date(Number(year), Number(month), 0).getDate();
+      to = `${year}-${month}-${String(lastDay).padStart(2, '0')}`;
+    } else {
+      from = `${year}-01-01`;
+      to   = `${year}-12-31`;
+    }
+
+    // Typ auf export-invoices-Schema mappen (Edge Function erwartet 'all' | 'rechnung' | 'gutschrift' | 'storno')
+    const typeMap = {
+      '': 'all',
+      'invoice': 'rechnung',
+      'credit_note': 'gutschrift',
+      'cancellation': 'storno',
+      'rechnung_gt_card': 'rechnung',
+    };
+    const type = typeMap[typeSelect] || 'all';
+
+    try {
+      const supabase = getSupabase();
+      const { data: s } = await supabase.auth.getSession();
+      const token = s?.session?.access_token;
+      if (!token) {
+        showPfToast('Export', 'Nicht angemeldet', 'danger');
+        return;
+      }
+      showPfToast('Export', 'ZIP wird erstellt...', 'info');
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/export-invoices`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'apikey': SUPABASE_ANON_KEY,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ from, to, type }),
+      });
+      if (!resp.ok) {
+        let msg = `HTTP ${resp.status}`;
+        try { const errJson = await resp.json(); if (errJson && errJson.error) msg = errJson.error; } catch {}
+        showPfToast('ZIP-Export fehlgeschlagen', msg, 'danger');
+        return;
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `belege_${from}_${to}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showPfToast('Export', 'ZIP bereit', 'success');
+    } catch (err) {
+      showPfToast('ZIP-Export fehlgeschlagen', err.message || String(err), 'danger');
     }
   }
 

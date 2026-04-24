@@ -220,6 +220,7 @@
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
+<script src="assets/js/storno-dialog.js"></script>
 <script>
   let allCards = [];
   let allCardTypes = [];
@@ -384,9 +385,24 @@
     return t ? t.name : '10er-Karte';
   }
 
+  function unitPriceFor(c) {
+    // 1) Join-Daten (gt_card_types(unit_price_cents))
+    if (c.gt_card_types && c.gt_card_types.unit_price_cents) return c.gt_card_types.unit_price_cents;
+    // 2) Lookup in lokaler Kartentypen-Liste
+    const t = allCardTypes.find(t => t.id === c.card_type_id);
+    if (t && t.unit_price_cents) return t.unit_price_cents;
+    return 0;
+  }
+
   function cardRow(c, isExpiredTab) {
     const total = c.sessions_total || 10;
     const used = c.sessions_used || 0;
+    const gross = c.final_price_cents || c.price_cents || 0;
+    const unit = unitPriceFor(c);
+    const custName = (customerName(c) || '').replace(/'/g,"\\'");
+    const returnBtn = (!c.storno_invoice_id && c.is_active && !isExpiredTab)
+      ? `<button class="btn btn-sm btn-ghost-secondary" title="Rückgabe" onclick="returnCard('${c.id}', '${custName}', ${gross}, ${used}, ${unit})" style="color:var(--tblr-danger)"><i class="ti ti-receipt-refund"></i></button>`
+      : '';
     return `<tr>
       <td>${customerName(c)}</td>
       <td>${typeName(c)}</td>
@@ -398,11 +414,28 @@
       <td>
         <div class="d-flex gap-1">
           ${!isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Guthaben anpassen" onclick="openAdjustModal('${c.id}', ${total - used})"><i class="ti ti-edit"></i></button>` : ''}
+          ${returnBtn}
           ${!isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Deaktivieren" onclick="deactivateCard('${c.id}')" style="color:var(--tblr-danger)"><i class="ti ti-ban"></i></button>` : ''}
           ${isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Reaktivieren" onclick="reactivateCard('${c.id}')"><i class="ti ti-refresh"></i></button>` : ''}
         </div>
       </td>
     </tr>`;
+  }
+
+  function returnCard(cardId, name, grossCents, usedSessions, unitPriceCents) {
+    if (!unitPriceCents) {
+      showPfToast('Rückgabe nicht möglich', 'Einzelpreis am Kartentyp pflegen (Kartentypen-Tab oder Admin → Kartentypen)', 'warning');
+      return;
+    }
+    openStornoDialog({
+      kind: 'gt_card',
+      id: cardId,
+      title: `10er-Karte (${name}) — ${usedSessions} Sessions genutzt`,
+      grossCents: Number(grossCents) || 0,
+      usedSessions: Number(usedSessions) || 0,
+      unitPriceCents: Number(unitPriceCents) || 0,
+      onSuccess: () => loadData(),
+    });
   }
 
   // ─── Card Types Tab ───────────────────────────────────────────────────────
