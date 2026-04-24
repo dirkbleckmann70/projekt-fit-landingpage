@@ -1123,7 +1123,7 @@ async function handleData(req, res, supabase) {
     case 'gt_cards': {
       const { data, error } = await supabase
         .from('gt_cards')
-        .select('*, gt_card_types(name, unit_price_cents, sessions, discount_percent), customers(full_name, email)')
+        .select('*, gt_card_types(name, unit_price_cents, sessions_count, discount_percent), customers(full_name, email)')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return res.json({ data: data || [] });

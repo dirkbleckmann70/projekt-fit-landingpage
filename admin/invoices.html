@@ -241,9 +241,9 @@
     const type   = document.getElementById('filter-type').value;
     const search = document.getElementById('filter-search').value.toLowerCase().trim();
 
-    // Neues Jahr laden wenn sich Jahr ändert
+    // Neues Jahr laden wenn sich Jahr ändert (nicht wenn nur leer — das waere Endlosschleife)
     const loaded = allInvoices[0]?.issued_at?.slice(0, 4);
-    if (allInvoices.length === 0 || loaded !== year) {
+    if (loaded && loaded !== year) {
       loadInvoices(year);
       return;
     }
