@@ -147,11 +147,13 @@
     const monthISO = monthStart.toISOString().slice(0, 10);
 
     try {
+      // Teilspec 1: 7-Wert-Kanon. PT-Einzeltrainings filtern (GT-Statistik haengt im Trainer-Portal nicht hier).
       const { data: allBookings } = await sb
         .from('bookings')
         .select('id, trainer_payout_cents, status, scheduled_date')
         .eq('trainer_id', trainerId)
-        .in('status', [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.COMPLETED]);
+        .eq('art', 'pt_einzel')
+        .in('status', ['bestaetigt', 'laeuft gerade', 'abgeschlossen']);
 
       const all = allBookings || [];
 
@@ -159,13 +161,13 @@
       document.getElementById('kpi-month').textContent = monthActive.length;
 
       const monthEarnings = monthActive
-        .filter(b => b.status === BOOKING_STATUS.COMPLETED)
+        .filter(b => b.status === 'abgeschlossen')
         .reduce((sum, b) => sum + (b.trainer_payout_cents || 0), 0);
       document.getElementById('kpi-earnings').textContent = formatEuro(monthEarnings);
 
       document.getElementById('kpi-month-total').textContent = `Gesamt: ${all.length}`;
       const totalEarnings = all
-        .filter(b => b.status === BOOKING_STATUS.COMPLETED)
+        .filter(b => b.status === 'abgeschlossen')
         .reduce((sum, b) => sum + (b.trainer_payout_cents || 0), 0);
       document.getElementById('kpi-earnings-total').textContent = `Gesamt: ${formatEuro(totalEarnings)}`;
     } catch (err) {
@@ -181,7 +183,8 @@
         .from('bookings')
         .select('*')
         .eq('trainer_id', trainerId)
-        .eq('status', BOOKING_STATUS.CONFIRMED)
+        .eq('art', 'pt_einzel')
+        .eq('status', 'bestaetigt')
         .gte('scheduled_date', today)
         .order('scheduled_date', { ascending: true })
         .limit(5);
@@ -221,7 +224,8 @@
         .from('bookings')
         .select('*')
         .eq('trainer_id', trainerId)
-        .in('status', [BOOKING_STATUS.PENDING, BOOKING_STATUS.REPLACEMENT_PENDING])
+        .eq('art', 'pt_einzel')
+        .in('status', ['angefragt'])
         .order('created_at', { ascending: false })
         .limit(5);
 
@@ -274,12 +278,16 @@
       var inst = bootstrap.Modal.getInstance(m);
       if (inst) inst.hide();
     });
-    const sb = getSupabase();
-    const { error } = await sb.from('bookings').update({ status }).eq('id', bookingId);
-    if (error) {
-      alert('Fehler: ' + error.message);
-    } else {
+    // Teilspec 1: Update geht ueber Admin-API — die mappt Legacy-Status auf neuen Kanon.
+    try {
+      await adminApi('/api/admin?action=bookings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, status }),
+      });
       window.location.reload();
+    } catch (e) {
+      alert('Fehler: ' + (e.message || e));
     }
   }
 

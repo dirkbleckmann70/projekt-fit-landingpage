@@ -159,11 +159,13 @@
   let _trainerRate = 0;
   let _mwstSatz    = 19;
 
-  const FIN_CANCELLED = ['cancelled', 'refunded', 'cancelled_by_trainer'];
+  // Teilspec 1: 7-Wert-Kanon. 'storniert' loest cancelled/refunded/cancelled_by_trainer ab;
+  // Legacy-Werte als Fallback fuer evtl. alte Cache-Daten.
+  const FIN_CANCELLED = ['storniert', 'cancelled', 'refunded', 'cancelled_by_trainer'];
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August',
                          'September','Oktober','November','Dezember'];
 
-  function effBrutto(b)     { return ['completed', 'paid', 'awaiting_checkout'].includes(b.status) ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
+  function effBrutto(b)     { return ['abgeschlossen', 'completed', 'paid', 'awaiting_checkout'].includes(b.status) ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
   function effNetto(b)      { return _mwstSatz > 0 ? Math.round(effBrutto(b) / (1 + _mwstSatz / 100)) : effBrutto(b); }
   function effMwSt(b)       { return effBrutto(b) - effNetto(b); }
   function effAuszahlung(b) { return effNetto(b); }
@@ -173,12 +175,22 @@
   }
 
   function vergütungCell(b) {
-    if (FIN_CANCELLED.includes((b.status || '').toLowerCase()))
+    const status = (b.status || '').toLowerCase();
+    if (FIN_CANCELLED.includes(status)) {
+      // Teilspec 1: bei 'storniert' ist der Sub-Grund in storno_grund —
+      // 'past_termin' bzw. 'expired' wird weiter als „ausstehend" markiert.
+      const grund = (b.storno_grund || '').toLowerCase();
+      if (grund === 'past_termin' || grund === 'expired') {
+        return '<span style="color:var(--tblr-warning)">0,00 € (ausstehend)</span>';
+      }
       return '<span class="text-secondary">0,00 €</span>';
-    if (b.status === 'expired')
+    }
+    if (status === 'expired') {
       return '<span style="color:var(--tblr-warning)">0,00 € (ausstehend)</span>';
-    if (b.status === 'pending' || b.status === 'confirmed')
+    }
+    if (['angefragt', 'reserviert', 'bestaetigt', 'pending', 'confirmed'].includes(status)) {
       return '<span class="text-secondary">–</span>';
+    }
     const v = b.trainer_payout_cents ?? _trainerRate;
     return `<span style="color:var(--tblr-primary);font-weight:600">${f(v)}</span>`;
   }
@@ -208,11 +220,13 @@
   async function loadFinances(trainerId) {
     const sb = getSupabase();
     try {
-      // ── 1. PT-Buchungen ──
+      // ── 1. PT-Buchungen (Teilspec 1: art='pt_einzel') ──
+      // storno_grund mitladen, damit vergütungCell den Unter-Grund (past_termin/expired) anzeigen kann.
       const { data, error } = await sb
         .from('bookings')
-        .select('id, scheduled_date, scheduled_time, customer_id, location_name, location_address, status, trainer_payout_cents, booking_type, notes, created_at')
+        .select('id, scheduled_date, scheduled_time, customer_id, location_name, location_address, status, storno_grund, trainer_payout_cents, booking_type, notes, created_at')
         .eq('trainer_id', trainerId)
+        .eq('art', 'pt_einzel')
         .order('scheduled_date', { ascending: false });
 
       if (error) throw error;
@@ -230,14 +244,19 @@
 
       let gtRows = [];
       if (classIds.length > 0) {
+        // Teilspec 1: GT-Teilnahmen liegen in bookings (art='gt_teilnahme').
+        // customer_name/email kommen ueber Customer-Join nicht mehr direkt aus dem Row;
+        // im Trainer-Portal bleibt das Anzeige-Feld als Platzhalter ('Teilnehmer'),
+        // weil der Trainer den Kundennamen bei GT-Teilnehmern nicht direkt sehen soll.
         const { data: participants } = await sb
-          .from('group_participants')
-          .select('id, group_class_id, customer_id, customer_name, customer_email, status, customer_paid, price_cents, final_price_cents, trainer_payout_cents, stripe_payment_status, created_at')
+          .from('bookings')
+          .select('id, group_class_id, customer_id, status, storno_grund, paid, price_cents, final_price_cents, trainer_payout_cents, stripe_payment_status, created_at')
+          .eq('art', 'gt_teilnahme')
           .in('group_class_id', classIds);
 
         gtRows = (participants || []).map(p => {
           const gc = classMap[p.group_class_id] || {};
-          const isCancelled = ['cancelled', 'refunded'].includes((p.status || '').toLowerCase());
+          const isCancelled = (p.status || '').toLowerCase() === 'storniert';
           return {
             id: `gp_${p.id}`,
             scheduled_date: gc.scheduled_date || null,
@@ -245,13 +264,14 @@
             customer_id: p.customer_id || null,
             location_name: gc.location_name || gc.city || null,
             location_address: null,
-            status: p.status || 'confirmed',
-            // Trainer-Vergütung aus participant-Spalte (Phase B) oder null-Fallback
+            status: p.status || 'bestaetigt',
+            storno_grund: p.storno_grund || null,
+            // Trainer-Verguetung aus participant-Spalte oder null-Fallback
             trainer_payout_cents: isCancelled ? 0 : (p.trainer_payout_cents ?? 0),
             booking_type: 'group',
             notes: gc.name ? `Gruppentraining: ${gc.name}` : 'Gruppentraining',
             created_at: p.created_at || null,
-            customer_name: p.customer_name || p.customer_email || 'Teilnehmer',
+            customer_name: 'Teilnehmer',
           };
         });
       }

@@ -242,6 +242,36 @@
   const CANCELLED = [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.CANCELLED_BY_TRAINER, BOOKING_STATUS.REFUNDED, BOOKING_STATUS.FULLY_CANCELLED];
   const ACTIVE = [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING];
 
+  // Teilspec 1 Bridge: DB liefert neuen 7-Wert-Kanon, dieses Frontend
+  // arbeitet noch mit Legacy-Begriffen. Mappt jeden bookings-Row beim
+  // Einlesen auf den vom Frontend erwarteten Status. Wird in der
+  // UX-Vereinheitlichung (separater Auftrag) zentral abgeloest.
+  function mapDbStatusToLegacy(b) {
+    var s = b && b.status;
+    if (s === 'bestaetigt') {
+      if (b.flag_neuer_termin_vorgeschlagen) return 'reschedule_proposed';
+      if (b.flag_neuer_ort_vorgeschlagen) return 'location_proposed';
+      return 'confirmed';
+    }
+    if (s === 'laeuft gerade') {
+      if (b.flag_checkout_bestaetigung_ausstehend) return 'awaiting_checkout';
+      return 'checked_in';
+    }
+    if (s === 'storniert') {
+      var w = b.storno_wer, g = b.storno_grund;
+      if (w === 'trainer' && g === 'rejected') return 'rejected';
+      if (w === 'trainer') return 'cancelled_by_trainer';
+      if (w === 'system' && (g === 'expired' || g === 'past_termin')) return 'expired';
+      if (g === 'fully_cancelled') return 'fully_cancelled';
+      if (g === 'refunded') return 'refunded';
+      return 'cancelled';
+    }
+    if (s === 'angefragt' || s === 'reserviert') return 'pending';
+    if (s === 'abgeschlossen') return 'completed';
+    if (s === 'strittig') return 'disputed';
+    return s;
+  }
+
   function isTerminVorbei(item) {
     if (!item.scheduled_date) return false;
     var parts = item.scheduled_date.split('-');
@@ -360,10 +390,12 @@
     const trainerId = window.currentTrainer.id;
 
     try {
+      // Teilspec 1: nur PT-Einzeltrainings — GT-Teilnahmen werden weiter unten ueber group_classes geladen.
       const { data, error } = await sb
         .from('bookings')
         .select('*')
         .eq('trainer_id', trainerId)
+        .eq('art', 'pt_einzel')
         .order('scheduled_date', { ascending: false });
 
       if (error) throw error;
@@ -381,6 +413,8 @@
 
       allBookings = (data || []).map(b => ({
         ...b,
+        // Teilspec-1-Bridge: DB-Status auf Legacy-Wert mappen, Frontend-Vergleiche bleiben funktional.
+        status: mapDbStatusToLegacy(b),
         _type: 'pt',
         customer_name: customerNames[b.customer_id] || b.customer_name || 'Kunde',
       }));
@@ -394,11 +428,16 @@
       allGTClasses = [];
       if (gtClasses && gtClasses.length > 0) {
         const classIds = gtClasses.map(c => c.id);
+        // Teilspec 1: GT-Teilnahmen liegen jetzt in bookings (art='gt_teilnahme').
+        // customer_name/email kommen ueber Customer-Join nicht mehr direkt aus dem Row.
+        // customer_paid -> paid; trainer_paid weg (trainer_paid_out_at IS NOT NULL als Indikator).
+        // Status-Filter: alles ausser 'storniert'.
         const { data: ptcps, error: ptcpErr } = await sb
-          .from('group_participants')
-          .select('id, group_class_id, status, customer_name, customer_email, customer_paid, trainer_checked_out_at, trainer_payout_cents, gt_card_id')
+          .from('bookings')
+          .select('id, group_class_id, status, customer_id, paid, trainer_checked_out_at, trainer_paid_out_at, trainer_payout_cents, gt_card_id')
+          .eq('art', 'gt_teilnahme')
           .in('group_class_id', classIds)
-          .neq('status', BOOKING_STATUS.CANCELLED);
+          .neq('status', 'storniert');
 
         const pcMap = {};
         const participantsMap = {};
@@ -656,8 +695,10 @@
       participantListHtml = `<div class="mb-3"><label class="form-label text-secondary">Teilnehmer</label>
         <div class="list-group list-group-flush" style="font-size:13px">
           ${gc.participants.map(p => {
+            // Teilspec 1: customer_name/email gibt es in bookings nicht mehr — Trainer
+            // sieht GT-Teilnehmer ohnehin anonymisiert; paid loest customer_paid ab.
             const name = p.customer_name || p.customer_email || 'Teilnehmer';
-            const paidBadge = p.customer_paid
+            const paidBadge = (p.paid ?? p.customer_paid)
               ? '<span class="badge bg-success-lt ms-2">Bezahlt</span>'
               : '<span class="badge bg-warning-lt ms-2">Offen</span>';
             const checkedOutBadge = p.trainer_checked_out_at

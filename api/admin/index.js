@@ -537,6 +537,95 @@ async function verifyAdmin(req) {
   return null;
 }
 
+// ─── Teilspec 1 Status-Bridge ───────────────────────────────────────────────
+// Frontend (Trainer-Portal-HTMLs + Admin-Portal-HTMLs) arbeitet noch mit dem
+// Legacy-Wortschatz (pending/confirmed/reschedule_proposed/...). Die DB
+// akzeptiert nur den neuen 7-Wert-Kanon. Diese zwei Helper bilden die Bruecke,
+// damit das Frontend unangetastet bleibt — die UX-Vereinheitlichung (eigener
+// Auftrag nach Teilspec 1) raeumt das spaeter zentral auf.
+
+function mapStatusForFrontend(row) {
+  const status = row.status;
+  // Status 'bestaetigt' + Flag → virtueller Sub-Status
+  if (status === 'bestaetigt') {
+    if (row.flag_neuer_termin_vorgeschlagen) return 'reschedule_proposed';
+    if (row.flag_neuer_ort_vorgeschlagen) return 'location_proposed';
+    return 'confirmed';
+  }
+  if (status === 'laeuft gerade') {
+    if (row.flag_checkout_bestaetigung_ausstehend) return 'awaiting_checkout';
+    return 'checked_in';
+  }
+  if (status === 'storniert') {
+    const wer = row.storno_wer;
+    const grund = row.storno_grund;
+    if (wer === 'trainer' && grund === 'rejected') return 'rejected';
+    if (wer === 'trainer') return 'cancelled_by_trainer';
+    if (wer === 'system' && (grund === 'expired' || grund === 'past_termin')) return 'expired';
+    if (grund === 'fully_cancelled') return 'fully_cancelled';
+    if (grund === 'refunded') return 'refunded';
+    return 'cancelled';
+  }
+  if (status === 'angefragt') return 'pending';
+  if (status === 'reserviert') return 'pending';
+  if (status === 'abgeschlossen') return 'completed';
+  if (status === 'strittig') return 'disputed';
+  return status;
+}
+
+function withFrontendStatus(row) {
+  return { ...row, status: mapStatusForFrontend(row) };
+}
+
+// Legacy-Status (vom Frontend gesendet) auf neuen 7-Wert-Kanon mappen.
+// Liefert das Update-Objekt-Fragment, das ans bookings-Update geht.
+function mapStatusForDb(legacyStatus) {
+  switch (legacyStatus) {
+    case 'pending':
+      return { status: 'angefragt' };
+    case 'confirmed':
+      return { status: 'bestaetigt', flag_neuer_termin_vorgeschlagen: false, flag_neuer_ort_vorgeschlagen: false };
+    case 'reschedule_proposed':
+      return { status: 'bestaetigt', flag_neuer_termin_vorgeschlagen: true };
+    case 'location_proposed':
+      return { status: 'bestaetigt', flag_neuer_ort_vorgeschlagen: true };
+    case 'awaiting_checkout':
+      return { status: 'laeuft gerade', flag_checkout_bestaetigung_ausstehend: true };
+    case 'checked_in':
+    case 'checked_in_trainer':
+      return { status: 'laeuft gerade' };
+    case 'completed':
+    case 'paid':
+      return { status: 'abgeschlossen' };
+    case 'cancelled':
+      return { status: 'storniert', storno_wer: 'kunde', storno_grund: 'cancelled' };
+    case 'cancelled_by_trainer':
+      return { status: 'storniert', storno_wer: 'trainer', storno_grund: 'cancelled_by_trainer' };
+    case 'fully_cancelled':
+      return { status: 'storniert', storno_wer: 'kunde', storno_grund: 'fully_cancelled' };
+    case 'rejected':
+      return { status: 'storniert', storno_wer: 'trainer', storno_grund: 'rejected' };
+    case 'expired':
+      return { status: 'storniert', storno_wer: 'system', storno_grund: 'expired' };
+    case 'refunded':
+      return { status: 'storniert', storno_wer: 'kunde', storno_grund: 'refunded' };
+    case 'disputed':
+    case 'escalated':
+      return { status: 'strittig' };
+    // Neuer Kanon: 1:1 durchreichen
+    case 'angefragt':
+    case 'reserviert':
+    case 'bestaetigt':
+    case 'laeuft gerade':
+    case 'abgeschlossen':
+    case 'storniert':
+    case 'strittig':
+      return { status: legacyStatus };
+    default:
+      return { status: legacyStatus };
+  }
+}
+
 async function getAdminEmail(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return null;
@@ -577,10 +666,12 @@ async function enrichBookings(supabase, bookings) {
 
   return bookings.map(b => ({
     ...b,
+    // Teilspec 1: DB-Status auf Legacy-Status fuers Frontend zurueckmappen.
+    status:            mapStatusForFrontend(b),
     trainer_name:      trainerMap[b.trainer_id]?.full_name || null,
     trainer_city:      trainerMap[b.trainer_id]?.city || null,
     trainer_mwst_satz: trainerMap[b.trainer_id]?.mwst_satz ?? null,
-    // Trainer-Auszahlungsrate aus trainer_profiles (überschreibt nicht das buchungseigene payout_cents)
+    // Trainer-Auszahlungsrate aus trainer_profiles (ueberschreibt nicht das buchungseigene payout_cents)
     trainer_rate_cents: trainerMap[b.trainer_id]?.payout_cents ?? null,
     // payout_cents: Buchungseigenes Feld bevorzugen, sonst Trainer-Rate als Fallback
     payout_cents:      b.payout_cents ?? trainerMap[b.trainer_id]?.payout_cents ?? null,
@@ -592,12 +683,17 @@ async function enrichBookings(supabase, bookings) {
 }
 
 // ─── GT-Teilnahmen als Buchungs-Objekte laden ─────────────────────────────────
+// Teilspec 1: GT-Teilnahmen liegen jetzt in bookings mit art='gt_teilnahme'.
+// Spaltenmapping (alt -> neu): customer_paid -> paid; trainer_paid weg
+// (trainer_paid_out_at IS NOT NULL ist Indikator); customer_name/email kommen
+// ueber JOIN auf customers; mwst_satz weg (kommt ueber trainer-Profil-Fallback);
+// Status-Werte 'cancelled'/'refunded' -> 'storniert'.
 async function fetchGroupParticipantsAsBookings(supabase) {
   const { data: participants, error } = await supabase
-    .from('group_participants')
+    .from('bookings')
     .select('*')
+    .eq('art', 'gt_teilnahme')
     .order('created_at', { ascending: false });
-  // Tabelle nicht vorhanden oder leer → keine GT-Einträge
   if (error || !participants || participants.length === 0) return [];
 
   const classIds = [...new Set(participants.map(p => p.group_class_id).filter(Boolean))];
@@ -618,25 +714,35 @@ async function fetchGroupParticipantsAsBookings(supabase) {
     if (trainers) trainers.forEach(t => { trainerMap[t.id] = t; });
   }
 
-  // Aktive Teilnehmer pro Kurs zählen (für anteilige Trainer-Kosten)
+  // Customer-Daten ueber JOIN nachladen (bookings hat customer_name/email NICHT mehr direkt)
+  const customerIds = [...new Set(participants.map(p => p.customer_id).filter(Boolean))];
+  const customerMap = {};
+  if (customerIds.length > 0) {
+    const { data: customers } = await supabase
+      .from('customers')
+      .select('id, full_name, first_name, last_name, email')
+      .in('id', customerIds);
+    if (customers) customers.forEach(c => { customerMap[c.id] = c; });
+  }
+
+  // Aktive Teilnehmer pro Kurs zaehlen (fuer anteilige Trainer-Kosten)
   const activeCountByClass = {};
   participants.forEach(p => {
     const st = (p.status || '').toLowerCase();
-    if (!['cancelled', 'refunded'].includes(st)) {
+    if (st !== 'storniert') {
       activeCountByClass[p.group_class_id] = (activeCountByClass[p.group_class_id] || 0) + 1;
     }
   });
 
   return participants.map(p => {
-    const gc      = classMap[p.group_class_id] || {};
-    const trainer = trainerMap[gc.trainer_id]  || {};
-    const isCancelled = ['cancelled', 'refunded'].includes((p.status || '').toLowerCase());
+    const gc       = classMap[p.group_class_id] || {};
+    const trainer  = trainerMap[gc.trainer_id]  || {};
+    const customer = customerMap[p.customer_id] || {};
+    const isCancelled = (p.status || '').toLowerCase() === 'storniert';
 
-    // Phase B: neue Payment-Spalten bevorzugen, Fallback auf alte Logik
-    const priceFromParticipant     = p.price_cents;
+    const priceFromParticipant      = p.price_cents;
     const finalPriceFromParticipant = p.final_price_cents;
     const payoutFromParticipant     = p.trainer_payout_cents;
-    const mwstFromParticipant       = p.mwst_satz;
 
     // Fallback (alte GT-Buchungen ohne Payment-Spalten): anteiliger Payout
     const count = activeCountByClass[p.group_class_id] || 1;
@@ -645,28 +751,39 @@ async function fetchGroupParticipantsAsBookings(supabase) {
     const priceCents      = priceFromParticipant     ?? (gc.price_per_person_cents || 0);
     const finalPriceCents = finalPriceFromParticipant ?? priceCents;
     const payoutCents     = payoutFromParticipant    ?? payoutShare;
-    const mwstSatz        = mwstFromParticipant      ?? (trainer.mwst_satz ?? null);
+    // bookings hat keine mwst_satz-Spalte — Fallback auf Trainer-Profil
+    const mwstSatz        = trainer.mwst_satz ?? null;
 
-    // Payment-Status aus Stripe-Status ableiten (Phase B), sonst customer_paid-Flag
+    // Payment-Status aus Stripe-Status ableiten, sonst paid-Flag
     let paymentStatus = 'pending';
     if (p.stripe_payment_status) {
       paymentStatus = p.stripe_payment_status;
-    } else if (p.customer_paid) {
+    } else if (p.paid) {
       paymentStatus = 'paid';
     }
 
+    const customerFullName =
+      customer.full_name
+      || [customer.first_name, customer.last_name].filter(Boolean).join(' ')
+      || customer.email
+      || '–';
+
     return {
+      // gp_-Praefix bleibt fuer Frontend-Kompatibilitaet (Trainer-Portal-Code unterscheidet Buchungs-Arten daran).
       id:                 `gp_${p.id}`,
       booking_type:       'group',
-      customer_name:      p.customer_name || p.customer_email || '–',
+      customer_name:      customerFullName,
       customer_id:        p.customer_id || null,
       trainer_id:         gc.trainer_id    || null,
       trainer_name:       trainer.full_name || null,
       trainer_city:       trainer.city || gc.city || null,
       trainer_mwst_satz:  mwstSatz,
-      scheduled_date:     gc.scheduled_date  || null,
-      scheduled_time:     gc.scheduled_time  || null,
-      status:             p.status || 'confirmed',
+      scheduled_date:     gc.scheduled_date  || p.scheduled_date || null,
+      scheduled_time:     gc.scheduled_time  || p.scheduled_time || null,
+      // Status auf Legacy-Status fuers Frontend zurueckmappen (Teilspec-1-Bridge)
+      status:             mapStatusForFrontend(p) || 'confirmed',
+      storno_wer:         p.storno_wer || null,
+      storno_grund:       p.storno_grund || null,
       price_cents:        isCancelled ? 0 : priceCents,
       final_price_cents:  isCancelled ? 0 : finalPriceCents,
       payout_cents:       isCancelled ? 0 : payoutCents,
@@ -674,8 +791,8 @@ async function fetchGroupParticipantsAsBookings(supabase) {
       payment_status:     paymentStatus,
       stripe_payment_intent_id: p.stripe_payment_intent_id || null,
       stripe_payment_id:  p.stripe_payment_id || null,
-      location_name:      gc.city || null,
-      location:           gc.city || null,
+      location_name:      p.location_name || gc.city || null,
+      location:           p.location_name || gc.city || null,
       notes:              gc.name ? `Kurs: ${gc.name}` : null,
       created_at:         p.created_at || null,
       group_class_id:     p.group_class_id || null,
@@ -758,7 +875,7 @@ async function handleData(req, res, supabase) {
         .from('bookings')
         .select('price_cents')
         .gte('created_at', monthStart.toISOString())
-        .in('status', ['confirmed', 'completed']);
+        .in('status', ['bestaetigt', 'laeuft gerade', 'abgeschlossen']);
       if (error) throw error;
       const total = (data || []).reduce((sum, b) => sum + (b.price_cents || 0), 0);
       return res.json({ total_cents: total });
@@ -818,8 +935,10 @@ async function handleData(req, res, supabase) {
     }
 
     case 'all_bookings': {
+      // Teilspec 1: PT + GT liegen in derselben Tabelle bookings — PT-Filter
+      // nur auf 'pt_einzel', sonst Doppler mit fetchGroupParticipantsAsBookings.
       const [ptResult, gtRows] = await Promise.all([
-        supabase.from('bookings').select('*').order('scheduled_date', { ascending: false }),
+        supabase.from('bookings').select('*').eq('art', 'pt_einzel').order('scheduled_date', { ascending: false }),
         fetchGroupParticipantsAsBookings(supabase),
       ]);
       if (ptResult.error) throw ptResult.error;
@@ -830,10 +949,12 @@ async function handleData(req, res, supabase) {
     }
 
     case 'recent_bookings': {
+      // Teilspec 1: nur PT-Einzeltrainings; GT-Teilnahmen werden ueber 'all_bookings' eingeblendet.
       const n = parseInt(limit) || 5;
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
+        .eq('art', 'pt_einzel')
         .order('created_at', { ascending: false })
         .limit(n);
       if (error) throw error;
@@ -842,8 +963,9 @@ async function handleData(req, res, supabase) {
     }
 
     case 'finances': {
+      // Teilspec 1: PT auf art='pt_einzel' filtern, sonst Doppler mit fetchGroupParticipantsAsBookings.
       const [ptResult, gtRows] = await Promise.all([
-        supabase.from('bookings').select('*').order('scheduled_date', { ascending: false }),
+        supabase.from('bookings').select('*').eq('art', 'pt_einzel').order('scheduled_date', { ascending: false }),
         fetchGroupParticipantsAsBookings(supabase),
       ]);
       if (ptResult.error) throw ptResult.error;
@@ -904,9 +1026,11 @@ async function handleData(req, res, supabase) {
 
     case 'group_participants': {
       if (!group_id) return res.status(400).json({ error: 'group_id fehlt' });
+      // Teilspec 1: GT-Teilnahmen liegen in bookings (art='gt_teilnahme')
       const { data, error } = await supabase
-        .from('group_participants')
+        .from('bookings')
         .select('*')
+        .eq('art', 'gt_teilnahme')
         .eq('group_class_id', group_id)
         .order('created_at', { ascending: false });
       if (error) {
@@ -1051,8 +1175,8 @@ async function handleData(req, res, supabase) {
       const [trainersRes, pendingRes, weekBookingsRes, monthRevenueRes] = await Promise.all([
         supabase.from('trainer_profiles').select('id', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('trainer_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('bookings').select('id', { count: 'exact', head: true }).gte('scheduled_date', mondayISO).in('status', ['confirmed', 'completed']),
-        supabase.from('bookings').select('price_cents').eq('status', 'completed').gte('scheduled_date', monthISO),
+        supabase.from('bookings').select('id', { count: 'exact', head: true }).gte('scheduled_date', mondayISO).in('status', ['bestaetigt', 'laeuft gerade', 'abgeschlossen']),
+        supabase.from('bookings').select('price_cents').eq('status', 'abgeschlossen').gte('scheduled_date', monthISO),
       ]);
 
       return res.json({
@@ -1132,9 +1256,11 @@ async function handleData(req, res, supabase) {
     case 'gt_card_bookings': {
       const cardId = req.query.card_id;
       if (!cardId) return res.status(400).json({ error: 'card_id required' });
+      // Teilspec 1: Karten-Buchungen liegen in bookings (art='gt_teilnahme' + gt_card_id)
       const { data, error } = await supabase
-        .from('group_participants')
+        .from('bookings')
         .select('*, group_classes(name, scheduled_date, scheduled_time)')
+        .eq('art', 'gt_teilnahme')
         .eq('gt_card_id', cardId)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -1381,7 +1507,9 @@ async function handleDeleteTrainer(req, res, supabase) {
   }
 
   try {
-    // 1. Alle group_participants löschen, deren Kurs diesem Trainer gehört
+    // 1. Alle GT-Teilnahmen loeschen, deren Kurs diesem Trainer gehoert.
+    // Teilspec 1: bookings (art='gt_teilnahme'); Legacy-Tabelle group_participants
+    // wird parallel mit aufgeraeumt, falls noch Daten drin liegen.
     const { data: trainerGroups } = await supabase
       .from('group_classes')
       .select('id')
@@ -1389,10 +1517,16 @@ async function handleDeleteTrainer(req, res, supabase) {
     if (trainerGroups && trainerGroups.length > 0) {
       const groupIds = trainerGroups.map(g => g.id);
       const { error: partErr } = await supabase
+        .from('bookings')
+        .delete()
+        .eq('art', 'gt_teilnahme')
+        .in('group_class_id', groupIds);
+      if (partErr) console.error('bookings (gt_teilnahme) DELETE:', partErr.message);
+      const { error: legacyErr } = await supabase
         .from('group_participants')
         .delete()
         .in('group_class_id', groupIds);
-      if (partErr && partErr.code !== '42P01') console.error('group_participants DELETE:', partErr.message);
+      if (legacyErr && legacyErr.code !== '42P01') console.error('group_participants DELETE:', legacyErr.message);
     }
 
     // 2. group_classes: trainer_id auf NULL setzen
@@ -1486,11 +1620,24 @@ async function handleBookingsPut(req, res, supabase) {
   const update = {};
 
   if (status !== undefined) {
-    const validStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED', 'pending', 'confirmed', 'completed', 'cancelled', 'cancelled_by_trainer', 'expired', 'rejected', 'disputed', 'checked_in', 'paid', 'refunded', 'reschedule_proposed', 'location_proposed', 'finding_replacement', 'replacement_pending', 'replacement_found', 'fully_cancelled', 'awaiting_checkout'];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ error: `Ungültiger Status: ${status}` });
+    // Teilspec 1: Legacy-Status-Werte vom Frontend werden hier zentral auf den
+    // neuen 7-Wert-Kanon plus storno_wer/storno_grund + flag_*-Spalten gemappt.
+    const newCanon = ['angefragt', 'reserviert', 'bestaetigt', 'laeuft gerade', 'abgeschlossen', 'storniert', 'strittig'];
+    const legacyCanon = [
+      'PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED',
+      'pending', 'confirmed', 'completed', 'cancelled',
+      'cancelled_by_trainer', 'expired', 'rejected', 'disputed',
+      'checked_in', 'paid', 'refunded',
+      'reschedule_proposed', 'location_proposed',
+      'finding_replacement', 'replacement_pending', 'replacement_found',
+      'fully_cancelled', 'awaiting_checkout',
+    ];
+    if (![...newCanon, ...legacyCanon].includes(status)) {
+      return res.status(400).json({ error: `Ungueltiger Status: ${status}` });
     }
-    update.status = status;
+    // Mapping anwenden (Lower-case fuer Konsistenz mit DB-CHECK)
+    const normalized = typeof status === 'string' ? status.toLowerCase() : status;
+    Object.assign(update, mapStatusForDb(normalized));
   }
 
   if (paid !== undefined) {
@@ -1577,11 +1724,11 @@ async function handleBookingsPut(req, res, supabase) {
       return res.status(404).json({ error: 'Buchung nicht gefunden' });
     }
 
-    if (!['pending', 'confirmed'].includes(current.status)) {
-      return res.status(400).json({ error: `Reschedule nur bei pending/confirmed moeglich, aktuell: ${current.status}` });
+    if (!['angefragt', 'reserviert', 'bestaetigt'].includes(current.status)) {
+      return res.status(400).json({ error: `Reschedule nur bei angefragt/reserviert/bestaetigt moeglich, aktuell: ${current.status}` });
     }
 
-    if (current.status === 'confirmed') {
+    if (current.status === 'bestaetigt') {
       const bookingDateTime = new Date(`${current.scheduled_date}T${current.scheduled_time}`);
       const now = new Date();
       const diffHours = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -1601,7 +1748,9 @@ async function handleBookingsPut(req, res, supabase) {
       .eq('trainer_id', current.trainer_id)
       .eq('scheduled_date', proposed_date)
       .eq('scheduled_time', proposed_time + ':00')
-      .in('status', ['pending', 'confirmed', 'reschedule_proposed', 'checked_in'])
+      // Teilspec 1: Status 'reschedule_proposed' ist abgeschafft — flag-basiertes Vorschlagen.
+      // Aktive Status, die einen Slot belegen.
+      .in('status', ['angefragt', 'reserviert', 'bestaetigt', 'laeuft gerade'])
       .neq('id', bookingId);
 
     if (conflicts && conflicts.length > 0) {
@@ -1649,10 +1798,12 @@ async function handleBookingsPut(req, res, supabase) {
       return res.status(400).json({ error: 'Trainer ist zu dieser Uhrzeit nicht verfuegbar' });
     }
 
+    // Teilspec 1: Status bleibt 'bestaetigt' — der Vorschlag wird ueber das Flag markiert.
     update.proposed_date = proposed_date;
     update.proposed_time = proposed_time;
     update.reschedule_proposed_at = new Date().toISOString();
-    update.status = 'reschedule_proposed';
+    update.flag_neuer_termin_vorgeschlagen = true;
+    update.status = 'bestaetigt';
 
     const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
     const oldDate = current.scheduled_date;
@@ -1703,11 +1854,20 @@ async function handleBookingsDelete(req, res, supabase) {
       deletedCount += count || realIds.length;
     }
 
-    // 2. GT-Teilnahmen loeschen
+    // 2. GT-Teilnahmen loeschen.
+    // Teilspec 1: GT-Teilnahmen liegen in bookings (art='gt_teilnahme'); IDs sind 1:1
+    // gleich mit der Legacy-Tabelle group_participants — beide werden aufgeraeumt.
     if (gpIds.length > 0) {
-      const { error, count } = await supabase.from('group_participants').delete({ count: 'exact' }).in('id', gpIds);
-      if (error) return res.status(500).json({ error: 'GT-Teilnahmen loeschen: ' + error.message });
-      deletedCount += count || gpIds.length;
+      const { error: bErr, count: bCount } = await supabase
+        .from('bookings')
+        .delete({ count: 'exact' })
+        .eq('art', 'gt_teilnahme')
+        .in('id', gpIds);
+      if (bErr) return res.status(500).json({ error: 'GT-Teilnahmen (bookings) loeschen: ' + bErr.message });
+      deletedCount += bCount || gpIds.length;
+      // Legacy-Tabelle parallel aufraeumen (falls noch Daten drin liegen)
+      const { error: lErr } = await supabase.from('group_participants').delete().in('id', gpIds);
+      if (lErr && lErr.code !== '42P01') console.error('group_participants legacy DELETE:', lErr.message);
     }
 
     return res.json({ success: true, deleted: deletedCount });
@@ -1783,8 +1943,19 @@ async function handleGroups(req, res, supabase) {
     if (fetchErr) throw fetchErr;
     if (group?.is_active) return res.status(400).json({ error: 'Kurs muss zuerst deaktiviert werden' });
 
-    const { error: partError } = await supabase.from('group_participants').delete().eq('group_class_id', id);
-    if (partError && partError.code !== '42P01') console.error('group_participants DELETE error:', partError.message);
+    // Teilspec 1: GT-Teilnahmen liegen in bookings (art='gt_teilnahme');
+    // Legacy-Tabelle group_participants parallel aufraeumen.
+    const { error: partError } = await supabase
+      .from('bookings')
+      .delete()
+      .eq('art', 'gt_teilnahme')
+      .eq('group_class_id', id);
+    if (partError) console.error('bookings (gt_teilnahme) DELETE error:', partError.message);
+    const { error: legacyError } = await supabase
+      .from('group_participants')
+      .delete()
+      .eq('group_class_id', id);
+    if (legacyError && legacyError.code !== '42P01') console.error('group_participants legacy DELETE error:', legacyError.message);
 
     const { error } = await supabase.from('group_classes').delete().eq('id', id);
     if (error) throw error;
@@ -2017,12 +2188,12 @@ async function handleCustomers(req, res, supabase) {
     const { id } = body;
     if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
 
-    // Prüfe ob aktive Buchungen vorhanden
+    // Pruefe ob aktive Buchungen vorhanden (Teilspec 1: 7-Wert-Kanon)
     const { data: activeBookings } = await supabase
       .from('bookings')
       .select('id, status')
       .eq('customer_id', id)
-      .in('status', ['pending', 'confirmed']);
+      .in('status', ['angefragt', 'reserviert', 'bestaetigt', 'laeuft gerade']);
 
     if (activeBookings && activeBookings.length > 0) {
       return res.status(400).json({
@@ -2057,15 +2228,27 @@ async function handleUpdateParticipant(req, res, supabase) {
 
   if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
 
+  // Teilspec 1: GT-Teilnahmen liegen in bookings (art='gt_teilnahme'). bookings hat
+  // weder attended noch customer_paid/trainer_paid als Boolean — wir mappen auf
+  // die vorhandenen Spalten: attended -> Status laeuft gerade, customer_paid -> paid,
+  // trainer_paid -> trainer_paid_out_at-Zeitstempel.
   const update = {};
-  if (attended !== undefined) update.attended = !!attended;
-  if (customer_paid !== undefined) update.customer_paid = !!customer_paid;
-  if (trainer_paid !== undefined) update.trainer_paid = !!trainer_paid;
+  if (attended !== undefined) {
+    update.status = attended ? 'laeuft gerade' : 'bestaetigt';
+  }
+  if (customer_paid !== undefined) update.paid = !!customer_paid;
+  if (trainer_paid !== undefined) {
+    update.trainer_paid_out_at = trainer_paid ? new Date().toISOString() : null;
+  }
   if (trainer_checked_out_at !== undefined) update.trainer_checked_out_at = trainer_checked_out_at;
 
   if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });
 
-  const { error } = await supabase.from('group_participants').update(update).eq('id', id);
+  const { error } = await supabase
+    .from('bookings')
+    .update(update)
+    .eq('id', id)
+    .eq('art', 'gt_teilnahme');
   if (error) throw error;
   return res.json({ success: true });
 }
@@ -2074,21 +2257,51 @@ async function handleUpdateParticipant(req, res, supabase) {
 
 async function handleAddParticipant(req, res, supabase) {
   const body = await getBody(req);
-  const { group_class_id, customer_name, customer_email } = body;
+  const { group_class_id, customer_id, customer_name, customer_email } = body;
 
-  if (!group_class_id || !customer_name) {
-    return res.status(400).json({ error: 'group_class_id und customer_name sind erforderlich' });
+  if (!group_class_id || (!customer_id && !customer_name)) {
+    return res.status(400).json({ error: 'group_class_id plus customer_id oder customer_name erforderlich' });
   }
 
-  const { data, error } = await supabase.from('group_participants').insert({
-    group_class_id,
-    customer_name,
-    customer_email: customer_email || null,
-    attended: false,
-    customer_paid: false,
-    trainer_paid: false,
-  }).select();
+  // Teilspec 1: GT-Anmeldung ueber bookings (art='gt_teilnahme'). Pflichtfelder
+  // (scheduled_date/scheduled_time/trainer_id) kommen aus group_classes.
+  const { data: gc, error: gcErr } = await supabase
+    .from('group_classes')
+    .select('id, trainer_id, scheduled_date, scheduled_time, price_per_person_cents, location_name, location_address')
+    .eq('id', group_class_id)
+    .single();
+  if (gcErr || !gc) return res.status(404).json({ error: 'Kurs nicht gefunden' });
+  if (!gc.trainer_id) return res.status(400).json({ error: 'Kurs hat keinen Trainer' });
+  if (!gc.scheduled_date || !gc.scheduled_time) return res.status(400).json({ error: 'Kurs hat keinen Termin' });
 
+  // Customer ggf. ueber Email auflosen (admin-Seite kennt Kunden ueber Mail)
+  let resolvedCustomerId = customer_id || null;
+  if (!resolvedCustomerId && customer_email) {
+    const { data: c } = await supabase
+      .from('customers')
+      .select('id')
+      .eq('email', customer_email.trim().toLowerCase())
+      .single();
+    if (c) resolvedCustomerId = c.id;
+  }
+
+  const insertData = {
+    customer_id: resolvedCustomerId,
+    trainer_id: gc.trainer_id,
+    art: 'gt_teilnahme',
+    booking_type: 'group',
+    group_class_id,
+    scheduled_date: gc.scheduled_date,
+    scheduled_time: gc.scheduled_time,
+    location_name: gc.location_name || null,
+    location_address: gc.location_address || null,
+    status: 'bestaetigt',
+    paid: false,
+    price_cents: gc.price_per_person_cents || 0,
+    final_price_cents: gc.price_per_person_cents || 0,
+  };
+
+  const { data, error } = await supabase.from('bookings').insert(insertData).select();
   if (error) throw error;
   return res.json({ success: true, data: data?.[0] });
 }
@@ -2301,13 +2514,14 @@ async function handleRescheduleAccept(req, res, supabase) {
 
   const { data: booking, error: fetchErr } = await supabase
     .from('bookings')
-    .select('status, proposed_date, proposed_time, scheduled_date, scheduled_time, notes')
+    .select('status, proposed_date, proposed_time, scheduled_date, scheduled_time, notes, flag_neuer_termin_vorgeschlagen')
     .eq('id', bookingId)
     .single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Buchung nicht gefunden' });
-  if (booking.status !== 'reschedule_proposed') {
-    return res.status(400).json({ error: `Status muss reschedule_proposed sein, ist: ${booking.status}` });
+  // Teilspec 1: Vorschlag wird ueber Flag markiert; Status bleibt 'bestaetigt'.
+  if (!booking.flag_neuer_termin_vorgeschlagen) {
+    return res.status(400).json({ error: `Kein offener Termin-Vorschlag fuer diese Buchung (Status: ${booking.status})` });
   }
 
   const oldDate = booking.scheduled_date;
@@ -2323,7 +2537,8 @@ async function handleRescheduleAccept(req, res, supabase) {
       proposed_date: null,
       proposed_time: null,
       reschedule_proposed_at: null,
-      status: 'confirmed',
+      flag_neuer_termin_vorgeschlagen: false,
+      status: 'bestaetigt',
       notes: booking.notes ? `${booking.notes}\n${auditNote}` : auditNote,
       updated_at: new Date().toISOString(),
     })
@@ -2343,25 +2558,29 @@ async function handleRescheduleReject(req, res, supabase) {
 
   const { data: booking, error: fetchErr } = await supabase
     .from('bookings')
-    .select('status, notes, scheduled_date, scheduled_time, proposed_date, proposed_time')
+    .select('status, notes, scheduled_date, scheduled_time, proposed_date, proposed_time, flag_neuer_termin_vorgeschlagen')
     .eq('id', bookingId)
     .single();
 
   if (fetchErr || !booking) return res.status(404).json({ error: 'Buchung nicht gefunden' });
-  if (booking.status !== 'reschedule_proposed') {
-    return res.status(400).json({ error: `Status muss reschedule_proposed sein, ist: ${booking.status}` });
+  if (!booking.flag_neuer_termin_vorgeschlagen) {
+    return res.status(400).json({ error: `Kein offener Termin-Vorschlag fuer diese Buchung (Status: ${booking.status})` });
   }
 
   const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
   const auditNote = `[Reschedule ${timestamp}] Kunde hat abgelehnt. Buchung storniert.`;
 
+  // Teilspec 1: Storno auf neuen Kanon — status='storniert' + storno_wer + storno_grund.
   const { error } = await supabase
     .from('bookings')
     .update({
       proposed_date: null,
       proposed_time: null,
       reschedule_proposed_at: null,
-      status: 'cancelled_by_trainer',
+      flag_neuer_termin_vorgeschlagen: false,
+      status: 'storniert',
+      storno_wer: 'trainer',
+      storno_grund: 'reschedule_rejected',
       cancellation_reason: 'Terminaenderung abgelehnt',
       notes: booking.notes ? `${booking.notes}\n${auditNote}` : auditNote,
       updated_at: new Date().toISOString(),
@@ -2456,8 +2675,11 @@ async function handleLocationAccept(req, res, supabase) {
   const { data: booking } = await supabase.from('bookings').select('selected_location_id, location_name, location_address, notes').eq('id', bookingId).single()
   if (!booking) return res.status(404).json({ success: false, error: 'Buchung nicht gefunden' })
 
+  // Teilspec 1: Status bleibt 'bestaetigt' — der Treffpunkt-Vorschlag wird ueber das Flag markiert,
+  // beim Akzeptieren wird das Flag zurueckgesetzt.
   const update = {
-    status: 'confirmed',
+    status: 'bestaetigt',
+    flag_neuer_ort_vorgeschlagen: false,
     notes: '',
     updated_at: new Date().toISOString(),
   }
@@ -2494,9 +2716,14 @@ async function handleLocationReject(req, res, supabase) {
   const auditNote = `[Location ${new Date().toISOString()}] Kunde hat Trainer-Treffpunkt abgelehnt. Buchung storniert.`
   const newNotes = booking?.notes ? `${booking.notes}\n${auditNote}` : auditNote
 
+  // Teilspec 1: Storno auf neuen Kanon — status='storniert' + storno_wer + storno_grund.
   const { error } = await supabase.from('bookings').update({
-    status: 'fully_cancelled',
-    notes: newNotes, updated_at: new Date().toISOString(),
+    status: 'storniert',
+    storno_wer: 'kunde',
+    storno_grund: 'location_rejected',
+    flag_neuer_ort_vorgeschlagen: false,
+    notes: newNotes,
+    updated_at: new Date().toISOString(),
   }).eq('id', bookingId)
 
   if (error) return res.status(500).json({ success: false, error: error.message })

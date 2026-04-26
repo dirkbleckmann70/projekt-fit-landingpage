@@ -402,10 +402,10 @@
         }
       });
 
-      // 2. PT Bookings (read-only)
+      // 2. PT Bookings (read-only). Teilspec 1: 7-Wert-Kanon.
       var bookResult = await sb.from('bookings').select('*')
         .eq('trainer_id', trainerId)
-        .in('status', ['pending', 'confirmed', 'checked_in'])
+        .in('status', ['angefragt', 'bestaetigt', 'laeuft gerade'])
         .gte('scheduled_date', startDate).lte('scheduled_date', endDate);
       (bookResult.data || []).forEach(function(b) {
         if (!b.scheduled_date || !b.scheduled_time) return;
@@ -415,7 +415,7 @@
           title: 'PT: ' + (b.customer_name || 'Kunde'),
           start: b.scheduled_date + 'T' + b.scheduled_time,
           end: endTime.toISOString(),
-          classNames: [b.status === 'pending' ? 'fc-event-pt-pending' : 'fc-event-pt-confirmed'],
+          classNames: [b.status === 'angefragt' ? 'fc-event-pt-pending' : 'fc-event-pt-confirmed'],
           editable: false,
           extendedProps: { type: 'booking', booking: b }
         });
