@@ -1026,7 +1026,8 @@ async function handleData(req, res, supabase) {
 
     case 'group_participants': {
       if (!group_id) return res.status(400).json({ error: 'group_id fehlt' });
-      // Teilspec 1: GT-Teilnahmen liegen in bookings (art='gt_teilnahme')
+      // Teilspec 1: GT-Teilnahmen liegen in bookings (art='gt_teilnahme').
+      // Status auf Legacy-Wert mappen, damit Frontend-Vergleiche (cancelled/refunded) weiter matchen.
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
@@ -1037,7 +1038,8 @@ async function handleData(req, res, supabase) {
         if (error.code === '42P01') return res.json({ data: [] });
         throw error;
       }
-      return res.json({ data: data || [] });
+      const mapped = (data || []).map(withFrontendStatus);
+      return res.json({ data: mapped });
     }
 
     case 'all_customers': {
@@ -1110,14 +1112,17 @@ async function handleData(req, res, supabase) {
       const weekStart = req.query.week_start;
       const weekEnd = req.query.week_end;
       if (trainerIds.length === 0 || !weekStart || !weekEnd) return res.json({ data: [] });
+      // Teilspec 1: nur PT-Einzeltrainings; Status auf Legacy-Wert mappen.
+      // Flag-Spalten + storno-Felder mitladen, damit mapStatusForFrontend richtig mappen kann.
       const { data, error } = await supabase
         .from('bookings')
-        .select('id, trainer_id, customer_id, scheduled_date, scheduled_time, status, price_cents, trainer_payout_cents, booking_type')
+        .select('id, trainer_id, customer_id, scheduled_date, scheduled_time, status, price_cents, trainer_payout_cents, booking_type, art, flag_neuer_termin_vorgeschlagen, flag_neuer_ort_vorgeschlagen, flag_checkout_bestaetigung_ausstehend, storno_wer, storno_grund')
         .in('trainer_id', trainerIds)
+        .eq('art', 'pt_einzel')
         .gte('scheduled_date', weekStart)
         .lte('scheduled_date', weekEnd);
       if (error) throw error;
-      return res.json({ data: data || [] });
+      return res.json({ data: (data || []).map(withFrontendStatus) });
     }
 
     // ─── Calendar: Group classes für Trainer ──────────────────────────
@@ -1256,7 +1261,8 @@ async function handleData(req, res, supabase) {
     case 'gt_card_bookings': {
       const cardId = req.query.card_id;
       if (!cardId) return res.status(400).json({ error: 'card_id required' });
-      // Teilspec 1: Karten-Buchungen liegen in bookings (art='gt_teilnahme' + gt_card_id)
+      // Teilspec 1: Karten-Buchungen liegen in bookings (art='gt_teilnahme' + gt_card_id).
+      // Status auf Legacy-Wert fuers Frontend mappen.
       const { data, error } = await supabase
         .from('bookings')
         .select('*, group_classes(name, scheduled_date, scheduled_time)')
@@ -1264,7 +1270,7 @@ async function handleData(req, res, supabase) {
         .eq('gt_card_id', cardId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return res.json(data || []);
+      return res.json((data || []).map(withFrontendStatus));
     }
 
     case 'customers': {
