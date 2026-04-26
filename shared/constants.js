@@ -10,11 +10,18 @@
  *
  * Supabase speichert Status-Werte in lowercase. Die App verwendet intern UPPERCASE.
  * Die Portale arbeiten mit lowercase (wie in Supabase).
+ *
+ * Teilspec 1 (26.04.2026) — Bruecken-Migration:
+ * Der neue 7-Status-Kanon (angefragt, reserviert, bestaetigt, laeuft gerade,
+ * abgeschlossen, storniert, strittig) wird ADDITIV ergaenzt. Die alten Status
+ * (pending, confirmed, ...) bleiben weiter im Code, bis Tasks 15+16 die
+ * Aufrufer-Stellen schrittweise auf den neuen Kanon umgestellt haben.
  */
 
 // ─── Booking Status Werte ──────────────────────────────────────────────────
 
 const BOOKING_STATUS = Object.freeze({
+  // Alter Status-Kanon (heute live im Portal-Code, bleibt bis Tasks 15+16)
   PENDING:              'pending',
   CONFIRMED:            'confirmed',
   CHECKED_IN:           'checked_in',
@@ -39,11 +46,47 @@ const BOOKING_STATUS = Object.freeze({
   RESCHEDULE_PROPOSED:  'reschedule_proposed',
   LOCATION_PROPOSED:    'location_proposed',
   AWAITING_CHECKOUT:    'awaiting_checkout',
+
+  // Neuer 7-Status-Kanon (Teilspec 1, ARCHITEKTUR.md Ebene 2)
+  ANGEFRAGT:      'angefragt',
+  RESERVIERT:     'reserviert',
+  BESTAETIGT:     'bestaetigt',
+  LAEUFT_GERADE:  'laeuft gerade',
+  ABGESCHLOSSEN:  'abgeschlossen',
+  STORNIERT:      'storniert',
+  STRITTIG:       'strittig',
+});
+
+// ─── Buchungsart (Teilspec 1) ─────────────────────────────────────────────
+
+/** Art der Buchung. PT = Personal Training, GT = Gruppentraining. */
+const BOOKING_ART = Object.freeze({
+  PT_EINZEL:    'pt_einzel',
+  GT_TEILNAHME: 'gt_teilnahme',
+});
+
+// ─── Buchungs-Flags (Teilspec 1, Zustands-Zusatzmerkmale) ─────────────────
+
+const BOOKING_FLAGS = Object.freeze({
+  NEUER_TERMIN_VORGESCHLAGEN:       'flag_neuer_termin_vorgeschlagen',
+  NEUER_ORT_VORGESCHLAGEN:          'flag_neuer_ort_vorgeschlagen',
+  ERSATZ_TRAINER_GESUCHT:           'flag_ersatz_trainer_gesucht',
+  CHECKOUT_BESTAETIGUNG_AUSSTEHEND: 'flag_checkout_bestaetigung_ausstehend',
+});
+
+// ─── Storno-Verursacher (Teilspec 1) ──────────────────────────────────────
+
+const STORNO_WER = Object.freeze({
+  KUNDE:   'kunde',
+  TRAINER: 'trainer',
+  SYSTEM:  'system',
+  ADMIN:   'admin',
 });
 
 // ─── Status Labels (deutsch) fuer Portal-Anzeige ───────────────────────────
 
 const STATUS_LABELS = Object.freeze({
+  // Alter Kanon
   [BOOKING_STATUS.PENDING]:              'Anfrage',
   [BOOKING_STATUS.CONFIRMED]:            'Bestätigt',
   [BOOKING_STATUS.CHECKED_IN]:           'Eingecheckt',
@@ -68,11 +111,21 @@ const STATUS_LABELS = Object.freeze({
   [BOOKING_STATUS.RESCHEDULE_PROPOSED]:  'Terminänderung vorgeschlagen',
   [BOOKING_STATUS.LOCATION_PROPOSED]:    'Treffpunkt vorgeschlagen',
   [BOOKING_STATUS.AWAITING_CHECKOUT]:    'Warte auf Abschluss',
+
+  // Neuer Kanon
+  [BOOKING_STATUS.ANGEFRAGT]:     'Angefragt',
+  [BOOKING_STATUS.RESERVIERT]:    'Reserviert',
+  [BOOKING_STATUS.BESTAETIGT]:    'Bestätigt',
+  [BOOKING_STATUS.LAEUFT_GERADE]: 'Läuft gerade',
+  [BOOKING_STATUS.ABGESCHLOSSEN]: 'Abgeschlossen',
+  [BOOKING_STATUS.STORNIERT]:     'Storniert',
+  [BOOKING_STATUS.STRITTIG]:      '⚠ Strittig',
 });
 
 // ─── Status Badge CSS-Klassen ──────────────────────────────────────────────
 
 const STATUS_BADGE_CLASS = Object.freeze({
+  // Alter Kanon
   [BOOKING_STATUS.PENDING]:              'badge-pending',
   [BOOKING_STATUS.CONFIRMED]:            'badge-confirmed',
   [BOOKING_STATUS.CHECKED_IN]:           'badge-confirmed',
@@ -97,6 +150,15 @@ const STATUS_BADGE_CLASS = Object.freeze({
   [BOOKING_STATUS.RESCHEDULE_PROPOSED]:  'badge-pending',
   [BOOKING_STATUS.LOCATION_PROPOSED]:    'badge-warning',
   [BOOKING_STATUS.AWAITING_CHECKOUT]:    'badge-warning',
+
+  // Neuer Kanon
+  [BOOKING_STATUS.ANGEFRAGT]:     'badge-pending',
+  [BOOKING_STATUS.RESERVIERT]:    'badge-pending',
+  [BOOKING_STATUS.BESTAETIGT]:    'badge-confirmed',
+  [BOOKING_STATUS.LAEUFT_GERADE]: 'badge-confirmed',
+  [BOOKING_STATUS.ABGESCHLOSSEN]: 'badge-completed',
+  [BOOKING_STATUS.STORNIERT]:     'badge-cancelled',
+  [BOOKING_STATUS.STRITTIG]:      'badge-action-needed',
 });
 
 // ─── Status-Gruppen ────────────────────────────────────────────────────────
@@ -107,6 +169,7 @@ const CANCELLED_STATUSES = Object.freeze([
   BOOKING_STATUS.CANCELLED_BY_TRAINER,
   BOOKING_STATUS.REFUNDED,
   BOOKING_STATUS.FULLY_CANCELLED,
+  BOOKING_STATUS.STORNIERT, // neuer Kanon
 ]);
 
 /** Aktive Status-Werte (Termin steht noch bevor) */
@@ -119,6 +182,10 @@ const ACTIVE_STATUSES = Object.freeze([
   BOOKING_STATUS.RESCHEDULE_PROPOSED,
   BOOKING_STATUS.LOCATION_PROPOSED,
   BOOKING_STATUS.AWAITING_CHECKOUT,
+  BOOKING_STATUS.ANGEFRAGT,     // neuer Kanon
+  BOOKING_STATUS.RESERVIERT,    // neuer Kanon
+  BOOKING_STATUS.BESTAETIGT,    // neuer Kanon
+  BOOKING_STATUS.LAEUFT_GERADE, // neuer Kanon
 ]);
 
 /** Abgeschlossene Status-Werte */
@@ -126,11 +193,19 @@ const COMPLETED_STATUSES = Object.freeze([
   BOOKING_STATUS.COMPLETED,
   BOOKING_STATUS.PAID,
   BOOKING_STATUS.REVIEWING,
+  BOOKING_STATUS.ABGESCHLOSSEN, // neuer Kanon
+]);
+
+/** Eskalierte / strittige Status-Werte (Admin-Entscheidung erforderlich) */
+const ESCALATED_STATUSES = Object.freeze([
+  BOOKING_STATUS.DISPUTED,
+  BOOKING_STATUS.ESCALATED,
+  BOOKING_STATUS.STRITTIG, // neuer Kanon
 ]);
 
 // ─── Booking Flow Definitionen ─────────────────────────────────────────────
 
-/** Normaler Buchungsablauf */
+/** Normaler Buchungsablauf (alter Kanon) */
 const BOOKING_FLOW_NORMAL = Object.freeze([
   BOOKING_STATUS.PENDING,
   BOOKING_STATUS.CONFIRMED,
@@ -142,7 +217,15 @@ const BOOKING_FLOW_NORMAL = Object.freeze([
   BOOKING_STATUS.PAID,
 ]);
 
-/** Abbruch-Flow (von jedem aktiven Status moeglich) */
+/** Normaler Buchungsablauf (neuer Kanon) */
+const BOOKING_FLOW_NORMAL_NEU = Object.freeze([
+  BOOKING_STATUS.ANGEFRAGT,
+  BOOKING_STATUS.BESTAETIGT,
+  BOOKING_STATUS.LAEUFT_GERADE,
+  BOOKING_STATUS.ABGESCHLOSSEN,
+]);
+
+/** Abbruch-Flow (alter Kanon) */
 const BOOKING_FLOW_CANCEL = Object.freeze([
   BOOKING_STATUS.CANCELLED,
   BOOKING_STATUS.CANCELLED_BY_TRAINER,
@@ -150,7 +233,7 @@ const BOOKING_FLOW_CANCEL = Object.freeze([
   BOOKING_STATUS.FULLY_CANCELLED,
 ]);
 
-/** Eskalations-Flow */
+/** Eskalations-Flow (alter Kanon) */
 const BOOKING_FLOW_ESCALATION = Object.freeze([
   BOOKING_STATUS.DISPUTED,
   BOOKING_STATUS.ESCALATED,
@@ -159,6 +242,7 @@ const BOOKING_FLOW_ESCALATION = Object.freeze([
 
 const BOOKING_FLOW = Object.freeze({
   normal:     BOOKING_FLOW_NORMAL,
+  normalNeu:  BOOKING_FLOW_NORMAL_NEU,
   cancel:     BOOKING_FLOW_CANCEL,
   escalation: BOOKING_FLOW_ESCALATION,
 });
@@ -167,6 +251,7 @@ const BOOKING_FLOW = Object.freeze({
 
 /** Status-Werte die im Admin-Detail-Modal als Dropdown erscheinen */
 const ADMIN_EDITABLE_STATUSES = Object.freeze([
+  // Alter Kanon
   BOOKING_STATUS.PENDING,
   BOOKING_STATUS.CONFIRMED,
   BOOKING_STATUS.CHECKED_IN,
@@ -183,13 +268,24 @@ const ADMIN_EDITABLE_STATUSES = Object.freeze([
   BOOKING_STATUS.FINDING_REPLACEMENT,
   BOOKING_STATUS.REPLACEMENT_PENDING,
   BOOKING_STATUS.REPLACEMENT_FOUND,
+  // Neuer Kanon
+  BOOKING_STATUS.ANGEFRAGT,
+  BOOKING_STATUS.RESERVIERT,
+  BOOKING_STATUS.BESTAETIGT,
+  BOOKING_STATUS.LAEUFT_GERADE,
+  BOOKING_STATUS.ABGESCHLOSSEN,
+  BOOKING_STATUS.STORNIERT,
+  BOOKING_STATUS.STRITTIG,
 ]);
 
 // ─── Überfällig-Erkennung ─────────────────────────────────────────────────
 
 function isOverdue(booking) {
   if (!booking.scheduled_date) return false;
-  const ACTIVE = ['pending', 'confirmed', 'checked_in_trainer', 'checked_in'];
+  const ACTIVE = [
+    'pending', 'confirmed', 'checked_in_trainer', 'checked_in',
+    'angefragt', 'reserviert', 'bestaetigt', 'laeuft gerade',
+  ];
   if (!ACTIVE.includes(booking.status)) return false;
   const scheduled = new Date(booking.scheduled_date + 'T23:59:59');
   return scheduled < new Date();
@@ -200,4 +296,29 @@ function overdueDays(booking) {
   const scheduled = new Date(booking.scheduled_date);
   const now = new Date();
   return Math.floor((now - scheduled) / (1000 * 60 * 60 * 24));
+}
+
+// ─── Optional: Node/Test-Export (Browser ignoriert das) ───────────────────
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    BOOKING_STATUS,
+    BOOKING_ART,
+    BOOKING_FLAGS,
+    STORNO_WER,
+    STATUS_LABELS,
+    STATUS_BADGE_CLASS,
+    CANCELLED_STATUSES,
+    ACTIVE_STATUSES,
+    COMPLETED_STATUSES,
+    ESCALATED_STATUSES,
+    BOOKING_FLOW_NORMAL,
+    BOOKING_FLOW_NORMAL_NEU,
+    BOOKING_FLOW_CANCEL,
+    BOOKING_FLOW_ESCALATION,
+    BOOKING_FLOW,
+    ADMIN_EDITABLE_STATUSES,
+    isOverdue,
+    overdueDays,
+  };
 }
