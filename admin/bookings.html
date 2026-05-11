@@ -121,8 +121,10 @@
     document.getElementById('header').innerHTML = renderAdminHeader('Buchungen', user.email);
     initRealtimeToasts(getSupabase(), 'admin');
 
-    await loadBookings();
-
+    // Reihenfolge wichtig: erst Filter+Sort-Mechanik aufsetzen, DANN Daten laden.
+    // Sonst wird beim ersten renderBookings() der tableFilter.apply() uebersprungen
+    // und die Filter-Selects bleiben mit nur 'Alle' befuellt (Init-Reihenfolge-Bug,
+    // gemeldet 11.05.2026).
     tableFilter = initSortableTable('bookings-table', [
       { key: 'scheduled_date', type: 'date',   getValue: b => b.scheduled_date || '' },
       { key: 'trainer_city',   type: 'select', getValue: b => b.trainer_city || b.city || '\u2013' },
@@ -136,13 +138,17 @@
       { key: 'payment_status', type: 'select', getValue: b => getPaymentLabel(b) },
       null,
     ], {
+      // 'Gefilterte löschen'-Knopf entfernt (User-Wunsch 11.05.): war ein Doppel
+      // zum Mülleimer pro Zeile und verführerisch gefährlich (Massenlöschung mit
+      // einem Klick). Pro-Zeile-Mülleimer bleibt für gezieltes Aufräumen.
       extraButtons: [
         { label: 'CSV Export', icon: 'ti-download', className: 'btn btn-sm btn-ghost-secondary', onClick: 'exportCSV()' },
-        { label: 'Gefilterte löschen', icon: 'ti-trash', className: 'btn btn-sm btn-ghost-danger', onClick: 'deleteAllFiltered()' }
       ],
       countLabel: 'Buchungen'
     });
     tableFilter.onFilterChange(() => renderBookings());
+
+    await loadBookings();
   })();
 
   async function loadBookings() {
