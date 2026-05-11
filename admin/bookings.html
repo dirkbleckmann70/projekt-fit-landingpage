@@ -295,11 +295,25 @@
     document.getElementById('bookings-cost-sum').textContent  = formatEuro(totalCost);
   }
 
+  // Wenn die Buchung selbst storniert/abgelaufen/abgelehnt ist, kann die Zahlung nicht mehr
+  // \u201Eausstehen" \u2014 sie ist entweder erstattet, gar nicht erst erfolgt, oder (selten) noch beim
+  // Trainer/Pulsly haengen. Diese Liste deckt sowohl Alt-Kanon als auch neuen 7-Wert-Kanon ab.
+  const PAYMENT_LABEL_STORNO_STATUSES = [
+    'CANCELLED', 'CANCELLED_BY_TRAINER', 'FULLY_CANCELLED',
+    'EXPIRED', 'REJECTED', 'DISPUTED', 'REFUNDED', 'STORNIERT', 'STRITTIG',
+  ];
+
   function getPaymentLabel(b) {
     const ps = (b.payment_status || '').toLowerCase();
     const st = (b.status || '').toUpperCase();
+    // Bei stornierter Buchung: nicht \u201EAusstehend" zeigen \u2014 die Zahlung kann nicht mehr ausstehen.
+    if (PAYMENT_LABEL_STORNO_STATUSES.includes(st)) {
+      if (ps === 'refunded')   return STATUS_LABELS[BOOKING_STATUS.REFUNDED];
+      if (b.paid === true)     return 'Bezahlt (nicht erstattet)';
+      return 'Keine';
+    }
     if (ps === 'paid'     || b.paid === true || st === BOOKING_STATUS.COMPLETED.toUpperCase()) return STATUS_LABELS[BOOKING_STATUS.PAID];
-    if (ps === BOOKING_STATUS.REFUNDED)                              return STATUS_LABELS[BOOKING_STATUS.REFUNDED];
+    if (ps === 'refunded')                                           return STATUS_LABELS[BOOKING_STATUS.REFUNDED];
     if (ps === 'failed')                                             return 'Fehlgeschlagen';
     if (ps === BOOKING_STATUS.PENDING || st === BOOKING_STATUS.CONFIRMED.toUpperCase() || st === BOOKING_STATUS.PENDING.toUpperCase()) return 'Ausstehend';
     return 'Keine';
@@ -308,9 +322,17 @@
   function paymentBadge(b) {
     const ps = (b.payment_status || '').toLowerCase();
     const st = (b.status || '').toUpperCase();
+    // Bei stornierter Buchung: nicht den orangen \u201EAusstehend"-Hinweis zeigen.
+    if (PAYMENT_LABEL_STORNO_STATUSES.includes(st)) {
+      if (ps === 'refunded')
+        return '<span style="color:#E07A3A;white-space:nowrap">\u21A9\uFE0F Erstattet</span>';
+      if (b.paid === true)
+        return '<span style="color:#E07A3A;white-space:nowrap">\u26A0\uFE0F Bezahlt (nicht erstattet)</span>';
+      return '<span style="color:#55556A;white-space:nowrap">\u2013 Keine</span>';
+    }
     if (ps === 'paid'     || b.paid === true || st === BOOKING_STATUS.COMPLETED.toUpperCase())
       return '<span style="color:#27AE60;white-space:nowrap">\u2705 Bezahlt</span>';
-    if (ps === BOOKING_STATUS.REFUNDED)
+    if (ps === 'refunded')
       return '<span style="color:#E07A3A;white-space:nowrap">\u21A9\uFE0F Erstattet</span>';
     if (ps === 'failed')
       return '<span style="color:#E74C3C;white-space:nowrap">\u274C Fehlgeschlagen</span>';
