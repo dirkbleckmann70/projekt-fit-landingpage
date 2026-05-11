@@ -649,7 +649,7 @@
     replacement_trainer_assigned:       { icon: '🔁', label: 'Ersatz-Trainer zugewiesen' },
     replacement_trainer_search_started: { icon: '🔍', label: 'Suche nach Ersatz-Trainer' },
     storno_invoice_created:             { icon: '📄', label: 'Stornobeleg erstellt' },
-    migrated_to_new_status_kanon:       { icon: '🔧', label: 'Status-Umstellung (Datenpflege)' },
+    migrated_to_new_status_kanon:       { icon: '🔁', label: 'Status gesetzt' },
   };
   // Werte stammen aus supabase/functions/_shared/payment-events.ts (PaymentEventAction-Type)
   const AUDIT_PAYMENT_ACTIONS = {
@@ -754,14 +754,6 @@
   }
 
   function renderAuditEntry(e) {
-    // Synthetische Eintraege (aus bookings.created_at / updated_at) — eigene minimale Darstellung
-    if (e.kind === 'synth') {
-      return '<div class="d-flex gap-3 mb-3">'
-        + '<div class="text-secondary" style="font-size:12px;min-width:130px">' + auditEscape(formatDateTime(e.at)) + '</div>'
-        + '<div style="flex:1" class="text-secondary">' + (e.synth_html || '–') + '</div>'
-        + '</div>';
-    }
-
     let map = null, kindLabel = '';
     if (e.kind === 'booking') { map = AUDIT_BOOKING_ACTIONS; kindLabel = 'Buchung'; }
     if (e.kind === 'payment') { map = AUDIT_PAYMENT_ACTIONS; kindLabel = 'Zahlung'; }
@@ -792,12 +784,18 @@
         + '</details>';
     }
 
+    // Bei Buchungs-Eintraegen ist der kindLabel ("Buchung") redundant — der Kontext ist klar.
+    // Bei Zahlung/Rechnung zeigt der kindLabel, woher der Eintrag stammt, das hilft.
+    const actorSuffix = (e.kind === 'booking')
+      ? ' <span class="text-secondary" style="font-size:12px">durch ' + auditEscape(actor) + '</span>'
+      : ' <span class="text-secondary" style="font-size:12px">(' + auditEscape(kindLabel) + ' · ' + auditEscape(actor) + ')</span>';
+
     return '<div class="d-flex gap-3 mb-3">'
       + '<div class="text-secondary" style="font-size:12px;min-width:130px">' + auditEscape(formatDateTime(e.at)) + '</div>'
       + '<div style="flex:1">'
       +   '<span style="margin-right:6px">' + meta.icon + '</span>'
       +   '<strong>' + auditEscape(meta.label) + '</strong>'
-      +   ' <span class="text-secondary" style="font-size:12px">(' + auditEscape(kindLabel) + ' · ' + auditEscape(actor) + ')</span>'
+      +   actorSuffix
       +   context
       +   klartextHtml
       +   rohHtml
@@ -805,62 +803,51 @@
       + '</div>';
   }
 
-  // Synthetische Eintraege aus der Buchung selbst (immer da, auch wenn das Tagebuch leer ist)
-  function buildSyntheticEntries(b) {
-    const items = [];
-    if (b.updated_at && b.updated_at !== b.created_at) {
-      items.push({
-        kind: 'synth',
-        at: b.updated_at,
-        action: 'status_changed',
-        actor_type: 'system',
-        synth_html: 'Aktueller Status: ' + auditEscape(auditStatusLabel(b.status) || b.status || '–'),
-      });
-    }
-    items.push({
-      kind: 'synth',
-      at: b.created_at,
-      action: 'created',
-      actor_type: b.customer_id ? 'customer' : 'system',
-      synth_html: 'Buchung erstellt',
-    });
-    return items;
-  }
-
-  // Interne Aktionen die nicht ins Tagebuch fuer den Admin gehoeren
-  // (reine Daten-Pflege ohne Geschaefts-Bedeutung)
-  const AUDIT_HIDDEN_ACTIONS = new Set([
+  // Aktionen die NICHT ins Logbuch fuer den Admin gehoeren (reine Daten-Pflege)
+  const AUDIT_HIDDEN_BOOKING_ACTIONS = new Set([
     'migrated_to_new_status_kanon',
+  ]);
+  const AUDIT_HIDDEN_INVOICE_ACTIONS = new Set([
+    'pdf_regenerated',
+    'admin_viewed',
+    'export_included',
+    'anonymized',
+    'admin_override_update',
   ]);
 
   async function renderHistory(b) {
     const el = document.getElementById('modal-history');
     if (!el) return;
-    el.innerHTML = '<div class="text-muted p-3">Tagebuch wird geladen ...</div>';
+    el.innerHTML = '<div class="text-muted p-3">Logbuch wird geladen ...</div>';
 
-    let auditEvents = [];
+    let events = [];
     let loadError = null;
     try {
       const resp = await adminApi('/api/admin?action=data&type=booking_audit_log&booking_id=' + encodeURIComponent(b.id));
-      auditEvents = (resp && resp.data) || [];
+      events = (resp && resp.data) || [];
     } catch (e) {
       loadError = (e && e.message) || String(e || 'unbekannter Fehler');
     }
 
     // Interne Daten-Pflege-Eintraege rausfiltern — interessieren den Admin nicht
-    auditEvents = auditEvents.filter(e => !(e.kind === 'booking' && AUDIT_HIDDEN_ACTIONS.has(e.action)));
+    events = events.filter(e => {
+      if (e.kind === 'booking' && AUDIT_HIDDEN_BOOKING_ACTIONS.has(e.action)) return false;
+      if (e.kind === 'invoice' && AUDIT_HIDDEN_INVOICE_ACTIONS.has(e.action)) return false;
+      return true;
+    });
 
-    // Synthetische Eintraege immer anhaengen (created_at + ggf. updated_at)
-    const synth = buildSyntheticEntries(b);
-    const events = [...auditEvents, ...synth].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
-
-    let html = '';
     if (loadError) {
-      html += '<div class="text-warning small p-2 mb-2">Hinweis: Detail-Tagebuch konnte nicht geladen werden ('
-        + auditEscape(loadError) + '). Eckdaten aus der Buchung selbst werden angezeigt.</div>';
+      el.innerHTML = '<div class="text-warning p-3">Logbuch konnte nicht geladen werden: '
+        + auditEscape(loadError) + '</div>';
+      return;
     }
-    html += '<div class="timeline">' + events.map(renderAuditEntry).join('') + '</div>';
-    el.innerHTML = html;
+
+    if (!events.length) {
+      el.innerHTML = '<div class="text-muted p-3">Keine Logbuch-Eintraege fuer diese Buchung.</div>';
+      return;
+    }
+
+    el.innerHTML = '<div class="timeline">' + events.map(renderAuditEntry).join('') + '</div>';
   }
 
   function closeModal() {
