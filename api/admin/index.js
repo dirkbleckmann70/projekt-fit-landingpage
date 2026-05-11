@@ -1201,6 +1201,10 @@ async function handleData(req, res, supabase) {
         supabase.from('payment_events')
           .select('id, action, actor_type, actor_id, details, amount_cents, currency, stripe_object_type, stripe_object_id, occurred_at')
           .eq('entity_id', bookingId)
+          // Wichtig: entity_type beschraenken — sonst koennen UUIDs aus 'gt_card'-Events
+          // zufaellig mit bookings.id kollidieren und falsche Eintraege auftauchen.
+          // 'group_participant' ist die Legacy-Bridge (Phase-2-Migration spiegelt IDs 1:1).
+          .in('entity_type', ['booking', 'group_participant'])
           .order('occurred_at', { ascending: false })
           .limit(200),
         invoiceIds.length > 0

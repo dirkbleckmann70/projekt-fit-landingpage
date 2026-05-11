@@ -651,25 +651,31 @@
     storno_invoice_created:             { icon: '📄', label: 'Stornobeleg erstellt' },
     migrated_to_new_status_kanon:       { icon: '🔧', label: 'Status-Umstellung (Datenpflege)' },
   };
+  // Werte stammen aus supabase/functions/_shared/payment-events.ts (PaymentEventAction-Type)
   const AUDIT_PAYMENT_ACTIONS = {
-    succeeded:              { icon: '💳', label: 'Zahlung erfolgreich' },
-    failed:                 { icon: '⚠️', label: 'Zahlung fehlgeschlagen' },
-    requires_action:        { icon: '📲', label: 'Karten-Bestaetigung erforderlich' },
-    captured:               { icon: '💳', label: 'Betrag eingezogen' },
-    refund_created:         { icon: '↩️', label: 'Rueckerstattung erstellt' },
-    refunded:               { icon: '↩️', label: 'Zurueckerstattet' },
-    refund_failed:          { icon: '⚠️', label: 'Rueckerstattung fehlgeschlagen' },
-    setup_intent_succeeded: { icon: '💳', label: 'Karte hinterlegt' },
-    account_updated:        { icon: '🏦', label: 'Trainer-Auszahlungskonto aktualisiert' },
-    transfer_created:       { icon: '💸', label: 'Auszahlung an Trainer angestossen' },
+    payment_intent_created:   { icon: '🧾', label: 'Zahlungsauftrag angelegt' },
+    payment_succeeded:        { icon: '💳', label: 'Zahlung erfolgreich' },
+    payment_failed:           { icon: '⚠️', label: 'Zahlung fehlgeschlagen' },
+    payment_captured:         { icon: '💳', label: 'Betrag eingezogen' },
+    payment_cancelled:        { icon: '❌', label: 'Zahlungsauftrag abgebrochen' },
+    refund_created:           { icon: '↩️', label: 'Rueckerstattung erstellt' },
+    refund_failed:            { icon: '⚠️', label: 'Rueckerstattung fehlgeschlagen' },
+    transfer_created:         { icon: '💸', label: 'Auszahlung an Trainer angestossen' },
+    transfer_reversed:        { icon: '↩️', label: 'Auszahlung zurueckgebucht' },
+    transfer_reversal_failed: { icon: '⚠️', label: 'Rueckbuchung Auszahlung fehlgeschlagen' },
+    sorry_code_issued:        { icon: '🎟️', label: 'Entschuldigungs-Code ausgegeben' },
+    sorry_code_released:      { icon: '🎟️', label: 'Entschuldigungs-Code freigegeben' },
   };
+  // Werte stammen aus app/supabase/migrations/20260425120000_invoice_audit.sql (CHECK-Constraint)
   const AUDIT_INVOICE_ACTIONS = {
-    created:        { icon: '📄', label: 'Rechnung erstellt' },
-    sent:           { icon: '📨', label: 'Rechnung per E-Mail versendet' },
-    updated:        { icon: '✏️', label: 'Rechnung aktualisiert (Whitelist-Feld)' },
-    deleted:        { icon: '🛑', label: 'Rechnung geloescht' },
-    delete_blocked: { icon: '🛑', label: 'Loeschung blockiert (Immutability)' },
-    storno_created: { icon: '🔁', label: 'Stornobeleg verknuepft' },
+    created:                  { icon: '📄', label: 'Rechnung erstellt' },
+    mailed:                   { icon: '📨', label: 'Rechnung per E-Mail versendet' },
+    pdf_regenerated:          { icon: '🔄', label: 'PDF neu erzeugt' },
+    storno_reference_created: { icon: '🔁', label: 'Stornobeleg verknuepft' },
+    admin_viewed:             { icon: '👁️', label: 'Admin hat eingesehen' },
+    export_included:          { icon: '📦', label: 'In GoBD-Jahres-Export aufgenommen' },
+    anonymized:               { icon: '🔒', label: 'Daten anonymisiert (DSGVO-Loeschung)' },
+    admin_override_update:    { icon: '⚠️', label: 'Admin-Override-Update (Immutability umgangen)' },
   };
   const AUDIT_ACTORS = { customer: 'Kunde', trainer: 'Trainer', admin: 'Admin', system: 'System' };
 
@@ -680,7 +686,82 @@
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  // Status-Code zu Klartext-Label (greift auf shared/constants.js STATUS_LABELS zu)
+  function auditStatusLabel(code) {
+    if (!code) return '';
+    if (typeof STATUS_LABELS !== 'undefined' && STATUS_LABELS[code]) return STATUS_LABELS[code];
+    return code;
+  }
+
+  // Details-JSON in Klartext-Saetze umformen, je nach Aktion
+  function formatAuditDetails(kind, action, details) {
+    if (!details || typeof details !== 'object') return '';
+    const d = details;
+    const parts = [];
+    const eur = c => (c == null ? null : formatEuro(c));
+
+    if (kind === 'booking') {
+      if (action === 'migrated_to_new_status_kanon') {
+        if (d.new_status) parts.push('Neuer Status: <strong>' + auditEscape(auditStatusLabel(d.new_status)) + '</strong>');
+        if (d.old_status) parts.push('vorher: ' + auditEscape(auditStatusLabel(d.old_status)));
+        // Migrations-Phase nicht mehr anzeigen — interne Info, hilft dem Admin nicht
+      } else if (action === 'created') {
+        if (d.art === 'pt_einzel') parts.push('Personal Training');
+        else if (d.art === 'gt_teilnahme') parts.push('Gruppentraining');
+        if (d.scheduled_date) parts.push('Termin: ' + auditEscape(d.scheduled_date) + (d.scheduled_time ? ' ' + auditEscape(d.scheduled_time) : ''));
+        if (d.price_cents != null) parts.push('Preis: ' + auditEscape(eur(d.price_cents)));
+        if (d.discount_code) parts.push('Rabatt-Code: ' + auditEscape(d.discount_code));
+      } else if (action === 'cancelled') {
+        if (d.storno_wer) parts.push('Veranlasst durch: ' + auditEscape(AUDIT_ACTORS[d.storno_wer] || d.storno_wer));
+        if (d.storno_grund) parts.push('Grund: ' + auditEscape(d.storno_grund));
+        if (d.refund_cents != null) parts.push('Rueckerstattung: ' + auditEscape(eur(d.refund_cents)));
+      } else if (action === 'escalated') {
+        if (d.reason || d.grund) parts.push('Grund: ' + auditEscape(d.reason || d.grund));
+      } else if (action === 'rescheduled') {
+        if (d.old_date) parts.push('alt: ' + auditEscape(d.old_date) + (d.old_time ? ' ' + auditEscape(d.old_time) : ''));
+        if (d.new_date) parts.push('neu: ' + auditEscape(d.new_date) + (d.new_time ? ' ' + auditEscape(d.new_time) : ''));
+      } else if (action === 'location_changed') {
+        if (d.old_location) parts.push('alt: ' + auditEscape(d.old_location));
+        if (d.new_location) parts.push('neu: ' + auditEscape(d.new_location));
+      } else if (action === 'storno_invoice_created') {
+        const ref = d.invoice_number || d.storno_ref || d.invoice_id;
+        if (ref) parts.push('Stornobeleg: <strong>' + auditEscape(ref) + '</strong>');
+        if (d.refund_cents != null) parts.push('Betrag: ' + auditEscape(eur(d.refund_cents)));
+      } else if (action === 'sorry_code_issued' || action === 'sorry_code_released') {
+        if (d.code) parts.push('Code: <strong>' + auditEscape(d.code) + '</strong>');
+        if (d.discount_percent != null) parts.push(auditEscape(d.discount_percent) + ' % Rabatt');
+      } else if (action === 'replacement_trainer_assigned') {
+        if (d.new_trainer_id) parts.push('Neuer Trainer: ' + auditEscape(String(d.new_trainer_id).slice(0, 8)) + '…');
+        if (d.old_trainer_id) parts.push('(vorher: ' + auditEscape(String(d.old_trainer_id).slice(0, 8)) + '…)');
+      } else if (action === 'check_in' || action === 'check_out') {
+        if (d.at) parts.push('Zeitpunkt: ' + auditEscape(formatDateTime(d.at)));
+      }
+    } else if (kind === 'payment') {
+      if (d.reason) parts.push('Grund: ' + auditEscape(d.reason));
+      if (d.failure_message) parts.push('Fehler: ' + auditEscape(d.failure_message));
+      if (d.refund_id) parts.push('Refund-ID: <code style="font-size:11px">' + auditEscape(d.refund_id) + '</code>');
+      if (d.payment_intent_id) parts.push('PaymentIntent: <code style="font-size:11px">' + auditEscape(d.payment_intent_id) + '</code>');
+      if (d.transfer_id) parts.push('Transfer: <code style="font-size:11px">' + auditEscape(d.transfer_id) + '</code>');
+    } else if (kind === 'invoice') {
+      if (d.invoice_number) parts.push('Rechnungs-Nr: <strong>' + auditEscape(d.invoice_number) + '</strong>');
+      if (d.total_cents != null) parts.push('Summe: ' + auditEscape(eur(d.total_cents)));
+      if (d.recipient_email) parts.push('an: ' + auditEscape(d.recipient_email));
+      if (d.field) parts.push('Geaendertes Feld: ' + auditEscape(d.field));
+      if (d.blocked_reason) parts.push('Block-Grund: ' + auditEscape(d.blocked_reason));
+    }
+
+    return parts.join(' · ');
+  }
+
   function renderAuditEntry(e) {
+    // Synthetische Eintraege (aus bookings.created_at / updated_at) — eigene minimale Darstellung
+    if (e.kind === 'synth') {
+      return '<div class="d-flex gap-3 mb-3">'
+        + '<div class="text-secondary" style="font-size:12px;min-width:130px">' + auditEscape(formatDateTime(e.at)) + '</div>'
+        + '<div style="flex:1" class="text-secondary">' + (e.synth_html || '–') + '</div>'
+        + '</div>';
+    }
+
     let map = null, kindLabel = '';
     if (e.kind === 'booking') { map = AUDIT_BOOKING_ACTIONS; kindLabel = 'Buchung'; }
     if (e.kind === 'payment') { map = AUDIT_PAYMENT_ACTIONS; kindLabel = 'Zahlung'; }
@@ -696,11 +777,18 @@
       context += ' · <strong>' + auditEscape(e.invoice_label) + '</strong>';
     }
 
-    let detailsHtml = '';
+    // Klartext-Zusammenfassung der Details (immer sichtbar)
+    const klartext = formatAuditDetails(e.kind, e.action, e.details);
+    const klartextHtml = klartext
+      ? '<div class="text-secondary mt-1" style="font-size:12px">' + klartext + '</div>'
+      : '';
+
+    // Roh-JSON nur fuer Tech-Pruefung, eingeklappt + kleiner Schriftgrad
+    let rohHtml = '';
     if (e.details && typeof e.details === 'object' && Object.keys(e.details).length > 0) {
       const detailJson = JSON.stringify(e.details, null, 2);
-      detailsHtml = '<details class="mt-1"><summary class="text-secondary" style="cursor:pointer;font-size:11px">Details</summary>'
-        + '<pre style="font-size:11px;margin:4px 0 0 0;white-space:pre-wrap;word-break:break-word">' + auditEscape(detailJson) + '</pre>'
+      rohHtml = '<details class="mt-1"><summary class="text-secondary" style="cursor:pointer;font-size:10px;opacity:0.7">Roh-Daten anzeigen</summary>'
+        + '<pre style="font-size:10px;margin:4px 0 0 0;white-space:pre-wrap;word-break:break-word;opacity:0.7">' + auditEscape(detailJson) + '</pre>'
         + '</details>';
     }
 
@@ -711,9 +799,32 @@
       +   '<strong>' + auditEscape(meta.label) + '</strong>'
       +   ' <span class="text-secondary" style="font-size:12px">(' + auditEscape(kindLabel) + ' · ' + auditEscape(actor) + ')</span>'
       +   context
-      +   detailsHtml
+      +   klartextHtml
+      +   rohHtml
       + '</div>'
       + '</div>';
+  }
+
+  // Synthetische Eintraege aus der Buchung selbst (immer da, auch wenn das Tagebuch leer ist)
+  function buildSyntheticEntries(b) {
+    const items = [];
+    if (b.updated_at && b.updated_at !== b.created_at) {
+      items.push({
+        kind: 'synth',
+        at: b.updated_at,
+        action: 'status_changed',
+        actor_type: 'system',
+        synth_html: 'Aktueller Status: ' + auditEscape(auditStatusLabel(b.status) || b.status || '–'),
+      });
+    }
+    items.push({
+      kind: 'synth',
+      at: b.created_at,
+      action: 'created',
+      actor_type: b.customer_id ? 'customer' : 'system',
+      synth_html: 'Buchung erstellt',
+    });
+    return items;
   }
 
   async function renderHistory(b) {
@@ -721,29 +832,26 @@
     if (!el) return;
     el.innerHTML = '<div class="text-muted p-3">Tagebuch wird geladen ...</div>';
 
-    let events;
+    let auditEvents = [];
+    let loadError = null;
     try {
       const resp = await adminApi('/api/admin?action=data&type=booking_audit_log&booking_id=' + encodeURIComponent(b.id));
-      events = (resp && resp.data) || [];
+      auditEvents = (resp && resp.data) || [];
     } catch (e) {
-      el.innerHTML = '<div class="text-danger p-3">Tagebuch konnte nicht geladen werden: '
-        + auditEscape(String((e && e.message) || e || 'unbekannter Fehler')) + '</div>';
-      return;
+      loadError = (e && e.message) || String(e || 'unbekannter Fehler');
     }
 
-    if (!events.length) {
-      let fallback = '<div class="text-muted p-3">Keine Tagebuch-Eintraege fuer diese Buchung.'
-        + ' Bekannte Eckdaten aus der Buchung selbst:<br>'
-        + '· erstellt: ' + auditEscape(formatDateTime(b.created_at));
-      if (b.updated_at && b.updated_at !== b.created_at) {
-        fallback += '<br>· zuletzt geaendert: ' + auditEscape(formatDateTime(b.updated_at));
-      }
-      fallback += '</div>';
-      el.innerHTML = fallback;
-      return;
-    }
+    // Synthetische Eintraege immer anhaengen (created_at + ggf. updated_at)
+    const synth = buildSyntheticEntries(b);
+    const events = [...auditEvents, ...synth].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
 
-    el.innerHTML = '<div class="timeline">' + events.map(renderAuditEntry).join('') + '</div>';
+    let html = '';
+    if (loadError) {
+      html += '<div class="text-warning small p-2 mb-2">Hinweis: Detail-Tagebuch konnte nicht geladen werden ('
+        + auditEscape(loadError) + '). Eckdaten aus der Buchung selbst werden angezeigt.</div>';
+    }
+    html += '<div class="timeline">' + events.map(renderAuditEntry).join('') + '</div>';
+    el.innerHTML = html;
   }
 
   function closeModal() {
