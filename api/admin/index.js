@@ -537,6 +537,18 @@ async function verifyAdmin(req) {
   return null;
 }
 
+// ─── Teilspec 1 ID-Bridge ───────────────────────────────────────────────────
+// fetchGroupParticipantsAsBookings setzt fuer GT-Teilnahmen den Praefix 'gp_'
+// auf die Buchungs-ID (Frontend-Konvention). Phase-2-Migration hat die UUIDs
+// 1:1 von group_participants nach bookings gespiegelt, also entspricht der
+// gestrippte UUID direkt der bookings.id. JEDER Admin-API-Endpunkt der eine
+// Buchungs-ID vom Frontend empfaengt MUSS diesen Helper benutzen — sonst
+// brechen GT-Buchungen still ein (UPDATE/SELECT findet 0 Zeilen).
+function stripGpPrefix(id) {
+  if (typeof id !== 'string') return id;
+  return id.startsWith('gp_') ? id.slice(3) : id;
+}
+
 // ─── Teilspec 1 Status-Bridge ───────────────────────────────────────────────
 // Frontend (Trainer-Portal-HTMLs + Admin-Portal-HTMLs) arbeitet noch mit dem
 // Legacy-Wortschatz (pending/confirmed/reschedule_proposed/...). Die DB
@@ -1174,13 +1186,8 @@ async function handleData(req, res, supabase) {
 
     // ─── Status-Logbuch zu einer Buchung (booking_audit + payment_events + invoice_audit) ──
     case 'booking_audit_log': {
-      let bookingId = req.query.booking_id;
+      const bookingId = stripGpPrefix(req.query.booking_id);
       if (!bookingId) return res.status(400).json({ error: 'booking_id fehlt' });
-      // GT-Buchungen kommen vom Frontend mit gp_-Prefix (Bridge-Konvention in
-      // fetchGroupParticipantsAsBookings). Phase-2-Migration hat die IDs 1:1
-      // von group_participants nach bookings gespiegelt, also entspricht der
-      // reine UUID nach dem Strip direkt der bookings.id.
-      if (bookingId.startsWith('gp_')) bookingId = bookingId.substring(3);
       // UUID-Format-Pruefung (verhindert PostgREST-Fehler + reduziert Angriffsflaeche)
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId)) {
         return res.status(400).json({ error: 'booking_id ist keine gueltige UUID' });
@@ -1704,7 +1711,9 @@ async function handleDeleteTrainer(req, res, supabase) {
 
 async function handleBookingsPut(req, res, supabase) {
   const body = await getBody(req);
-  const { bookingId, status, paid, scheduled_date, scheduled_time, price_cents, final_price_cents, trainer_payout_cents, trainer_id, location_name, location_address, admin_note } = body;
+  const { status, paid, scheduled_date, scheduled_time, price_cents, final_price_cents, trainer_payout_cents, trainer_id, location_name, location_address, admin_note } = body;
+  // GT-Buchungen kommen vom Frontend mit gp_-Prefix — strippen, sonst findet das UPDATE 0 Zeilen.
+  const bookingId = stripGpPrefix(body.bookingId);
 
   if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
 
@@ -2599,7 +2608,7 @@ async function handleTesters(req, res, supabase) {
 
 async function handleRescheduleAccept(req, res, supabase) {
   const body = await getBody(req);
-  const { bookingId } = body;
+  const bookingId = stripGpPrefix(body.bookingId);
 
   if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
 
@@ -2643,7 +2652,7 @@ async function handleRescheduleAccept(req, res, supabase) {
 
 async function handleRescheduleReject(req, res, supabase) {
   const body = await getBody(req);
-  const { bookingId } = body;
+  const bookingId = stripGpPrefix(body.bookingId);
 
   if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
 
@@ -2760,7 +2769,7 @@ async function handleUploadLocationImage(req, res, supabase) {
 
 async function handleLocationAccept(req, res, supabase) {
   const body = await getBody(req)
-  const { bookingId } = body
+  const bookingId = stripGpPrefix(body.bookingId)
   if (!bookingId) return res.status(400).json({ success: false, error: 'bookingId ist Pflicht' })
 
   const { data: booking } = await supabase.from('bookings').select('selected_location_id, location_name, location_address, notes').eq('id', bookingId).single()
@@ -2800,7 +2809,7 @@ async function handleLocationAccept(req, res, supabase) {
 
 async function handleLocationReject(req, res, supabase) {
   const body = await getBody(req)
-  const { bookingId } = body
+  const bookingId = stripGpPrefix(body.bookingId)
   if (!bookingId) return res.status(400).json({ success: false, error: 'bookingId ist Pflicht' })
 
   const { data: booking } = await supabase.from('bookings').select('notes').eq('id', bookingId).single()
