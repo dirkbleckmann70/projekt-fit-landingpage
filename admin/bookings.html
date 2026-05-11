@@ -827,6 +827,12 @@
     return items;
   }
 
+  // Interne Aktionen die nicht ins Tagebuch fuer den Admin gehoeren
+  // (reine Daten-Pflege ohne Geschaefts-Bedeutung)
+  const AUDIT_HIDDEN_ACTIONS = new Set([
+    'migrated_to_new_status_kanon',
+  ]);
+
   async function renderHistory(b) {
     const el = document.getElementById('modal-history');
     if (!el) return;
@@ -840,6 +846,9 @@
     } catch (e) {
       loadError = (e && e.message) || String(e || 'unbekannter Fehler');
     }
+
+    // Interne Daten-Pflege-Eintraege rausfiltern — interessieren den Admin nicht
+    auditEvents = auditEvents.filter(e => !(e.kind === 'booking' && AUDIT_HIDDEN_ACTIONS.has(e.action)));
 
     // Synthetische Eintraege immer anhaengen (created_at + ggf. updated_at)
     const synth = buildSyntheticEntries(b);
