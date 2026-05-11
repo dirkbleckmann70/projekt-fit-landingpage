@@ -1174,8 +1174,13 @@ async function handleData(req, res, supabase) {
 
     // ─── Status-Logbuch zu einer Buchung (booking_audit + payment_events + invoice_audit) ──
     case 'booking_audit_log': {
-      const bookingId = req.query.booking_id;
+      let bookingId = req.query.booking_id;
       if (!bookingId) return res.status(400).json({ error: 'booking_id fehlt' });
+      // GT-Buchungen kommen vom Frontend mit gp_-Prefix (Bridge-Konvention in
+      // fetchGroupParticipantsAsBookings). Phase-2-Migration hat die IDs 1:1
+      // von group_participants nach bookings gespiegelt, also entspricht der
+      // reine UUID nach dem Strip direkt der bookings.id.
+      if (bookingId.startsWith('gp_')) bookingId = bookingId.substring(3);
       // UUID-Format-Pruefung (verhindert PostgREST-Fehler + reduziert Angriffsflaeche)
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId)) {
         return res.status(400).json({ error: 'booking_id ist keine gueltige UUID' });
