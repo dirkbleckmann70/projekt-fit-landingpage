@@ -1299,7 +1299,8 @@ async function handleData(req, res, supabase) {
     }
 
     case 'booking_locations': {
-      const bookingId = req.query?.bookingId
+      // GT-Buchungen kommen mit gp_-Prefix — strippen, sonst leere Antwort statt Treffer.
+      const bookingId = stripGpPrefix(req.query?.bookingId)
       if (!bookingId) return res.status(400).json({ success: false, error: 'bookingId required' })
       const { data, error } = await supabase.from('booking_locations').select('*').eq('booking_id', bookingId).order('sort_order')
       if (error) return res.status(500).json({ success: false, error: error.message })
@@ -2088,7 +2089,13 @@ async function handleGroups(req, res, supabase) {
       .delete()
       .eq('art', 'gt_teilnahme')
       .eq('group_class_id', id);
-    if (partError) console.error('bookings (gt_teilnahme) DELETE error:', partError.message);
+    if (partError) {
+      // FK-Fehler (z.B. Tagebuch/Rechnung an Teilnahme haengen) als Klartext zurueckgeben,
+      // statt stumm weiterzulaufen und am group_classes-DELETE zu scheitern.
+      const friendly = translateDeleteError(partError);
+      if (friendly) return res.status(409).json({ error: friendly });
+      return res.status(500).json({ error: 'Teilnahmen loeschen: ' + partError.message });
+    }
     const { error: legacyError } = await supabase
       .from('group_participants')
       .delete()

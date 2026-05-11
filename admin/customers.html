@@ -455,7 +455,7 @@
                   <td>${formatDate(b.scheduled_date)}</td>
                   <td>${b.trainer_name || '–'}</td>
                   <td>${statusBadge(b.status)}</td>
-                  <td class="text-accent">${['cancelled','refunded','cancelled_by_trainer'].includes((b.status||'').toLowerCase()) ? '0,00\u00a0€' : formatEuro(b.price_cents || b.final_price_cents)}</td>
+                  <td class="text-accent">${['cancelled','refunded','cancelled_by_trainer','fully_cancelled','expired','rejected','disputed','storniert','strittig'].includes((b.status||'').toLowerCase()) ? '0,00\u00a0€' : formatEuro(b.price_cents || b.final_price_cents)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -637,7 +637,11 @@
       showAlert('alert-box', 'Kunde gelöscht!', 'success');
       await loadCustomers();
     } catch (err) {
-      showAlert('alert-box', err.message, 'error');
+      // Server liefert bei vorhersehbaren Konflikten (Tagebuch, Rechnung) bereits
+      // einen deutschen Erklär-Text — dann nicht zusätzlich Prefix davor setzen.
+      const msg = (err && err.message) || 'Unbekannter Fehler';
+      const isFriendlyText = /\b(stornier|tagebuch|stornobeleg|finanzamt|rechnung)\b/i.test(msg);
+      showAlert('alert-box', isFriendlyText ? msg : ('Löschen fehlgeschlagen: ' + msg), 'error');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Löschen';

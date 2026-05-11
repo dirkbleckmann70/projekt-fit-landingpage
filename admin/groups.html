@@ -340,8 +340,10 @@
       });
     } catch (err) { console.error('Einsatzorte laden fehlgeschlagen:', err); }
 
-    await loadGroups();
-
+    // Reihenfolge wichtig: erst Filter+Sort-Mechanik aufsetzen, DANN Daten laden.
+    // Sonst wird beim ersten renderGroups() der tableFilter.apply() uebersprungen
+    // und die Filter-Selects bleiben mit nur 'Alle' befuellt (gleiches Muster wie
+    // F-1-Fund im Sicherheits-Review 11.05.2026).
     tableFilter = initSortableTable('groups-table', [
       { key: 'name',           type: 'text',   getValue: g => g.name || '' },
       { key: 'city',           type: 'select', getValue: g => g.city || '\u2013' },
@@ -353,6 +355,8 @@
       null,
     ]);
     tableFilter.onFilterChange(() => renderGroups());
+
+    await loadGroups();
   })();
 
   async function loadGroups() {
@@ -493,7 +497,11 @@
       showAlert('alert-box', `"${name}" gelöscht.`, 'success');
       await loadGroups();
     } catch (err) {
-      alert('Löschen fehlgeschlagen: ' + err.message);
+      // Server liefert bei vorhersehbaren Konflikten (Tagebuch, Rechnung, Storno) bereits
+      // einen deutschen Erklär-Text — dann nicht zusätzlich „Löschen fehlgeschlagen:" davor.
+      const msg = (err && err.message) || 'Unbekannter Fehler';
+      const isFriendlyText = /\b(stornier|tagebuch|stornobeleg|finanzamt|rechnung)\b/i.test(msg);
+      alert(isFriendlyText ? msg : ('Löschen fehlgeschlagen: ' + msg));
     }
   }
 
@@ -862,9 +870,12 @@
 
   // ─── Storno: Einzel-Teilnehmer ────────────────────────────────────────────
   function stornoParticipant(gpId, name, grossCents) {
+    // Defensive: falls die ID-Quelle kuenftig 'gp_<uuid>' liefert (Bridge-Konvention der
+    // Buchungsliste), den Prefix abschneiden — cancel-or-refund erwartet reine UUID.
+    const cleanId = typeof gpId === 'string' && gpId.startsWith('gp_') ? gpId.slice(3) : gpId;
     openStornoDialog({
       kind: 'group_participant',
-      id: gpId,
+      id: cleanId,
       title: `GT-Teilnahme: ${name || 'Kunde'}`,
       grossCents: Number(grossCents) || 0,
       onSuccess: () => {

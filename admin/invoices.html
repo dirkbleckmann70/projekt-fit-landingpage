@@ -297,6 +297,23 @@
     return '<span class="email-pend">ausstehend</span>';
   }
 
+  // Deutsches Klartext-Label fuer den Zahlungs-Status einer Rechnung.
+  // Werte stammen aus payment_status der Rechnungs-Zeile (Stripe-Sprache).
+  const INV_PAY_LABELS = {
+    succeeded:        '✅ Bezahlt',
+    paid:             '✅ Bezahlt',
+    pending:          '⏳ Ausstehend',
+    requires_capture: '⏳ Wartet auf Einzug',
+    requires_action:  '📲 Karten-Bestaetigung erforderlich',
+    refunded:         '↩️ Erstattet',
+    failed:           '❌ Fehlgeschlagen',
+    canceled:         '❌ Abgebrochen',
+  };
+  function paymentStatusLabel(status) {
+    if (!status) return '–';
+    return INV_PAY_LABELS[status.toLowerCase()] || status;
+  }
+
   function isStorno(inv) {
     return inv.invoice_type === 'cancellation';
   }
@@ -398,7 +415,7 @@
 
       <div class="detail-section-title">Status & Versand</div>
       <div class="detail-grid">
-        <div class="detail-item"><label>Zahlungsstatus</label><div class="val">${inv.payment_status || '–'}</div></div>
+        <div class="detail-item"><label>Zahlungsstatus</label><div class="val">${paymentStatusLabel(inv.payment_status)}</div></div>
         <div class="detail-item"><label>E-Mail gesendet</label><div class="val">${inv.email_sent_at ? formatDateTime(inv.email_sent_at) : '<span class="email-pend">Nein</span>'}</div></div>
         <div class="detail-item"><label>PDF vorhanden</label><div class="val">${inv.pdf_path ? '<span class="email-ok">Ja</span>' : '<span class="text-muted">Nein</span>'}</div></div>
         <div class="detail-item"><label>Erstellt am</label><div class="val">${formatDateTime(inv.created_at)}</div></div>

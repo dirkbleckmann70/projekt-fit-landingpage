@@ -437,7 +437,9 @@
       b.customer_name  || '',
       b.trainer_name   || '',
       b.booking_type === 'group' ? 'GT' : 'PT',
-      b.status || '',
+      // Status als deutsches Klartext-Label fuer den CSV-Export — Steuerberater bekommt
+      // sonst englische DB-Werte wie "cancelled_by_trainer" statt "Trainer abgesagt".
+      (typeof STATUS_LABELS !== 'undefined' && STATUS_LABELS[b.status]) || b.status || '',
       String(b.trainer_mwst_satz ?? 19),
       (effBrutto(b)  / 100).toFixed(2).replace('.', ','),
       (effMwSt(b)    / 100).toFixed(2).replace('.', ','),
@@ -455,9 +457,18 @@
   }
 
   // ── Details Modal ─────────────────────────────────────────────────────────
+  // Storno-/Abgelaufen-/Abgelehnt-Status (alt + neuer Kanon) \u2014 siehe getPaymentLabel in bookings.html
+  const _FIN_STORNO_STATUSES = ['cancelled','cancelled_by_trainer','fully_cancelled','expired','rejected','refunded','disputed','storniert','strittig'];
+
   function paymentLabel(b) {
     const ps = (b.payment_status || '').toLowerCase();
     const st = (b.status || '').toLowerCase();
+    // Bei storniertem/abgelaufenem Status: nicht "Ausstehend" zeigen.
+    if (_FIN_STORNO_STATUSES.includes(st)) {
+      if (ps === 'refunded') return '\u21a9\ufe0f Erstattet';
+      if (b.paid === true)   return '\u26a0\ufe0f Bezahlt (nicht erstattet)';
+      return '\u2013 Keine';
+    }
     if (ps === 'paid'    || b.paid === true || st === 'completed')  return '\u2705 Bezahlt';
     if (ps === 'refunded')                                          return '\u21a9\ufe0f Erstattet';
     if (ps === 'failed')                                            return '\u274c Fehlgeschlagen';
