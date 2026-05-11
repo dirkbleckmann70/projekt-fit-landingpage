@@ -173,15 +173,17 @@
     const editBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Bearbeiten" onclick="openDetail('${id}')"><i class="ti ti-edit"></i></button>`;
     const confirmBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Bestätigen" onclick="quickStatusChange('${id}',BOOKING_STATUS.CONFIRMED)" style="color:var(--tblr-success)"><i class="ti ti-check"></i></button>`;
     const completeBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Abschließen" onclick="quickStatusChange('${id}',BOOKING_STATUS.COMPLETED)" style="color:var(--tblr-success)"><i class="ti ti-circle-check"></i></button>`;
-    const cancelBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Stornieren" onclick="quickStatusChange('${id}',BOOKING_STATUS.CANCELLED)" style="color:var(--tblr-danger)"><i class="ti ti-x"></i></button>`;
     const deleteBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Löschen" onclick="deleteBooking('${id}')" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>`;
 
-    // Storno-Dialog (mit Stornobeleg + Rückzahlung): nur bei nicht-stornierten, nicht-abgelaufenen Buchungen
+    // Storno-Button: oeffnet den Storno-Dialog (Stornobeleg + Rueckzahlung + Sorry-Code via
+    // cancel-or-refund Edge Function). Frueher gab es zusaetzlich einen 'X'-Schnell-Storno der
+    // den Status direkt auf CANCELLED gesetzt hat — der hat den Workflow umgangen und ist
+    // entfernt (Bug B-2026-04-25-02). Storno-Button ist der EINZIGE Weg, eine Buchung zu stornieren.
     const custName = (b.customer_name || '').replace(/'/g,"\\'");
     const gross = b.final_price_cents || b.price_cents || 0;
     const excluded = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED'];
     const stornoBtn = (!b.storno_invoice_id && !excluded.includes(s))
-      ? `<button class="btn btn-sm btn-ghost-secondary" title="Stornobeleg + Rückzahlung" onclick="stornoBooking('${id}','${custName}',${gross})" style="color:var(--tblr-danger)"><i class="ti ti-receipt-refund"></i></button>`
+      ? `<button class="btn btn-sm btn-ghost-secondary" title="Stornieren (mit Stornobeleg + Rueckzahlung)" onclick="stornoBooking('${id}','${custName}',${gross})" style="color:var(--tblr-danger)"><i class="ti ti-x"></i></button>`
       : '';
 
     // Abgeschlossene/unveränderliche Zustände → Ansehen + Löschen
@@ -192,17 +194,17 @@
     if (s === BOOKING_STATUS.EXPIRED.toUpperCase()) {
       return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${deleteBtn}</div>`;
     }
-    // In Bearbeitung → Ansehen + Löschen
+    // In Bearbeitung → Ansehen + Stornieren + Löschen
     if (['CHECKED_IN', 'IN_PROGRESS'].includes(s)) {
       return `<div class="d-flex gap-1">${viewBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
     // PENDING → Ansehen + Bestätigen + Stornieren + Löschen
     if (s === BOOKING_STATUS.PENDING.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${confirmBtn} ${cancelBtn} ${stornoBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${confirmBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
     // CONFIRMED → Ansehen + Abschließen + Stornieren + Löschen
     if (s === BOOKING_STATUS.CONFIRMED.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${completeBtn} ${cancelBtn} ${stornoBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${viewBtn} ${completeBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
     // Fallback
     return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${stornoBtn} ${deleteBtn}</div>`;
@@ -318,6 +320,14 @@
   }
 
   async function quickStatusChange(bookingId, status) {
+    // Sicherheits-Sperre (Bug B-2026-04-25-02): Storno-Werte muessen IMMER ueber stornoBooking()
+    // laufen — sonst wird der cancel-or-refund-Workflow (Stornobeleg, Rueckerstattung, SORRY-Code,
+    // payment_events, booking_audit) umgangen. Quick-Status ist nur fuer CONFIRMED/COMPLETED erlaubt.
+    const stornoStatuses = ['CANCELLED', 'CANCELLED_BY_TRAINER', 'FULLY_CANCELLED', 'REJECTED', 'REFUNDED', 'EXPIRED', 'DISPUTED'];
+    if (stornoStatuses.includes(String(status).toUpperCase())) {
+      showAlert('alert-box', 'Storno bitte ueber den Storno-Button (rotes X) — der oeffnet den Dialog fuer Stornobeleg + Rueckzahlung.', 'error');
+      return;
+    }
     try {
       await adminApi('/api/admin?action=bookings', {
         method: 'PUT',
