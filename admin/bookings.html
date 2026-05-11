@@ -633,22 +633,117 @@
     a.click();
   }
 
-  function renderHistory(b) {
+  // ─── Tagebuch zur Buchung (booking_audit + payment_events + invoice_audit) ────────────
+  const AUDIT_BOOKING_ACTIONS = {
+    created:                            { icon: '🆕', label: 'Buchung erstellt' },
+    confirmed:                          { icon: '✅', label: 'Vom Trainer bestaetigt' },
+    rescheduled:                        { icon: '📅', label: 'Termin verschoben' },
+    location_changed:                   { icon: '📍', label: 'Treffpunkt geaendert' },
+    check_in:                           { icon: '🟢', label: 'Check-in beim Trainer' },
+    check_out:                          { icon: '🏁', label: 'Check-out beim Trainer' },
+    completed:                          { icon: '✔️', label: 'Training abgeschlossen' },
+    cancelled:                          { icon: '❌', label: 'Storniert' },
+    escalated:                          { icon: '⚠️', label: 'Auf strittig gesetzt' },
+    sorry_code_issued:                  { icon: '🎟️', label: 'Entschuldigungs-Code ausgegeben' },
+    sorry_code_released:                { icon: '🎟️', label: 'Entschuldigungs-Code freigegeben' },
+    replacement_trainer_assigned:       { icon: '🔁', label: 'Ersatz-Trainer zugewiesen' },
+    replacement_trainer_search_started: { icon: '🔍', label: 'Suche nach Ersatz-Trainer' },
+    storno_invoice_created:             { icon: '📄', label: 'Stornobeleg erstellt' },
+    migrated_to_new_status_kanon:       { icon: '🔧', label: 'Status-Umstellung (Datenpflege)' },
+  };
+  const AUDIT_PAYMENT_ACTIONS = {
+    succeeded:              { icon: '💳', label: 'Zahlung erfolgreich' },
+    failed:                 { icon: '⚠️', label: 'Zahlung fehlgeschlagen' },
+    requires_action:        { icon: '📲', label: 'Karten-Bestaetigung erforderlich' },
+    captured:               { icon: '💳', label: 'Betrag eingezogen' },
+    refund_created:         { icon: '↩️', label: 'Rueckerstattung erstellt' },
+    refunded:               { icon: '↩️', label: 'Zurueckerstattet' },
+    refund_failed:          { icon: '⚠️', label: 'Rueckerstattung fehlgeschlagen' },
+    setup_intent_succeeded: { icon: '💳', label: 'Karte hinterlegt' },
+    account_updated:        { icon: '🏦', label: 'Trainer-Auszahlungskonto aktualisiert' },
+    transfer_created:       { icon: '💸', label: 'Auszahlung an Trainer angestossen' },
+  };
+  const AUDIT_INVOICE_ACTIONS = {
+    created:        { icon: '📄', label: 'Rechnung erstellt' },
+    sent:           { icon: '📨', label: 'Rechnung per E-Mail versendet' },
+    updated:        { icon: '✏️', label: 'Rechnung aktualisiert (Whitelist-Feld)' },
+    deleted:        { icon: '🛑', label: 'Rechnung geloescht' },
+    delete_blocked: { icon: '🛑', label: 'Loeschung blockiert (Immutability)' },
+    storno_created: { icon: '🔁', label: 'Stornobeleg verknuepft' },
+  };
+  const AUDIT_ACTORS = { customer: 'Kunde', trainer: 'Trainer', admin: 'Admin', system: 'System' };
+
+  // XSS-sicheres Escapen fuer Details-JSON + Strings aus DB
+  function auditEscape(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function renderAuditEntry(e) {
+    let map = null, kindLabel = '';
+    if (e.kind === 'booking') { map = AUDIT_BOOKING_ACTIONS; kindLabel = 'Buchung'; }
+    if (e.kind === 'payment') { map = AUDIT_PAYMENT_ACTIONS; kindLabel = 'Zahlung'; }
+    if (e.kind === 'invoice') { map = AUDIT_INVOICE_ACTIONS; kindLabel = 'Rechnung'; }
+    const meta = (map && map[e.action]) || { icon: '•', label: e.action || '(unbekannte Aktion)' };
+    const actor = AUDIT_ACTORS[e.actor_type] || (e.actor_type || 'unbekannt');
+
+    let context = '';
+    if (e.kind === 'payment') {
+      if (e.amount_cents != null) context += ' · ' + auditEscape(formatEuro(e.amount_cents));
+      if (e.stripe_object_id) context += ' · <code style="font-size:11px">' + auditEscape(e.stripe_object_id) + '</code>';
+    } else if (e.kind === 'invoice' && e.invoice_label) {
+      context += ' · <strong>' + auditEscape(e.invoice_label) + '</strong>';
+    }
+
+    let detailsHtml = '';
+    if (e.details && typeof e.details === 'object' && Object.keys(e.details).length > 0) {
+      const detailJson = JSON.stringify(e.details, null, 2);
+      detailsHtml = '<details class="mt-1"><summary class="text-secondary" style="cursor:pointer;font-size:11px">Details</summary>'
+        + '<pre style="font-size:11px;margin:4px 0 0 0;white-space:pre-wrap;word-break:break-word">' + auditEscape(detailJson) + '</pre>'
+        + '</details>';
+    }
+
+    return '<div class="d-flex gap-3 mb-3">'
+      + '<div class="text-secondary" style="font-size:12px;min-width:130px">' + auditEscape(formatDateTime(e.at)) + '</div>'
+      + '<div style="flex:1">'
+      +   '<span style="margin-right:6px">' + meta.icon + '</span>'
+      +   '<strong>' + auditEscape(meta.label) + '</strong>'
+      +   ' <span class="text-secondary" style="font-size:12px">(' + auditEscape(kindLabel) + ' · ' + auditEscape(actor) + ')</span>'
+      +   context
+      +   detailsHtml
+      + '</div>'
+      + '</div>';
+  }
+
+  async function renderHistory(b) {
     const el = document.getElementById('modal-history');
     if (!el) return;
-    let html = '<div class="timeline">';
-    if (b.updated_at && b.updated_at !== b.created_at) {
-      html += `<div class="d-flex gap-3 mb-3">
-        <div class="text-secondary" style="font-size:12px;min-width:120px">${formatDateTime(b.updated_at)}</div>
-        <div>Status geaendert: ${statusBadge(b.status)}</div>
-      </div>`;
+    el.innerHTML = '<div class="text-muted p-3">Tagebuch wird geladen ...</div>';
+
+    let events;
+    try {
+      const resp = await adminApi('/api/admin?action=data&type=booking_audit_log&booking_id=' + encodeURIComponent(b.id));
+      events = (resp && resp.data) || [];
+    } catch (e) {
+      el.innerHTML = '<div class="text-danger p-3">Tagebuch konnte nicht geladen werden: '
+        + auditEscape(String((e && e.message) || e || 'unbekannter Fehler')) + '</div>';
+      return;
     }
-    html += `<div class="d-flex gap-3 mb-3">
-      <div class="text-secondary" style="font-size:12px;min-width:120px">${formatDateTime(b.created_at)}</div>
-      <div>Buchung erstellt</div>
-    </div>`;
-    html += '</div>';
-    el.innerHTML = html;
+
+    if (!events.length) {
+      let fallback = '<div class="text-muted p-3">Keine Tagebuch-Eintraege fuer diese Buchung.'
+        + ' Bekannte Eckdaten aus der Buchung selbst:<br>'
+        + '· erstellt: ' + auditEscape(formatDateTime(b.created_at));
+      if (b.updated_at && b.updated_at !== b.created_at) {
+        fallback += '<br>· zuletzt geaendert: ' + auditEscape(formatDateTime(b.updated_at));
+      }
+      fallback += '</div>';
+      el.innerHTML = fallback;
+      return;
+    }
+
+    el.innerHTML = '<div class="timeline">' + events.map(renderAuditEntry).join('') + '</div>';
   }
 
   function closeModal() {

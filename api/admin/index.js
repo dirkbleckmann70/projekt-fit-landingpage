@@ -1172,6 +1172,82 @@ async function handleData(req, res, supabase) {
       return res.json(result);
     }
 
+    // ─── Status-Logbuch zu einer Buchung (booking_audit + payment_events + invoice_audit) ──
+    case 'booking_audit_log': {
+      const bookingId = req.query.booking_id;
+      if (!bookingId) return res.status(400).json({ error: 'booking_id fehlt' });
+      // UUID-Format-Pruefung (verhindert PostgREST-Fehler + reduziert Angriffsflaeche)
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(bookingId)) {
+        return res.status(400).json({ error: 'booking_id ist keine gueltige UUID' });
+      }
+
+      // Schritt 1: alle Rechnungen finden, die zu dieser Buchung gehoeren.
+      // booking_id ist die normale Verbindung; group_participant_id ist die Legacy-Bridge
+      // (Phase-2-Migration hat die IDs 1:1 von gp.id nach bookings.id gespiegelt).
+      const { data: invoicesForBooking } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, storno_ref')
+        .or(`booking_id.eq.${bookingId},group_participant_id.eq.${bookingId}`);
+      const invoiceIdToNumber = new Map((invoicesForBooking || []).map(i => [i.id, i.invoice_number || i.storno_ref || i.id.slice(0, 8)]));
+      const invoiceIds = (invoicesForBooking || []).map(i => i.id);
+
+      // Schritt 2: drei Quellen parallel laden.
+      const [auditRes, payRes, invAuditRes] = await Promise.all([
+        supabase.from('booking_audit')
+          .select('id, action, actor_type, actor_id, details, created_at')
+          .eq('booking_id', bookingId)
+          .order('created_at', { ascending: false })
+          .limit(200),
+        supabase.from('payment_events')
+          .select('id, action, actor_type, actor_id, details, amount_cents, currency, stripe_object_type, stripe_object_id, occurred_at')
+          .eq('entity_id', bookingId)
+          .order('occurred_at', { ascending: false })
+          .limit(200),
+        invoiceIds.length > 0
+          ? supabase.from('invoice_audit')
+            .select('id, invoice_id, action, actor_type, actor_id, details, timestamp')
+            .in('invoice_id', invoiceIds)
+            .order('timestamp', { ascending: false })
+            .limit(200)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      // Schritt 3: zu einem einzigen Strom zusammenfuehren + chronologisch sortieren.
+      const events = [
+        ...(auditRes.data || []).map(e => ({
+          kind: 'booking',
+          at: e.created_at,
+          action: e.action,
+          actor_type: e.actor_type,
+          actor_id: e.actor_id,
+          details: e.details,
+        })),
+        ...(payRes.data || []).map(e => ({
+          kind: 'payment',
+          at: e.occurred_at,
+          action: e.action,
+          actor_type: e.actor_type,
+          actor_id: e.actor_id,
+          details: e.details,
+          amount_cents: e.amount_cents,
+          currency: e.currency,
+          stripe_object_type: e.stripe_object_type,
+          stripe_object_id: e.stripe_object_id,
+        })),
+        ...(invAuditRes.data || []).map(e => ({
+          kind: 'invoice',
+          at: e.timestamp,
+          action: e.action,
+          actor_type: e.actor_type,
+          actor_id: e.actor_id,
+          details: e.details,
+          invoice_label: invoiceIdToNumber.get(e.invoice_id) || null,
+        })),
+      ].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+
+      return res.json({ data: events });
+    }
+
     // ─── Dashboard KPIs (exakte Berechnungen) ─────────────────────────
     case 'dashboard_kpis': {
       const mondayISO = req.query.monday;
