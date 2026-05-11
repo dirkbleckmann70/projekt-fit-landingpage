@@ -677,7 +677,12 @@
     anonymized:               { icon: '🔒', label: 'Daten anonymisiert (DSGVO-Loeschung)' },
     admin_override_update:    { icon: '⚠️', label: 'Admin-Override-Update (Immutability umgangen)' },
   };
-  const AUDIT_ACTORS = { customer: 'Kunde', trainer: 'Trainer', admin: 'Admin', system: 'System' };
+  // Akteur-Schluessel: Audit-Tabellen schreiben englische Werte (customer/trainer/admin/system),
+  // bookings.storno_wer im DB-Schema deutsche Werte (kunde/trainer/admin/system). Beide Welten abdecken.
+  const AUDIT_ACTORS = {
+    customer: 'Kunde', kunde: 'Kunde',
+    trainer: 'Trainer', admin: 'Admin', system: 'System',
+  };
 
   // XSS-sicheres Escapen fuer Details-JSON + Strings aus DB
   function auditEscape(str) {
@@ -775,9 +780,11 @@
       ? '<div class="text-secondary mt-1" style="font-size:12px">' + klartext + '</div>'
       : '';
 
-    // Roh-JSON nur fuer Tech-Pruefung, eingeklappt + kleiner Schriftgrad
+    // Roh-JSON nur fuer Tech-Pruefung, eingeklappt + kleiner Schriftgrad.
+    // Bei synthetischen Eintraegen (rekonstruiert aus Buchungs-Spalten) entfaellt der Toggle,
+    // weil die Roh-Felder identisch sind zur Klartext-Zusammenfassung.
     let rohHtml = '';
-    if (e.details && typeof e.details === 'object' && Object.keys(e.details).length > 0) {
+    if (!e.synthetic && e.details && typeof e.details === 'object' && Object.keys(e.details).length > 0) {
       const detailJson = JSON.stringify(e.details, null, 2);
       rohHtml = '<details class="mt-1"><summary class="text-secondary" style="cursor:pointer;font-size:10px;opacity:0.7">Roh-Daten anzeigen</summary>'
         + '<pre style="font-size:10px;margin:4px 0 0 0;white-space:pre-wrap;word-break:break-word;opacity:0.7">' + auditEscape(detailJson) + '</pre>'
@@ -815,26 +822,82 @@
     'admin_override_update',
   ]);
 
+  // Legacy-Status-Werte die als 'Storniert' interpretiert werden — fuer alte Buchungen
+  // ohne booking_audit-Eintrag rekonstruieren wir den Stornierungs-Eintrag aus den
+  // Buchungs-Spalten.
+  const AUDIT_STORNO_LEGACY_STATUSES = new Set([
+    'cancelled', 'cancelled_by_trainer', 'fully_cancelled',
+    'rejected', 'refunded', 'storniert',
+  ]);
+
+  // Synthetische Eintraege aus der Buchung selbst — fuer alte Buchungen wo keine
+  // booking_audit-Eintraege existieren (Tabelle wurde erst am 25.04.2026 eingerichtet).
+  // Werden mit `synthetic: true` markiert, damit der Roh-JSON-Toggle entfaellt.
+  function buildSyntheticEntries(b) {
+    const items = [];
+
+    // Eintrag 1: Buchung erstellt (immer, weil b.created_at existiert)
+    if (b.created_at) {
+      items.push({
+        kind: 'booking',
+        synthetic: true,
+        at: b.created_at,
+        actor_type: 'customer',
+        action: 'created',
+        details: {
+          art: b.booking_type === 'group' ? 'gt_teilnahme' : 'pt_einzel',
+          scheduled_date: b.scheduled_date || null,
+          scheduled_time: b.scheduled_time || null,
+          price_cents: (b.final_price_cents != null ? b.final_price_cents : b.price_cents) || null,
+        },
+      });
+    }
+
+    // Eintrag 2 (nur wenn die Buchung storniert ist): Storniert
+    if (AUDIT_STORNO_LEGACY_STATUSES.has(b.status)) {
+      items.push({
+        kind: 'booking',
+        synthetic: true,
+        at: b.updated_at || b.created_at,
+        actor_type: b.storno_wer || 'system',
+        action: 'cancelled',
+        details: {
+          storno_wer: b.storno_wer || null,
+          storno_grund: b.storno_grund || null,
+        },
+      });
+    }
+
+    return items;
+  }
+
   async function renderHistory(b) {
     const el = document.getElementById('modal-history');
     if (!el) return;
     el.innerHTML = '<div class="text-muted p-3">Logbuch wird geladen ...</div>';
 
-    let events = [];
+    let auditEvents = [];
     let loadError = null;
     try {
       const resp = await adminApi('/api/admin?action=data&type=booking_audit_log&booking_id=' + encodeURIComponent(b.id));
-      events = (resp && resp.data) || [];
+      auditEvents = (resp && resp.data) || [];
     } catch (e) {
       loadError = (e && e.message) || String(e || 'unbekannter Fehler');
     }
 
-    // Interne Daten-Pflege-Eintraege rausfiltern — interessieren den Admin nicht
-    events = events.filter(e => {
+    // Interne Daten-Pflege-Eintraege rausfiltern
+    auditEvents = auditEvents.filter(e => {
       if (e.kind === 'booking' && AUDIT_HIDDEN_BOOKING_ACTIONS.has(e.action)) return false;
       if (e.kind === 'invoice' && AUDIT_HIDDEN_INVOICE_ACTIONS.has(e.action)) return false;
       return true;
     });
+
+    // Synthetische Eintraege aus der Buchung selbst — nur wo noch kein echter
+    // booking_audit-Eintrag mit gleicher action existiert (Dedup)
+    const realBookingActions = new Set(auditEvents.filter(e => e.kind === 'booking').map(e => e.action));
+    const synthEntries = buildSyntheticEntries(b).filter(s => !realBookingActions.has(s.action));
+
+    const events = [...auditEvents, ...synthEntries].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
 
     if (loadError) {
       el.innerHTML = '<div class="text-warning p-3">Logbuch konnte nicht geladen werden: '
