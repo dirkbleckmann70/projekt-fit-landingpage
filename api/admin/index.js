@@ -1926,6 +1926,38 @@ async function handleBookingsPut(req, res, supabase) {
 
 // ─── ACTION: bookings DELETE ────────────────────────────────────────────────
 
+// Wandelt einen rohen Postgres-Fremdschluessel-Fehler in einen deutschen Klartext-Hinweis um.
+// Damit der Admin im Browser nicht „update or delete on table bookings violates foreign key
+// constraint booking_audit_booking_id_fkey on table booking_audit" sieht, sondern eine
+// Erklaerung was los ist und was er stattdessen tun kann.
+function translateDeleteError(error) {
+  if (!error) return null;
+  const msg = (error.message || '').toLowerCase();
+  const isFkError = error.code === '23503' || msg.includes('foreign key constraint');
+  if (!isFkError) return null;
+
+  if (msg.includes('booking_audit')) {
+    return 'Diese Buchung kann nicht gelöscht werden. Zu ihr ist im Hintergrund ein Tagebuch '
+      + '(Schritt-für-Schritt-Protokoll: wer hat wann was gemacht) gespeichert. Das Finanzamt '
+      + 'verlangt, dass dieses Protokoll mindestens 10 Jahre erhalten bleibt — auch wenn die '
+      + 'Buchung selbst weg ist. Aus diesem Grund lehnt das System das Löschen ab. '
+      + 'Bitte nutze stattdessen den Storno-Knopf (rotes X). Die Buchung bleibt dann mit dem '
+      + 'Vermerk „storniert" in der Liste, der Kunde bekommt sein Geld zurück, und ein '
+      + 'Stornobeleg für die Buchhaltung wird erzeugt.';
+  }
+  if (msg.includes('invoice')) {
+    return 'Diese Buchung kann nicht gelöscht werden, weil zu ihr bereits eine Rechnung '
+      + 'oder ein Stornobeleg erzeugt wurde. Rechnungen dürfen nicht verschwinden wenn die '
+      + 'zugehörige Buchung weg ist (Finanzamt-Vorgabe). Bitte nutze stattdessen den '
+      + 'Storno-Knopf (rotes X) — der erzeugt einen Stornobeleg, der mit der bestehenden '
+      + 'Rechnung sauber verknüpft wird.';
+  }
+  // Anderer Fremdschlüssel-Konflikt (selten — z.B. discount_codes)
+  return 'Diese Buchung kann nicht gelöscht werden, weil noch andere Einträge mit ihr '
+    + 'verbunden sind. Bitte nutze stattdessen den Storno-Knopf (rotes X) — der räumt die '
+    + 'Verknüpfungen sauber auf.';
+}
+
 async function handleBookingsDelete(req, res, supabase) {
   const body = await getBody(req);
   const { bookingIds } = body;
@@ -1950,20 +1982,26 @@ async function handleBookingsDelete(req, res, supabase) {
       await supabase.from('bookings').update({ selected_location_id: null }).in('id', realIds);
       await supabase.from('booking_locations').delete().in('booking_id', realIds);
       const { error, count } = await supabase.from('bookings').delete({ count: 'exact' }).in('id', realIds);
-      if (error) return res.status(500).json({ error: 'Buchungen loeschen: ' + error.message });
+      if (error) {
+        const friendly = translateDeleteError(error);
+        return res.status(friendly ? 409 : 500).json({ error: friendly || ('Loeschen fehlgeschlagen: ' + error.message) });
+      }
       deletedCount += count || realIds.length;
     }
 
     // 2. GT-Teilnahmen loeschen.
     // Teilspec 1: GT-Teilnahmen liegen in bookings (art='gt_teilnahme'); IDs sind 1:1
-    // gleich mit der Legacy-Tabelle group_participants — beide werden aufgeraeumt.
+    // gleich mit der Legacy-Tabelle group_participants_legacy — beide werden aufgeraeumt.
     if (gpIds.length > 0) {
       const { error: bErr, count: bCount } = await supabase
         .from('bookings')
         .delete({ count: 'exact' })
         .eq('art', 'gt_teilnahme')
         .in('id', gpIds);
-      if (bErr) return res.status(500).json({ error: 'GT-Teilnahmen (bookings) loeschen: ' + bErr.message });
+      if (bErr) {
+        const friendly = translateDeleteError(bErr);
+        return res.status(friendly ? 409 : 500).json({ error: friendly || ('Loeschen fehlgeschlagen: ' + bErr.message) });
+      }
       deletedCount += bCount || gpIds.length;
       // Legacy-Tabelle parallel aufraeumen (falls noch Daten drin liegen)
       const { error: lErr } = await supabase.from('group_participants').delete().in('id', gpIds);

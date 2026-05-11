@@ -596,7 +596,12 @@
       showAlert('alert-box', 'Buchung gelöscht.', 'success');
       await loadBookings();
     } catch (err) {
-      alert('Löschen fehlgeschlagen: ' + err.message);
+      // Server liefert bei vorhersehbaren Konflikten (z.B. Tagebuch, Rechnung) bereits
+      // einen vollstaendigen deutschen Erklaer-Text — dann nicht zusaetzlich
+      // 'Loeschen fehlgeschlagen:' davor setzen, das wirkt sonst doppelt.
+      const msg = (err && err.message) || 'Unbekannter Fehler';
+      const isFriendlyText = /\b(stornier|tagebuch|stornobeleg|finanzamt|rechnung)\b/i.test(msg);
+      alert(isFriendlyText ? msg : ('Löschen fehlgeschlagen: ' + msg));
     }
   }
 
@@ -613,7 +618,9 @@
       showAlert('alert-box', `${ids.length} Buchung(en) gelöscht.`, 'success');
       await loadBookings();
     } catch (err) {
-      alert('Löschen fehlgeschlagen: ' + err.message);
+      const msg = (err && err.message) || 'Unbekannter Fehler';
+      const isFriendlyText = /\b(stornier|tagebuch|stornobeleg|finanzamt|rechnung)\b/i.test(msg);
+      alert(isFriendlyText ? msg : ('Löschen fehlgeschlagen: ' + msg));
     }
   }
 
