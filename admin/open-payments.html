@@ -21,7 +21,7 @@
   <div class="page-body">
     <div class="container-xl">
 
-      <div id="alert-box" class="alert"></div>
+      <div id="alert-box" class="alert d-none"></div>
 
       <!-- KPI Row -->
       <div class="row row-deck row-cards mb-3" id="kpi-row">
@@ -184,18 +184,21 @@
         ? `<span class="badge bg-orange-lt" title="Trainer/Admin hat Bar gemeldet — Eingang muss verifiziert werden">Bar gemeldet — bitte verifizieren</span>`
         : '<span class="text-secondary">–</span>';
 
-      const id = escapeHtml(row.id);
-      const custName = customerLabel(row).replace(/'/g, "\\'");
+      // Pre-Push-Review W-1: Statt onclick mit String-Interpolation (XSS-Risiko
+      // wenn Kundenname Sonderzeichen enthaelt) data-*-Attribute verwenden.
+      // Event-Delegation greift die Klicks ueber das tbody-Element ab.
+      const rowId = escapeHtml(row.id);
+      const custLabel = escapeHtml(customerLabel(row));
       const actionsHtml = row.bar_gemeldet_am
-        ? `<button class="btn btn-sm btn-success" onclick="verifyCash('${id}')"><i class="ti ti-check me-1"></i>Eingang verifizieren — Bar</button>`
+        ? `<button class="btn btn-sm btn-success" data-action="verify-cash" data-id="${rowId}"><i class="ti ti-check me-1"></i>Eingang verifizieren — Bar</button>`
         : `<div class="d-flex gap-1">
-             <button class="btn btn-sm btn-outline-primary" title="Erinnerungs-Mail an Kunde" onclick="sendReminder('${id}')"><i class="ti ti-mail me-1"></i>Erinnerung</button>
-             <button class="btn btn-sm btn-outline-warning" title="Rechnung mit Zahlungsfrist stellen" onclick="issueOpenInvoice('${id}')"><i class="ti ti-file-invoice me-1"></i>Rechnung stellen</button>
-             <button class="btn btn-sm btn-outline-danger" title="Buchung stornieren (mit Stornobeleg)" onclick="stornoOpenPayment('${id}', '${custName}', ${cents})"><i class="ti ti-x me-1"></i>Stornieren</button>
+             <button class="btn btn-sm btn-outline-primary" title="Erinnerungs-Mail an Kunde" data-action="send-reminder" data-id="${rowId}"><i class="ti ti-mail me-1"></i>Erinnerung</button>
+             <button class="btn btn-sm btn-outline-warning" title="Rechnung mit Zahlungsfrist stellen" data-action="issue-invoice" data-id="${rowId}"><i class="ti ti-file-invoice me-1"></i>Rechnung stellen</button>
+             <button class="btn btn-sm btn-outline-danger" title="Buchung stornieren (mit Stornobeleg)" data-action="storno" data-id="${rowId}" data-name="${custLabel}" data-cents="${cents}"><i class="ti ti-x me-1"></i>Stornieren</button>
            </div>`;
 
       return `<tr>
-        <td>${escapeHtml(customerLabel(row))}</td>
+        <td>${custLabel}</td>
         <td>${escapeHtml(trainerLabel(row))}</td>
         <td>${escapeHtml(fmtTermin(row.scheduled_date, row.scheduled_time))}</td>
         <td class="td-amount text-accent">${eur}</td>
@@ -207,45 +210,62 @@
   }
 
   // ─── Actions ──────────────────────────────────────────────────────────────
-  async function verifyCash(bookingId) {
-    if (!confirm('Bargeld-Eingang fuer diese Buchung verifizieren? Damit gilt die Zahlung als beglichen.')) return;
+  // Pre-Push-Review W-2: globales Action-Lock-Flag verhindert Doppel-Click
+  // waehrend ein API-Call laeuft. issue-open-invoice + verify-cash haben zwar
+  // server-seitige Idempotenz-Checks, aber die UI sollte zwischen Click 1
+  // und Server-Antwort einen zweiten Click nicht ueberhaupt durchlassen.
+  let _actionInProgress = false;
+
+  async function runAction(button, label, doFn) {
+    if (_actionInProgress) return;
+    _actionInProgress = true;
+    if (button) button.disabled = true;
     try {
+      await doFn();
+    } catch (err) {
+      showPfToast('Fehler', err.message || `${label} fehlgeschlagen`, 'danger');
+    } finally {
+      _actionInProgress = false;
+      // Button-State wird durch das anschliessende loadOpenPayments() ohnehin
+      // weggerendert. Falls der Call vor dem Render abbricht, Button wieder
+      // klickbar machen — defensive Pre-Render-Bereinigung.
+      if (button && document.body.contains(button)) button.disabled = false;
+    }
+  }
+
+  async function verifyCash(bookingId, button) {
+    if (!confirm('Bargeld-Eingang fuer diese Buchung verifizieren? Damit gilt die Zahlung als beglichen.')) return;
+    await runAction(button, 'Verifikation', async () => {
       await adminApi('/api/admin?action=verify-cash', {
         method: 'POST',
         body: JSON.stringify({ bookingId }),
       });
       showPfToast('Eingang verifiziert', 'Bargeld als beglichen verbucht.', 'success');
       await loadOpenPayments();
-    } catch (err) {
-      showPfToast('Fehler', err.message || 'Aktion fehlgeschlagen', 'danger');
-    }
+    });
   }
 
-  async function sendReminder(bookingId) {
-    try {
+  async function sendReminder(bookingId, button) {
+    await runAction(button, 'Erinnerung', async () => {
       await adminApi('/api/admin?action=send-payment-reminder', {
         method: 'POST',
         body: JSON.stringify({ bookingId }),
       });
       showPfToast('Erinnerung gesendet', 'Mail an Kunde verschickt.', 'success');
       await loadOpenPayments();
-    } catch (err) {
-      showPfToast('Fehler', err.message || 'Aktion fehlgeschlagen', 'danger');
-    }
+    });
   }
 
-  async function issueOpenInvoice(bookingId) {
+  async function issueOpenInvoice(bookingId, button) {
     if (!confirm('Rechnung mit Zahlungsfrist stellen? Der Kunde erhaelt eine PDF-Rechnung per Mail.')) return;
-    try {
+    await runAction(button, 'Rechnungs-Stellung', async () => {
       await adminApi('/api/admin?action=issue-open-invoice', {
         method: 'POST',
         body: JSON.stringify({ bookingId }),
       });
       showPfToast('Rechnung gestellt', 'PDF wurde an den Kunden versendet.', 'success');
       await loadOpenPayments();
-    } catch (err) {
-      showPfToast('Fehler', err.message || 'Aktion fehlgeschlagen', 'danger');
-    }
+    });
   }
 
   function stornoOpenPayment(bookingId, customerName, grossCents) {
@@ -262,6 +282,26 @@
       onSuccess: () => loadOpenPayments(),
     });
   }
+
+  // Event-Delegation: alle Aktion-Klicks ueber das tbody abfangen, anstatt
+  // inline onclick-Attribute zu nutzen (XSS-Schutz, Pre-Push-Review W-1).
+  document.addEventListener('DOMContentLoaded', () => {
+    const tbody = document.getElementById('open-payments-body');
+    if (!tbody) return;
+    tbody.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (!id) return;
+      switch (action) {
+        case 'verify-cash':   return verifyCash(id, btn);
+        case 'send-reminder': return sendReminder(id, btn);
+        case 'issue-invoice': return issueOpenInvoice(id, btn);
+        case 'storno':        return stornoOpenPayment(id, btn.dataset.name || '', btn.dataset.cents || '0');
+      }
+    });
+  });
 </script>
 </body>
 </html>
