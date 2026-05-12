@@ -654,6 +654,89 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════════
+      // MANUAL-DEBT-OFFSET – POST (Teilspec 2 Task 29): Admin markiert alle
+      // offenen Bar-Schulden eines Trainers (cash_pulsly_owed_cents > 0) als
+      // „manuell ausgeglichen". Setzt pro Buchung cash_pulsly_owed_cents=0
+      // mit Atomic-Lock (.gt-Filter im UPDATE schliesst Race-Bedingungen aus)
+      // und schreibt einen cash_payment_audit-Eintrag (action='verrechnet').
+      //
+      // cash_payment_audit-CHECK erlaubt action='verrechnet' + actor_type='admin'
+      // (live verifiziert 12.05.). amount_cents + pulsly_anteil_cents bekommen
+      // den gleichen Wert — Pulsly bekommt den vollen offenen Betrag rechnerisch
+      // zugeschlagen, ohne dass tatsaechlich Geld geflossen ist.
+      //
+      // Best-Effort beim Audit-Insert (CLAUDE.md _shared-Helper-Pattern):
+      // Audit-Fehler darf den bereits geschriebenen UPDATE nicht ueberschreiben.
+      // ═══════════════════════════════════════════════════════════════════
+      case 'manual-debt-offset': {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        const body = await getBody(req);
+        const trainerId = body?.trainerId;
+        if (!/^[0-9a-f-]{36}$/i.test(trainerId ?? '')) return res.status(400).json({ error: 'invalid trainerId' });
+
+        // Admin-Identitaet aus dem Bearer-Token holen (gleicher Pattern wie
+        // case 'mark-cash'). adminUserId geht in cash_payment_audit.actor_id,
+        // adminEmail in details.admin_email fuer spaetere Nachvollziehbarkeit.
+        const authHeader = req.headers.authorization ?? '';
+        const token = authHeader.replace('Bearer ', '');
+        const { data: adminAuth } = await supabase.auth.getUser(token);
+        const adminUserId = adminAuth?.user?.id ?? null;
+        const adminEmail = adminAuth?.user?.email ?? null;
+
+        // Alle offenen Schulden des Trainers laden
+        const { data: debts, error: dErr } = await supabase
+          .from('bookings')
+          .select('id, cash_pulsly_owed_cents')
+          .eq('trainer_id', trainerId)
+          .gt('cash_pulsly_owed_cents', 0);
+        if (dErr) return res.status(500).json({ error: dErr.message });
+        if (!debts || debts.length === 0) return res.status(409).json({ error: 'no open debts for trainer' });
+
+        // Pro Buchung: cash_pulsly_owed_cents=0 + audit-Eintrag.
+        // Atomic-Lock via .gt('cash_pulsly_owed_cents', 0) im UPDATE: wenn
+        // ein paralleler Call die Schuld bereits ausgeglichen hat, kommt 0
+        // Zeilen zurueck → wir zaehlen das als „failed" und ueberspringen
+        // den Audit-Eintrag (kein Doppel-Audit). .select() ist RLS-Pflicht.
+        let success = 0;
+        let failed = 0;
+        for (const d of debts) {
+          const { data: updRows, error: updErr } = await supabase
+            .from('bookings')
+            .update({ cash_pulsly_owed_cents: 0 })
+            .eq('id', d.id)
+            .gt('cash_pulsly_owed_cents', 0)
+            .select('id');
+          if (updErr || !updRows || updRows.length === 0) {
+            failed++;
+            continue;
+          }
+          // cash_payment_audit-Eintrag (Best-Effort: Fehler hier kippt nicht
+          // den schon geschriebenen UPDATE — gleiches Pattern wie mark-cash).
+          try {
+            const { error: auditErr } = await supabase.from('cash_payment_audit').insert({
+              booking_id: d.id,
+              action: 'verrechnet', // CHECK-konform (live verifiziert)
+              actor_type: 'admin',
+              actor_id: adminUserId,
+              amount_cents: d.cash_pulsly_owed_cents,
+              pulsly_anteil_cents: d.cash_pulsly_owed_cents,
+              details: {
+                manual_offset: true,
+                admin_email: adminEmail,
+                on_behalf_of_trainer: trainerId,
+              },
+            });
+            if (auditErr) console.error('cash_payment_audit insert failed (non-blocking):', auditErr);
+          } catch (e) {
+            console.error('cash_payment_audit insert threw (non-blocking):', e);
+          }
+          success++;
+        }
+
+        return res.status(200).json({ ok: true, success, failed, totalDebts: debts.length });
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
       // COMPANY-SETTINGS – GET (laden) + PUT (speichern)
       // Teilspec 2 Task 27a Refactor: PUT mit Allow-Liste statt freiem ...body-Spread
       // (Sicherheit: kein Override von id/system-Spalten via Frontend).

@@ -318,9 +318,15 @@
       if (b.paid === true)     return 'Bezahlt (nicht erstattet)';
       return 'Keine';
     }
+    // Teilspec 2 Task 30: \u201EKarte abgelehnt\u201C als eigener Filter-Wert, damit
+    // der Admin im bestehenden Select-Filter \u201EZahlung\u201C direkt darauf filtern
+    // kann (Task-30-Step-2 Variante via Quick-Filter-Chip statt extraButtons-
+    // Toggle \u2014 Begruendung im Commit-Body).
+    if (b.flag_zahlung_offen === true)                                return 'Karte abgelehnt';
     if (ps === 'paid'     || b.paid === true || st === BOOKING_STATUS.COMPLETED.toUpperCase()) return STATUS_LABELS[BOOKING_STATUS.PAID];
     if (ps === 'refunded')                                           return STATUS_LABELS[BOOKING_STATUS.REFUNDED];
     if (ps === 'failed')                                             return 'Fehlgeschlagen';
+    if (b.stripe_setup_intent_id && !b.stripe_payment_intent_id)     return 'Karte hinterlegt';
     if (ps === BOOKING_STATUS.PENDING || st === BOOKING_STATUS.CONFIRMED.toUpperCase() || st === BOOKING_STATUS.PENDING.toUpperCase()) return 'Ausstehend';
     return 'Keine';
   }
@@ -336,12 +342,24 @@
         return '<span style="color:#E07A3A;white-space:nowrap">\u26A0\uFE0F Bezahlt (nicht erstattet)</span>';
       return '<span style="color:#55556A;white-space:nowrap">\u2013 Keine</span>';
     }
+    // Teilspec 2 Task 30: \u201EKarte abgelehnt\u201C hat Vorrang vor allen anderen Anzeigen
+    // \u2014 wenn flag_zahlung_offen gesetzt ist, will der Admin das SOFORT sehen.
+    // Hinweis: enrichBookings mappt mapStatusForFrontend; bei flag_zahlung_offen=true
+    // wird status zu 'payment_open' \u2014 wir lesen aber direkt das Flag, weil GT-Teilnahmen
+    // \u00FCber fetchGroupParticipantsAsBookings das Flag nicht durchreichen und der
+    // Frontend-Code-Fluss konsistenter ist, wenn das Flag der prim\u00E4re Indikator bleibt.
+    if (b.flag_zahlung_offen === true)
+      return '<span style="color:#E74C3C;white-space:nowrap" title="Karte abgelehnt \u2014 Zahlung offen">\u274C Karte abgelehnt</span>';
     if (ps === 'paid'     || b.paid === true || st === BOOKING_STATUS.COMPLETED.toUpperCase())
       return '<span style="color:#27AE60;white-space:nowrap">\u2705 Bezahlt</span>';
     if (ps === 'refunded')
       return '<span style="color:#E07A3A;white-space:nowrap">\u21A9\uFE0F Erstattet</span>';
     if (ps === 'failed')
       return '<span style="color:#E74C3C;white-space:nowrap">\u274C Fehlgeschlagen</span>';
+    // Karte hinterlegt (SetupIntent existiert, noch kein PaymentIntent) \u2014 typisch
+    // f\u00FCr Buchungen vor dem \u201Eautomatischen Einzug 24h vorher\u201C-Cron.
+    if (b.stripe_setup_intent_id && !b.stripe_payment_intent_id)
+      return '<span style="color:#7E879F;white-space:nowrap" title="SetupIntent erstellt, noch nicht belastet">\uD83D\uDCB3 Karte hinterlegt</span>';
     if (ps === BOOKING_STATUS.PENDING || st === BOOKING_STATUS.CONFIRMED.toUpperCase() || st === BOOKING_STATUS.PENDING.toUpperCase())
       return '<span style="color:#F39C12;white-space:nowrap">\u23F3 Ausstehend</span>';
     return '<span style="color:#55556A;white-space:nowrap">\u2013 Keine</span>';

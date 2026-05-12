@@ -15,6 +15,7 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
     { id: 'trainers',         label: 'Trainer',           icon: 'users',            href: '/admin/trainers.html' },
     { id: 'bookings',         label: 'Buchungen',         icon: 'clipboard-list',   href: '/admin/bookings.html' },
     { id: 'open-payments',    label: 'Offene Zahlungen',  icon: 'credit-card-off',  href: '/admin/open-payments.html' },
+    { id: 'trainer-debts',    label: 'Trainer-Schulden',  icon: 'wallet-off',       href: '/admin/trainer-debts.html' },
     { id: 'customers',        label: 'Kunden',            icon: 'user',             href: '/admin/customers.html' },
     { id: 'finances',         label: 'Finanzen',          icon: 'currency-euro',    href: '/admin/finances.html' },
     { id: 'groups',           label: 'Gruppentrainings',  icon: 'users-group',      href: '/admin/groups.html' },

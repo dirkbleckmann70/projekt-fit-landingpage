@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trainer-Schulden – Pulsly Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
+</head>
+<body class="page">
+<script src="../shared/theme.js"></script>
+
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
+
+      <div id="alert-box" class="alert d-none"></div>
+
+      <div class="card mb-3">
+        <div class="card-body py-3">
+          <div class="text-secondary" style="font-size:13px">
+            Trainer hat Bar bekommen, Pulsly-Anteil noch nicht abgefuehrt.
+            „Manuell verrechnet markieren" setzt alle offenen Schulden des Trainers auf 0 (z. B. nach Bank-Abgleich oder Verrechnung mit kommenden Auszahlungen).
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI Row: bewusst nur 2 KPIs (Trainer betroffen + Gesamt-Schulden) -->
+      <div class="row row-deck row-cards mb-3" id="kpi-row">
+        <div class="col-sm-6 col-lg-6">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Trainer betroffen</div>
+              <div class="kpi-value" id="kpi-trainers">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-6">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Gesamt-Schulden</div>
+              <div class="kpi-value text-primary" id="kpi-sum">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table table-hover" id="trainer-debts-table">
+            <thead>
+              <tr>
+                <th>Trainer</th>
+                <th>Anzahl offen</th>
+                <th>Summe</th>
+                <th>Aktion</th>
+              </tr>
+            </thead>
+            <tbody id="trainer-debts-body">
+              <tr><td colspan="4" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Trainer-Schulden werden geladen...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/table-utils.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-guard.js"></script>
+<script>
+  let allTrainerDebts = [];
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────────────
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('trainer-debts');
+    document.getElementById('header').innerHTML = renderAdminHeader('Trainer-Schulden', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
+
+    await loadTrainerDebts();
+  })();
+
+  async function loadTrainerDebts() {
+    try {
+      const res = await adminApi('/api/admin?action=trainer_debts');
+      // API liefert bereits nach total_owed_cents desc sortiert — wir respektieren das.
+      allTrainerDebts = res.data || [];
+      renderTable();
+      updateKPIs();
+    } catch (err) {
+      document.getElementById('trainer-debts-body').innerHTML =
+        `<tr><td colspan="4" class="text-danger" style="padding:20px">Fehler: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  function updateKPIs() {
+    const trainers = allTrainerDebts.length;
+    const sum = allTrainerDebts.reduce((s, r) => s + (r.total_owed_cents || 0), 0);
+    document.getElementById('kpi-trainers').textContent = trainers;
+    document.getElementById('kpi-sum').textContent = formatEuro(sum);
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('trainer-debts-body');
+
+    if (allTrainerDebts.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:32px"><div style="font-size:32px;margin-bottom:8px">🎉</div>Keine offenen Trainer-Schulden</td></tr>';
+      return;
+    }
+
+    // Event-Delegation statt onclick (XSS-Schutz wie Task 28 W-1) — die
+    // Klick-Behandlung sitzt im DOMContentLoaded-Listener weiter unten.
+    tbody.innerHTML = allTrainerDebts.map(row => {
+      const trainerName = escapeHtml(row.trainer_name || '(unbekannt)');
+      const totalCents = row.total_owed_cents || 0;
+      const eur = formatEuro(totalCents);
+      const count = row.count || 0;
+      const trainerId = escapeHtml(row.trainer_id);
+
+      return `<tr>
+        <td>${trainerName}</td>
+        <td>${count}</td>
+        <td class="td-amount text-accent">${eur}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-warning"
+                  data-action="offset"
+                  data-id="${trainerId}"
+                  data-name="${trainerName}"
+                  data-total="${totalCents}"
+                  title="Setzt cash_pulsly_owed_cents=0 fuer alle offenen Buchungen dieses Trainers">
+            <i class="ti ti-check me-1"></i>Manuell verrechnet markieren
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ─── Action-Lock-Helper (Pre-Push-Review W-2 aus Task 28) ─────────────────
+  // Globales Flag verhindert Doppel-Click waehrend ein API-Call laeuft.
+  let _actionInProgress = false;
+
+  async function runAction(button, label, doFn) {
+    if (_actionInProgress) return;
+    _actionInProgress = true;
+    if (button) button.disabled = true;
+    try {
+      await doFn();
+    } catch (err) {
+      showPfToast('Fehler', err.message || `${label} fehlgeschlagen`, 'danger');
+    } finally {
+      _actionInProgress = false;
+      if (button && document.body.contains(button)) button.disabled = false;
+    }
+  }
+
+  async function markOffset(trainerId, trainerName, totalCents, button) {
+    const eur = formatEuro(totalCents);
+    if (!confirm(`Sicher die ${eur} Schulden bei ${trainerName} als 'manuell ausgeglichen' markieren? Setzt cash_pulsly_owed_cents=0 fuer alle offenen Buchungen dieses Trainers.`)) return;
+    await runAction(button, 'Verrechnung', async () => {
+      const resp = await adminApi('/api/admin?action=manual-debt-offset', {
+        method: 'POST',
+        body: JSON.stringify({ trainerId }),
+      });
+      // Antwort kann success/failed/totalDebts liefern — nur dann Hinweis,
+      // wenn etwas durchgelaufen ist; sonst Fehlertoast aus runAction.
+      const success = resp?.success ?? 0;
+      const failed = resp?.failed ?? 0;
+      const hint = failed > 0 ? ` (${failed} parallel ausgeglichen)` : '';
+      showPfToast('Verrechnet', `${eur} bei ${trainerName} als ausgeglichen markiert.${hint}`, 'success');
+      await loadTrainerDebts();
+    });
+  }
+
+  // Event-Delegation: alle Aktion-Klicks ueber das tbody abfangen (XSS-Schutz)
+  document.addEventListener('DOMContentLoaded', () => {
+    const tbody = document.getElementById('trainer-debts-body');
+    if (!tbody) return;
+    tbody.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button[data-action]');
+      if (!btn) return;
+      const action = btn.dataset.action;
+      const id = btn.dataset.id;
+      if (!id) return;
+      if (action === 'offset') {
+        return markOffset(id, btn.dataset.name || '', Number(btn.dataset.total) || 0, btn);
+      }
+    });
+  });
+</script>
+</body>
+</html>
