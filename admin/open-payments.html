@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offene Zahlungen – pulsly Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <link rel="stylesheet" href="../shared/table-utils.css">
+</head>
+<body class="page">
+<script src="../shared/theme.js"></script>
+
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body">
+    <div class="container-xl">
+
+      <div id="alert-box" class="alert"></div>
+
+      <!-- KPI Row -->
+      <div class="row row-deck row-cards mb-3" id="kpi-row">
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Offene Faelle</div>
+              <div class="kpi-value" id="kpi-total">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Offener Betrag</div>
+              <div class="kpi-value text-primary" id="kpi-sum">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Bar gemeldet — zu verifizieren</div>
+              <div class="kpi-value text-warning" id="kpi-cash">--</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-lg-3">
+          <div class="card">
+            <div class="card-body py-3">
+              <div class="kpi-label">Faellig &gt; 7 Tage</div>
+              <div class="kpi-value text-danger" id="kpi-overdue">--</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-responsive">
+          <table class="table table-vcenter card-table table-hover" id="open-payments-table">
+            <thead>
+              <tr>
+                <th>Kunde</th>
+                <th>Trainer</th>
+                <th>Termin</th>
+                <th>Betrag</th>
+                <th>Offen seit</th>
+                <th>Bar gemeldet</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="open-payments-body">
+              <tr><td colspan="7" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Offene Zahlungen werden geladen...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/table-utils.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-guard.js"></script>
+<script src="assets/js/storno-dialog.js"></script>
+<script>
+  let allOpenPayments = [];
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function fmtTermin(dateStr, timeStr) {
+    if (!dateStr) return '–';
+    const d = new Date(dateStr + 'T00:00:00');
+    const datum = d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const uhr = timeStr ? timeStr.slice(0, 5) + ' Uhr' : '';
+    return uhr ? datum + ' ' + uhr : datum;
+  }
+
+  function customerLabel(row) {
+    return row.customers && (row.customers.full_name || row.customers.email) || '–';
+  }
+
+  function trainerLabel(row) {
+    return row.trainer && (row.trainer.full_name || row.trainer.email) || '–';
+  }
+
+  function bookingAmount(row) {
+    return row.final_price_cents != null ? row.final_price_cents
+      : (row.price_cents != null ? row.price_cents : 0);
+  }
+
+  // ─── Init ─────────────────────────────────────────────────────────────────
+  (async () => {
+    const user = await checkAdminAuth();
+    if (!user) return;
+
+    document.getElementById('sidebar').innerHTML = renderAdminSidebar('open-payments');
+    document.getElementById('header').innerHTML = renderAdminHeader('Offene Zahlungen', user.email);
+    initRealtimeToasts(getSupabase(), 'admin');
+
+    await loadOpenPayments();
+  })();
+
+  async function loadOpenPayments() {
+    try {
+      const res = await adminApi('/api/admin?action=open_payments');
+      allOpenPayments = (res.data || []).slice().sort((a, b) => {
+        // Aelteste zuerst (groesste days_open oben)
+        const da = a.days_open == null ? 0 : Number(a.days_open);
+        const db = b.days_open == null ? 0 : Number(b.days_open);
+        return db - da;
+      });
+      renderTable();
+      updateKPIs();
+    } catch (err) {
+      document.getElementById('open-payments-body').innerHTML =
+        `<tr><td colspan="7" class="text-danger" style="padding:20px">Fehler: ${escapeHtml(err.message)}</td></tr>`;
+    }
+  }
+
+  function updateKPIs() {
+    const total = allOpenPayments.length;
+    const sum = allOpenPayments.reduce((s, r) => s + bookingAmount(r), 0);
+    const cashPending = allOpenPayments.filter(r => r.bar_gemeldet_am).length;
+    const overdue = allOpenPayments.filter(r => (r.days_open || 0) >= 7).length;
+
+    document.getElementById('kpi-total').textContent = total;
+    document.getElementById('kpi-sum').textContent = formatEuro(sum);
+    document.getElementById('kpi-cash').textContent = cashPending;
+    document.getElementById('kpi-overdue').textContent = overdue;
+  }
+
+  function renderTable() {
+    const tbody = document.getElementById('open-payments-body');
+
+    if (allOpenPayments.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:32px"><div style="font-size:32px;margin-bottom:8px">🎉</div>Keine offenen Zahlungen vorhanden</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = allOpenPayments.map(row => {
+      const cents = bookingAmount(row);
+      const eur = formatEuro(cents);
+      const days = row.days_open == null ? 0 : Number(row.days_open);
+      const daysClass = days >= 7 ? 'badge bg-red-lt' : 'badge bg-secondary';
+      const barCell = row.bar_gemeldet_am
+        ? `<span class="badge bg-orange-lt" title="Trainer/Admin hat Bar gemeldet — Eingang muss verifiziert werden">Bar gemeldet — bitte verifizieren</span>`
+        : '<span class="text-secondary">–</span>';
+
+      const id = escapeHtml(row.id);
+      const custName = customerLabel(row).replace(/'/g, "\\'");
+      const actionsHtml = row.bar_gemeldet_am
+        ? `<button class="btn btn-sm btn-success" onclick="verifyCash('${id}')"><i class="ti ti-check me-1"></i>Eingang verifizieren — Bar</button>`
+        : `<div class="d-flex gap-1">
+             <button class="btn btn-sm btn-outline-primary" title="Erinnerungs-Mail an Kunde" onclick="sendReminder('${id}')"><i class="ti ti-mail me-1"></i>Erinnerung</button>
+             <button class="btn btn-sm btn-outline-warning" title="Rechnung mit Zahlungsfrist stellen" onclick="issueOpenInvoice('${id}')"><i class="ti ti-file-invoice me-1"></i>Rechnung stellen</button>
+             <button class="btn btn-sm btn-outline-danger" title="Buchung stornieren (mit Stornobeleg)" onclick="stornoOpenPayment('${id}', '${custName}', ${cents})"><i class="ti ti-x me-1"></i>Stornieren</button>
+           </div>`;
+
+      return `<tr>
+        <td>${escapeHtml(customerLabel(row))}</td>
+        <td>${escapeHtml(trainerLabel(row))}</td>
+        <td>${escapeHtml(fmtTermin(row.scheduled_date, row.scheduled_time))}</td>
+        <td class="td-amount text-accent">${eur}</td>
+        <td><span class="${daysClass}">${days} ${days === 1 ? 'Tag' : 'Tage'}</span></td>
+        <td>${barCell}</td>
+        <td>${actionsHtml}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ─── Actions ──────────────────────────────────────────────────────────────
+  async function verifyCash(bookingId) {
+    if (!confirm('Bargeld-Eingang fuer diese Buchung verifizieren? Damit gilt die Zahlung als beglichen.')) return;
+    try {
+      await adminApi('/api/admin?action=verify-cash', {
+        method: 'POST',
+        body: JSON.stringify({ bookingId }),
+      });
+      showPfToast('Eingang verifiziert', 'Bargeld als beglichen verbucht.', 'success');
+      await loadOpenPayments();
+    } catch (err) {
+      showPfToast('Fehler', err.message || 'Aktion fehlgeschlagen', 'danger');
+    }
+  }
+
+  async function sendReminder(bookingId) {
+    try {
+      await adminApi('/api/admin?action=send-payment-reminder', {
+        method: 'POST',
+        body: JSON.stringify({ bookingId }),
+      });
+      showPfToast('Erinnerung gesendet', 'Mail an Kunde verschickt.', 'success');
+      await loadOpenPayments();
+    } catch (err) {
+      showPfToast('Fehler', err.message || 'Aktion fehlgeschlagen', 'danger');
+    }
+  }
+
+  async function issueOpenInvoice(bookingId) {
+    if (!confirm('Rechnung mit Zahlungsfrist stellen? Der Kunde erhaelt eine PDF-Rechnung per Mail.')) return;
+    try {
+      await adminApi('/api/admin?action=issue-open-invoice', {
+        method: 'POST',
+        body: JSON.stringify({ bookingId }),
+      });
+      showPfToast('Rechnung gestellt', 'PDF wurde an den Kunden versendet.', 'success');
+      await loadOpenPayments();
+    } catch (err) {
+      showPfToast('Fehler', err.message || 'Aktion fehlgeschlagen', 'danger');
+    }
+  }
+
+  function stornoOpenPayment(bookingId, customerName, grossCents) {
+    // Storno-Dialog (cancel-or-refund Edge Function inkl. Stornobeleg + Audit-Log)
+    if (typeof openStornoDialog !== 'function') {
+      showPfToast('Storno nicht moeglich', 'Storno-Dialog nicht geladen. Bitte ueber Buchungen-Seite stornieren.', 'warning');
+      return;
+    }
+    openStornoDialog({
+      kind: 'booking',
+      id: bookingId,
+      title: `Offene Zahlung — ${customerName || 'Kunde'}`,
+      grossCents: Number(grossCents) || 0,
+      onSuccess: () => loadOpenPayments(),
+    });
+  }
+</script>
+</body>
+</html>
