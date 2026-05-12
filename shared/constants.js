@@ -298,7 +298,7 @@ const ADMIN_EDITABLE_STATUSES = Object.freeze([
 function isOverdue(booking) {
   if (!booking.scheduled_date) return false;
   const ACTIVE = [
-    'pending', 'confirmed', 'checked_in_trainer', 'checked_in',
+    'pending', 'confirmed', 'checked_in_trainer', 'checked_in', 'payment_open',
     'angefragt', 'reserviert', 'bestaetigt', 'laeuft gerade',
   ];
   if (!ACTIVE.includes(booking.status)) return false;

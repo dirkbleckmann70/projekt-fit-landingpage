@@ -1742,6 +1742,7 @@ async function handleBookingsPut(req, res, supabase) {
       'reschedule_proposed', 'location_proposed',
       'finding_replacement', 'replacement_pending', 'replacement_found',
       'fully_cancelled', 'awaiting_checkout',
+      'payment_open', // Teilspec 2: Pseudo-Status aus mapStatusForFrontend, ueber Bridge zurueckmappbar
     ];
     if (![...newCanon, ...legacyCanon].includes(status)) {
       return res.status(400).json({ error: `Ungueltiger Status: ${status}` });
