@@ -403,6 +403,10 @@ export default async function handler(req, res) {
 
         // bar_gemeldet_*-UPDATE (gleicher Schritt wie mark-cash-by-trainer Edge
         // Function). .select() Pflicht (RLS-Silent-Fail-Schutz, CLAUDE.md-Gotcha).
+        // Pre-Push-Review K-1: Atomic-Lock via `.is('bar_gemeldet_am', null)`-Filter
+        // — verhindert Race-Condition bei Doppel-Click. Wenn ein paralleler Call
+        // den Slot bereits belegt hat, gibt PostgREST 0 Zeilen zurueck und wir
+        // antworten mit 409 statt mit Doppel-Audit.
         const { data: updRows, error: updErr } = await supabase
           .from('bookings')
           .update({
@@ -410,9 +414,14 @@ export default async function handler(req, res) {
             bar_gemeldet_durch: trainerId,
           })
           .eq('id', bookingId)
+          .is('bar_gemeldet_am', null)
           .select('id');
         if (updErr) return res.status(500).json({ error: updErr.message });
-        if (!updRows || updRows.length === 0) return res.status(500).json({ error: 'update returned 0 rows (RLS?)' });
+        if (!updRows || updRows.length === 0) {
+          // Atomic-Lock verloren: anderer Call war zuerst (oder bar_gemeldet_am
+          // wurde zwischen Vor-Check und UPDATE belegt). Verhindert Doppel-Audit.
+          return res.status(409).json({ error: 'cash already reported (race-condition lost)' });
+        }
 
         // cash_payment_audit-Insert (Best-Effort: Audit-Fehler darf nicht den
         // bereits erfolgten Bar-Melden-Schritt mit HTTP 500 ueberschreiben —
@@ -544,15 +553,19 @@ export default async function handler(req, res) {
         // Aktion — bei Mail-Versand-Fehler bleibt der Audit-Eintrag stehen und
         // sperrt den naechsten Click 5 min lang; das verhindert Spam durch
         // Retry-Klick-Loops bei dauerhaftem Brevo-Ausfall).
-        try {
-          await supabase.from('booking_audit').insert({
-            booking_id: bookingId,
-            action: 'zahlung_offen_erinnerung_gesendet',
-            actor_type: 'admin',
-            details: { manual: true, amount_cents: cents },
-          });
-        } catch (auditErr) {
-          console.error('booking_audit insert failed (non-blocking):', auditErr);
+        // Pre-Push-Review K-2: KEIN try/catch hier — wenn der Audit-Insert
+        // fehlschlaegt, MUSS der Endpunkt 500 zurueckgeben OHNE Mail zu senden.
+        // Sonst waere der Replay-Schutz wirkungslos: User wuerde nochmal klicken,
+        // Audit haengt schief, zweite Mail rausginge unkontrolliert.
+        const { error: auditInsertErr } = await supabase.from('booking_audit').insert({
+          booking_id: bookingId,
+          action: 'zahlung_offen_erinnerung_gesendet',
+          actor_type: 'admin',
+          details: { manual: true, amount_cents: cents },
+        });
+        if (auditInsertErr) {
+          console.error('booking_audit insert failed — abort before send-email:', auditInsertErr);
+          return res.status(500).json({ error: 'audit insert failed, mail not sent', detail: auditInsertErr.message });
         }
 
         // Mail-Versand via send-email Edge Function.
@@ -604,6 +617,20 @@ export default async function handler(req, res) {
         if (!bk.flag_zahlung_offen) return res.status(409).json({ error: 'booking has no open payment flag' });
         const amountCents = bk.final_price_cents ?? bk.price_cents;
         if (!amountCents || amountCents <= 0) return res.status(409).json({ error: 'booking has no positive amount' });
+
+        // Pre-Push-Review W-4: Idempotenz-Check. Ohne diesen Pre-Check wuerde
+        // ein Doppel-Klick auf „Rechnung stellen" zwei `offene_forderung`-
+        // Rechnungen + zwei Mails erzeugen — generate-invoice hat keinen
+        // eigenen Idempotenz-Schutz auf bookings.invoice_id.
+        const { data: existingInv } = await supabase
+          .from('invoices')
+          .select('id')
+          .eq('booking_id', bookingId)
+          .eq('type', 'offene_forderung')
+          .limit(1);
+        if (existingInv && existingInv.length > 0) {
+          return res.status(409).json({ error: 'invoice already issued for this booking', invoice_id: existingInv[0].id });
+        }
 
         // Service-Role-Auth (klassisches eyJ-JWT in Vercel-Env — generate-invoice
         // ist deployed MIT JWT-Verify, akzeptiert also nur einen gueltigen JWT,
