@@ -359,6 +359,274 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════════
+      // MARK-CASH – POST (Teilspec 2): Admin-Override fuer Bar-Zahlungs-Meldung.
+      // Setzt bookings.bar_gemeldet_am + bar_gemeldet_durch (= trainerId, FK auf
+      // trainer_profiles.id) im Namen des Trainers. Nutzt das gleiche Audit-Schema
+      // wie mark-cash-by-trainer (action='gemeldet_durch_trainer'), markiert aber
+      // via details.admin_override=true, dass der Admin im Trainer-Namen gemeldet
+      // hat. KEIN paid=true — das macht weiterhin der Admin per separatem
+      // verify-cash (process-cash-payment Edge Function).
+      //
+      // cash_payment_audit-CHECK erlaubt nur 4 action-Werte (gemeldet_durch_trainer,
+      // verifiziert_durch_admin, verrechnet, storniert). Es gibt KEIN
+      // gemeldet_durch_admin — deshalb der admin_override-Marker in details.
+      // ═══════════════════════════════════════════════════════════════════
+      case 'mark-cash': {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        const body = await getBody(req);
+        const bookingId = stripGpPrefix(body?.bookingId ?? '');
+        const trainerId = body?.trainerId;
+        if (!/^[0-9a-f-]{36}$/i.test(bookingId)) return res.status(400).json({ error: 'invalid bookingId' });
+        if (!/^[0-9a-f-]{36}$/i.test(trainerId ?? '')) return res.status(400).json({ error: 'invalid trainerId' });
+
+        // Admin-Identitaet aus dem Bearer-Token (verifyAdmin oben hat schon geprueft,
+        // dass der Token gueltig + role=admin ist). Wir holen die user.id fuer
+        // cash_payment_audit.actor_id direkt aus dem Token.
+        const authHeader = req.headers.authorization ?? '';
+        const token = authHeader.replace('Bearer ', '');
+        const { data: adminAuth } = await supabase.auth.getUser(token);
+        const adminUserId = adminAuth?.user?.id ?? null;
+        const adminEmail = adminAuth?.user?.email ?? null;
+
+        // Buchung laden, Konsistenz pruefen
+        const { data: booking, error: bErr } = await supabase
+          .from('bookings')
+          .select('id, trainer_id, flag_zahlung_offen, final_price_cents, price_cents, bar_gemeldet_am')
+          .eq('id', bookingId)
+          .single();
+        if (bErr || !booking) return res.status(404).json({ error: 'booking not found' });
+        if (!booking.flag_zahlung_offen) return res.status(409).json({ error: 'booking has no open payment flag' });
+        if (booking.trainer_id !== trainerId) return res.status(409).json({ error: 'trainerId mismatch with booking.trainer_id' });
+        if (booking.bar_gemeldet_am) return res.status(409).json({ error: 'cash already reported' });
+
+        const amountCents = booking.final_price_cents ?? booking.price_cents;
+
+        // bar_gemeldet_*-UPDATE (gleicher Schritt wie mark-cash-by-trainer Edge
+        // Function). .select() Pflicht (RLS-Silent-Fail-Schutz, CLAUDE.md-Gotcha).
+        const { data: updRows, error: updErr } = await supabase
+          .from('bookings')
+          .update({
+            bar_gemeldet_am: new Date().toISOString(),
+            bar_gemeldet_durch: trainerId,
+          })
+          .eq('id', bookingId)
+          .select('id');
+        if (updErr) return res.status(500).json({ error: updErr.message });
+        if (!updRows || updRows.length === 0) return res.status(500).json({ error: 'update returned 0 rows (RLS?)' });
+
+        // cash_payment_audit-Insert (Best-Effort: Audit-Fehler darf nicht den
+        // bereits erfolgten Bar-Melden-Schritt mit HTTP 500 ueberschreiben —
+        // gleiches Pattern wie process-cash-payment + mark-cash-by-trainer).
+        // pulsly_anteil_cents=0 beim Melden (wird beim Verifizieren gefuellt,
+        // analog zur Trainer-Meldung).
+        try {
+          const { error: auditErr } = await supabase.from('cash_payment_audit').insert({
+            booking_id: bookingId,
+            action: 'gemeldet_durch_trainer', // CHECK erlaubt nur diese 4 Werte
+            actor_type: 'admin',
+            actor_id: adminUserId,
+            amount_cents: amountCents,
+            pulsly_anteil_cents: 0,
+            details: {
+              admin_override: true,
+              admin_email: adminEmail,
+              on_behalf_of_trainer: trainerId,
+            },
+          });
+          if (auditErr) console.error('cash_payment_audit insert failed (non-blocking):', auditErr);
+        } catch (e) {
+          console.error('cash_payment_audit insert threw (non-blocking):', e);
+        }
+
+        return res.status(200).json({ ok: true, bookingId, trainerId });
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // VERIFY-CASH – POST (Teilspec 2): Pass-through zur process-cash-payment
+      // Edge Function (Task 14). Reicht den Admin-Bearer-Token weiter, die
+      // Function prueft intern via auth.getUser() + role=admin. apikey wird
+      // mit Service-Role gefuellt (Gateway-Anforderung).
+      // ═══════════════════════════════════════════════════════════════════
+      case 'verify-cash': {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        const body = await getBody(req);
+        const bookingId = stripGpPrefix(body?.bookingId ?? '');
+        if (!/^[0-9a-f-]{36}$/i.test(bookingId)) return res.status(400).json({ error: 'invalid bookingId' });
+
+        const adminToken = req.headers.authorization?.replace('Bearer ', '') ?? '';
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+        const resp = await fetch(`${process.env.SUPABASE_URL}/functions/v1/process-cash-payment`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${adminToken}`,
+            apikey: serviceKey,
+          },
+          body: JSON.stringify({ booking_id: bookingId }),
+        });
+        const respBody = await resp.json().catch(() => ({}));
+        return res.status(resp.status).json(respBody);
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // SEND-PAYMENT-REMINDER – POST (Teilspec 2): manueller Versand der
+      // „offene Zahlung"-Erinnerungsmail an den Kunden. Replay-Schutz: kein
+      // Doppel-Click innerhalb von 5 Minuten (verhindert versehentliche
+      // Doppel-Mails durch nervoeses Mehrfach-Klicken). Audit-Eintrag VOR
+      // Mail-Versand (DB-Update vor externer Aktion — Memory
+      // feedback_workflow_safety).
+      // ═══════════════════════════════════════════════════════════════════
+      case 'send-payment-reminder': {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        const body = await getBody(req);
+        const bookingId = stripGpPrefix(body?.bookingId ?? '');
+        if (!/^[0-9a-f-]{36}$/i.test(bookingId)) return res.status(400).json({ error: 'invalid bookingId' });
+
+        // Buchung + Customer + Trainer laden
+        const { data: b, error: bErr } = await supabase
+          .from('bookings')
+          .select(`
+            id, scheduled_date, scheduled_time, price_cents, final_price_cents, flag_zahlung_offen,
+            customers!inner(full_name, first_name, last_name, email),
+            trainer:trainer_profiles!bookings_trainer_id_fkey(full_name)
+          `)
+          .eq('id', bookingId)
+          .single();
+        if (bErr || !b) return res.status(404).json({ error: 'booking not found' });
+        if (!b.flag_zahlung_offen) return res.status(409).json({ error: 'booking has no open payment flag' });
+
+        const customerEmail = b.customers?.email;
+        if (!customerEmail) return res.status(409).json({ error: 'customer has no email' });
+
+        // Replay-Schutz: kein Doppel-Click innerhalb 5 Minuten.
+        // Filter auf manuelle Erinnerung (details.manual=true) — automatische
+        // Cron-Erinnerungen aus payment-open-reminder (details.day_index)
+        // sollen den manuellen Click NICHT blockieren.
+        const fiveMinAgo = new Date(Date.now() - 5 * 60_000).toISOString();
+        const { data: replay } = await supabase
+          .from('booking_audit')
+          .select('id')
+          .eq('booking_id', bookingId)
+          .eq('action', 'zahlung_offen_erinnerung_gesendet')
+          .eq('details->>manual', 'true')
+          .gte('created_at', fiveMinAgo)
+          .limit(1);
+        if (replay && replay.length > 0) {
+          return res.status(409).json({ error: 'reminder already sent within last 5 minutes' });
+        }
+
+        // Daten fuer Mail-Body zusammenbauen (Konventionen aus CLAUDE.md +
+        // payment-open-reminder Edge Function: deutsches Datumsformat
+        // DD.MM.YYYY, Komma-Trenner fuer Betrag, Fallback-Kaskade fuer
+        // Kunden-Namen).
+        const customerName = (b.customers?.full_name?.trim())
+          || [b.customers?.first_name, b.customers?.last_name].filter(Boolean).join(' ').trim()
+          || b.customers?.email
+          || 'Kunde';
+        const trainerName = b.trainer?.full_name ?? 'deinem Trainer';
+        const dateParts = (b.scheduled_date ?? '').split('-'); // YYYY-MM-DD
+        const scheduledDate = dateParts.length === 3
+          ? `${dateParts[2]}.${dateParts[1]}.${dateParts[0]}`
+          : '—';
+        const timeParts = (b.scheduled_time ?? '').split(':'); // HH:MM[:SS]
+        const scheduledTime = timeParts.length >= 2 ? `${timeParts[0]}:${timeParts[1]}` : '';
+        const cents = b.final_price_cents ?? b.price_cents ?? 0;
+        const amountEur = (cents / 100).toFixed(2).replace('.', ',');
+
+        const htmlBody = `<p>Hallo ${escapeHtml(customerName)},</p>
+<p>fuer deine Buchung am ${scheduledDate}${scheduledTime ? ' um ' + scheduledTime + ' Uhr' : ''} bei ${escapeHtml(trainerName)} ist die Karten-Belastung von <strong>${amountEur} EUR</strong> offen.</p>
+<p>Bitte aktualisiere deine Zahlungsmethode in der Pulsly-App oder uebergib den Betrag bar an deinen Trainer.</p>
+<p>Bei Fragen: <a href="mailto:info@pulsly.de">info@pulsly.de</a></p>
+<p>Buchungs-ID: ${bookingId}</p>
+<p>Pulsly</p>`;
+
+        // Audit-Eintrag VOR Mail-Versand (Workflow-Safety: DB-Lock vor externer
+        // Aktion — bei Mail-Versand-Fehler bleibt der Audit-Eintrag stehen und
+        // sperrt den naechsten Click 5 min lang; das verhindert Spam durch
+        // Retry-Klick-Loops bei dauerhaftem Brevo-Ausfall).
+        try {
+          await supabase.from('booking_audit').insert({
+            booking_id: bookingId,
+            action: 'zahlung_offen_erinnerung_gesendet',
+            actor_type: 'admin',
+            details: { manual: true, amount_cents: cents },
+          });
+        } catch (auditErr) {
+          console.error('booking_audit insert failed (non-blocking):', auditErr);
+        }
+
+        // Mail-Versand via send-email Edge Function.
+        // send-email akzeptiert { to, subject, htmlBody } (htmlBody — NICHT html).
+        const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+        const resp = await fetch(`${process.env.SUPABASE_URL}/functions/v1/send-email`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${serviceKey}`,
+            apikey: serviceKey,
+          },
+          body: JSON.stringify({
+            to: customerEmail,
+            subject: `Pulsly: Offener Betrag ${amountEur} EUR`,
+            htmlBody,
+          }),
+        });
+        if (!resp.ok) {
+          const errText = await resp.text().catch(() => '');
+          return res.status(500).json({ error: 'send-email failed', detail: errText });
+        }
+        return res.status(200).json({ ok: true });
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // ISSUE-OPEN-INVOICE – POST (Teilspec 2): Stellt eine offene Forderung
+      // als reguläre Rechnung aus (Task 20: type='offene_forderung'). Pass-through
+      // zur generate-invoice Edge Function mit Service-Role-Auth (Function
+      // schreibt invoices + bookings.invoice_id und braucht admin-Rechte).
+      //
+      // generate-invoice verlangt fuer offene_forderung: booking_id + amount_cents.
+      // amount_cents = bookings.final_price_cents ?? price_cents (Brutto, inkl. USt).
+      // ═══════════════════════════════════════════════════════════════════
+      case 'issue-open-invoice': {
+        if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+        const body = await getBody(req);
+        const bookingId = stripGpPrefix(body?.bookingId ?? '');
+        if (!/^[0-9a-f-]{36}$/i.test(bookingId)) return res.status(400).json({ error: 'invalid bookingId' });
+
+        // amount_cents aus der Buchung ermitteln (final_price_cents bevorzugt,
+        // sonst price_cents — wie ueberall in der Teilspec-2-Welt).
+        const { data: bk, error: bkErr } = await supabase
+          .from('bookings')
+          .select('id, price_cents, final_price_cents, flag_zahlung_offen')
+          .eq('id', bookingId)
+          .single();
+        if (bkErr || !bk) return res.status(404).json({ error: 'booking not found' });
+        if (!bk.flag_zahlung_offen) return res.status(409).json({ error: 'booking has no open payment flag' });
+        const amountCents = bk.final_price_cents ?? bk.price_cents;
+        if (!amountCents || amountCents <= 0) return res.status(409).json({ error: 'booking has no positive amount' });
+
+        // Service-Role-Auth (klassisches eyJ-JWT in Vercel-Env — generate-invoice
+        // ist deployed MIT JWT-Verify, akzeptiert also nur einen gueltigen JWT,
+        // und Service-Role hat die noetigen DB-Rechte fuer invoices/booking-Updates).
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+        const resp = await fetch(`${process.env.SUPABASE_URL}/functions/v1/generate-invoice`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${key}`,
+            apikey: key,
+          },
+          body: JSON.stringify({
+            type: 'offene_forderung', // Plan-Bug: Plan-Step 5 schreibt 'offene_forderung_rechnung' — korrekter Wert ist 'offene_forderung' (Task 20)
+            booking_id: bookingId,
+            amount_cents: amountCents,
+          }),
+        });
+        const respBody = await resp.json().catch(() => ({}));
+        return res.status(resp.status).json(respBody);
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
       // COMPANY-SETTINGS – GET (laden) + PUT (speichern)
       // Teilspec 2 Task 27a Refactor: PUT mit Allow-Liste statt freiem ...body-Spread
       // (Sicherheit: kein Override von id/system-Spalten via Frontend).
@@ -676,6 +944,20 @@ async function verifyAdmin(req) {
 function stripGpPrefix(id) {
   if (typeof id !== 'string') return id;
   return id.startsWith('gp_') ? id.slice(3) : id;
+}
+
+// HTML-Escape fuer Mail-Bodies (Teilspec 2 Task 27b send-payment-reminder).
+// Verhindert dass Kunden-Namen / Trainer-Namen mit HTML-Sonderzeichen das
+// Markup zerschiessen oder eine Mini-XSS-Lücke öffnen. Klein gehalten —
+// nur die 5 HTML-relevanten Zeichen.
+function escapeHtml(s) {
+  if (typeof s !== 'string') return '';
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // ─── Teilspec 1 Status-Bridge ───────────────────────────────────────────────
