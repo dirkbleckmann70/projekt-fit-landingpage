@@ -134,9 +134,10 @@
       { key: 'customer_name',  type: 'text',   getValue: b => b.customer_name || b.customer_id || '' },
       { key: 'status',         type: 'select', getValue: b => b.status || '\u2013' },
       { key: 'einnahmen',      type: 'number', getValue: b => effectivePrice(b) / 100 },
+      null,   // Rabatt-Spalte: kein Filter (positions-basierte Zuordnung zu <th>!)
       { key: 'cost',           type: 'number', getValue: b => effectiveCost(b) / 100 },
       { key: 'payment_status', type: 'select', getValue: b => getPaymentLabel(b) },
-      null,
+      null,   // Aktionen-Spalte: kein Filter
     ], {
       // 'Gefilterte löschen'-Knopf entfernt (User-Wunsch 11.05.): war ein Doppel
       // zum Mülleimer pro Zeile und verführerisch gefährlich (Massenlöschung mit
