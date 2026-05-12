@@ -305,10 +305,13 @@ export default async function handler(req, res) {
         if (error) return res.status(500).json({ error: error.message });
         // GT-Teilnahmen bekommen gp_-Prefix auf die ID (Buchungs-Integrations-Karte §4),
         // damit das Frontend zwischen PT-Buchung und GT-Teilnahme unterscheiden kann.
+        // Status durch Frontend-Bruecke schicken — bei flag_zahlung_offen=true liefert
+        // mapStatusForFrontend automatisch 'payment_open' (Task 26 Bridge),
+        // konsistent zu den anderen Buchungs-Endpunkten.
         // days_open: NULL-Defense fuer Datensaetze ohne zahlung_offen_seit
         // (sollte laut Trigger nie vorkommen, aber Defense-in-Depth).
         const rows = (data ?? []).map((r) => ({
-          ...r,
+          ...withFrontendStatus(r),
           id: r.art === 'gt_teilnahme' ? `gp_${r.id}` : r.id,
           days_open: r.zahlung_offen_seit
             ? Math.floor((Date.now() - new Date(r.zahlung_offen_seit).getTime()) / 86_400_000)
@@ -387,6 +390,16 @@ export default async function handler(req, res) {
             'email', 'phone', 'website',
             'bank_name', 'iban', 'bic',
             'handelsregister_nr', 'registergericht', 'geschaeftsfuehrer',
+            // Rechnungs-Bestand (Frontend sendet diese 4 Felder; DB-Spalten
+            // existieren aktuell NICHT, Supabase wirft entsprechend einen DB-Fehler
+            // bei Schreibversuch. Konvention "no_regressions": altes Spread-Verhalten
+            // war auch DB-Fehler — durch die Allow-Liste hier explizit beibehalten,
+            // statt stillschweigend zu droppen. Wenn die Spalten spaeter angelegt
+            // werden, funktioniert das Speichern automatisch.)
+            'default_vat_rate',
+            'invoice_prefix',
+            'next_invoice_number',
+            'invoice_footer_text',
             // Settings (Teilspec 2 + bestehende mwst_satz)
             'processing_fee_percent',
             'processing_fee_min_cents',
