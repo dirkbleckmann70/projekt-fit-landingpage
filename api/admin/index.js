@@ -285,7 +285,83 @@ export default async function handler(req, res) {
       }
 
       // ═══════════════════════════════════════════════════════════════════
+      // OPEN_PAYMENTS – GET (Teilspec 2): Liste aller Buchungen mit
+      // flag_zahlung_offen=true (Kartenzahlung gescheitert, Bar-Klaerung offen).
+      // Sortiert nach zahlung_offen_seit (aelteste zuerst).
+      // ═══════════════════════════════════════════════════════════════════
+      case 'open_payments': {
+        if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+        const { data, error } = await supabase
+          .from('bookings')
+          .select(`
+            id, status, flag_zahlung_offen, zahlung_offen_seit, bar_gemeldet_am, bar_gemeldet_durch,
+            price_cents, final_price_cents, art, customer_id, trainer_id,
+            scheduled_date, scheduled_time,
+            customers!inner(full_name, email),
+            trainer:trainer_profiles!bookings_trainer_id_fkey(full_name, email)
+          `)
+          .eq('flag_zahlung_offen', true)
+          .order('zahlung_offen_seit', { ascending: true });
+        if (error) return res.status(500).json({ error: error.message });
+        // GT-Teilnahmen bekommen gp_-Prefix auf die ID (Buchungs-Integrations-Karte §4),
+        // damit das Frontend zwischen PT-Buchung und GT-Teilnahme unterscheiden kann.
+        // days_open: NULL-Defense fuer Datensaetze ohne zahlung_offen_seit
+        // (sollte laut Trigger nie vorkommen, aber Defense-in-Depth).
+        const rows = (data ?? []).map((r) => ({
+          ...r,
+          id: r.art === 'gt_teilnahme' ? `gp_${r.id}` : r.id,
+          days_open: r.zahlung_offen_seit
+            ? Math.floor((Date.now() - new Date(r.zahlung_offen_seit).getTime()) / 86_400_000)
+            : null,
+        }));
+        return res.status(200).json({ data: rows });
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // TRAINER_DEBTS – GET (Teilspec 2): Aggregierte Summe cash_pulsly_owed_cents
+      // pro Trainer. Zeigt welche Trainer Bargeld vom Kunden eingenommen haben,
+      // das Pulsly noch nicht abgefuehrt wurde. Sortiert nach Hoehe der Schuld
+      // absteigend (UX: groesste Posten zuerst).
+      // ═══════════════════════════════════════════════════════════════════
+      case 'trainer_debts': {
+        if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
+        const { data, error } = await supabase
+          .from('bookings')
+          .select('trainer_id, cash_pulsly_owed_cents, trainer:trainer_profiles!bookings_trainer_id_fkey(id, full_name, email)')
+          .gt('cash_pulsly_owed_cents', 0);
+        if (error) return res.status(500).json({ error: error.message });
+
+        // Aggregation pro Trainer
+        const map = new Map();
+        for (const row of (data ?? [])) {
+          const tId = row.trainer_id;
+          if (!tId) continue; // NULL-Defense: verwaiste Buchung ohne Trainer ignorieren
+          if (!map.has(tId)) {
+            map.set(tId, {
+              trainer_id: tId,
+              trainer_name: row.trainer?.full_name ?? '(unbekannt)',
+              trainer_email: row.trainer?.email ?? null,
+              total_owed_cents: 0,
+              count: 0,
+            });
+          }
+          const entry = map.get(tId);
+          entry.total_owed_cents += row.cash_pulsly_owed_cents;
+          entry.count += 1;
+        }
+        // Sortierung: hoechste Schulden zuerst (UX-Verbesserung gegenueber Plan)
+        return res.status(200).json({
+          data: Array.from(map.values()).sort((a, b) => b.total_owed_cents - a.total_owed_cents),
+        });
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
       // COMPANY-SETTINGS – GET (laden) + PUT (speichern)
+      // Teilspec 2 Task 27a Refactor: PUT mit Allow-Liste statt freiem ...body-Spread
+      // (Sicherheit: kein Override von id/system-Spalten via Frontend).
+      // Allow-Liste deckt sowohl die alten Firmendaten-Felder (company_name,
+      // street, iban, ...) als auch die neuen Teilspec-2-Settings ab
+      // (processing_fee_percent, gt_threshold_default, ...).
       // ═══════════════════════════════════════════════════════════════════
       case 'company-settings': {
         if (req.method === 'GET') {
@@ -297,9 +373,49 @@ export default async function handler(req, res) {
           return res.json({ data: data || {} });
         }
         if (req.method === 'PUT') {
+          // Allow-Liste: nur diese Keys duerfen vom Frontend aus geschrieben werden.
+          // Schuetzt id, updated_at (System-Spalten) sowie generell vor
+          // unbekannten Free-Form-Spalten. Bei Schema-Erweiterung MUSS diese
+          // Liste mitgepflegt werden (sonst kann das neue Feld nicht persistiert
+          // werden). PostgREST-Cache-Reload nicht noetig: wir aendern nur Werte,
+          // nicht das Schema.
+          const ALLOWED_KEYS = [
+            // Firmendaten (Bestand)
+            'company_name', 'legal_form', 'owner_name',
+            'street', 'postal_code', 'city', 'country',
+            'tax_number', 'vat_id',
+            'email', 'phone', 'website',
+            'bank_name', 'iban', 'bic',
+            'handelsregister_nr', 'registergericht', 'geschaeftsfuehrer',
+            // Settings (Teilspec 2 + bestehende mwst_satz)
+            'processing_fee_percent',
+            'processing_fee_min_cents',
+            'gt_threshold_default',
+            'gt_threshold_check_hours_before',
+            'payment_open_reminder_days',
+            'payment_open_admin_alert_days',
+            'trainer_payout_grace_hours',
+            'sorry_code_validity_months',
+            'sorry_code_discount_percent',
+            'checkout_reminder_hours',
+            'checkout_auto_release_hours',
+            'mwst_satz',
+          ];
           const body = await getBody(req);
-          const updateData = { ...body, updated_at: new Date().toISOString() };
-          // Prüfen ob bereits ein Eintrag existiert
+          const updateData = {};
+          for (const k of ALLOWED_KEYS) {
+            if (body && Object.prototype.hasOwnProperty.call(body, k)) {
+              updateData[k] = body[k];
+            }
+          }
+          if (Object.keys(updateData).length === 0) {
+            return res.status(400).json({
+              error: 'Keine erlaubten Felder im Request-Body. Pruefe die Allow-Liste in der Admin-API.',
+            });
+          }
+          updateData.updated_at = new Date().toISOString();
+
+          // Prüfen ob bereits ein Eintrag existiert (Single-Row-Tabelle)
           const { data: existing } = await supabase
             .from('company_settings')
             .select('id')
