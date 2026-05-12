@@ -47,6 +47,11 @@ const BOOKING_STATUS = Object.freeze({
   LOCATION_PROPOSED:    'location_proposed',
   AWAITING_CHECKOUT:    'awaiting_checkout',
 
+  // Teilspec 2: Pseudo-Status aus der Backend-Bridge (kein DB-CHECK-Wert).
+  // Wird vom Server geliefert wenn status='bestaetigt' UND flag_zahlung_offen=true.
+  // mapStatusForDb erkennt diesen Wert und schreibt bestaetigt + Flag in die DB zurueck.
+  PAYMENT_OPEN:         'payment_open',
+
   // Neuer 7-Status-Kanon (Teilspec 1, ARCHITEKTUR.md Ebene 2)
   ANGEFRAGT:      'angefragt',
   RESERVIERT:     'reserviert',
@@ -72,6 +77,7 @@ const BOOKING_FLAGS = Object.freeze({
   NEUER_ORT_VORGESCHLAGEN:          'flag_neuer_ort_vorgeschlagen',
   ERSATZ_TRAINER_GESUCHT:           'flag_ersatz_trainer_gesucht',
   CHECKOUT_BESTAETIGUNG_AUSSTEHEND: 'flag_checkout_bestaetigung_ausstehend',
+  ZAHLUNG_OFFEN:                    'flag_zahlung_offen', // Teilspec 2
 });
 
 // ─── Storno-Verursacher (Teilspec 1) ──────────────────────────────────────
@@ -111,6 +117,7 @@ const STATUS_LABELS = Object.freeze({
   [BOOKING_STATUS.RESCHEDULE_PROPOSED]:  'Terminänderung vorgeschlagen',
   [BOOKING_STATUS.LOCATION_PROPOSED]:    'Treffpunkt vorgeschlagen',
   [BOOKING_STATUS.AWAITING_CHECKOUT]:    'Warte auf Abschluss',
+  [BOOKING_STATUS.PAYMENT_OPEN]:         'Karte abgelehnt — offen', // Teilspec 2
 
   // Neuer Kanon
   [BOOKING_STATUS.ANGEFRAGT]:     'Angefragt',
@@ -150,6 +157,9 @@ const STATUS_BADGE_CLASS = Object.freeze({
   [BOOKING_STATUS.RESCHEDULE_PROPOSED]:  'badge-pending',
   [BOOKING_STATUS.LOCATION_PROPOSED]:    'badge-warning',
   [BOOKING_STATUS.AWAITING_CHECKOUT]:    'badge-warning',
+  // Teilspec 2 — gleiche Semantik wie CANCELLED_BY_TRAINER/DISPUTED/ESCALATED:
+  // Admin muss eingreifen. 'badge-action-needed' ist in shared/tabler-custom.css definiert.
+  [BOOKING_STATUS.PAYMENT_OPEN]:         'badge-action-needed',
 
   // Neuer Kanon
   [BOOKING_STATUS.ANGEFRAGT]:     'badge-pending',
@@ -182,6 +192,7 @@ const ACTIVE_STATUSES = Object.freeze([
   BOOKING_STATUS.RESCHEDULE_PROPOSED,
   BOOKING_STATUS.LOCATION_PROPOSED,
   BOOKING_STATUS.AWAITING_CHECKOUT,
+  BOOKING_STATUS.PAYMENT_OPEN,  // Teilspec 2: Karte abgelehnt = Buchung steht noch bevor, nur Zahlung offen
   BOOKING_STATUS.ANGEFRAGT,     // neuer Kanon
   BOOKING_STATUS.RESERVIERT,    // neuer Kanon
   BOOKING_STATUS.BESTAETIGT,    // neuer Kanon
@@ -249,7 +260,11 @@ const BOOKING_FLOW = Object.freeze({
 
 // ─── Admin Status-Dropdown Optionen ────────────────────────────────────────
 
-/** Status-Werte die im Admin-Detail-Modal als Dropdown erscheinen */
+/** Status-Werte die im Admin-Detail-Modal als Dropdown erscheinen.
+ *  Teilspec 2: PAYMENT_OPEN ist bewusst NICHT enthalten — der Pseudo-Status
+ *  wird aus dem Flag berechnet (mapStatusForFrontend) und gehoert nicht ins
+ *  Admin-Dropdown. Die spezialisierte Admin-Seite fuer offene Zahlungen
+ *  (Task 27) liefert das Bedien-UI. */
 const ADMIN_EDITABLE_STATUSES = Object.freeze([
   // Alter Kanon
   BOOKING_STATUS.PENDING,

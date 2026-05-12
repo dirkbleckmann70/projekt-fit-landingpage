@@ -558,6 +558,13 @@ function stripGpPrefix(id) {
 
 function mapStatusForFrontend(row) {
   const status = row.status;
+  // Teilspec 2 — Payment-Open ueberlagert alles andere wenn die Karte abgelehnt wurde.
+  // Auch bei flag_neuer_termin_vorgeschlagen oder flag_neuer_ort_vorgeschlagen gewinnt
+  // payment_open — Admin/Trainer muss zuerst die Zahlung klaeren bevor irgendwas anderes
+  // passiert. Pseudo-Status, kein DB-CHECK — DB bleibt 'bestaetigt' + flag_zahlung_offen=true.
+  if (status === 'bestaetigt' && row.flag_zahlung_offen === true) {
+    return 'payment_open';
+  }
   // Status 'bestaetigt' + Flag → virtueller Sub-Status
   if (status === 'bestaetigt') {
     if (row.flag_neuer_termin_vorgeschlagen) return 'reschedule_proposed';
@@ -603,6 +610,9 @@ function mapStatusForDb(legacyStatus) {
       return { status: 'bestaetigt', flag_neuer_ort_vorgeschlagen: true };
     case 'awaiting_checkout':
       return { status: 'laeuft gerade', flag_checkout_bestaetigung_ausstehend: true };
+    // Teilspec 2 — payment_open ist ein Pseudo-Status (DB bleibt 'bestaetigt' + Flag).
+    case 'payment_open':
+      return { status: 'bestaetigt', flag_zahlung_offen: true };
     case 'checked_in':
     case 'checked_in_trainer':
       return { status: 'laeuft gerade' };
@@ -1128,7 +1138,7 @@ async function handleData(req, res, supabase) {
       // Flag-Spalten + storno-Felder mitladen, damit mapStatusForFrontend richtig mappen kann.
       const { data, error } = await supabase
         .from('bookings')
-        .select('id, trainer_id, customer_id, scheduled_date, scheduled_time, status, price_cents, trainer_payout_cents, booking_type, art, flag_neuer_termin_vorgeschlagen, flag_neuer_ort_vorgeschlagen, flag_checkout_bestaetigung_ausstehend, storno_wer, storno_grund')
+        .select('id, trainer_id, customer_id, scheduled_date, scheduled_time, status, price_cents, trainer_payout_cents, booking_type, art, flag_neuer_termin_vorgeschlagen, flag_neuer_ort_vorgeschlagen, flag_checkout_bestaetigung_ausstehend, flag_zahlung_offen, storno_wer, storno_grund')
         .in('trainer_id', trainerIds)
         .eq('art', 'pt_einzel')
         .gte('scheduled_date', weekStart)
