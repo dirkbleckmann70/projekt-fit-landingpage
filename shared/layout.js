@@ -24,7 +24,7 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
     { id: 'locations',        label: 'Einsatzorte',       icon: 'map-pin',          href: '/admin/locations.html' },
     { id: 'testers',          label: 'Tester & Admins',   icon: 'settings',         href: '/admin/testers.html' },
     { id: 'invoices',         label: 'Belege',            icon: 'file-invoice',     href: '/admin/invoices.html' },
-    { id: 'company-settings', label: 'Firmendaten',       icon: 'building',         href: '/admin/company-settings.html' },
+    { id: 'company-settings', label: 'Einstellungen',     icon: 'adjustments',      href: '/admin/company-settings.html' },
   ];
 
   const navItems = items.map(p => `
