@@ -714,6 +714,19 @@
     replacement_trainer_search_started: { icon: '🔍', label: 'Suche nach Ersatz-Trainer' },
     storno_invoice_created:             { icon: '📄', label: 'Stornobeleg erstellt' },
     migrated_to_new_status_kanon:       { icon: '🔁', label: 'Status gesetzt' },
+    // Teilspec-2 (Bezahl-Mechanik): SetupIntent + Karten-Belastung + Zahlung-offen
+    setup_intent_created:               { icon: '💳', label: 'Karte hinterlegt' },
+    charge_attempted:                   { icon: '🔄', label: 'Abbuchungs-Versuch gestartet' },
+    charge_succeeded:                   { icon: '💳', label: 'Karte erfolgreich belastet' },
+    charge_failed_card:                 { icon: '⚠️', label: 'Karte abgelehnt' },
+    zahlung_offen_gesetzt:              { icon: '🔔', label: 'Zahlung offen — Markierung gesetzt' },
+    zahlung_offen_erinnerung_gesendet:  { icon: '📨', label: 'Erinnerung an Kunde versandt' },
+    bar_gemeldet:                       { icon: '💶', label: 'Trainer hat Bar-Eingang gemeldet' },
+    bar_verifiziert:                    { icon: '✅', label: 'Admin hat Bar-Eingang verifiziert' },
+    offene_forderung_rechnung_gesendet: { icon: '📄', label: 'Rechnung fuer offene Forderung gestellt' },
+    // Teilspec-2 (Phase 4 Crons): Checkout-Erinnerung + Auto-Freigabe
+    checkout_erinnerung_gesendet:       { icon: '📨', label: 'Checkout-Erinnerung versandt' },
+    checkout_auto_freigegeben:          { icon: '🏁', label: 'Checkout automatisch freigegeben' },
   };
   // Werte stammen aus supabase/functions/_shared/payment-events.ts (PaymentEventAction-Type)
   const AUDIT_PAYMENT_ACTIONS = {
@@ -729,6 +742,13 @@
     transfer_reversal_failed: { icon: '⚠️', label: 'Rueckbuchung Auszahlung fehlgeschlagen' },
     sorry_code_issued:        { icon: '🎟️', label: 'Entschuldigungs-Code ausgegeben' },
     sorry_code_released:      { icon: '🎟️', label: 'Entschuldigungs-Code freigegeben' },
+    // Teilspec-2 (Bezahl-Mechanik): SetupIntent + Bar-Geld-Vorgaenge
+    setup_intent_created:     { icon: '💳', label: 'Karte hinterlegt' },
+    setup_intent_succeeded:   { icon: '💳', label: 'Karte erfolgreich gespeichert' },
+    setup_intent_failed:      { icon: '⚠️', label: 'Karte konnte nicht gespeichert werden' },
+    cash_payment_reported:    { icon: '💶', label: 'Bar-Meldung vom Trainer' },
+    cash_payment_verified:    { icon: '✅', label: 'Bar-Eingang vom Admin verifiziert' },
+    cash_payment_settled:     { icon: '🧾', label: 'Bar-Anteil mit Trainer verrechnet' },
   };
   // Werte stammen aus app/supabase/migrations/20260425120000_invoice_audit.sql (CHECK-Constraint)
   const AUDIT_INVOICE_ACTIONS = {
@@ -740,6 +760,13 @@
     export_included:          { icon: '📦', label: 'In GoBD-Jahres-Export aufgenommen' },
     anonymized:               { icon: '🔒', label: 'Daten anonymisiert (DSGVO-Loeschung)' },
     admin_override_update:    { icon: '⚠️', label: 'Admin-Override-Update (Immutability umgangen)' },
+  };
+  // Werte stammen aus cash_payment_audit_action_check (Teilspec-2 Bar-Zahlung)
+  const AUDIT_CASH_ACTIONS = {
+    gemeldet_durch_trainer:   { icon: '💶', label: 'Trainer hat Bar-Eingang gemeldet' },
+    verifiziert_durch_admin:  { icon: '✅', label: 'Admin hat Bar-Eingang verifiziert' },
+    verrechnet:               { icon: '🧾', label: 'Bar-Anteil mit Trainer verrechnet' },
+    storniert:                { icon: '❌', label: 'Bar-Meldung storniert' },
   };
   // Akteur-Schluessel: Audit-Tabellen schreiben englische Werte (customer/trainer/admin/system),
   // bookings.storno_wer im DB-Schema deutsche Werte (kunde/trainer/admin/system). Beide Welten abdecken.
@@ -817,6 +844,13 @@
       if (d.recipient_email) parts.push('an: ' + auditEscape(d.recipient_email));
       if (d.field) parts.push('Geaendertes Feld: ' + auditEscape(d.field));
       if (d.blocked_reason) parts.push('Block-Grund: ' + auditEscape(d.blocked_reason));
+    } else if (kind === 'cash') {
+      // cash_payment_audit-Detail-Felder (Spalten + details-jsonb)
+      if (d.pulsly_anteil_cents != null) parts.push('Pulsly-Anteil: ' + auditEscape(eur(d.pulsly_anteil_cents)));
+      if (d.trainer_anteil_cents != null) parts.push('Trainer-Anteil: ' + auditEscape(eur(d.trainer_anteil_cents)));
+      if (d.admin_override === true) parts.push('Admin-Override');
+      if (d.note) parts.push('Notiz: ' + auditEscape(d.note));
+      if (d.reason) parts.push('Grund: ' + auditEscape(d.reason));
     }
 
     return parts.join(' · ');
@@ -827,6 +861,7 @@
     if (e.kind === 'booking') { map = AUDIT_BOOKING_ACTIONS; kindLabel = 'Buchung'; }
     if (e.kind === 'payment') { map = AUDIT_PAYMENT_ACTIONS; kindLabel = 'Zahlung'; }
     if (e.kind === 'invoice') { map = AUDIT_INVOICE_ACTIONS; kindLabel = 'Rechnung'; }
+    if (e.kind === 'cash')    { map = AUDIT_CASH_ACTIONS;    kindLabel = 'Bar-Zahlung'; }
     const meta = (map && map[e.action]) || { icon: '•', label: e.action || '(unbekannte Aktion)' };
     const actor = AUDIT_ACTORS[e.actor_type] || (e.actor_type || 'unbekannt');
 
@@ -836,6 +871,8 @@
       if (e.stripe_object_id) context += ' · <code style="font-size:11px">' + auditEscape(e.stripe_object_id) + '</code>';
     } else if (e.kind === 'invoice' && e.invoice_label) {
       context += ' · <strong>' + auditEscape(e.invoice_label) + '</strong>';
+    } else if (e.kind === 'cash') {
+      if (e.amount_cents != null) context += ' · ' + auditEscape(formatEuro(e.amount_cents));
     }
 
     // Klartext-Zusammenfassung der Details (immer sichtbar)

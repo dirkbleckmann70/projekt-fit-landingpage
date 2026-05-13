@@ -1734,8 +1734,8 @@ async function handleData(req, res, supabase) {
       const invoiceIdToNumber = new Map((invoicesForBooking || []).map(i => [i.id, i.invoice_number || i.storno_ref || i.id.slice(0, 8)]));
       const invoiceIds = (invoicesForBooking || []).map(i => i.id);
 
-      // Schritt 2: drei Quellen parallel laden.
-      const [auditRes, payRes, invAuditRes] = await Promise.all([
+      // Schritt 2: vier Quellen parallel laden.
+      const [auditRes, payRes, invAuditRes, cashRes] = await Promise.all([
         supabase.from('booking_audit')
           .select('id, action, actor_type, actor_id, details, created_at')
           .eq('booking_id', bookingId)
@@ -1757,6 +1757,12 @@ async function handleData(req, res, supabase) {
             .order('timestamp', { ascending: false })
             .limit(200)
           : Promise.resolve({ data: [], error: null }),
+        // cash_payment_audit — Teilspec-2 Bar-Zahlung. booking_id ist direkter FK.
+        supabase.from('cash_payment_audit')
+          .select('id, action, actor_type, actor_id, amount_cents, pulsly_anteil_cents, details, occurred_at')
+          .eq('booking_id', bookingId)
+          .order('occurred_at', { ascending: false })
+          .limit(200),
       ]);
 
       // Schritt 3: zu einem einzigen Strom zusammenfuehren + chronologisch sortieren.
@@ -1789,6 +1795,25 @@ async function handleData(req, res, supabase) {
           actor_id: e.actor_id,
           details: e.details,
           invoice_label: invoiceIdToNumber.get(e.invoice_id) || null,
+        })),
+        ...(cashRes.data || []).map(e => ({
+          kind: 'cash',
+          at: e.occurred_at,
+          action: e.action,
+          actor_type: e.actor_type,
+          actor_id: e.actor_id,
+          amount_cents: e.amount_cents,
+          // Spalten pulsly_anteil_cents + abgeleiteter trainer_anteil_cents werden in
+          // formatAuditDetails als details-Felder erwartet — direkt ins details-Objekt
+          // mergen, damit die Frontend-Render-Logik kein neues Schema lernen muss.
+          // Trainer-Anteil ist rechnerisch (Gesamt minus Pulsly-Anteil), keine eigene Spalte.
+          details: {
+            ...(e.details || {}),
+            pulsly_anteil_cents: e.pulsly_anteil_cents,
+            trainer_anteil_cents: (e.amount_cents != null && e.pulsly_anteil_cents != null)
+              ? e.amount_cents - e.pulsly_anteil_cents
+              : null,
+          },
         })),
       ].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
 
