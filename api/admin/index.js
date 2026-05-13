@@ -2614,7 +2614,8 @@ async function handleGroups(req, res, supabase) {
     const { id, ...fields } = body;
     if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
 
-    const allowed = ['name', 'trainer_id', 'city', 'location_name', 'location_address', 'day_of_week', 'start_time', 'duration_minutes', 'max_participants', 'price_per_person_cents', 'is_active', 'scheduled_date', 'scheduled_time', 'equipment'];
+    // min_participants seit Teilspec 2 editierbar — wird unten gegen max_participants validiert.
+    const allowed = ['name', 'trainer_id', 'city', 'location_name', 'location_address', 'day_of_week', 'start_time', 'duration_minutes', 'min_participants', 'max_participants', 'price_per_person_cents', 'is_active', 'scheduled_date', 'scheduled_time', 'equipment'];
     const update = {};
     for (const key of allowed) { if (key in fields) update[key] = fields[key]; }
 
@@ -2625,8 +2626,43 @@ async function handleGroups(req, res, supabase) {
 
     if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });
 
-    const { error } = await supabase.from('group_classes').update(update).eq('id', id);
+    // Schwellen-Validation: min_participants muss eine ganze Zahl >= 1 sein UND darf
+    // nicht groesser als max_participants sein (sonst waere die Schwelle nie erreichbar).
+    // DB-CHECK 'min_participants > 0' faengt die untere Grenze ab, aber die min<=max-Bedingung
+    // gibt es im Schema nicht — daher hier serverseitig pruefen, auch wenn das Frontend
+    // bereits per data-max blockiert.
+    if ('min_participants' in update) {
+      const mp = update.min_participants;
+      if (!Number.isInteger(mp) || mp < 1) {
+        return res.status(400).json({ error: 'min_participants muss eine ganze Zahl >= 1 sein' });
+      }
+      // max_participants entweder aus dem Payload (wenn parallel geaendert) oder aus der DB.
+      let maxAllowed = ('max_participants' in update) ? update.max_participants : null;
+      if (maxAllowed == null) {
+        const { data: row, error: fetchErr } = await supabase
+          .from('group_classes')
+          .select('max_participants')
+          .eq('id', id)
+          .single();
+        if (fetchErr) return res.status(500).json({ error: 'max_participants lookup: ' + fetchErr.message });
+        maxAllowed = row?.max_participants ?? null;
+      }
+      if (maxAllowed != null && mp > maxAllowed) {
+        return res.status(400).json({ error: `min_participants (${mp}) darf nicht groesser sein als max_participants (${maxAllowed})` });
+      }
+    }
+
+    // .select() an UPDATE ist RLS-Pflicht (CLAUDE.md Supabase-Gotchas): ohne
+    // .select() koennen RLS-blockierte Writes 0 Zeilen liefern ohne Error-Code,
+    // wir wuerden „Gespeichert" zurueckmelden obwohl nichts geschrieben wurde.
+    // Hinweis: Die anderen PUT-Endpunkte in dieser Datei haben das alte Pattern
+    // noch — Konsolidierung als Folge-Task offen.
+    const { data: updated, error } = await supabase
+      .from('group_classes').update(update).eq('id', id).select();
     if (error) throw error;
+    if (!updated || updated.length === 0) {
+      return res.status(403).json({ error: 'Update fehlgeschlagen (Zugriff verweigert oder Datensatz nicht gefunden)' });
+    }
     return res.json({ success: true });
   }
 

@@ -106,13 +106,14 @@
                 <th>Trainer</th>
                 <th>Datum / Zeit</th>
                 <th>Teilnehmer</th>
+                <th>Min-TN</th>
                 <th>Preis/Person</th>
                 <th>Status</th>
                 <th>Aktionen</th>
               </tr>
             </thead>
             <tbody id="groups-body">
-              <tr><td colspan="8" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</td></tr>
+              <tr><td colspan="9" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</td></tr>
             </tbody>
           </table>
         </div>
@@ -301,6 +302,8 @@
   let activeTrainers = [];
   let editingGroupId = null;
   let tableFilter;
+  // Doppel-Click-/Doppel-Save-Schutz fuer Inline-Edits (Pattern aus open-payments.html).
+  let _actionInProgress = false;
   // JS getDay() Array (0=So) für scheduled_date Anzeige
   const dayNamesJS = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
   // ISO 8601 (1=Mo, ..., 7=So) für DB day_of_week
@@ -345,19 +348,77 @@
     // und die Filter-Selects bleiben mit nur 'Alle' befuellt (gleiches Muster wie
     // F-1-Fund im Sicherheits-Review 11.05.2026).
     tableFilter = initSortableTable('groups-table', [
-      { key: 'name',           type: 'text',   getValue: g => g.name || '' },
-      { key: 'city',           type: 'select', getValue: g => g.city || '\u2013' },
-      { key: 'trainer',        type: 'text',   getValue: g => activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '' },
-      { key: 'scheduled_date', type: 'date',   getValue: g => g.scheduled_date || '' },
-      { key: 'participants',   type: 'number', getValue: g => g.current_participants || 0 },
-      { key: 'price',          type: 'number', getValue: g => (g.price_per_person_cents || 0) / 100 },
-      { key: 'status',         type: 'select', getValue: g => g.is_active ? 'Aktiv' : 'Inaktiv' },
+      { key: 'name',             type: 'text',   getValue: g => g.name || '' },
+      { key: 'city',             type: 'select', getValue: g => g.city || '\u2013' },
+      { key: 'trainer',          type: 'text',   getValue: g => activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '' },
+      { key: 'scheduled_date',   type: 'date',   getValue: g => g.scheduled_date || '' },
+      { key: 'participants',     type: 'number', getValue: g => g.current_participants || 0 },
+      { key: 'min_participants', type: 'number', getValue: g => g.min_participants || 0 },
+      { key: 'price',            type: 'number', getValue: g => (g.price_per_person_cents || 0) / 100 },
+      { key: 'status',           type: 'select', getValue: g => g.is_active ? 'Aktiv' : 'Inaktiv' },
       null,
     ]);
     tableFilter.onFilterChange(() => renderGroups());
 
     await loadGroups();
+
+    // Event-Delegation fuer Inline-Edits in der Klassen-Tabelle.
+    // Listener am tbody, weil die <tr>-Reihen bei jedem Render neu generiert werden.
+    // 'change' (nicht 'input') feuert erst beim Verlassen des Felds — verhindert
+    // einen Server-Call pro Tastendruck.
+    document.getElementById('groups-body').addEventListener('change', (e) => {
+      const target = e.target;
+      if (!target || target.dataset.action !== 'update-min-participants') return;
+      const id = target.dataset.id;
+      // data-max ist leerer String wenn max_participants in der DB NULL ist — dann
+      // gibt es keine Frontend-Obergrenze (Server validiert dann ebenfalls nichts).
+      const maxAllowed = target.dataset.max === '' ? null : parseInt(target.dataset.max, 10);
+      const newValue = parseInt(target.value, 10);
+      saveMinParticipants(id, newValue, maxAllowed, target);
+    });
   })();
+
+  // Speichert die geaenderte Mindest-Teilnehmer-Zahl fuer einen Kurs.
+  // Range-Check 1..maxAllowed (maxAllowed kann null sein wenn der Kurs keine
+  // Obergrenze hat — dann nur die Untergrenze pruefen).
+  async function saveMinParticipants(groupId, newValue, maxAllowed, inputEl) {
+    if (_actionInProgress) return;
+    if (!Number.isInteger(newValue) || newValue < 1) {
+      showPfToast('Ungueltige Eingabe', 'Mindest-Teilnehmer muss eine ganze Zahl >= 1 sein.', 'danger');
+      // alten Wert wiederherstellen
+      const g = allGroups.find(x => x.id === groupId);
+      if (g && inputEl) inputEl.value = g.min_participants ?? 6;
+      return;
+    }
+    if (maxAllowed != null && Number.isFinite(maxAllowed) && newValue > maxAllowed) {
+      showPfToast('Ungueltige Eingabe', `Mindest-Teilnehmer darf nicht groesser sein als Maximum (${maxAllowed}).`, 'danger');
+      const g = allGroups.find(x => x.id === groupId);
+      if (g && inputEl) inputEl.value = g.min_participants ?? 6;
+      return;
+    }
+
+    _actionInProgress = true;
+    if (inputEl) inputEl.disabled = true;
+    try {
+      await adminApi('/api/admin?action=groups', {
+        method: 'PUT',
+        body: JSON.stringify({ id: groupId, min_participants: newValue }),
+      });
+      // Lokalen Cache mit dem neuen Wert pflegen, damit Filter/Sortierung
+      // den neuen Wert sehen ohne kompletten Reload.
+      const g = allGroups.find(x => x.id === groupId);
+      if (g) g.min_participants = newValue;
+      showPfToast('Gespeichert', `Mindest-Teilnehmer auf ${newValue} gesetzt.`, 'success');
+    } catch (err) {
+      showPfToast('Fehler', err?.message || 'Speichern fehlgeschlagen.', 'danger');
+      // bei Fehler: alten Wert aus dem Cache wiederherstellen
+      const g = allGroups.find(x => x.id === groupId);
+      if (g && inputEl) inputEl.value = g.min_participants ?? 6;
+    } finally {
+      _actionInProgress = false;
+      if (inputEl && document.body.contains(inputEl)) inputEl.disabled = false;
+    }
+  }
 
   async function loadGroups() {
     try {
@@ -366,7 +427,7 @@
       renderGroups();
     } catch (err) {
       document.getElementById('groups-body').innerHTML =
-        `<tr><td colspan="8" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="9" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -389,7 +450,7 @@
 
     const tbody = document.getElementById('groups-body');
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:24px">Keine Gruppentrainings gefunden</td></tr>';
       return;
     }
 
@@ -412,6 +473,12 @@
           <td>
             <span class="fw-bold">${participants}</span><span class="text-secondary">/${max}</span>
             <div class="participant-bar"><div class="participant-bar-fill" style="width:${fillPct}%;background:${barColor}"></div></div>
+          </td>
+          <td>
+            <input type="number" class="form-control form-control-sm" style="max-width:80px"
+              value="${g.min_participants ?? 6}" min="1"${g.max_participants != null ? ` max="${g.max_participants}"` : ''}
+              data-action="update-min-participants" data-id="${g.id}" data-max="${g.max_participants ?? ''}"
+              title="Mindest-Teilnehmer fuer Kurs-Durchfuehrung">
           </td>
           <td class="fw-bold">${formatEuro(priceCents)}</td>
           <td>${g.is_active ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
