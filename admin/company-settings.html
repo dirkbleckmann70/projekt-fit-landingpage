@@ -53,7 +53,7 @@
       user-select: none;
     }
     .details-summary::before {
-      content: '&#9654;';
+      content: '\25BA';
       font-size: 10px;
       transition: transform 0.2s;
     }
@@ -164,7 +164,7 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Standard MwSt-Satz (%)</label>
-                <input class="form-control" type="number" id="default_vat_rate" placeholder="19" min="0" max="100" step="0.1">
+                <input class="form-control" type="number" id="mwst_satz" placeholder="19" min="0" max="50" step="0.1">
               </div>
             </div>
           </div>
@@ -212,6 +212,61 @@
           </div>
         </div>
 
+        <!-- Bezahl- und Buchungs-Konfiguration (Teilspec 2) -->
+        <div class="card settings-card">
+          <div class="card-body">
+            <div class="settings-card-title">Bezahl- und Buchungs-Konfiguration</div>
+            <div class="form-grid cols-3">
+              <div class="form-group">
+                <label class="form-label">Bearbeitungsgebuehr (%)</label>
+                <input class="form-control" type="number" id="processing_fee_percent" placeholder="3" min="0" max="20" step="0.01">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mindestbetrag Bearbeitungsgebuehr (Cent)</label>
+                <input class="form-control" type="number" id="processing_fee_min_cents" placeholder="0" min="0">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Trainer-Auszahlung Wartezeit (Stunden)</label>
+                <input class="form-control" type="number" id="trainer_payout_grace_hours" placeholder="48" min="1" max="168">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Gruppentraining Standard-Mindest-Teilnehmer</label>
+                <input class="form-control" type="number" id="gt_threshold_default" placeholder="6" min="1" max="30">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Schwellen-Check Stunden vor Termin</label>
+                <input class="form-control" type="number" id="gt_threshold_check_hours_before" placeholder="24" min="1" max="168">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sorry-Code Rabatt (%)</label>
+                <input class="form-control" type="number" id="sorry_code_discount_percent" placeholder="20" min="0" max="100">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sorry-Code Gueltigkeit (Monate)</label>
+                <input class="form-control" type="number" id="sorry_code_validity_months" placeholder="3" min="1" max="24">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Admin-Alarm nach Tagen offener Zahlung</label>
+                <input class="form-control" type="number" id="payment_open_admin_alert_days" placeholder="7" min="1" max="30">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Checkout Auto-Freigabe (Stunden)</label>
+                <input class="form-control" type="number" id="checkout_auto_release_hours" placeholder="24" min="1" max="72">
+              </div>
+              <div class="form-group form-group-full">
+                <label class="form-label">Zahlung-offen Erinnerungs-Tage (kommagetrennt, z.B. 0,2,5)</label>
+                <input class="form-control" type="text" id="payment_open_reminder_days" placeholder="0,2,5">
+                <small class="text-secondary">Tage nach Auftreten der Karten-Ablehnung an denen der Kunde erinnert wird. 0 = sofort, 2 = nach 2 Tagen, etc.</small>
+              </div>
+              <div class="form-group form-group-full">
+                <label class="form-label">Checkout-Erinnerung Stunden (kommagetrennt, z.B. 0,4,20)</label>
+                <input class="form-control" type="text" id="checkout_reminder_hours" placeholder="0,4,20">
+                <small class="text-secondary">Stunden nach Trainings-Ende an denen Trainer + Kunde an offenen Checkout erinnert werden.</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Erweitert (aufklappbar) -->
         <div class="card settings-card">
           <div class="card-body">
@@ -249,7 +304,7 @@
 
         <!-- Speichern-Leiste -->
         <div class="save-bar">
-          <button type="submit" class="btn btn-primary" id="save-btn">Firmendaten speichern</button>
+          <button type="submit" class="btn btn-primary" id="save-btn">Einstellungen speichern</button>
           <span class="status-text" id="save-status"></span>
         </div>
 
@@ -266,23 +321,65 @@
 <script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
 <script>
-  // Felder die aus/in DB gemappt werden
+  // Felder die aus/in DB gemappt werden.
+  // default_vat_rate ist hier ENTFERNT (existiert nicht in der DB, schrieb bei
+  // jedem Speicher-Versuch einen stillen DB-Fehler). Stattdessen mwst_satz —
+  // die echte Spalte mit Default 19.
   const FIELDS = [
     'company_name', 'legal_form', 'owner_name',
     'street', 'postal_code', 'city', 'country',
-    'tax_number', 'vat_id', 'default_vat_rate',
+    'tax_number', 'vat_id', 'mwst_satz',
     'email', 'phone', 'website',
     'bank_name', 'iban', 'bic',
     'handelsregister_nr', 'registergericht', 'geschaeftsfuehrer',
     'invoice_prefix', 'next_invoice_number', 'invoice_footer_text',
+    // Bezahl- und Buchungs-Konfiguration (Teilspec 2, alle NOT NULL in DB)
+    'processing_fee_percent', 'processing_fee_min_cents',
+    'gt_threshold_default', 'gt_threshold_check_hours_before',
+    'trainer_payout_grace_hours',
+    'payment_open_reminder_days', 'payment_open_admin_alert_days',
+    'sorry_code_validity_months', 'sorry_code_discount_percent',
+    'checkout_reminder_hours', 'checkout_auto_release_hours',
   ];
+
+  // Integer-Array-Felder: UI zeigt kommagetrennte Zahlen, DB speichert int[].
+  const ARRAY_FIELDS = new Set(['payment_open_reminder_days', 'checkout_reminder_hours']);
+
+  // Dezimal-Numerische Felder: parseFloat statt parseInt.
+  const DECIMAL_FIELDS = new Set(['mwst_satz', 'processing_fee_percent']);
+
+  // Alle nicht-Array NUMBER-Felder (alle ausser Texten + Array).
+  // Wird nur fuer Save genutzt — der GET liest beides als string ein und das
+  // <input type="number"> macht das Browser-seitige Casting beim Anzeigen.
+  const INTEGER_FIELDS = new Set([
+    'next_invoice_number',
+    'processing_fee_min_cents',
+    'gt_threshold_default', 'gt_threshold_check_hours_before',
+    'trainer_payout_grace_hours',
+    'payment_open_admin_alert_days',
+    'sorry_code_validity_months', 'sorry_code_discount_percent',
+    'checkout_auto_release_hours',
+  ]);
+
+  // Welche Felder sind NOT NULL in der DB (Teilspec-2-Settings).
+  // Bei leerer UI-Eingabe MUESSEN diese Felder aus dem Payload entfernt werden,
+  // sonst wirft die DB eine NOT-NULL-Violation. Die DB-Defaults bleiben dann.
+  const NOT_NULL_FIELDS = new Set([
+    'mwst_satz',
+    'processing_fee_percent', 'processing_fee_min_cents',
+    'gt_threshold_default', 'gt_threshold_check_hours_before',
+    'trainer_payout_grace_hours',
+    'payment_open_reminder_days', 'payment_open_admin_alert_days',
+    'sorry_code_validity_months', 'sorry_code_discount_percent',
+    'checkout_reminder_hours', 'checkout_auto_release_hours',
+  ]);
 
   (async () => {
     const user = await checkAdminAuth();
     if (!user) return;
 
     document.getElementById('sidebar').innerHTML = renderAdminSidebar('company-settings');
-    document.getElementById('header').innerHTML = renderAdminHeader('Firmendaten', user.email);
+    document.getElementById('header').innerHTML = renderAdminHeader('Einstellungen', user.email);
     initRealtimeToasts(getSupabase(), 'admin');
 
     await loadSettings();
@@ -295,7 +392,14 @@
       FIELDS.forEach(field => {
         const el = document.getElementById(field);
         if (!el) return;
-        if (data[field] != null) el.value = data[field];
+        const value = data[field];
+        if (value == null) return;
+        // Array-Felder: aus int[] eine kommagetrennte UI-Eingabe machen
+        if (ARRAY_FIELDS.has(field) && Array.isArray(value)) {
+          el.value = value.join(',');
+        } else {
+          el.value = value;
+        }
       });
     } catch (err) {
       showAlert('alert-box', 'Laden fehlgeschlagen: ' + err.message, 'error');
@@ -311,17 +415,68 @@
     statusEl.classList.remove('show', 'error');
 
     const payload = {};
-    FIELDS.forEach(field => {
-      const el = document.getElementById(field);
-      if (!el) return;
-      const val = el.value.trim();
-      // Nur befüllte Felder senden, leere als null
-      payload[field] = val !== '' ? val : null;
-    });
+    let validationError = null;
 
-    // Numerische Felder konvertieren
-    if (payload.default_vat_rate != null)   payload.default_vat_rate   = parseFloat(payload.default_vat_rate);
-    if (payload.next_invoice_number != null) payload.next_invoice_number = parseInt(payload.next_invoice_number);
+    for (const field of FIELDS) {
+      if (validationError) break;
+      const el = document.getElementById(field);
+      if (!el) continue;
+      const raw = el.value.trim();
+
+      // Leeres Eingabefeld:
+      //  - NOT-NULL-Spalte: aus dem Payload entfernen, DB-Default bleibt aktiv
+      //  - Optionale Spalte: explizit null senden
+      if (raw === '') {
+        if (!NOT_NULL_FIELDS.has(field)) payload[field] = null;
+        continue;
+      }
+
+      // Array-Felder: kommagetrennte ganze Zahlen
+      if (ARRAY_FIELDS.has(field)) {
+        const parts = raw.split(',').map(s => s.trim()).filter(s => s !== '');
+        const nums = parts.map(p => Number(p));
+        if (nums.length === 0 || nums.some(n => !Number.isInteger(n) || n < 0)) {
+          validationError = `${field}: bitte ausschliesslich nicht-negative ganze Zahlen kommagetrennt eingeben`;
+          break;
+        }
+        payload[field] = nums;
+        continue;
+      }
+
+      // Dezimalzahlen (mwst_satz, processing_fee_percent)
+      if (DECIMAL_FIELDS.has(field)) {
+        const num = parseFloat(raw);
+        if (!Number.isFinite(num) || num < 0) {
+          validationError = `${field}: bitte eine Zahl >= 0 eingeben`;
+          break;
+        }
+        payload[field] = num;
+        continue;
+      }
+
+      // Ganzzahlen — Number() statt parseInt() weil parseInt('3.5')=3 still abschneidet.
+      // Number('3.5')=3.5, Number.isInteger(3.5)=false → Validation-Fehler wie erwartet.
+      if (INTEGER_FIELDS.has(field)) {
+        const num = Number(raw);
+        if (!Number.isInteger(num) || num < 0) {
+          validationError = `${field}: bitte eine ganze Zahl >= 0 eingeben`;
+          break;
+        }
+        payload[field] = num;
+        continue;
+      }
+
+      // Textfelder
+      payload[field] = raw;
+    }
+
+    if (validationError) {
+      statusEl.textContent = 'Eingabe ungueltig: ' + validationError;
+      statusEl.className = 'status-text show error';
+      btn.disabled = false;
+      btn.textContent = 'Einstellungen speichern';
+      return;
+    }
 
     try {
       await adminApi('/api/admin?action=company-settings', {
@@ -331,12 +486,16 @@
       statusEl.textContent = 'Gespeichert!';
       statusEl.className = 'status-text show';
       setTimeout(() => statusEl.classList.remove('show'), 4000);
+      // UI wieder mit DB-Stand befuellen: ein NOT-NULL-Feld kann geleert worden
+      // sein (DB-Default greift dann), die UI muss den aktuellen Wert zeigen,
+      // nicht die geleerte Eingabe.
+      await loadSettings();
     } catch (err) {
       statusEl.textContent = 'Fehler: ' + err.message;
       statusEl.className = 'status-text show error';
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Firmendaten speichern';
+      btn.textContent = 'Einstellungen speichern';
     }
   });
 </script>
