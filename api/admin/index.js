@@ -3186,12 +3186,56 @@ async function handleUpdateParticipant(req, res, supabase) {
 
   if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('bookings')
     .update(update)
     .eq('id', id)
-    .eq('art', 'gt_teilnahme');
+    .eq('art', 'gt_teilnahme')
+    .select('id');
   if (error) throw error;
+  if (!data || data.length === 0) {
+    return res.status(404).json({ error: 'Teilnehmer nicht gefunden oder konnte nicht aktualisiert werden' });
+  }
+
+  // B-2026-05-14-15 + B-2026-05-14-16 Fix: Audit-Trail im booking_audit fuer
+  // manuelle Admin-Aenderungen an `paid` und `trainer_paid_out_at`. GoBD-pflichtig
+  // — sonst keine Nachvollziehbarkeit von Bezahl-/Honorar-Manipulationen ausserhalb
+  // von stripe-webhook/process-payout (Anti-Pattern in Root-CLAUDE.md).
+  // Best-effort, nie throwen, sonst werfen wir den HTTP 200 weg.
+  if (customer_paid !== undefined || trainer_paid !== undefined) {
+    try {
+      const caller = await getCallerInfo(req);
+      if (customer_paid !== undefined) {
+        await supabase.from('booking_audit').insert({
+          booking_id: id,
+          action: 'manual_paid_set',
+          actor_type: caller?.actorType || 'admin',
+          actor_id: caller?.authUid || null,
+          details: {
+            source: 'admin-api/update-participant',
+            new_value: !!customer_paid,
+            warning: 'Bezahl-Status manuell gesetzt — kein Stripe-Event, kein Webhook-Audit. Rechnung manuell pruefen.',
+          },
+        });
+      }
+      if (trainer_paid !== undefined) {
+        await supabase.from('booking_audit').insert({
+          booking_id: id,
+          action: 'manual_payout_set',
+          actor_type: caller?.actorType || 'admin',
+          actor_id: caller?.authUid || null,
+          details: {
+            source: 'admin-api/update-participant',
+            trainer_paid_out_at: trainer_paid ? new Date().toISOString() : null,
+            warning: 'Trainer-Auszahlung manuell gesetzt — kein Stripe-Transfer, keine Gutschrift-PDF. Wenn Transfer geflossen ist, ueber process-payout setzen.',
+          },
+        });
+      }
+    } catch (auditErr) {
+      console.error('handleUpdateParticipant booking_audit insert fehlgeschlagen (best-effort):', auditErr.message);
+    }
+  }
+
   return res.json({ success: true });
 }
 
@@ -3216,19 +3260,40 @@ async function handleAddParticipant(req, res, supabase) {
   if (!gc.trainer_id) return res.status(400).json({ error: 'Kurs hat keinen Trainer' });
   if (!gc.scheduled_date || !gc.scheduled_time) return res.status(400).json({ error: 'Kurs hat keinen Termin' });
 
-  // Customer ggf. ueber Email auflosen (admin-Seite kennt Kunden ueber Mail)
+  // Customer ggf. ueber Email auflosen (admin-Seite kennt Kunden ueber Mail).
+  // B-2026-05-14-46 Fix: auth_user_id mit ziehen — sonst brechen Push-Pfade und
+  // confirm-and-charge findet keinen Karten-Besitzer.
   let resolvedCustomerId = customer_id || null;
-  if (!resolvedCustomerId && customer_email) {
+  let resolvedAuthUserId = null;
+  if (resolvedCustomerId) {
     const { data: c } = await supabase
       .from('customers')
-      .select('id')
+      .select('id, auth_user_id')
+      .eq('id', resolvedCustomerId)
+      .single();
+    if (c) resolvedAuthUserId = c.auth_user_id || null;
+  } else if (customer_email) {
+    const { data: c } = await supabase
+      .from('customers')
+      .select('id, auth_user_id')
       .eq('email', customer_email.trim().toLowerCase())
       .single();
-    if (c) resolvedCustomerId = c.id;
+    if (c) {
+      resolvedCustomerId = c.id;
+      resolvedAuthUserId = c.auth_user_id || null;
+    }
   }
 
+  if (!resolvedCustomerId) {
+    return res.status(400).json({ error: 'Kunde konnte nicht aufgeloest werden (weder customer_id noch customer_email passt zu einem Kunden-Datensatz)' });
+  }
+
+  // B-2026-05-14-46 Fix: flag_zahlung_offen=true setzen, weil keine Karten-
+  // Bindung (kein SetupIntent) — Admin-Manuell-Add wird als "Zahlung offen"
+  // markiert, damit der Schwellen-Cron + die Status-Anzeige korrekt reagieren.
   const insertData = {
     customer_id: resolvedCustomerId,
+    auth_user_id: resolvedAuthUserId,
     trainer_id: gc.trainer_id,
     art: 'gt_teilnahme',
     booking_type: 'group',
@@ -3239,12 +3304,39 @@ async function handleAddParticipant(req, res, supabase) {
     location_address: gc.location_address || null,
     status: 'bestaetigt',
     paid: false,
+    flag_zahlung_offen: true,
     price_cents: gc.price_per_person_cents || 0,
     final_price_cents: gc.price_per_person_cents || 0,
   };
 
   const { data, error } = await supabase.from('bookings').insert(insertData).select();
   if (error) throw error;
+  const insertedId = data?.[0]?.id;
+
+  // Audit-Eintrag: dokumentiert dass Admin manuell einen Teilnehmer hinzugefuegt
+  // hat (kein Karten-Vormerk-Flow, kein normaler Buchungs-Pfad).
+  if (insertedId) {
+    try {
+      const caller = await getCallerInfo(req);
+      await supabase.from('booking_audit').insert({
+        booking_id: insertedId,
+        action: 'manual_admin_added_participant',
+        actor_type: caller?.actorType || 'admin',
+        actor_id: caller?.authUid || null,
+        details: {
+          source: 'admin-api/add-participant',
+          group_class_id,
+          customer_id: resolvedCustomerId,
+          customer_email: customer_email || null,
+          has_auth_user_id: !!resolvedAuthUserId,
+          warning: 'Admin-manuell hinzugefuegt — keine Karten-Bindung (flag_zahlung_offen=true). Naechster Schritt: Kunde per Mail einen Karten-Eingabe-Link schicken oder Bar-/Ueberweisungs-Zahlung manuell markieren.',
+        },
+      });
+    } catch (auditErr) {
+      console.error('handleAddParticipant booking_audit insert fehlgeschlagen (best-effort):', auditErr.message);
+    }
+  }
+
   return res.json({ success: true, data: data?.[0] });
 }
 
