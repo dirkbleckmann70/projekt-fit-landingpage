@@ -956,11 +956,24 @@ export default async function handler(req, res) {
 
           if (cardErr) return res.status(500).json({ error: cardErr.message });
 
-          // Rechnung generieren
+          // Rechnung generieren — B-2026-05-14-47 Fix: direkter fetch() statt
+          // supabase.functions.invoke() (schluckt Response-Bodies bei non-2xx).
           try {
-            await supabase.functions.invoke('generate-invoice', {
-              body: { type: 'rechnung_gt_card', gt_card_id: card.id, customer_id }
+            const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+            const invoiceResp = await fetch(`${process.env.SUPABASE_URL}/functions/v1/generate-invoice`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${key}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ type: 'rechnung_gt_card', gt_card_id: card.id, customer_id }),
             });
+            const invoiceResult = await invoiceResp.json().catch(() => ({}));
+            if (!invoiceResp.ok) {
+              console.error('gt_card_manual: generate-invoice failed', invoiceResp.status, invoiceResult);
+            } else if (invoiceResult?.invoice_id) {
+              await supabase.from('gt_cards').update({ invoice_id: invoiceResult.invoice_id }).eq('id', card.id);
+            }
           } catch (e) { console.error('Invoice generation failed:', e); }
 
           return res.json({ success: true, card });
