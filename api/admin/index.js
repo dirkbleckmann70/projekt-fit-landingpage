@@ -570,12 +570,15 @@ export default async function handler(req, res) {
 
         // Mail-Versand via send-email Edge Function.
         // send-email akzeptiert { to, subject, htmlBody } (htmlBody — NICHT html).
+        // B-2026-05-14-55 Fix: SERVICE_ROLE_JWT-Fallback fuer Bearer-Header,
+        // damit Gateway-JWT-Check bei spaeterer Umstellung nicht still 401 liefert.
         const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+        const bearerKey = process.env.SERVICE_ROLE_JWT ?? serviceKey;
         const resp = await fetch(`${process.env.SUPABASE_URL}/functions/v1/send-email`, {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
-            authorization: `Bearer ${serviceKey}`,
+            authorization: `Bearer ${bearerKey}`,
             apikey: serviceKey,
           },
           body: JSON.stringify({
@@ -635,7 +638,9 @@ export default async function handler(req, res) {
         // Service-Role-Auth (klassisches eyJ-JWT in Vercel-Env — generate-invoice
         // ist deployed MIT JWT-Verify, akzeptiert also nur einen gueltigen JWT,
         // und Service-Role hat die noetigen DB-Rechte fuer invoices/booking-Updates).
-        const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+        // B-2026-05-14-55 Fix: SERVICE_ROLE_JWT zuerst (klassischer JWT), Fallback
+        // auf sb_secret_*-Key.
+        const key = process.env.SERVICE_ROLE_JWT ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
         const resp = await fetch(`${process.env.SUPABASE_URL}/functions/v1/generate-invoice`, {
           method: 'POST',
           headers: {
@@ -926,6 +931,17 @@ export default async function handler(req, res) {
           const { data: cust, error: custErr } = await supabase.from('customers').select('auth_user_id').eq('id', customer_id).single();
           if (custErr || !cust) return res.status(404).json({ error: 'Kunde nicht gefunden' });
 
+          // B-2026-05-14-51 Fix: mwst_satz aus company_settings statt hardcoded.
+          // Pulsly = Verkaeufer der 10er-Karten an den Kunden (Beschluss 26.04.2026),
+          // also gilt der Company-MwSt-Satz, nicht der Trainer-Satz. Bei
+          // Kleinunternehmer-Pulsly waere das 0. Aktuell 19, aber NIE hardcoden.
+          const { data: companySettings } = await supabase
+            .from('company_settings')
+            .select('mwst_satz')
+            .limit(1)
+            .single();
+          const companyMwstSatz = companySettings?.mwst_satz ?? 19;
+
           // Preis berechnen oder Override
           let priceCents = price_cents_override;
           if (!priceCents) {
@@ -951,7 +967,7 @@ export default async function handler(req, res) {
             expires_at: expiresAt.toISOString(),
             paid: true,
             payment_source: 'admin_manual',
-            mwst_satz: 19,
+            mwst_satz: companyMwstSatz,
           }).select().single();
 
           if (cardErr) return res.status(500).json({ error: cardErr.message });
