@@ -2578,6 +2578,21 @@ async function handleBookingsPut(req, res, supabase) {
 
   update.updated_at = new Date().toISOString();
 
+  // B-2026-05-14-48 Fix: Audit-Pre-Read fuer Geld-/Termin-/Trainer-relevante
+  // Aenderungen. Alte Werte VOR dem UPDATE holen, damit booking_audit-Eintrag
+  // den Vorher/Nachher-Diff zeigt (GoBD-Pflicht bei Preis-/Payout-/Termin-Aenderungen).
+  const AUDIT_FIELDS = ['price_cents', 'final_price_cents', 'trainer_payout_cents', 'trainer_id', 'scheduled_date', 'scheduled_time'];
+  const changedAuditFields = AUDIT_FIELDS.filter(f => update[f] !== undefined);
+  let oldAuditValues = null;
+  if (changedAuditFields.length > 0) {
+    const { data: oldRow } = await supabase
+      .from('bookings')
+      .select(AUDIT_FIELDS.join(','))
+      .eq('id', bookingId)
+      .single();
+    oldAuditValues = oldRow;
+  }
+
   // ─── Server-Hook (Schritt 4) ───────────────────────────────────────────────
   // Wenn der Status auf 'bestaetigt' wechselt → confirm-and-charge belastet die
   // hinterlegte Karte und setzt status+paid selber. Wenn der Status auf
@@ -2699,6 +2714,33 @@ async function handleBookingsPut(req, res, supabase) {
     // Konvention.
     return res.status(404).json({ error: 'Buchung nicht gefunden oder konnte nicht aktualisiert werden' });
   }
+
+  // B-2026-05-14-48 Fix: Audit-Post-Write fuer Geld-/Termin-/Trainer-Aenderungen.
+  // GoBD-Pflicht — Finanz-/Vertrags-Aenderungen muessen mit Akteur + Zeitstempel
+  // + Vorher/Nachher-Diff nachvollziehbar bleiben. Best-effort: niemals werfen,
+  // sonst werfen wir den HTTP-200-Erfolg weg.
+  if (changedAuditFields.length > 0 && oldAuditValues) {
+    try {
+      const caller = await getCallerInfo(req);
+      const newAuditValues = changedAuditFields.reduce((acc, f) => { acc[f] = update[f]; return acc; }, {});
+      await supabase.from('booking_audit').insert({
+        booking_id: bookingId,
+        action: 'admin_field_change',
+        actor_type: caller?.actorType || 'admin',
+        actor_id: caller?.authUid || null,
+        details: {
+          source: 'admin-api/bookings-put',
+          changed_fields: changedAuditFields,
+          old_values: oldAuditValues,
+          new_values: newAuditValues,
+          admin_note: admin_note || null,
+        },
+      });
+    } catch (auditErr) {
+      console.error('handleBookingsPut booking_audit insert fehlgeschlagen (best-effort):', auditErr.message);
+    }
+  }
+
   return res.json({ success: true });
 }
 
@@ -3182,7 +3224,7 @@ async function handleCustomers(req, res, supabase) {
 
 async function handleUpdateParticipant(req, res, supabase) {
   const body = await getBody(req);
-  const { id, attended, customer_paid, trainer_paid, trainer_checked_out_at } = body;
+  const { id, attended, customer_paid, trainer_paid, trainer_checked_out_at, admin_note } = body;
 
   if (!id) return res.status(400).json({ error: 'id ist erforderlich' });
 
@@ -3230,6 +3272,7 @@ async function handleUpdateParticipant(req, res, supabase) {
           details: {
             source: 'admin-api/update-participant',
             new_value: !!customer_paid,
+            admin_note: admin_note || null,
             warning: 'Bezahl-Status manuell gesetzt — kein Stripe-Event, kein Webhook-Audit. Rechnung manuell pruefen.',
           },
         });
@@ -3243,6 +3286,7 @@ async function handleUpdateParticipant(req, res, supabase) {
           details: {
             source: 'admin-api/update-participant',
             trainer_paid_out_at: trainer_paid ? new Date().toISOString() : null,
+            admin_note: admin_note || null,
             warning: 'Trainer-Auszahlung manuell gesetzt — kein Stripe-Transfer, keine Gutschrift-PDF. Wenn Transfer geflossen ist, ueber process-payout setzen.',
           },
         });

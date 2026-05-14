@@ -864,8 +864,24 @@
                     <td>${p.customer_name || p.name || '–'}</td>
                     <td class="text-secondary">${p.customer_email || p.email || '–'}</td>
                     <td>${statusBadge(p.status || 'angemeldet')}</td>
-                    <td><input type="checkbox" ${p.customer_paid ? 'checked' : ''} onchange="updateParticipant('${p.id}', 'customer_paid', this.checked)"></td>
-                    <td><input type="checkbox" ${p.trainer_paid ? 'checked' : ''} onchange="updateParticipant('${p.id}', 'trainer_paid', this.checked)"></td>
+                    <td>
+                      <input type="checkbox" disabled ${p.customer_paid ? 'checked' : ''}
+                        title="Wird automatisch durch Stripe-Webhook gesetzt. Sonderfall ueber 'Manuell setzen'-Knopf rechts.">
+                      <button class="btn btn-sm btn-ghost-secondary" style="padding:2px 6px;margin-left:4px"
+                        title="Bezahlt-Status manuell setzen (mit Begruendung, Audit-Trail)"
+                        onclick="manualSetField('${p.id}', 'customer_paid', ${!p.customer_paid})">
+                        <i class="ti ti-edit"></i>
+                      </button>
+                    </td>
+                    <td>
+                      <input type="checkbox" disabled ${p.trainer_paid ? 'checked' : ''}
+                        title="Wird automatisch durch process-payout gesetzt. Sonderfall ueber 'Manuell setzen'-Knopf rechts.">
+                      <button class="btn btn-sm btn-ghost-secondary" style="padding:2px 6px;margin-left:4px"
+                        title="Trainer-Honorar manuell setzen (mit Begruendung, Audit-Trail)"
+                        onclick="manualSetField('${p.id}', 'trainer_paid', ${!p.trainer_paid})">
+                        <i class="ti ti-edit"></i>
+                      </button>
+                    </td>
                     <td><input type="checkbox" ${p.attended ? 'checked' : ''} onchange="updateParticipant('${p.id}', 'attended', this.checked)"></td>
                     <td>${stornoBtn}</td>
                   </tr>`;
@@ -911,6 +927,37 @@
       showAlert('alert-box', 'Fehler: ' + err.message, 'error');
       // Reload to reset checkbox state
       if (currentParticipantsGroupId) await loadParticipants(currentParticipantsGroupId);
+    }
+  }
+
+  // B-2026-05-14-15 + B-2026-05-14-16 UI-Fix: Manuelles Setzen von customer_paid /
+  // trainer_paid braucht Pflicht-Begruendung. Backend (handleUpdateParticipant) legt
+  // dann einen booking_audit-Eintrag mit manual_paid_set / manual_payout_set an.
+  async function manualSetField(id, field, value) {
+    const labels = {
+      customer_paid: value ? 'Kunde als BEZAHLT markieren' : 'Kunde als UNBEZAHLT markieren',
+      trainer_paid: value ? 'Trainer-Honorar als AUSGEZAHLT markieren' : 'Trainer-Honorar als OFFEN markieren',
+    };
+    const warningTexts = {
+      customer_paid: 'Achtung: kein Stripe-Charge wird ausgeloest. Wenn der Kunde tatsaechlich nicht ueber Stripe bezahlt hat, ist das ein Sonderfall (Bar-Zahlung, Ueberweisung, Kulanz).',
+      trainer_paid: 'Achtung: kein Stripe-Transfer wird ausgeloest. Wenn die Auszahlung tatsaechlich nicht ueber process-payout lief, ist das ein Sonderfall (manuelle Ueberweisung).',
+    };
+    const reason = window.prompt(
+      labels[field] + '\n\n' + warningTexts[field] + '\n\nBegruendung eingeben (Pflicht):'
+    );
+    if (!reason || !reason.trim()) {
+      alert('Begruendung ist Pflicht — Aktion abgebrochen.');
+      return;
+    }
+    try {
+      await adminApi('/api/admin?action=update-participant', {
+        method: 'PUT',
+        body: JSON.stringify({ id, [field]: value, admin_note: reason.trim() }),
+      });
+      showAlert('alert-box', labels[field] + ' — gesetzt + im Logbuch dokumentiert.', 'success');
+      if (currentParticipantsGroupId) await loadParticipants(currentParticipantsGroupId);
+    } catch (err) {
+      showAlert('alert-box', 'Fehler: ' + err.message, 'error');
     }
   }
 
