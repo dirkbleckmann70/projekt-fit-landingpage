@@ -1,6 +1,9 @@
-# Projekt Fit Landingpage – Technische Referenz
+# Projekt Fit Landingpage – Technische Referenz (`landingpage/`)
 
-**Projektweite Regeln, Geschaeftslogik und PROGRESS.md: siehe `../CLAUDE.md` und `../PROGRESS.md`**
+> **📚 Hierarchie:** Diese Sub-CLAUDE.md gilt im Bereich `landingpage/` (Vercel-Deploy, Admin/Trainer-Portal). Zusaetzlich gelten:
+> - **Globale CLAUDE.md** (`C:\Users\dbl70\.claude\CLAUDE.md`) — Sprache, Modell-Wahl, Schreib-/Lese-Regel, Drift-Kontrolle
+> - **Root-CLAUDE.md** (`../CLAUDE.md`) — projekt-spezifische Regeln, Geschaeftslogik, Bezahlflow-Pflichten, Trigger-Tabelle „Fachbereich-Doku"
+> - **PROGRESS.md / STATUS.md / BUGS.md** (`../`) — Stand, Blocker, offene Bugs
 
 ---
 
