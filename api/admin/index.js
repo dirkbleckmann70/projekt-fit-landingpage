@@ -1714,6 +1714,41 @@ async function handleData(req, res, supabase) {
       return res.json({ data: enriched });
     }
 
+    // ─── Abo-Mapping (B-2026-05-14-02 / Vorgang 8) ────────────────────────
+    // Liefert die fuenf Steuer-Spalten fuer einen einzelnen Kunden:
+    // subscription_tier / subscription_until / subscription_synced_at sind
+    // read-only (kommen ueber den RevenueCat-Webhook von Apple), die beiden
+    // bookings_unlock_*-Felder werden ueber /api/customer-promotion gesetzt.
+    case 'customer_subscription': {
+      const customerId = req.query.customer_id;
+      if (!customerId) return res.status(400).json({ error: 'customer_id fehlt' });
+      const { data, error } = await supabase
+        .from('customers')
+        .select('id, subscription_tier, subscription_until, subscription_source, subscription_synced_at, bookings_unlocked_until, bookings_unlock_note, bookings_unlock_set_by, bookings_unlock_set_at')
+        .eq('id', customerId)
+        .maybeSingle();
+      if (error) {
+        // Spalten existieren noch nicht (Migration nicht durch) → leere
+        // Antwort mit gleicher Shape, Frontend zeigt dann „–".
+        if (error.code === '42703' || error.code === '42P01') {
+          return res.json({
+            id: customerId,
+            subscription_tier: null,
+            subscription_until: null,
+            subscription_source: null,
+            subscription_synced_at: null,
+            bookings_unlocked_until: null,
+            bookings_unlock_note: null,
+            bookings_unlock_set_by: null,
+            bookings_unlock_set_at: null,
+          });
+        }
+        throw error;
+      }
+      if (!data) return res.status(404).json({ error: 'Kunde nicht gefunden' });
+      return res.json(data);
+    }
+
     // ─── Calendar: Trainer mit Stadt (für Filter) ───────────────────────
     case 'calendar_trainers': {
       const { data, error } = await supabase

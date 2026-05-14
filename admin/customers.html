@@ -132,6 +132,38 @@
   </div>
 </div>
 
+<!-- Unlock Modal: Buchungs-Aktion freischalten / verlaengern -->
+<div class="modal modal-blur fade" id="unlockModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Buchungs-Aktion freischalten</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted small mb-3">
+          Schaltet das Buchen für diesen Kunden bis zum gewählten Datum frei,
+          unabhängig vom Abo-Stand. Endet automatisch am Ende des Datums.
+        </p>
+        <div class="form-group mb-3">
+          <label class="form-label">Freigeschaltet bis</label>
+          <input type="date" id="unlock-until" class="form-control" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notiz (interne Info)</label>
+          <textarea id="unlock-note" class="form-control" rows="3" maxlength="200"
+                    placeholder="z.B. Welcome-Back-Geste, 2 Wochen gratis"></textarea>
+          <span class="text-muted" style="font-size:11px">Max. 200 Zeichen. Wird nicht an den Kunden gesendet.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-primary" id="unlock-save-btn" onclick="saveUnlock()">Speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="../shared/constants.js"></script>
@@ -334,6 +366,37 @@
     }
 
     let html = `
+      <!-- B-2026-05-14-02: Abo-Stand (read-only) + Buchungs-Aktion -->
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Abo-Stand (Apple)</h3></div>
+        <div class="card-body">
+          <div class="datagrid">
+            <div class="datagrid-item">
+              <div class="datagrid-title">Tier</div>
+              <div class="datagrid-content" id="sub-tier">–</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Gültig bis</div>
+              <div class="datagrid-content" id="sub-until">–</div>
+            </div>
+            <div class="datagrid-item">
+              <div class="datagrid-title">Letzter Sync</div>
+              <div class="datagrid-content" id="sub-synced">–</div>
+            </div>
+          </div>
+          <p class="text-muted mt-2 mb-0 small">Wird automatisch von Apple gepflegt und kann nicht manuell geändert werden.</p>
+        </div>
+      </div>
+
+      <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title">Buchungs-Aktion (Goodwill / Promo)</h3></div>
+        <div class="card-body">
+          <div id="unlock-status" class="mb-2"><span class="text-muted">Laden…</span></div>
+          <button id="unlock-set-btn" class="btn btn-primary btn-sm" onclick="openUnlockModal()">Aktion freischalten</button>
+          <button id="unlock-clear-btn" class="btn btn-outline-danger btn-sm ms-2" style="display:none;" onclick="clearUnlock()">Aktion beenden</button>
+        </div>
+      </div>
+
       <form id="customer-detail-form">
       <div class="two-col">
         <div class="form-group">
@@ -432,6 +495,9 @@
       onSave: saveCustomer,
     });
 
+    // B-2026-05-14-02: Abo-Stand + Buchungs-Aktion laden (parallel zu Buchungen).
+    loadSubscriptionData(c.id);
+
     // Load customer bookings
     try {
       const res = await adminApi(`/api/admin?action=data&type=customer_bookings&customer_id=${encodeURIComponent(c.id)}`);
@@ -465,6 +531,132 @@
     } catch (err) {
       document.getElementById('customer-bookings').innerHTML =
         `<p class="text-error" style="font-size:13px">Buchungen konnten nicht geladen werden: ${err.message}</p>`;
+    }
+  }
+
+  // ─── B-2026-05-14-02: Abo-Stand + Buchungs-Aktion ─────────────────────────
+  // currentDetailId wird in showDetail() gesetzt und ist hier als
+  // „aktueller Kunde" der Kontext-Anker fuer alle Unlock-Aktionen.
+  async function loadSubscriptionData(customerId) {
+    const tierEl = document.getElementById('sub-tier');
+    const untilEl = document.getElementById('sub-until');
+    const syncedEl = document.getElementById('sub-synced');
+    const statusEl = document.getElementById('unlock-status');
+    const setBtn = document.getElementById('unlock-set-btn');
+    const clearBtn = document.getElementById('unlock-clear-btn');
+    if (!tierEl || !statusEl) return; // Modal evtl. inzwischen geschlossen
+
+    try {
+      const data = await adminApi(`/api/admin?action=data&type=customer_subscription&customer_id=${encodeURIComponent(customerId)}`);
+
+      // Abo-Stand
+      tierEl.textContent = data.subscription_tier || '–';
+      untilEl.textContent = data.subscription_until
+        ? new Date(data.subscription_until).toLocaleDateString('de-DE')
+        : '–';
+      syncedEl.textContent = data.subscription_synced_at
+        ? new Date(data.subscription_synced_at).toLocaleString('de-DE')
+        : 'noch nie';
+
+      // Buchungs-Aktion
+      const until = data.bookings_unlocked_until ? new Date(data.bookings_unlocked_until) : null;
+      const active = until && until > new Date();
+      if (active) {
+        const note = data.bookings_unlock_note ? ' — ' + escapeHtmlSimple(data.bookings_unlock_note) : '';
+        statusEl.innerHTML =
+          `<span class="badge bg-success me-2">Aktion aktiv</span>` +
+          `bis ${until.toLocaleDateString('de-DE')}${note}`;
+        setBtn.textContent = 'Aktion verlängern / ändern';
+        clearBtn.style.display = 'inline-block';
+      } else {
+        statusEl.innerHTML = '<span class="text-muted">Keine Aktion aktiv</span>';
+        setBtn.textContent = 'Aktion freischalten';
+        clearBtn.style.display = 'none';
+      }
+    } catch (err) {
+      statusEl.innerHTML = `<span class="text-danger">Fehler: ${err.message}</span>`;
+    }
+  }
+
+  // Kleine HTML-Escape-Hilfe nur fuer das Status-Banner (Notiz koennte HTML-
+  // Sonderzeichen enthalten — sonst Mini-XSS-Risiko).
+  function escapeHtmlSimple(s) {
+    if (typeof s !== 'string') return '';
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function openUnlockModal() {
+    if (!currentDetailId) return;
+    // Default: 30 Tage in der Zukunft.
+    const def = new Date(Date.now() + 30 * 86400000);
+    const yyyy = def.getFullYear();
+    const mm = String(def.getMonth() + 1).padStart(2, '0');
+    const dd = String(def.getDate()).padStart(2, '0');
+    document.getElementById('unlock-until').value = `${yyyy}-${mm}-${dd}`;
+    document.getElementById('unlock-note').value = '';
+    new bootstrap.Modal(document.getElementById('unlockModal')).show();
+  }
+
+  async function saveUnlock() {
+    if (!currentDetailId) return;
+    const date = document.getElementById('unlock-until').value;
+    const note = document.getElementById('unlock-note').value.trim();
+    if (!date) {
+      showPfToast('Buchungs-Aktion', 'Bitte ein Datum wählen', 'warning');
+      return;
+    }
+
+    // Europe/Berlin Offset (+02:00 Sommerzeit / +01:00 Winterzeit).
+    // Wir nehmen +02:00 als pragmatische Naeherung — die Aktion endet so am
+    // Tagesende und nicht bereits um 02 Uhr nachts UTC. Plan v1.1 Schritt 2.
+    const untilIso = `${date}T23:59:59+02:00`;
+
+    const btn = document.getElementById('unlock-save-btn');
+    btn.disabled = true;
+    const origLabel = btn.textContent;
+    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
+
+    try {
+      await adminApi('/api/customer-promotion', {
+        method: 'POST',
+        body: JSON.stringify({
+          customer_id: currentDetailId,
+          until: untilIso,
+          note: note || null,
+        }),
+      });
+      bootstrap.Modal.getInstance(document.getElementById('unlockModal')).hide();
+      showPfToast('Buchungs-Aktion', 'Aktion gespeichert', 'success');
+      await loadSubscriptionData(currentDetailId);
+    } catch (err) {
+      showPfToast('Buchungs-Aktion', 'Speichern fehlgeschlagen: ' + err.message, 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origLabel;
+    }
+  }
+
+  async function clearUnlock() {
+    if (!currentDetailId) return;
+    if (!confirm('Aktion wirklich beenden? Der Kunde kann danach nur noch mit aktivem Abo buchen.')) return;
+
+    const btn = document.getElementById('unlock-clear-btn');
+    btn.disabled = true;
+    const origLabel = btn.textContent;
+    btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
+
+    try {
+      await adminApi(`/api/customer-promotion?customer_id=${encodeURIComponent(currentDetailId)}`, {
+        method: 'DELETE',
+      });
+      showPfToast('Buchungs-Aktion', 'Aktion beendet', 'success');
+      await loadSubscriptionData(currentDetailId);
+    } catch (err) {
+      showPfToast('Buchungs-Aktion', 'Beenden fehlgeschlagen: ' + err.message, 'danger');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = origLabel;
     }
   }
 
