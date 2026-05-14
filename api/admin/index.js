@@ -3623,7 +3623,8 @@ async function handleRescheduleAccept(req, res, supabase) {
   const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
   const auditNote = `[Reschedule ${timestamp}] Kunde hat angenommen. Termin geaendert von ${oldDate} ${oldTime} auf ${booking.proposed_date} ${(booking.proposed_time || '').slice(0, 5)}`;
 
-  const { error } = await supabase
+  // B-49: .select('id') + 0-Zeilen-Check Pflicht (RLS-Silent-Fail-Schutz).
+  const { data: upd, error } = await supabase
     .from('bookings')
     .update({
       scheduled_date: booking.proposed_date,
@@ -3636,9 +3637,13 @@ async function handleRescheduleAccept(req, res, supabase) {
       notes: booking.notes ? `${booking.notes}\n${auditNote}` : auditNote,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', bookingId);
+    .eq('id', bookingId)
+    .select('id');
 
   if (error) throw error;
+  if (!upd || upd.length === 0) {
+    return res.status(404).json({ error: 'Buchung nicht gefunden (RLS-Block oder geloescht)' });
+  }
   return res.json({ success: true, newDate: booking.proposed_date, newTime: booking.proposed_time });
 }
 
@@ -3813,9 +3818,11 @@ async function handleLocationAccept(req, res, supabase) {
     update.notes = booking.notes ? `${booking.notes}\n${auditNote}` : auditNote
   }
 
-  const { error } = await supabase.from('bookings').update(update).eq('id', bookingId)
+  // B-49: .select('id') + 0-Zeilen-Check Pflicht (RLS-Silent-Fail-Schutz).
+  const { data: upd, error } = await supabase.from('bookings').update(update).eq('id', bookingId).select('id')
 
   if (error) return res.status(500).json({ success: false, error: error.message })
+  if (!upd || upd.length === 0) return res.status(404).json({ success: false, error: 'Buchung nicht gefunden (RLS-Block oder geloescht)' })
   return res.json({ success: true })
 }
 
