@@ -1178,6 +1178,78 @@ async function getAdminEmail(req) {
   return user?.email || null;
 }
 
+// ─── Schritt 4 (Fix-Stufe 1): Server-Hook fuer Status-Wechsel ────────────────
+// Der Trainer-Portal-Bestaetigen-Knopf, der Admin-Portal-Bestaetigen-Knopf, sowie
+// alle Absagen/Ablehnen-Knoepfe rufen `PUT /api/admin?action=bookings` (handleBookingsPut)
+// auf. Bisher wurde dort nur der DB-Status geaendert — confirm-and-charge bzw.
+// cancel-or-refund wurden uebersprungen. Damit zog Trainer-Bestaetigung kein Geld,
+// und Storno-Pfade hatten weder Refund noch Stornobeleg.
+// (B-2026-05-14-10/13/14/46 + W-1 + B-2026-05-11-01)
+//
+// Diese Helper kapseln die Edge-Function-Aufrufe + die Caller-Typ-Erkennung.
+// Wir reichen IMMER das User-Token des Aufrufers weiter — die Edge Functions
+// machen die Auth-Pruefung intern (--no-verify-jwt deployed, auth.getUser()).
+
+async function getCallerInfo(req) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+  const token = authHeader.split(' ')[1];
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+  if (error || !user) return null;
+  const role = (user.user_metadata?.role || '').toString();
+  let actorType;
+  if (role.includes('admin')) actorType = 'admin';
+  else if (role.includes('trainer')) actorType = 'trainer';
+  else actorType = 'customer';
+  return { token, authUid: user.id, role, actorType, email: user.email || null };
+}
+
+async function callEdgeFunction(name, token, payload) {
+  const url = `${process.env.SUPABASE_URL}/functions/v1/${name}`;
+  let res;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'apikey': process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '',
+      },
+      body: JSON.stringify(payload),
+    });
+  } catch (netErr) {
+    console.error(`[admin-api] ${name} fetch failed:`, netErr.message);
+    return { httpOk: false, status: 0, body: { error: `Netzwerkfehler beim Aufruf von ${name}: ${netErr.message}` } };
+  }
+  let body = {};
+  try { body = await res.json(); } catch { /* empty body */ }
+  return { httpOk: res.ok, status: res.status, body };
+}
+
+// Ableiten welcher StornoReason an cancel-or-refund geht. Basiert auf aktuellem
+// DB-Status + Aufrufer-Rolle + Termin-Distanz (kunde_spaet bei <24h).
+// Trainer auf pending-Anfrage = trainer_reject (kein Vertrag), Trainer auf
+// bestaetigt = trainer (Stornobeleg + SORRY-Code). Admin = admin_kulanz.
+function deriveCancelReason({ currentStatus, scheduledDate, scheduledTime, actorType, explicitStornoGrund }) {
+  if (explicitStornoGrund === 'expired') return 'system_expired';
+  if (actorType === 'system') return 'system_expired';
+  if (actorType === 'admin') return 'admin_kulanz';
+  if (actorType === 'trainer') {
+    if (currentStatus === 'angefragt' || currentStatus === 'reserviert') return 'trainer_reject';
+    return 'trainer';
+  }
+  // customer
+  if (scheduledDate && scheduledTime) {
+    const dt = new Date(`${scheduledDate}T${scheduledTime}`);
+    if (!Number.isNaN(dt.getTime())) {
+      const hoursUntil = (dt.getTime() - Date.now()) / 3600000;
+      if (hoursUntil < 24) return 'kunde_spaet';
+    }
+  }
+  return 'kunde_rechtzeitig';
+}
+
 async function enrichBookings(supabase, bookings) {
   if (bookings.length === 0) return [];
 
@@ -2477,8 +2549,127 @@ async function handleBookingsPut(req, res, supabase) {
 
   update.updated_at = new Date().toISOString();
 
-  const { error } = await supabase.from('bookings').update(update).eq('id', bookingId);
+  // ─── Server-Hook (Schritt 4) ───────────────────────────────────────────────
+  // Wenn der Status auf 'bestaetigt' wechselt → confirm-and-charge belastet die
+  // hinterlegte Karte und setzt status+paid selber. Wenn der Status auf
+  // 'storniert' wechselt und Geld im Spiel ist → cancel-or-refund macht Refund +
+  // Stornobeleg + SORRY-Code + storno_wer/storno_grund.
+  //
+  // Variante b (User-Antwort steht aus, Default aus Phase-7-Task-34a): Bei
+  // Karten-Ablehnung laeuft der Auto-Storno IN confirm-and-charge — die
+  // Admin-API liefert nur `{ success: true, charge_failed: true, reason }`
+  // und macht keinen weiteren DB-Touch.
+  const isConfirm = update.status === 'bestaetigt';
+  const isStorno = update.status === 'storniert';
+
+  if (isConfirm || isStorno) {
+    const { data: current, error: currentErr } = await supabase
+      .from('bookings')
+      .select('id, status, paid, art, scheduled_date, scheduled_time, stripe_payment_intent_id, stripe_setup_intent_id, stripe_payment_method_id')
+      .eq('id', bookingId)
+      .single();
+
+    if (currentErr || !current) {
+      return res.status(404).json({ error: 'Buchung nicht gefunden' });
+    }
+
+    const caller = await getCallerInfo(req);
+    if (!caller) {
+      return res.status(401).json({ error: 'Nicht authentifiziert' });
+    }
+
+    if (isConfirm) {
+      // Karten-Belastung nur wenn Buchung noch nicht bezahlt UND eine Karte
+      // hinterlegt ist. Sonst regulaeres UPDATE durchlaufen lassen (z.B. Admin
+      // reaktiviert eine reservierte Buchung ohne Geldfluss).
+      const stateAllowsCharge =
+        !current.paid &&
+        ['angefragt', 'reserviert'].includes(current.status) &&
+        (current.stripe_setup_intent_id || current.stripe_payment_method_id);
+
+      if (stateAllowsCharge) {
+        const ccRes = await callEdgeFunction('confirm-and-charge', caller.token, { booking_id: bookingId });
+        if (!ccRes.httpOk) {
+          return res.status(502).json({ error: ccRes.body?.error || 'Karten-Belastung fehlgeschlagen', detail: ccRes.body });
+        }
+        // ok=false bedeutet Karten-Ablehnung. confirm-and-charge hat in dem Fall
+        // bereits cancel-or-refund aufgerufen (Phase-7-Task-34a Auto-Storno).
+        // Wir liefern die Info nach oben — KEIN weiteres UPDATE auf den Status,
+        // sonst wuerden wir den Storno wieder ueberschreiben.
+        if (ccRes.body && ccRes.body.ok === false) {
+          return res.json({ success: true, charge_failed: true, reason: ccRes.body.reason || 'card_declined' });
+        }
+        // Erfolg: confirm-and-charge hat status='bestaetigt' + paid=true gesetzt.
+        // Status/Flag/Paid-Felder aus dem update-Objekt entfernen, damit das
+        // anschliessende UPDATE diese Felder nicht ueberschreibt.
+        delete update.status;
+        delete update.flag_neuer_termin_vorgeschlagen;
+        delete update.flag_neuer_ort_vorgeschlagen;
+        delete update.flag_zahlung_offen;
+        delete update.paid;
+      }
+    }
+
+    if (isStorno) {
+      // Storno via cancel-or-refund laufen lassen, sobald Geld im Spiel ist
+      // (paid=true oder Stripe-IDs gesetzt). Reine Pending-Storni ohne Geld
+      // koennen direkt per UPDATE laufen, brauchen aber trotzdem cancel-or-refund,
+      // damit Stornobeleg + Audit + SORRY-Code-Logik konsistent durchlaufen.
+      const hasMoneyState =
+        current.paid ||
+        current.stripe_payment_intent_id ||
+        current.stripe_setup_intent_id ||
+        current.stripe_payment_method_id;
+
+      // Auch ohne Geldfluss: bei bestaetigter Buchung muss cancel-or-refund
+      // gerufen werden (Stornobeleg + Trainer-Push + Audit). Bei rein angefragt/
+      // reserviert + kein Geld reicht direkter UPDATE (Frueh-Ablehnung).
+      const isLowStakesPending =
+        !hasMoneyState && ['angefragt', 'reserviert'].includes(current.status);
+
+      if (!isLowStakesPending) {
+        const reason = deriveCancelReason({
+          currentStatus: current.status,
+          scheduledDate: current.scheduled_date,
+          scheduledTime: current.scheduled_time,
+          actorType: caller.actorType,
+          explicitStornoGrund: update.storno_grund,
+        });
+        const corRes = await callEdgeFunction('cancel-or-refund', caller.token, {
+          booking_id: bookingId,
+          reason,
+          actor_type: caller.actorType,
+          actor_id: caller.authUid,
+          note: admin_note || undefined,
+        });
+        if (!corRes.httpOk) {
+          return res.status(502).json({ error: corRes.body?.error || 'Storno fehlgeschlagen', detail: corRes.body });
+        }
+        // cancel-or-refund hat status='storniert' + storno_wer/storno_grund
+        // gesetzt. Diese Felder aus dem update-Objekt entfernen.
+        delete update.status;
+        delete update.storno_wer;
+        delete update.storno_grund;
+      }
+    }
+
+    // Wenn nach dem Edge-Function-Aufruf keine weiteren Felder mehr zum updaten
+    // sind, sind wir fertig (nur das automatisch hinzugefuegte updated_at + ggf.
+    // notes bleiben uebrig — notes sind aber harmlos).
+    const remainingKeys = Object.keys(update).filter(k => k !== 'updated_at');
+    if (remainingKeys.length === 0) {
+      return res.json({ success: true });
+    }
+  }
+
+  const { data, error } = await supabase.from('bookings').update(update).eq('id', bookingId).select('id');
   if (error) throw error;
+  if (!data || data.length === 0) {
+    // RLS-Silent-Fail-Schutz: bei Service-Role-Client unwahrscheinlich, aber
+    // notes-Konflikte / fehlender Datensatz wuerden 0 Zeilen liefern. CLAUDE.md
+    // Konvention.
+    return res.status(404).json({ error: 'Buchung nicht gefunden oder konnte nicht aktualisiert werden' });
+  }
   return res.json({ success: true });
 }
 
@@ -3296,7 +3487,7 @@ async function handleRescheduleReject(req, res, supabase) {
 
   const { data: booking, error: fetchErr } = await supabase
     .from('bookings')
-    .select('status, notes, scheduled_date, scheduled_time, proposed_date, proposed_time, flag_neuer_termin_vorgeschlagen')
+    .select('status, notes, scheduled_date, scheduled_time, proposed_date, proposed_time, flag_neuer_termin_vorgeschlagen, paid, stripe_payment_intent_id, stripe_setup_intent_id, stripe_payment_method_id')
     .eq('id', bookingId)
     .single();
 
@@ -3305,27 +3496,47 @@ async function handleRescheduleReject(req, res, supabase) {
     return res.status(400).json({ error: `Kein offener Termin-Vorschlag fuer diese Buchung (Status: ${booking.status})` });
   }
 
+  // Schritt 4 / B-2026-05-14-13: Storno laeuft ueber cancel-or-refund, nicht
+  // direkt per UPDATE — sonst kein Refund, kein Stornobeleg, kein SORRY-Code.
+  // Sub-Felder (proposed_date/_time, flag_neuer_termin_vorgeschlagen) muessen
+  // wir separat zuruecksetzen, weil cancel-or-refund die nicht kennt.
+  const caller = await getCallerInfo(req);
+  if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+
+  const corRes = await callEdgeFunction('cancel-or-refund', caller.token, {
+    booking_id: bookingId,
+    reason: 'reschedule_rejected',
+    actor_type: caller.actorType,
+    actor_id: caller.authUid,
+    note: 'Kunde lehnt Termin-Vorschlag ab',
+  });
+  if (!corRes.httpOk) {
+    return res.status(502).json({ error: corRes.body?.error || 'Storno fehlgeschlagen', detail: corRes.body });
+  }
+
   const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
   const auditNote = `[Reschedule ${timestamp}] Kunde hat abgelehnt. Buchung storniert.`;
 
-  // Teilspec 1: Storno auf neuen Kanon — status='storniert' + storno_wer + storno_grund.
-  const { error } = await supabase
+  // Reschedule-spezifische Felder zuruecksetzen (cancel-or-refund hat status +
+  // storno_* bereits gesetzt; .select() fuer RLS-Silent-Fail-Schutz).
+  const { data: upd, error: updErr } = await supabase
     .from('bookings')
     .update({
       proposed_date: null,
       proposed_time: null,
       reschedule_proposed_at: null,
       flag_neuer_termin_vorgeschlagen: false,
-      status: 'storniert',
-      storno_wer: 'trainer',
-      storno_grund: 'reschedule_rejected',
-      cancellation_reason: 'Terminaenderung abgelehnt',
       notes: booking.notes ? `${booking.notes}\n${auditNote}` : auditNote,
       updated_at: new Date().toISOString(),
     })
-    .eq('id', bookingId);
+    .eq('id', bookingId)
+    .select('id');
 
-  if (error) throw error;
+  if (updErr) {
+    console.error('handleRescheduleReject: Reschedule-Felder-Reset fehlgeschlagen', updErr.message);
+  } else if (!upd || upd.length === 0) {
+    console.error('handleRescheduleReject: Reschedule-Felder-Reset 0 Zeilen (RLS?)');
+  }
   return res.json({ success: true });
 }
 
@@ -3450,21 +3661,57 @@ async function handleLocationReject(req, res, supabase) {
   const bookingId = stripGpPrefix(body.bookingId)
   if (!bookingId) return res.status(400).json({ success: false, error: 'bookingId ist Pflicht' })
 
-  const { data: booking } = await supabase.from('bookings').select('notes').eq('id', bookingId).single()
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('notes, status, scheduled_date, scheduled_time, paid, stripe_payment_intent_id, stripe_setup_intent_id, stripe_payment_method_id')
+    .eq('id', bookingId)
+    .single()
+  if (!booking) return res.status(404).json({ success: false, error: 'Buchung nicht gefunden' })
+
+  // Schritt 4 / W-1: Storno laeuft ueber cancel-or-refund — sonst kein Refund,
+  // kein Stornobeleg, kein SORRY-Code. Location-Ablehnung ist eine Kunden-Aktion
+  // gegen einen Trainer-Vorschlag. Reason: kunde_rechtzeitig (rechtzeitig =
+  // >24h vor Termin) bzw. kunde_spaet wenn knapp.
+  const caller = await getCallerInfo(req)
+  if (!caller) return res.status(401).json({ success: false, error: 'Nicht authentifiziert' })
+
+  const reason = deriveCancelReason({
+    currentStatus: booking.status,
+    scheduledDate: booking.scheduled_date,
+    scheduledTime: booking.scheduled_time,
+    actorType: caller.actorType,
+  })
+
+  const corRes = await callEdgeFunction('cancel-or-refund', caller.token, {
+    booking_id: bookingId,
+    reason,
+    actor_type: caller.actorType,
+    actor_id: caller.authUid,
+    note: 'Kunde lehnt Trainer-Treffpunkt ab',
+  })
+  if (!corRes.httpOk) {
+    return res.status(502).json({ success: false, error: corRes.body?.error || 'Storno fehlgeschlagen', detail: corRes.body })
+  }
+
+  // Location-spezifische Felder zuruecksetzen (cancel-or-refund hat status +
+  // storno_* bereits gesetzt).
   const auditNote = `[Location ${new Date().toISOString()}] Kunde hat Trainer-Treffpunkt abgelehnt. Buchung storniert.`
-  const newNotes = booking?.notes ? `${booking.notes}\n${auditNote}` : auditNote
+  const newNotes = booking.notes ? `${booking.notes}\n${auditNote}` : auditNote
+  const { data: upd, error: updErr } = await supabase
+    .from('bookings')
+    .update({
+      flag_neuer_ort_vorgeschlagen: false,
+      notes: newNotes,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', bookingId)
+    .select('id')
 
-  // Teilspec 1: Storno auf neuen Kanon — status='storniert' + storno_wer + storno_grund.
-  const { error } = await supabase.from('bookings').update({
-    status: 'storniert',
-    storno_wer: 'kunde',
-    storno_grund: 'location_rejected',
-    flag_neuer_ort_vorgeschlagen: false,
-    notes: newNotes,
-    updated_at: new Date().toISOString(),
-  }).eq('id', bookingId)
-
-  if (error) return res.status(500).json({ success: false, error: error.message })
+  if (updErr) {
+    console.error('handleLocationReject: Location-Felder-Reset fehlgeschlagen', updErr.message)
+  } else if (!upd || upd.length === 0) {
+    console.error('handleLocationReject: Location-Felder-Reset 0 Zeilen (RLS?)')
+  }
   return res.json({ success: true })
 }
 
