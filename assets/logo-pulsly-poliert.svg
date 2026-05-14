@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3000 900" width="3000" height="900">
+  <text x="50%" y="666" text-anchor="middle"
+        font-family="system-ui, -apple-system, &apos;SF Pro Display&apos;, &apos;Segoe UI&apos;, Arial, sans-serif"
+        font-weight="900" font-size="600" letter-spacing="-10">
+    <tspan fill="#22C55E">puls</tspan><tspan dx="12" fill="#F97316">ly</tspan>
+  </text>
+</svg>
