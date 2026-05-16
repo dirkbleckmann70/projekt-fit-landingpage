@@ -188,7 +188,17 @@
   // DB-Status nie gesetzt. Code-Pfad war tote Defensive und unmissverstaendlich:
   // raus, damit der Trainer keine noch-nicht-finalisierten Trainings als
   // 'verdient' sieht. 'completed'/'paid' bleiben als Pre-Migration-Fallback.
-  function effBrutto(b)     { return ['abgeschlossen', 'completed', 'paid'].includes(b.status) ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
+  //
+  // G-1 (User-Audit 16.05.2026 abends): GT-Teilnahmen ohne trainer_payout_cents
+  // (1 echte Zeitbombe in der DB) duerfen NICHT auf den PT-Stundensatz des
+  // Trainers fallen. Sonst zeigt der Trainer 30/45 EUR fuer eine GT-Teilnahme
+  // ohne dass ein Wert in der DB steht. Bei GT explizit 0 wenn NULL — bei PT
+  // bleibt der Default-Fallback fuer Legacy-Buchungen ohne payout-Spalte.
+  function effBrutto(b) {
+    if (!['abgeschlossen', 'completed', 'paid'].includes(b.status)) return 0;
+    if (b.booking_type === 'group') return b.trainer_payout_cents || 0;
+    return b.trainer_payout_cents ?? _trainerRate;
+  }
   function effNetto(b)      { return _mwstSatz > 0 ? Math.round(effBrutto(b) / (1 + _mwstSatz / 100)) : effBrutto(b); }
   function effMwSt(b)       { return effBrutto(b) - effNetto(b); }
   function effAuszahlung(b) { return effNetto(b); }
