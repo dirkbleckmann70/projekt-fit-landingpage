@@ -407,9 +407,15 @@
     const rows = MONTHS_DE.map((name, mi) => {
       const prefix = `${selectedYear}-${String(mi + 1).padStart(2, '0')}`;
       const mb     = yearData.filter(b => (b.scheduled_date || '').startsWith(prefix));
-      const count  = mb.length;
-      const brutto = mb.reduce((s, b) => s + effBrutto(b), 0);
-      const abzug  = mb.reduce((s, b) => s + (b.discount_amount_cents || 0), 0);
+      // B-2026-05-14-50 Folge (User-Befund 16.05.2026 abends): count zaehlte
+      // bisher ALLE Buchungen im Monat (inkl. stornierte/angefragte/bestaetigte) —
+      // aber brutto nur die abgeschlossenen. Inkonsistenz: "8 Trainings, 0€ Verguetung"
+      // verwirrte den Trainer. Filter angleichen: count zaehlt nur DURCHGEFUEHRTE
+      // Trainings (effBrutto > 0), gleicher Maszstab wie brutto-Spalte.
+      const mbCompleted = mb.filter(b => effBrutto(b) > 0);
+      const count  = mbCompleted.length;
+      const brutto = mbCompleted.reduce((s, b) => s + effBrutto(b), 0);
+      const abzug  = mbCompleted.reduce((s, b) => s + (b.discount_amount_cents || 0), 0);
       const netto  = _mwstSatz > 0 ? Math.round(brutto / (1 + _mwstSatz / 100)) : brutto;
       const mwst   = brutto - netto;
       totCount += count; totB += brutto; totM += mwst; totN += netto; totA += abzug;
