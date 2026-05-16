@@ -211,10 +211,17 @@
 
   // ── Berechnungen ──────────────────────────────────────────────────────────
   function mwstFaktor(b) { const satz = b.trainer_mwst_satz ?? 19; return satz / 100; }
-  function effBrutto(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.price_cents || b.final_price_cents || 0); }
+  // B-2026-05-14-50 Folge C.1: final_price_cents ist der tatsaechlich von Stripe
+  // belastete Betrag nach Rabatt — muss zuerst gelesen werden. Vorher wurde
+  // price_cents (Listenpreis) zuerst genommen, dadurch zeigten Rabatt-Buchungen
+  // zu hohen Umsatz (CSV-Export fuer Steuerberater betroffen).
+  function effBrutto(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.final_price_cents ?? b.price_cents ?? 0); }
   function effNetto(b)   { return Math.round(effBrutto(b) / (1 + mwstFaktor(b))); }
   function effMwSt(b)    { return effBrutto(b) - effNetto(b); }
-  function effKosten(b)  { const s = (b.status||'').toLowerCase(); return (FIN_CANCELLED.includes(s) || s === 'expired') ? 0 : (b.payout_cents || b.trainer_rate_cents || 0); }
+  // B-2026-05-14-50 Folge: Spalten-Kompat-Chain wie in admin/bookings.html.
+  // trainer_payout_cents ist die echte DB-Spalte; payout_cents wird von der
+  // Admin-API fuer GT-Teilnahmen synthetisiert; trainer_rate_cents als Notfall.
+  function effKosten(b)  { const s = (b.status||'').toLowerCase(); return (FIN_CANCELLED.includes(s) || s === 'expired') ? 0 : (b.trainer_payout_cents ?? b.payout_cents ?? b.trainer_rate_cents ?? 0); }
   function effErloese(b) { return effNetto(b) - effKosten(b); }
 
   function f(cents) {

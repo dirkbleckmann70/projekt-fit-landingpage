@@ -1512,16 +1512,19 @@ async function handleData(req, res, supabase) {
     }
 
     case 'kpi_revenue_month': {
+      // B-2026-05-14-50 Folge C.2: final_price_cents ist der von Stripe
+      // tatsaechlich belastete Betrag nach Rabatt — muss zuerst gelesen werden.
+      // Vorher: price_cents (Listenpreis) → bei Rabattcode-Buchungen zu hoher Umsatz.
       const monthStart = new Date();
       monthStart.setDate(1);
       monthStart.setHours(0, 0, 0, 0);
       const { data, error } = await supabase
         .from('bookings')
-        .select('price_cents')
+        .select('price_cents, final_price_cents')
         .gte('created_at', monthStart.toISOString())
         .in('status', ['bestaetigt', 'laeuft gerade', 'abgeschlossen']);
       if (error) throw error;
-      const total = (data || []).reduce((sum, b) => sum + (b.price_cents || 0), 0);
+      const total = (data || []).reduce((sum, b) => sum + (b.final_price_cents ?? b.price_cents ?? 0), 0);
       return res.json({ total_cents: total });
     }
 
