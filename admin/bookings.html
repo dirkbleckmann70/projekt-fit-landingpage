@@ -254,8 +254,13 @@
     const st = (b.status || '').toUpperCase();
     if (CANCELLED_STATUSES_UC.includes(st)) return 0;
     if (st === 'EXPIRED') return 0; // Trainer bekommt nichts bis Klärung
-    // Buchungseigenes Feld bevorzugen, sonst Trainer-Rate aus trainer_profiles
-    return b.payout_cents || b.trainer_cost_cents || b.cost_cents || b.trainer_rate_cents || 0;
+    // B-2026-05-14-50 Folge: korrekte DB-Spalte ist `trainer_payout_cents`.
+    // Aber: Admin-API `enrichBookings` synthetisiert `payout_cents` fuer
+    // GT-Teilnahmen (siehe api/admin/index.js Z. 1433). Daher Kompat-Chain:
+    // 1) trainer_payout_cents (echte DB-Spalte fuer PT)
+    // 2) payout_cents (API-Synthese fuer GT)
+    // 3) trainer_rate_cents (Trainer-Profil-Default als Notfall)
+    return b.trainer_payout_cents ?? b.payout_cents ?? b.trainer_rate_cents ?? 0;
   }
 
   function renderBookings() {
