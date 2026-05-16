@@ -335,7 +335,9 @@
     if (CANCELLED.includes(item.status)) return '<span class="text-secondary">0,00 €</span>';
     if (item.status === BOOKING_STATUS.EXPIRED) return '<span class="text-secondary">0,00 € (ausstehend)</span>';
     if (item.status === BOOKING_STATUS.PENDING) return '–';
-    const payout = item.payout_cents ?? rate;
+    // B-2026-05-14-50 Folge: korrekte DB-Spalte ist `trainer_payout_cents`,
+    // nicht `payout_cents`. Frueher fiel jeder Lookup auf den Trainer-Default zurueck.
+    const payout = item.trainer_payout_cents ?? rate;
     return payout ? formatEuro(payout) : '–';
   }
 
@@ -368,9 +370,19 @@
       { key: 'city',     type: 'select', getValue: item => item._type === 'gt' ? (item.city || '') : (item.city || item.location_name || item.location || '') },
       { key: 'revenue',  type: 'number', getValue: item => {
           const rate = window.currentTrainer?.payout_cents ?? 0;
-          if (item._type === 'gt') return item.is_active ? rate / 100 : 0;
+          // B-2026-05-14-50 Folge: GT-Sortier-Gewicht muss konsistent zur
+          // Anzeige sein — Summe der Teilnehmer-Payouts mit aktivem Status,
+          // nicht pauschal Trainer-Stundensatz. Geschaeftsregel: kein Honorar
+          // fuer nicht-stattgefundene Trainings.
+          if (item._type === 'gt') {
+            const sum = (item.participants || [])
+              .filter(p => ['bestaetigt', 'abgeschlossen', 'laeuft gerade'].includes(p.status))
+              .reduce((s, p) => s + (p.trainer_payout_cents || 0), 0);
+            return sum / 100;
+          }
           if (CANCELLED.includes(item.status) || item.status === BOOKING_STATUS.PENDING) return 0;
-          return (item.payout_cents ?? rate) / 100;
+          // Korrekte DB-Spalte: trainer_payout_cents (nicht payout_cents)
+          return (item.trainer_payout_cents ?? rate) / 100;
         } },
       null,
     ]);
@@ -473,11 +485,19 @@
   function calcSumCents(items) {
     const rate = window.currentTrainer?.payout_cents ?? 0;
     return items.reduce((sum, item) => {
+      // B-2026-05-14-50 Folge: GT-Honorar pro tatsaechlichem Teilnehmer mit
+      // aktivem Status — nicht pauschal pro Termin. Geschaeftsregel: kein
+      // Honorar fuer nicht-stattgefundene Trainings. Termine ohne Teilnehmer
+      // oder mit ausschliesslich stornierten Teilnehmern ergeben 0.
       if (item._type === 'gt') {
-        return item.is_active ? sum + rate : sum;
+        const gtSum = (item.participants || [])
+          .filter(p => ['bestaetigt', 'abgeschlossen', 'laeuft gerade'].includes(p.status))
+          .reduce((s, p) => s + (p.trainer_payout_cents || 0), 0);
+        return sum + gtSum;
       }
       if (item.status === BOOKING_STATUS.CONFIRMED || item.status === BOOKING_STATUS.COMPLETED) {
-        return sum + (item.payout_cents ?? rate ?? 0);
+        // Korrekte DB-Spalte ist `trainer_payout_cents` (nicht `payout_cents`).
+        return sum + (item.trainer_payout_cents ?? rate ?? 0);
       }
       return sum;
     }, 0);
