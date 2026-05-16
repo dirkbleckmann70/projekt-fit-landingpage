@@ -230,7 +230,11 @@
     if (['angefragt', 'reserviert', 'bestaetigt', 'pending', 'confirmed'].includes(status)) {
       return '<span class="text-secondary">–</span>';
     }
-    const v = b.trainer_payout_cents ?? _trainerRate;
+    // B-2026-05-14-50 Folge (Post-Review): konsistent zu effBrutto. GT-Teilnahmen
+    // ohne trainer_payout_cents (NULL in DB) liefern explizit 0, fallen NICHT
+    // auf den PT-Stundensatz zurueck. PT-Buchungen behalten den Default-Fallback.
+    const v = b.booking_type === 'group' ? (b.trainer_payout_cents || 0) : (b.trainer_payout_cents ?? _trainerRate);
+    if (v === 0) return '<span class="text-secondary">0,00 €</span>';
     return `<span style="color:var(--tblr-primary);font-weight:600">${f(v)}</span>`;
   }
 

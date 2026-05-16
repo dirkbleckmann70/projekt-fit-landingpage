@@ -328,9 +328,15 @@
   function calcRevenue(item) {
     const rate = window.currentTrainer?.payout_cents ?? null;
     if (item._type === 'gt') {
-      if (!item.is_active) return '<span class="text-secondary">0,00 €</span>';
-      const share = (rate && item.participant_count > 0) ? Math.round(rate / item.participant_count) : rate;
-      return share ? formatEuro(share) : '–';
+      // B-2026-05-14-50 Folge (Post-Review): konsistent zu calcSumCents +
+      // Sortier-Gewicht — Summe der Teilnehmer-Payouts mit aktivem Status.
+      // Frueher wurde der Trainer-Stundensatz durch Teilnehmer-Anzahl geteilt,
+      // was bei echten Per-Teilnehmer-Payouts in der DB falsche Werte ergab.
+      const sum = (item.participants || [])
+        .filter(p => ['bestaetigt', 'abgeschlossen', 'laeuft gerade'].includes(p.status))
+        .reduce((s, p) => s + (p.trainer_payout_cents || 0), 0);
+      if (sum === 0) return '<span class="text-secondary">0,00 €</span>';
+      return formatEuro(sum);
     }
     if (CANCELLED.includes(item.status)) return '<span class="text-secondary">0,00 €</span>';
     if (item.status === BOOKING_STATUS.EXPIRED) return '<span class="text-secondary">0,00 € (ausstehend)</span>';
