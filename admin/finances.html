@@ -206,7 +206,13 @@
   let tableFilter  = null;
   let selectedYear = new Date().getFullYear();
 
-  const FIN_CANCELLED = ['cancelled', 'refunded', 'cancelled_by_trainer'];
+  // B-2026-05-14-50 Q-01 (User-GELD-Befund 16.05.2026 abends): FIN_CANCELLED
+  // muss ALLE Storno-Varianten aus mapStatusForFrontend (api/admin/index.js
+  // Z. 1128-1136) abdecken — bisher fehlten 'expired', 'rejected',
+  // 'fully_cancelled', 'payment_open', 'disputed'. Folge: Buchungen mit
+  // diesen Status zaehlten faelschlich als Einnahme.
+  // payment_open = Karte abgelehnt, keine Zahlung; disputed = strittig.
+  const FIN_CANCELLED = ['cancelled', 'refunded', 'cancelled_by_trainer', 'expired', 'rejected', 'fully_cancelled', 'payment_open', 'disputed'];
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
   // ── Berechnungen ──────────────────────────────────────────────────────────
@@ -215,13 +221,32 @@
   // belastete Betrag nach Rabatt — muss zuerst gelesen werden. Vorher wurde
   // price_cents (Listenpreis) zuerst genommen, dadurch zeigten Rabatt-Buchungen
   // zu hohen Umsatz (CSV-Export fuer Steuerberater betroffen).
-  function effBrutto(b)  { return FIN_CANCELLED.includes((b.status||'').toLowerCase()) ? 0 : (b.final_price_cents ?? b.price_cents ?? 0); }
+  //
+  // B-2026-05-14-50 Q-02 (User-GELD-Befund 16.05.2026 abends): Zusaetzlich
+  // paid-Check — Buchungen mit Status 'confirmed' (Karte hinterlegt via
+  // SetupIntent, noch nicht belastet) zaehlten frueher als Einnahme. Nur
+  // wirklich bezahlte Buchungen (paid=true) sind echte Einnahmen.
+  function effBrutto(b) {
+    const s = (b.status || '').toLowerCase();
+    if (FIN_CANCELLED.includes(s)) return 0;
+    if (!b.paid) return 0;
+    return (b.final_price_cents ?? b.price_cents ?? 0);
+  }
   function effNetto(b)   { return Math.round(effBrutto(b) / (1 + mwstFaktor(b))); }
   function effMwSt(b)    { return effBrutto(b) - effNetto(b); }
   // B-2026-05-14-50 Folge: Spalten-Kompat-Chain wie in admin/bookings.html.
   // trainer_payout_cents ist die echte DB-Spalte; payout_cents wird von der
   // Admin-API fuer GT-Teilnahmen synthetisiert; trainer_rate_cents als Notfall.
-  function effKosten(b)  { const s = (b.status||'').toLowerCase(); return (FIN_CANCELLED.includes(s) || s === 'expired') ? 0 : (b.trainer_payout_cents ?? b.payout_cents ?? b.trainer_rate_cents ?? 0); }
+  //
+  // B-2026-05-14-50 Q-03 (User-GELD-Befund 16.05.2026 abends): paid-Check
+  // analog effBrutto — Trainer-Honorar nur bei tatsaechlich eingezogener
+  // Zahlung. 'confirmed' (Training noch nicht stattgefunden) liefert 0.
+  function effKosten(b) {
+    const s = (b.status || '').toLowerCase();
+    if (FIN_CANCELLED.includes(s)) return 0;
+    if (!b.paid) return 0;
+    return (b.trainer_payout_cents ?? b.payout_cents ?? b.trainer_rate_cents ?? 0);
+  }
   function effErloese(b) { return effNetto(b) - effKosten(b); }
 
   function f(cents) {
@@ -433,7 +458,13 @@
     try {
       const cardsResp = await adminApi('/api/admin?action=data&type=gt_cards');
       const cards = cardsResp.data || [];
-      const cardRevenue = cards.filter(c => c.paid).reduce((s, c) => s + (c.price_cents || 0), 0);
+      // B-2026-05-14-50 Q-04 (User-GELD-Befund 16.05.2026 abends): paid=true
+      // allein reicht nicht — admin_manual-Karten (payment_source='admin_manual')
+      // wurden bisher gleichbehandelt obwohl ohne Stripe-Verifikation. Jetzt
+      // zwei Wege explizit: Stripe-succeeded ODER admin_manual.
+      const cardRevenue = cards
+        .filter(c => c.paid && (c.stripe_payment_status === 'succeeded' || c.payment_source === 'admin_manual'))
+        .reduce((s, c) => s + (c.price_cents || 0), 0);
       document.getElementById('kpi-kartenumsatz').textContent = f(cardRevenue);
     } catch (err) {
       document.getElementById('kpi-kartenumsatz').textContent = '–';

@@ -1432,6 +1432,12 @@ async function fetchGroupParticipantsAsBookings(supabase) {
       final_price_cents:  isCancelled ? 0 : finalPriceCents,
       payout_cents:       isCancelled ? 0 : payoutCents,
       trainer_rate_cents: isCancelled ? 0 : payoutCents,
+      // B-2026-05-14-50 Q-05: paid + stripe_payment_status durchreichen, damit
+      // das Frontend (admin/finances.html effBrutto/effKosten) den paid-Check
+      // korrekt machen kann. Vorher fehlten diese Felder im GT-Response,
+      // damit waeren alle GT-Teilnahmen als unbezahlt durchgefallen.
+      paid:               !!p.paid,
+      stripe_payment_status: p.stripe_payment_status || null,
       payment_status:     paymentStatus,
       stripe_payment_intent_id: p.stripe_payment_intent_id || null,
       stripe_payment_id:  p.stripe_payment_id || null,
