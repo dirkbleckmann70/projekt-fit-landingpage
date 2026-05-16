@@ -69,6 +69,24 @@
         </div>
       </div>
 
+      <!-- Ebene 1b: Auszahlungs-Status (B-2026-05-14-50) -->
+      <div class="row row-deck row-cards mb-3">
+        <div class="col-6 col-lg-6">
+          <div class="card"><div class="card-body">
+            <div class="kpi-label"><i class="ti ti-check me-1"></i>Bereits ausgezahlt</div>
+            <div class="kpi-value" id="kpi-ausgezahlt" style="color:var(--tblr-success)"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="text-secondary" style="font-size:11px;margin-top:4px" id="kpi-ausgezahlt-info">–</div>
+          </div></div>
+        </div>
+        <div class="col-6 col-lg-6">
+          <div class="card"><div class="card-body">
+            <div class="kpi-label"><i class="ti ti-clock me-1"></i>Noch ausstehend</div>
+            <div class="kpi-value" id="kpi-ausstehend" style="color:var(--tblr-warning)"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="text-secondary" style="font-size:11px;margin-top:4px" id="kpi-ausstehend-info">–</div>
+          </div></div>
+        </div>
+      </div>
+
       <!-- Ebene 2: Monatsübersicht -->
       <div class="card mb-3">
         <div class="card-header"><h3 class="card-title">Monatsübersicht</h3></div>
@@ -165,10 +183,21 @@
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August',
                          'September','Oktober','November','Dezember'];
 
-  function effBrutto(b)     { return ['abgeschlossen', 'completed', 'paid', 'awaiting_checkout'].includes(b.status) ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
+  // B-2026-05-14-50: 'awaiting_checkout' ist Sub-Status (DB-Status='laeuft gerade'
+  // + flag_checkout_bestaetigung_ausstehend=true) im Teilspec-1-Kanon. Wird als
+  // DB-Status nie gesetzt. Code-Pfad war tote Defensive und unmissverstaendlich:
+  // raus, damit der Trainer keine noch-nicht-finalisierten Trainings als
+  // 'verdient' sieht. 'completed'/'paid' bleiben als Pre-Migration-Fallback.
+  function effBrutto(b)     { return ['abgeschlossen', 'completed', 'paid'].includes(b.status) ? (b.trainer_payout_cents ?? _trainerRate) : 0; }
   function effNetto(b)      { return _mwstSatz > 0 ? Math.round(effBrutto(b) / (1 + _mwstSatz / 100)) : effBrutto(b); }
   function effMwSt(b)       { return effBrutto(b) - effNetto(b); }
   function effAuszahlung(b) { return effNetto(b); }
+
+  // B-2026-05-14-50: Brutto-Verguetung der Buchung, gesplittet nach Auszahlungs-Stand.
+  // 'Bereits ausgezahlt' = trainer_paid_out_at gesetzt (Stripe Transfer durch).
+  // 'Noch ausstehend' = verdient aber noch nicht ausgezahlt.
+  function effAusgezahltBrutto(b)  { return (effBrutto(b) > 0 && b.trainer_paid_out_at) ? effBrutto(b) : 0; }
+  function effAusstehendBrutto(b)  { return (effBrutto(b) > 0 && !b.trainer_paid_out_at) ? effBrutto(b) : 0; }
 
   function f(cents) {
     return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
@@ -205,7 +234,7 @@
     initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id) {
-      ['kpi-brutto','kpi-mwst','kpi-netto','kpi-abzuege','kpi-auszahlung'].forEach(id =>
+      ['kpi-brutto','kpi-mwst','kpi-netto','kpi-abzuege','kpi-auszahlung','kpi-ausgezahlt','kpi-ausstehend'].forEach(id =>
         document.getElementById(id).textContent = '–');
       document.getElementById('month-body').innerHTML =
         '<tr><td colspan="7" class="text-secondary" style="padding:16px">Kein Trainer-Profil verknüpft.</td></tr>';
@@ -224,7 +253,7 @@
       // storno_grund mitladen, damit vergütungCell den Unter-Grund (past_termin/expired) anzeigen kann.
       const { data, error } = await sb
         .from('bookings')
-        .select('id, scheduled_date, scheduled_time, customer_id, location_name, location_address, status, storno_grund, trainer_payout_cents, booking_type, notes, created_at')
+        .select('id, scheduled_date, scheduled_time, customer_id, location_name, location_address, status, storno_grund, trainer_payout_cents, trainer_paid_out_at, stripe_transfer_id, booking_type, notes, created_at')
         .eq('trainer_id', trainerId)
         .eq('art', 'pt_einzel')
         .order('scheduled_date', { ascending: false });
@@ -250,7 +279,7 @@
         // weil der Trainer den Kundennamen bei GT-Teilnehmern nicht direkt sehen soll.
         const { data: participants } = await sb
           .from('bookings')
-          .select('id, group_class_id, customer_id, status, storno_grund, paid, price_cents, final_price_cents, trainer_payout_cents, stripe_payment_status, created_at')
+          .select('id, group_class_id, customer_id, status, storno_grund, paid, price_cents, final_price_cents, trainer_payout_cents, trainer_paid_out_at, stripe_transfer_id, stripe_payment_status, created_at')
           .eq('art', 'gt_teilnahme')
           .in('group_class_id', classIds);
 
@@ -268,6 +297,9 @@
             storno_grund: p.storno_grund || null,
             // Trainer-Verguetung aus participant-Spalte oder null-Fallback
             trainer_payout_cents: isCancelled ? 0 : (p.trainer_payout_cents ?? 0),
+            // Auszahlungs-Stand (B-2026-05-14-50)
+            trainer_paid_out_at: p.trainer_paid_out_at || null,
+            stripe_transfer_id: p.stripe_transfer_id || null,
             booking_type: 'group',
             notes: gc.name ? `Gruppentraining: ${gc.name}` : 'Gruppentraining',
             created_at: p.created_at || null,
@@ -307,7 +339,7 @@
     } catch (err) {
       document.getElementById('revenue-body').innerHTML =
         `<tr><td colspan="8" class="text-danger" style="padding:20px">Fehler: ${err.message}</td></tr>`;
-      ['kpi-brutto','kpi-mwst','kpi-netto','kpi-abzuege','kpi-auszahlung'].forEach(id =>
+      ['kpi-brutto','kpi-mwst','kpi-netto','kpi-abzuege','kpi-auszahlung','kpi-ausgezahlt','kpi-ausstehend'].forEach(id =>
         document.getElementById(id).textContent = '–');
     }
   }
@@ -351,6 +383,20 @@
     const abzuege = yearData.reduce((s, b) => s + (b.discount_amount_cents || 0), 0);
     document.getElementById('kpi-abzuege').textContent   = abzuege > 0 ? `-${f(abzuege)}` : f(0);
     document.getElementById('kpi-auszahlung').textContent = f(Math.max(0, netto - abzuege));
+
+    // B-2026-05-14-50: Auszahlungs-Status — brutto Verdienst gesplittet nach Stripe-Transfer.
+    // 'Bereits ausgezahlt' = Geld ist auf Trainer-Bankkonto unterwegs (Transfer-ID gesetzt).
+    // 'Noch ausstehend' = verdient (Training abgeschlossen), aber Stripe-Transfer noch offen.
+    const ausgezahlt  = yearData.reduce((s, b) => s + effAusgezahltBrutto(b), 0);
+    const ausstehend  = yearData.reduce((s, b) => s + effAusstehendBrutto(b), 0);
+    const countAusgezahlt = yearData.filter(b => effAusgezahltBrutto(b) > 0).length;
+    const countAusstehend = yearData.filter(b => effAusstehendBrutto(b) > 0).length;
+    document.getElementById('kpi-ausgezahlt').textContent       = f(ausgezahlt);
+    document.getElementById('kpi-ausstehend').textContent       = f(ausstehend);
+    document.getElementById('kpi-ausgezahlt-info').textContent  =
+      countAusgezahlt > 0 ? `${countAusgezahlt} Buchung${countAusgezahlt === 1 ? '' : 'en'} (brutto)` : 'noch keine Auszahlung';
+    document.getElementById('kpi-ausstehend-info').textContent  =
+      countAusstehend > 0 ? `${countAusstehend} Buchung${countAusstehend === 1 ? '' : 'en'} (brutto)` : 'alles ausgezahlt';
   }
 
   function renderMonthTable() {
