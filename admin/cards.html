@@ -568,15 +568,13 @@
     }
 
     try {
-      await adminApi('/api/admin?action=create_gt_card', {
+      await adminApi('/api/admin?action=gt_card_manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           customer_id: customerId,
           card_type_id: cardTypeId,
-          price_cents: Math.round(priceEur * 100),
-          payment_method: paymentMethod,
-          paid: true,
+          price_cents_override: Math.round(priceEur * 100),
         })
       });
       // Close modal
@@ -608,17 +606,13 @@
     }
 
     try {
-      const card = allCards.find(c => c.id === cardId);
-      const total = card ? (card.sessions_total || 10) : 10;
-      const newUsed = total - newRemaining;
-
-      await adminApi('/api/admin?action=update_gt_card', {
+      await adminApi('/api/admin?action=gt_card_update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: cardId,
-          sessions_used: Math.max(0, newUsed),
-          notes: reason,
+          sessions_remaining: newRemaining,
+          deactivated_reason: reason,
         })
       });
       const modal = bootstrap.Modal.getInstance(document.getElementById('adjust-balance-modal'));
@@ -634,7 +628,7 @@
   async function deactivateCard(cardId) {
     if (!confirm('Karte wirklich deaktivieren?')) return;
     try {
-      await adminApi('/api/admin?action=update_gt_card', {
+      await adminApi('/api/admin?action=gt_card_update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: cardId, is_active: false })
@@ -648,7 +642,7 @@
 
   async function reactivateCard(cardId) {
     try {
-      await adminApi('/api/admin?action=update_gt_card', {
+      await adminApi('/api/admin?action=gt_card_update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: cardId, is_active: true })
@@ -663,8 +657,8 @@
   // ─── Card Type Actions ────────────────────────────────────────────────────
   async function toggleCardType(typeId, newState) {
     try {
-      await adminApi('/api/admin?action=update_gt_card_type', {
-        method: 'PUT',
+      await adminApi('/api/admin?action=gt_card_type', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: typeId, is_active: newState })
       });
@@ -688,13 +682,13 @@
     const validity = prompt('Gueltigkeit (Monate):', t.validity_months || 36);
     if (validity === null) return;
 
-    adminApi('/api/admin?action=update_gt_card_type', {
-      method: 'PUT',
+    adminApi('/api/admin?action=gt_card_type', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: typeId,
         name: name,
-        sessions: parseInt(sessions),
+        sessions_count: parseInt(sessions),
         discount_percent: parseFloat(discount),
         validity_months: parseInt(validity),
       })
@@ -714,12 +708,12 @@
     const validity = prompt('Gueltigkeit in Monaten:', '36');
     if (validity === null) return;
 
-    adminApi('/api/admin?action=create_gt_card_type', {
+    adminApi('/api/admin?action=gt_card_type', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name: name,
-        sessions: parseInt(sessions),
+        sessions_count: parseInt(sessions),
         discount_percent: parseFloat(discount),
         validity_months: parseInt(validity),
         is_active: true,
