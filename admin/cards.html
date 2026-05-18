@@ -186,6 +186,24 @@
   </div>
 </div>
 
+<!-- Modal: Logbuch zur Karte -->
+<div class="modal modal-blur fade" id="card-history-modal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Logbuch zur Karte</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="card-history-body">
+        <div class="text-muted p-3">Logbuch wird geladen ...</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schliessen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Guthaben anpassen -->
 <div class="modal modal-blur fade" id="adjust-balance-modal" tabindex="-1">
   <div class="modal-dialog modal-sm">
@@ -413,6 +431,7 @@
       <td>${invoiceLink(c)}</td>
       <td>
         <div class="d-flex gap-1">
+          <button class="btn btn-sm btn-ghost-secondary" title="Logbuch" onclick="openCardHistory('${c.id}')"><i class="ti ti-history"></i></button>
           ${!isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Guthaben anpassen" onclick="openAdjustModal('${c.id}', ${total - used})"><i class="ti ti-edit"></i></button>` : ''}
           ${returnBtn}
           ${!isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Deaktivieren" onclick="deactivateCard('${c.id}')" style="color:var(--tblr-danger)"><i class="ti ti-ban"></i></button>` : ''}
@@ -709,6 +728,192 @@
       showPfToast('Kartentyp angelegt', 'success');
       loadData();
     }).catch(err => showPfToast('Fehler: ' + err.message, 'error'));
+  }
+
+  // ─── Logbuch zur Karte (B-2026-05-11-02) ─────────────────────────────────
+  // Liest payment_events (entity_type='gt_card') + invoice_audit ueber gt_card_id.
+  // Plus synthetische Eintraege aus der Karten-Tabelle (Anlage, Ablauf).
+  const CARD_PAYMENT_ACTIONS = {
+    payment_intent_created:   { icon: '🧾', label: 'Zahlungsauftrag angelegt' },
+    payment_succeeded:        { icon: '💳', label: 'Karte bezahlt' },
+    payment_failed:           { icon: '⚠️', label: 'Zahlung fehlgeschlagen' },
+    payment_captured:         { icon: '💳', label: 'Betrag eingezogen' },
+    payment_cancelled:        { icon: '❌', label: 'Zahlungsauftrag abgebrochen' },
+    refund_created:           { icon: '↩️', label: 'Rueckerstattung erstellt' },
+    refund_failed:            { icon: '⚠️', label: 'Rueckerstattung fehlgeschlagen' },
+    setup_intent_created:     { icon: '💳', label: 'Karte hinterlegt' },
+    setup_intent_succeeded:   { icon: '💳', label: 'Karte erfolgreich gespeichert' },
+    setup_intent_failed:      { icon: '⚠️', label: 'Karte konnte nicht gespeichert werden' },
+  };
+  const CARD_INVOICE_ACTIONS = {
+    created:                  { icon: '📄', label: 'Rechnung erstellt' },
+    mailed:                   { icon: '📨', label: 'Rechnung per E-Mail versendet' },
+    pdf_regenerated:          { icon: '🔄', label: 'PDF neu erzeugt' },
+    storno_reference_created: { icon: '🔁', label: 'Stornobeleg verknuepft' },
+    admin_viewed:             { icon: '👁️', label: 'Admin hat eingesehen' },
+    export_included:          { icon: '📦', label: 'In GoBD-Jahres-Export aufgenommen' },
+    anonymized:               { icon: '🔒', label: 'Daten anonymisiert (DSGVO-Loeschung)' },
+    admin_override_update:    { icon: '⚠️', label: 'Admin-Override-Update' },
+  };
+  const CARD_ACTORS = {
+    customer: 'Kunde', kunde: 'Kunde',
+    trainer: 'Trainer', admin: 'Admin', system: 'System',
+  };
+
+  function cardAuditEscape(str) {
+    return String(str == null ? '' : str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function cardFormatDateTime(iso) {
+    if (!iso) return '–';
+    const d = new Date(iso);
+    return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function formatCardAuditDetails(kind, action, details) {
+    if (!details || typeof details !== 'object') return '';
+    const d = details;
+    const parts = [];
+    const eur = c => (c == null ? null : fmtEur(c));
+
+    if (kind === 'payment') {
+      if (d.reason) parts.push('Grund: ' + cardAuditEscape(d.reason));
+      if (d.failure_message) parts.push('Fehler: ' + cardAuditEscape(d.failure_message));
+      if (d.refund_id) parts.push('Refund-ID: <code style="font-size:11px">' + cardAuditEscape(d.refund_id) + '</code>');
+      if (d.payment_intent_id) parts.push('PaymentIntent: <code style="font-size:11px">' + cardAuditEscape(d.payment_intent_id) + '</code>');
+      if (d.used_sessions != null) parts.push('Benutzte Einheiten: ' + cardAuditEscape(d.used_sessions));
+      if (d.fee_cents != null) parts.push('Gebuehr: ' + cardAuditEscape(eur(d.fee_cents)));
+    } else if (kind === 'invoice') {
+      if (d.invoice_number) parts.push('Rechnungs-Nr: <strong>' + cardAuditEscape(d.invoice_number) + '</strong>');
+      if (d.total_cents != null) parts.push('Summe: ' + cardAuditEscape(eur(d.total_cents)));
+      if (d.recipient_email) parts.push('an: ' + cardAuditEscape(d.recipient_email));
+      if (d.field) parts.push('Geaendertes Feld: ' + cardAuditEscape(d.field));
+      if (d.blocked_reason) parts.push('Block-Grund: ' + cardAuditEscape(d.blocked_reason));
+    } else if (kind === 'card') {
+      if (d.sessions_total != null) parts.push('Einheiten: ' + cardAuditEscape(d.sessions_total));
+      if (d.expires_at) parts.push('Gueltig bis: ' + cardAuditEscape(fmtDate(d.expires_at)));
+    }
+    return parts.join(' · ');
+  }
+
+  function renderCardAuditEntry(e) {
+    let map = null, kindLabel = '';
+    if (e.kind === 'payment') { map = CARD_PAYMENT_ACTIONS; kindLabel = 'Zahlung'; }
+    if (e.kind === 'invoice') { map = CARD_INVOICE_ACTIONS; kindLabel = 'Rechnung'; }
+    if (e.kind === 'card')    { map = null; kindLabel = 'Karte'; }
+    const meta = (map && map[e.action]) || { icon: '•', label: e.action || '(unbekannte Aktion)' };
+    const actor = CARD_ACTORS[e.actor_type] || (e.actor_type || 'unbekannt');
+
+    let context = '';
+    if (e.kind === 'payment') {
+      if (e.amount_cents != null) context += ' · ' + cardAuditEscape(fmtEur(e.amount_cents));
+      if (e.stripe_object_id) context += ' · <code style="font-size:11px">' + cardAuditEscape(e.stripe_object_id) + '</code>';
+    } else if (e.kind === 'invoice' && e.invoice_label) {
+      context += ' · <strong>' + cardAuditEscape(e.invoice_label) + '</strong>';
+    }
+
+    const klartext = formatCardAuditDetails(e.kind, e.action, e.details);
+    const klartextHtml = klartext
+      ? '<div class="text-secondary mt-1" style="font-size:12px">' + klartext + '</div>'
+      : '';
+
+    let rohHtml = '';
+    if (!e.synthetic && e.details && typeof e.details === 'object' && Object.keys(e.details).length > 0) {
+      const detailJson = JSON.stringify(e.details, null, 2);
+      rohHtml = '<details class="mt-1"><summary class="text-secondary" style="cursor:pointer;font-size:10px;opacity:0.7">Roh-Daten anzeigen</summary>'
+        + '<pre style="font-size:10px;margin:4px 0 0 0;white-space:pre-wrap;word-break:break-word;opacity:0.7">' + cardAuditEscape(detailJson) + '</pre>'
+        + '</details>';
+    }
+
+    const actorSuffix = (e.kind === 'card')
+      ? ''
+      : ' <span class="text-secondary" style="font-size:12px">(' + cardAuditEscape(kindLabel) + ' · ' + cardAuditEscape(actor) + ')</span>';
+
+    return '<div class="d-flex gap-3 mb-3">'
+      + '<div class="text-secondary" style="font-size:12px;min-width:130px">' + cardAuditEscape(cardFormatDateTime(e.at)) + '</div>'
+      + '<div style="flex:1">'
+      +   '<span style="margin-right:6px">' + meta.icon + '</span>'
+      +   '<strong>' + cardAuditEscape(meta.label) + '</strong>'
+      +   actorSuffix
+      +   context
+      +   klartextHtml
+      +   rohHtml
+      + '</div>'
+      + '</div>';
+  }
+
+  // Synthetische Eintraege aus den Karten-Spalten — Anlage und (sofern abgelaufen) Ablauf
+  function buildSyntheticCardEntries(card) {
+    if (!card) return [];
+    const items = [];
+
+    // Eintrag: Karte angelegt
+    const createdAt = card.purchased_at || card.created_at;
+    if (createdAt) {
+      items.push({
+        kind: 'card',
+        synthetic: true,
+        at: createdAt,
+        actor_type: 'system',
+        action: 'Karte angelegt',
+        details: {
+          sessions_total: card.sessions_total,
+          expires_at: card.expires_at,
+        },
+      });
+    }
+
+    // Eintrag: Karte abgelaufen (nur wenn expires_at in der Vergangenheit liegt)
+    if (card.expires_at && new Date(card.expires_at) < new Date()) {
+      items.push({
+        kind: 'card',
+        synthetic: true,
+        at: card.expires_at,
+        actor_type: 'system',
+        action: 'Karte abgelaufen',
+        details: {},
+      });
+    }
+
+    return items;
+  }
+
+  async function openCardHistory(cardId) {
+    const modalEl = document.getElementById('card-history-modal');
+    const body = document.getElementById('card-history-body');
+    body.innerHTML = '<div class="text-muted p-3">Logbuch wird geladen ...</div>';
+    new bootstrap.Modal(modalEl).show();
+
+    let payload = null;
+    let loadError = null;
+    try {
+      payload = await adminApi('/api/admin?action=data&type=card_audit_log&card_id=' + encodeURIComponent(cardId));
+    } catch (e) {
+      loadError = (e && e.message) || String(e || 'unbekannter Fehler');
+    }
+
+    if (loadError) {
+      body.innerHTML = '<div class="text-warning p-3">Logbuch konnte nicht geladen werden: '
+        + cardAuditEscape(loadError) + '</div>';
+      return;
+    }
+
+    const auditEvents = (payload && payload.data) || [];
+    const card = (payload && payload.card) || null;
+
+    // Synthetische Eintraege (Anlage + Ablauf) dazumixen — Dedup nicht noetig,
+    // weil 'card'-kind-Eintraege keine Entsprechung in payment_events/invoice_audit haben.
+    const synthEntries = buildSyntheticCardEntries(card);
+    const events = [...auditEvents, ...synthEntries].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+
+    if (!events.length) {
+      body.innerHTML = '<div class="text-muted p-3">Keine Logbuch-Eintraege fuer diese Karte.</div>';
+      return;
+    }
+
+    body.innerHTML = '<div class="timeline">' + events.map(renderCardAuditEntry).join('') + '</div>';
   }
 </script>
 </body>

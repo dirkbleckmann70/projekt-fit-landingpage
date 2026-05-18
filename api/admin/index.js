@@ -1965,6 +1965,93 @@ async function handleData(req, res, supabase) {
       return res.json({ data: events });
     }
 
+    // ─── Status-Logbuch zu einer 10er-Karte (payment_events + invoice_audit) ──
+    // Analog zu booking_audit_log, aber fuer Karten:
+    //  - payment_events mit entity_type='gt_card' (Kauf, Rueckgabe, Failed)
+    //  - invoice_audit ueber invoices.gt_card_id (Rechnung + Stornobeleg)
+    //  - Karten haben KEIN booking_audit (kein booking_id-Feld) und KEINE Bar-Zahlung
+    case 'card_audit_log': {
+      const cardId = req.query.card_id;
+      if (!cardId) return res.status(400).json({ error: 'card_id fehlt' });
+      // UUID-Format-Pruefung
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cardId)) {
+        return res.status(400).json({ error: 'card_id ist keine gueltige UUID' });
+      }
+
+      // Schritt 1: Karte selbst laden (fuer synthetische Eintraege)
+      const { data: card } = await supabase
+        .from('gt_cards')
+        .select('id, created_at, purchased_at, expires_at, is_active, sessions_total, sessions_used, customer_id, card_type_id, invoice_id, storno_invoice_id')
+        .eq('id', cardId)
+        .maybeSingle();
+
+      // Schritt 2: alle Rechnungen finden, die zu dieser Karte gehoeren
+      // (Original-Rechnung + Stornobeleg)
+      const { data: invoicesForCard } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, storno_ref')
+        .eq('gt_card_id', cardId);
+      const invoiceIdToNumber = new Map((invoicesForCard || []).map(i => [i.id, i.invoice_number || i.storno_ref || i.id.slice(0, 8)]));
+      const invoiceIds = (invoicesForCard || []).map(i => i.id);
+
+      // Schritt 3: zwei Quellen parallel laden (payment_events + invoice_audit)
+      const [payRes, invAuditRes] = await Promise.all([
+        supabase.from('payment_events')
+          .select('id, action, actor_type, actor_id, details, amount_cents, currency, stripe_object_type, stripe_object_id, occurred_at')
+          .eq('entity_id', cardId)
+          .eq('entity_type', 'gt_card')
+          .order('occurred_at', { ascending: false })
+          .limit(200),
+        invoiceIds.length > 0
+          ? supabase.from('invoice_audit')
+            .select('id, invoice_id, action, actor_type, actor_id, details, timestamp')
+            .in('invoice_id', invoiceIds)
+            .order('timestamp', { ascending: false })
+            .limit(200)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      // Schritt 4: zu einem einzigen Strom zusammenfuehren
+      const events = [
+        ...(payRes.data || []).map(e => ({
+          kind: 'payment',
+          at: e.occurred_at,
+          action: e.action,
+          actor_type: e.actor_type,
+          actor_id: e.actor_id,
+          details: e.details,
+          amount_cents: e.amount_cents,
+          currency: e.currency,
+          stripe_object_type: e.stripe_object_type,
+          stripe_object_id: e.stripe_object_id,
+        })),
+        ...(invAuditRes.data || []).map(e => ({
+          kind: 'invoice',
+          at: e.timestamp,
+          action: e.action,
+          actor_type: e.actor_type,
+          actor_id: e.actor_id,
+          details: e.details,
+          invoice_label: invoiceIdToNumber.get(e.invoice_id) || null,
+        })),
+      ].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+
+      // Schritt 5: Karte-Spalten als zusaetzlichen Kontext mitliefern
+      // (fuer synthetische Eintraege im Frontend: Kauf-Datum, Ablauf, Sessions)
+      return res.json({
+        data: events,
+        card: card ? {
+          id: card.id,
+          created_at: card.created_at,
+          purchased_at: card.purchased_at,
+          expires_at: card.expires_at,
+          is_active: card.is_active,
+          sessions_total: card.sessions_total,
+          sessions_used: card.sessions_used,
+        } : null,
+      });
+    }
+
     // ─── Dashboard KPIs (exakte Berechnungen) ─────────────────────────
     case 'dashboard_kpis': {
       const mondayISO = req.query.monday;
