@@ -1981,7 +1981,7 @@ async function handleData(req, res, supabase) {
       // Schritt 1: Karte selbst laden (fuer synthetische Eintraege)
       const { data: card } = await supabase
         .from('gt_cards')
-        .select('id, created_at, purchased_at, expires_at, is_active, sessions_total, sessions_used, customer_id, card_type_id, invoice_id, storno_invoice_id')
+        .select('id, created_at, purchased_at, expires_at, is_active, sessions_total, sessions_remaining, customer_id, card_type_id, invoice_id, storno_invoice_id')
         .eq('id', cardId)
         .maybeSingle();
 
@@ -2047,7 +2047,7 @@ async function handleData(req, res, supabase) {
           expires_at: card.expires_at,
           is_active: card.is_active,
           sessions_total: card.sessions_total,
-          sessions_used: card.sessions_used,
+          sessions_remaining: card.sessions_remaining,
         } : null,
       });
     }
