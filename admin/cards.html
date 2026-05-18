@@ -320,7 +320,7 @@
     const expired = allCards.filter(c => isExpired(c));
     const paidCards = allCards.filter(c => c.paid || c.stripe_payment_status === 'succeeded');
     const revenue = paidCards.reduce((s, c) => s + (c.final_price_cents || c.price_cents || 0), 0);
-    const remaining = active.reduce((s, c) => s + ((c.sessions_total || 10) - (c.sessions_used || 0)), 0);
+    const remaining = active.reduce((s, c) => s + (c.sessions_remaining ?? c.sessions_total ?? 10), 0);
 
     document.getElementById('kpi-active').textContent = active.length;
     document.getElementById('kpi-revenue').textContent = fmtEur(revenue);
@@ -349,7 +349,7 @@
       activeTableFilter = initSortableTable('active-cards-table', [
         { key: 'customer_name', type: 'text', getValue: c => customerName(c) },
         { key: 'type_name', type: 'select', getValue: c => typeName(c) },
-        { key: 'balance', type: 'number', getValue: c => (c.sessions_total || 10) - (c.sessions_used || 0) },
+        { key: 'balance', type: 'number', getValue: c => c.sessions_remaining ?? c.sessions_total ?? 10 },
         { key: 'purchased_at', type: 'date', getValue: c => c.purchased_at || c.created_at || '' },
         { key: 'expires_at', type: 'date', getValue: c => c.expires_at || '' },
         { key: 'paid', type: 'select', getValue: c => c.stripe_payment_status === 'succeeded' ? 'Stripe' : (c.paid ? 'Admin' : 'Offen') },
@@ -378,7 +378,7 @@
       expiredTableFilter = initSortableTable('expired-cards-table', [
         { key: 'customer_name', type: 'text', getValue: c => customerName(c) },
         { key: 'type_name', type: 'select', getValue: c => typeName(c) },
-        { key: 'balance', type: 'number', getValue: c => (c.sessions_total || 10) - (c.sessions_used || 0) },
+        { key: 'balance', type: 'number', getValue: c => c.sessions_remaining ?? c.sessions_total ?? 10 },
         { key: 'purchased_at', type: 'date', getValue: c => c.purchased_at || c.created_at || '' },
         { key: 'expires_at', type: 'date', getValue: c => c.expires_at || '' },
         { key: 'paid', type: 'select', getValue: c => c.stripe_payment_status === 'succeeded' ? 'Stripe' : (c.paid ? 'Admin' : 'Offen') },
@@ -414,7 +414,8 @@
 
   function cardRow(c, isExpiredTab) {
     const total = c.sessions_total || 10;
-    const used = c.sessions_used || 0;
+    const remaining = c.sessions_remaining ?? total;
+    const used = total - remaining;
     const gross = c.final_price_cents || c.price_cents || 0;
     const unit = unitPriceFor(c);
     const custName = (customerName(c) || '').replace(/'/g,"\\'");
@@ -432,7 +433,7 @@
       <td>
         <div class="d-flex gap-1">
           <button class="btn btn-sm btn-ghost-secondary" title="Logbuch" onclick="openCardHistory('${c.id}')"><i class="ti ti-history"></i></button>
-          ${!isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Guthaben anpassen" onclick="openAdjustModal('${c.id}', ${total - used})"><i class="ti ti-edit"></i></button>` : ''}
+          ${!isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Guthaben anpassen" onclick="openAdjustModal('${c.id}', ${remaining})"><i class="ti ti-edit"></i></button>` : ''}
           ${returnBtn}
           ${!isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Deaktivieren" onclick="deactivateCard('${c.id}')" style="color:var(--tblr-danger)"><i class="ti ti-ban"></i></button>` : ''}
           ${isExpiredTab ? `<button class="btn btn-sm btn-ghost-secondary" title="Reaktivieren" onclick="reactivateCard('${c.id}')"><i class="ti ti-refresh"></i></button>` : ''}
@@ -470,13 +471,13 @@
     }
 
     container.innerHTML = allCardTypes.map(t => {
-      const sessions = t.sessions || 10;
+      const sessions = t.sessions_count || 10;
       const discount = t.discount_percent || 0;
       const validityMonths = t.validity_months || 36;
       const isActive = t.is_active !== false;
       // Price preview: sessions x avg GT price x (1 - discount%)
       // We use a placeholder avg price since we dont know exact GT price per trainer
-      const avgPriceCents = t.base_price_cents || 2500; // fallback 25 EUR
+      const avgPriceCents = t.unit_price_cents || 2500; // fallback 25 EUR
       const totalCents = Math.round(sessions * avgPriceCents * (1 - discount / 100));
 
       return `<div class="card mb-3">
@@ -526,7 +527,7 @@
 
     const typeSelect = document.getElementById('modal-card-type');
     typeSelect.innerHTML = '<option value="">Typ waehlen...</option>' +
-      allCardTypes.filter(t => t.is_active !== false).map(t => `<option value="${t.id}" data-sessions="${t.sessions || 10}" data-discount="${t.discount_percent || 0}" data-base="${t.base_price_cents || 2500}">${t.name || '10er-Karte'}</option>`).join('');
+      allCardTypes.filter(t => t.is_active !== false).map(t => `<option value="${t.id}" data-sessions="${t.sessions_count || 10}" data-discount="${t.discount_percent || 0}" data-base="${t.unit_price_cents || 2500}">${t.name || '10er-Karte'}</option>`).join('');
   }
 
   function openCreateModal() {
@@ -675,7 +676,7 @@
     // Inline editing via prompt (simple approach — can be replaced with modal later)
     const name = prompt('Name:', t.name || '10er-Karte');
     if (name === null) return;
-    const sessions = prompt('Einheiten:', t.sessions || 10);
+    const sessions = prompt('Einheiten:', t.sessions_count || 10);
     if (sessions === null) return;
     const discount = prompt('Rabatt %:', t.discount_percent || 0);
     if (discount === null) return;
