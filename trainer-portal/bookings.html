@@ -276,14 +276,21 @@
     if (!item.scheduled_date) return false;
     var parts = item.scheduled_date.split('-');
     var y = parseInt(parts[0]); var mo = parseInt(parts[1]) - 1; var da = parseInt(parts[2]);
-    var h = 23; var m = 59;
+    var h, m;
     if (item.scheduled_time) {
       var tp = item.scheduled_time.split(':');
-      h = parseInt(tp[0]) + 1;
+      h = parseInt(tp[0]);
       m = parseInt(tp[1]) || 0;
+    } else {
+      // Ohne Uhrzeit: Termin-Ende = Tagesende
+      var tagesende = new Date(y, mo, da, 23, 59, 0);
+      return new Date() > tagesende;
     }
-    var terminEnd = new Date(y, mo, da, h, m, 0);
-    return new Date() > terminEnd;
+    // Karenzfenster-Ende = Termin-Start + 120 Min (konsistent mit App
+    // `canCheckinNow` in app/utils/checkinWindow.ts).
+    var terminStart = new Date(y, mo, da, h, m, 0);
+    var terminEnde = new Date(terminStart.getTime() + 120 * 60 * 1000);
+    return new Date() > terminEnde;
   }
 
   function statusPriority(item) {
@@ -536,6 +543,11 @@
       // Abgelaufene aktive Termine → Vergangen
       if (ACTIVE.includes(i.status) && isTerminVorbei(i)) return true;
       return false;
+    }).sort((a, b) => {
+      // Vergangen: neueste oben (jung → alt)
+      const da = `${a.scheduled_date || ''}T${a.scheduled_time || '00:00'}`;
+      const db = `${b.scheduled_date || ''}T${b.scheduled_time || '00:00'}`;
+      return db.localeCompare(da);
     });
     const storniert = items.filter(i => {
       if (i._type === 'gt') return false;
