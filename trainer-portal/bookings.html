@@ -240,7 +240,14 @@
   let _detailModal, _locationModal, _rescheduleModal;
 
   const CANCELLED = [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.CANCELLED_BY_TRAINER, BOOKING_STATUS.REFUNDED, BOOKING_STATUS.FULLY_CANCELLED];
-  const ACTIVE = [BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED, 'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING];
+  // Muss mit shared/constants.js ACTIVE_STATUSES synchron sein. CHECKED_IN +
+  // AWAITING_CHECKOUT erfassen Termine im Status DB-`laeuft gerade` (Trainer
+  // hat in der App eingecheckt) — sonst sind sie in keinem Tab sichtbar.
+  const ACTIVE = [
+    BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED,
+    BOOKING_STATUS.CHECKED_IN, BOOKING_STATUS.AWAITING_CHECKOUT,
+    'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING,
+  ];
 
   // Teilspec 1 Bridge: DB liefert neuen 7-Wert-Kanon, dieses Frontend
   // arbeitet noch mit Legacy-Begriffen. Mappt jeden bookings-Row beim
