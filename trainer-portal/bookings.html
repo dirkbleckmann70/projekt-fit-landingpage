@@ -243,9 +243,17 @@
   // Muss mit shared/constants.js ACTIVE_STATUSES synchron sein. CHECKED_IN +
   // AWAITING_CHECKOUT erfassen Termine im Status DB-`laeuft gerade` (Trainer
   // hat in der App eingecheckt) — sonst sind sie in keinem Tab sichtbar.
+  // B-2026-05-25-06: DISPUTED zusaetzlich in ACTIVE, damit strittige Termine
+  // im Trainer-Portal nicht aus allen Tabs fallen. Trainer muss den Streitfall
+  // noch verfolgen (Honorar haengt am Klaerungs-Ausgang). Vor Karenz-Ende:
+  // erscheint in „Aktuell" mit `⚠ Streitfall`-Badge (STATUS_LABELS existiert).
+  // Nach Karenz: wandert via dritte Bedingung im vergangen-Filter (Z. ~551)
+  // automatisch in „Vergangen". Semantisch passt das — disputed-Termine
+  // werden in der Regel nach durchgefuehrter Session strittig.
   const ACTIVE = [
     BOOKING_STATUS.PENDING, BOOKING_STATUS.CONFIRMED,
     BOOKING_STATUS.CHECKED_IN, BOOKING_STATUS.AWAITING_CHECKOUT,
+    BOOKING_STATUS.DISPUTED,
     'reschedule_proposed', 'location_proposed', BOOKING_STATUS.REPLACEMENT_PENDING,
   ];
 
