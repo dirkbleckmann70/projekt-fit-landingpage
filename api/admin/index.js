@@ -1050,11 +1050,22 @@ function getServiceClient() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
+// Token-Validierung: einen Anon-Key-Client benutzen, NICHT den Service-Role-
+// Client. Seit der Supabase-Auth-Migration 2025 liefert das JS-SDK ES256-
+// Tokens — der Service-Role-Client kann diese nicht validieren und
+// auth.getUser(token) wirft 'Ungültiger Token'. Mit dem Anon-Key-Client
+// laeuft die Validierung gegen den oeffentlichen JWKS-Endpoint und akzeptiert
+// beide Token-Formate (HS256 und ES256).
+function getAuthClient() {
+  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  return createClient(process.env.SUPABASE_URL, anonKey);
+}
+
 async function verifyAuthenticated(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return 'Token fehlt';
   const token = authHeader.split(' ')[1];
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = getAuthClient();
   const { data: { user }, error } = await supabase.auth.getUser(token);
   if (error || !user) return 'Ungültiger Token';
   return null;
@@ -1065,7 +1076,7 @@ async function verifyAdmin(req) {
   if (!authHeader || !authHeader.startsWith('Bearer ')) return 'Token fehlt';
 
   const token = authHeader.split(' ')[1];
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const supabase = getAuthClient();
   const { data: { user }, error } = await supabase.auth.getUser(token);
 
   if (error || !user) return 'Ungültiger Token';
