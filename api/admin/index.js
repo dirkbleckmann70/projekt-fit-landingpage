@@ -1056,8 +1056,18 @@ function getServiceClient() {
 // auth.getUser(token) wirft 'Ungültiger Token'. Mit dem Anon-Key-Client
 // laeuft die Validierung gegen den oeffentlichen JWKS-Endpoint und akzeptiert
 // beide Token-Formate (HS256 und ES256).
+// Hardcoded ANON-Key als letzter Fallback (klassischer JWT, identisch zum
+// auth-guard.js des Admin-Portals). Anon-Keys sind nicht geheim — sie sind im
+// Browser-Code ohnehin sichtbar. Wenn die Vercel-Env-Vars SUPABASE_ANON_KEY
+// und SUPABASE_PUBLISHABLE_KEY nicht gesetzt sind, crasht createClient ohne
+// diesen Fallback und die API liefert eine HTML-500-Seite (JSON-Parse-Fehler
+// im Browser).
+const ADMIN_ANON_JWT = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc2p5ZGdrbm15c2lyY3VianNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjk5NDAsImV4cCI6MjA4ODc0NTk0MH0.nGPKA30cm-EPsyt0Pn5YWxcMjMdNzg_1yN87LdK0rZI';
+
 function getAuthClient() {
-  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
+  const anonKey = process.env.SUPABASE_ANON_KEY
+    || process.env.SUPABASE_PUBLISHABLE_KEY
+    || ADMIN_ANON_JWT;
   return createClient(process.env.SUPABASE_URL, anonKey);
 }
 
