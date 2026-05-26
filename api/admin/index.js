@@ -2867,10 +2867,19 @@ async function handleBookingsPut(req, res, supabase) {
         // Status/Flag/Paid-Felder aus dem update-Objekt entfernen, damit das
         // anschliessende UPDATE diese Felder nicht ueberschreibt.
         delete update.status;
-        delete update.flag_neuer_termin_vorgeschlagen;
-        delete update.flag_neuer_ort_vorgeschlagen;
         delete update.flag_zahlung_offen;
         delete update.paid;
+        // Welle 2b Folge-Bug (B-2026-05-26-16): Reschedule-/Location-Flags NUR
+        // loeschen wenn der gleiche Request keinen Vorschlag mitsendet.
+        // Sonst wurden die Flags vom reschedule-/location-Block gerade gesetzt
+        // und wuerden hier stillschweigend verworfen — der Kunde saehe keinen
+        // Vorschlag, obwohl proposed_*/selected_location_id in der DB sitzen.
+        if (!body.reschedule) {
+          delete update.flag_neuer_termin_vorgeschlagen;
+        }
+        if (!body.proposed_location_id) {
+          delete update.flag_neuer_ort_vorgeschlagen;
+        }
       }
     }
 
