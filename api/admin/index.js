@@ -2724,6 +2724,74 @@ async function handleBookingsPut(req, res, supabase) {
     update.notes = existingNotes?.notes ? `${existingNotes.notes}\n${auditNote}` : auditNote;
   }
 
+  // ─── Location-Vorschlag: Trainer schlaegt anderen Treffpunkt vor ─────────
+  // Welle 2b Phase 2 (B-26-05): Trainer-„Termin aendern"-Modal kann einen der
+  // zwei booking_locations-Eintraege als neuen Treffpunkt vorschlagen. Spec:
+  // docs/superpowers/specs/2026-05-26-reschedule-flow-fixes-design.md.
+  // Architektur-Pendant zum reschedule-Block oben — parallele Flags erlaubt
+  // (Kunde sieht ggf. beide Vorschlaege gleichzeitig).
+  if (body.proposed_location_id) {
+    const proposedLocationId = body.proposed_location_id;
+    if (typeof proposedLocationId !== 'string') {
+      return res.status(400).json({ error: 'proposed_location_id muss eine gueltige UUID sein' });
+    }
+
+    const { data: currentLoc, error: fetchLocErr } = await supabase
+      .from('bookings')
+      .select('status, scheduled_date, scheduled_time, location_name, location_address, notes')
+      .eq('id', bookingId)
+      .single();
+
+    if (fetchLocErr || !currentLoc) {
+      return res.status(404).json({ error: 'Buchung nicht gefunden' });
+    }
+
+    if (!['angefragt', 'reserviert', 'bestaetigt'].includes(currentLoc.status)) {
+      return res.status(400).json({ error: `Standort-Vorschlag nur bei angefragt/reserviert/bestaetigt moeglich, aktuell: ${currentLoc.status}` });
+    }
+
+    // 24h-Mindestvorlauf zum AKTUELLEN Termin (ARCHITEKTUR.md Vorgang 3
+    // "Ort-Vorschlag analog zum Termin-Vorschlag").
+    if (currentLoc.status === 'bestaetigt') {
+      const bookingDateTime = new Date(`${currentLoc.scheduled_date}T${currentLoc.scheduled_time}`);
+      const diffHours = (bookingDateTime.getTime() - Date.now()) / (1000 * 60 * 60);
+      if (diffHours < 24) {
+        return res.status(400).json({ error: 'Standort-Vorschlag nur >= 24h vor dem Termin moeglich' });
+      }
+    }
+
+    // Vorgeschlagene Location muss zu DIESER Buchung gehoeren.
+    const { data: loc, error: locErr } = await supabase
+      .from('booking_locations')
+      .select('id, name, address')
+      .eq('id', proposedLocationId)
+      .eq('booking_id', bookingId)
+      .single();
+
+    if (locErr || !loc) {
+      return res.status(400).json({ error: 'proposed_location_id gehoert nicht zu dieser Buchung' });
+    }
+
+    if (loc.name === currentLoc.location_name && loc.address === currentLoc.location_address) {
+      return res.status(400).json({ error: 'Vorgeschlagener Standort entspricht dem aktiven Treffpunkt' });
+    }
+
+    update.selected_location_id = loc.id;
+    update.flag_neuer_ort_vorgeschlagen = true;
+    update.location_proposed_at = new Date().toISOString();
+
+    // Audit anhaengen. Wenn der reschedule-Block oben update.notes bereits
+    // gesetzt hat (paralleler Termin- + Ort-Vorschlag), an dessen Wert
+    // anhaengen — sonst Basis aus DB-Notes der Buchung.
+    const locTimestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    const locAuditNote = `[Location ${locTimestamp}] Trainer schlaegt vor: ${loc.name} (vorher: ${currentLoc.location_name || '—'})`;
+    if (update.notes !== undefined) {
+      update.notes = `${update.notes}\n${locAuditNote}`;
+    } else {
+      update.notes = currentLoc.notes ? `${currentLoc.notes}\n${locAuditNote}` : locAuditNote;
+    }
+  }
+
   if (Object.keys(update).length === 0) {
     return res.status(400).json({ error: 'Keine aktualisierbaren Felder angegeben' });
   }

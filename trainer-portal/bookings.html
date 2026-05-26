@@ -37,6 +37,11 @@
     .reschedule-modal .time-btn { padding: 8px 16px; border-radius: 8px; border: 1px solid var(--tblr-border-color); background: var(--tblr-card-bg); color: var(--tblr-secondary-color); cursor: pointer; font-weight: 600; }
     .reschedule-modal .time-btn:hover { border-color: #F4A940; color: #F4A940; }
     .reschedule-modal .time-btn.selected { background: var(--tblr-primary); border-color: var(--tblr-primary); color: white; }
+    .reschedule-modal .loc-pill { display: block; width: 100%; text-align: left; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--tblr-border-color); background: var(--tblr-card-bg); color: var(--tblr-secondary-color); cursor: pointer; margin-bottom: 6px; }
+    .reschedule-modal .loc-pill:hover { border-color: #F4A940; }
+    .reschedule-modal .loc-pill.selected { border-color: var(--tblr-primary); background: rgba(64,145,108,0.08); color: var(--tblr-body-color); }
+    .reschedule-modal .loc-pill-name { font-weight: 700; font-size: 14px; }
+    .reschedule-modal .loc-pill-address { font-size: 12px; color: var(--tblr-secondary-color); margin-top: 2px; }
 
     /* Location select modal */
     .location-proposal-card {
@@ -204,13 +209,23 @@
 
           <!-- Tab: Ort aendern -->
           <div class="tab-pane" id="tab-reschedule-location">
-            <div class="mb-3">
-              <label class="form-label">Neuer Treffpunkt (Name)</label>
-              <input type="text" id="reschedule-loc-name" class="form-control" placeholder="z.B. Stadtpark Eingang Nord">
+            <!-- Welle 2b Phase 3 (B-26-05): Pillen-Auswahl zwischen den booking_locations
+                 dieser Buchung. Trainer kann zwischen Primaer (sort_order=0) und
+                 Alternative (sort_order=1) wechseln. Freitext-Block bleibt als
+                 Fallback fuer Alt-Buchungen mit nur 1 Eintrag (Bestandsschutz). -->
+            <div id="reschedule-loc-pills" class="mb-3" style="display:none">
+              <label class="form-label">Treffpunkt</label>
+              <div id="reschedule-loc-pills-list"></div>
             </div>
-            <div class="mb-3">
-              <label class="form-label">Adresse</label>
-              <input type="text" id="reschedule-loc-address" class="form-control" placeholder="Strasse, PLZ Ort">
+            <div id="reschedule-loc-freetext" style="display:none">
+              <div class="mb-3">
+                <label class="form-label">Neuer Treffpunkt (Name)</label>
+                <input type="text" id="reschedule-loc-name" class="form-control" placeholder="z.B. Stadtpark Eingang Nord">
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Adresse</label>
+                <input type="text" id="reschedule-loc-address" class="form-control" placeholder="Strasse, PLZ Ort">
+              </div>
             </div>
             <div class="alert alert-info" style="font-size:13px">
               <i class="ti ti-info-circle"></i> Der Kunde hat 24h Zeit den neuen Ort zu akzeptieren.
@@ -956,6 +971,9 @@
   let rescheduleBookingId = null;
   let rescheduleSelectedHour = null;
   let rescheduleAvailability = [];
+  // Welle 2b Phase 3 (B-26-05): Standort-Auswahl analog zur App.
+  let rescheduleBookingLocations = [];
+  let rescheduleSelectedLocationId = null;
 
   async function openRescheduleModal(bookingId) {
     rescheduleBookingId = bookingId;
@@ -970,6 +988,60 @@
     // Ort-Felder zuruecksetzen
     document.getElementById('reschedule-loc-name').value = '';
     document.getElementById('reschedule-loc-address').value = '';
+
+    // Welle 2b Phase 3 (B-26-05): booking_locations dieser Buchung laden.
+    // Wenn >=2 vorhanden: Pillen-Auswahl zwischen Primaer und Alternative.
+    // Wenn <2 (Alt-Buchungen): Freitext-Fallback aktiv lassen.
+    rescheduleBookingLocations = [];
+    rescheduleSelectedLocationId = null;
+    try {
+      const locResp = await adminApi('/api/admin?action=data&type=booking_locations&bookingId=' + bookingId);
+      const rawLocs = Array.isArray(locResp.data) ? locResp.data : [];
+      rescheduleBookingLocations = rawLocs.slice().sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99));
+    } catch {
+      rescheduleBookingLocations = [];
+    }
+
+    const pillsBlock = document.getElementById('reschedule-loc-pills');
+    const pillsList = document.getElementById('reschedule-loc-pills-list');
+    const freetextBlock = document.getElementById('reschedule-loc-freetext');
+
+    if (rescheduleBookingLocations.length >= 2) {
+      // Default-Auswahl: Pille die zum aktuellen Standort passt.
+      const activeName = (b.location_name || '').trim();
+      const activeAddr = (b.location_address || '').trim();
+      const matchIdx = rescheduleBookingLocations.findIndex(l =>
+        (l.name || '').trim() === activeName || (l.address || '').trim() === activeAddr
+      );
+      const defaultLoc = rescheduleBookingLocations[matchIdx >= 0 ? matchIdx : 0];
+      rescheduleSelectedLocationId = defaultLoc?.id || null;
+
+      pillsList.innerHTML = '';
+      rescheduleBookingLocations.forEach(loc => {
+        const pill = document.createElement('div');
+        pill.className = 'loc-pill' + (loc.id === rescheduleSelectedLocationId ? ' selected' : '');
+        pill.dataset.locId = loc.id;
+        pill.addEventListener('click', () => selectReschedulePillLocation(loc.id));
+        const nameEl = document.createElement('div');
+        nameEl.className = 'loc-pill-name';
+        nameEl.textContent = loc.name || 'Treffpunkt';
+        pill.appendChild(nameEl);
+        const addr = (loc.address || '').trim();
+        if (addr) {
+          const addrEl = document.createElement('div');
+          addrEl.className = 'loc-pill-address';
+          addrEl.textContent = addr;
+          pill.appendChild(addrEl);
+        }
+        pillsList.appendChild(pill);
+      });
+      pillsBlock.style.display = '';
+      freetextBlock.style.display = 'none';
+    } else {
+      // Legacy-Fallback: Freitext fuer Alt-Buchungen mit nur 1 booking_locations-Eintrag.
+      pillsBlock.style.display = 'none';
+      freetextBlock.style.display = '';
+    }
 
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1039,6 +1111,14 @@
     });
   }
 
+  // Welle 2b Phase 3 (B-26-05): Pillen-Auswahl im Treffpunkt-Tab.
+  function selectReschedulePillLocation(locId) {
+    rescheduleSelectedLocationId = locId;
+    document.querySelectorAll('#reschedule-loc-pills-list .loc-pill').forEach(p => {
+      p.classList.toggle('selected', p.dataset.locId === locId);
+    });
+  }
+
   async function submitReschedule() {
     if (!rescheduleBookingId) return;
 
@@ -1052,21 +1132,46 @@
 
     try {
       if (isLocationChange) {
-        // Ort-Vorschlag
-        var locName = document.getElementById('reschedule-loc-name').value.trim();
-        var locAddress = document.getElementById('reschedule-loc-address').value.trim();
-        if (!locName) { alert('Bitte einen Treffpunkt-Namen eingeben.'); btn.disabled = false; btn.textContent = 'Vorschlagen'; return; }
+        // Welle 2b Phase 3 (B-26-05): Pillen-Pfad bevorzugt — sendet
+        // proposed_location_id, Admin-API setzt selected_location_id +
+        // flag_neuer_ort_vorgeschlagen + location_proposed_at.
+        // Freitext-Pfad bleibt nur als Fallback fuer Alt-Buchungen ohne
+        // zwei booking_locations-Eintraege erhalten.
+        if (rescheduleBookingLocations.length >= 2 && rescheduleSelectedLocationId) {
+          // Pruefen ob die Pille tatsaechlich vom aktuellen Standort abweicht.
+          var b = allBookings.find(x => x.id === rescheduleBookingId);
+          var activeName = ((b && b.location_name) || '').trim();
+          var selLoc = rescheduleBookingLocations.find(l => l.id === rescheduleSelectedLocationId);
+          var selName = ((selLoc && selLoc.name) || '').trim();
+          if (selLoc && selName === activeName) {
+            alert('Dieser Treffpunkt ist bereits der aktive — bitte den anderen waehlen.');
+            btn.disabled = false; btn.textContent = 'Vorschlagen';
+            return;
+          }
+          await adminApi('/api/admin?action=bookings', {
+            method: 'PUT',
+            body: JSON.stringify({
+              bookingId: rescheduleBookingId,
+              proposed_location_id: rescheduleSelectedLocationId,
+            }),
+          });
+        } else {
+          // Legacy-Freitext-Pfad (Alt-Buchungen mit <2 booking_locations).
+          var locName = document.getElementById('reschedule-loc-name').value.trim();
+          var locAddress = document.getElementById('reschedule-loc-address').value.trim();
+          if (!locName) { alert('Bitte einen Treffpunkt-Namen eingeben.'); btn.disabled = false; btn.textContent = 'Vorschlagen'; return; }
 
-        await adminApi('/api/admin?action=bookings', {
-          method: 'PUT',
-          body: JSON.stringify({
-            bookingId: rescheduleBookingId,
-            status: 'location_proposed',
-            location_name: locName,
-            location_address: locAddress || null,
-            admin_note: 'Trainer-Ort-Vorschlag: ' + locName + (locAddress ? ' (' + locAddress + ')' : '')
-          })
-        });
+          await adminApi('/api/admin?action=bookings', {
+            method: 'PUT',
+            body: JSON.stringify({
+              bookingId: rescheduleBookingId,
+              status: 'location_proposed',
+              location_name: locName,
+              location_address: locAddress || null,
+              admin_note: 'Trainer-Ort-Vorschlag: ' + locName + (locAddress ? ' (' + locAddress + ')' : '')
+            })
+          });
+        }
 
         if (_rescheduleModal) _rescheduleModal.hide();
         showAlert('Ort-Vorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
