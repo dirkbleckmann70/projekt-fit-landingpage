@@ -3847,6 +3847,17 @@ async function handleRescheduleAccept(req, res, supabase) {
     return res.status(400).json({ error: `Kein offener Termin-Vorschlag fuer diese Buchung (Status: ${booking.status})` });
   }
 
+  // B-2026-05-26-13: Defense-in-Depth zur Welle-2b Client-Pruefung. Annahme
+  // blockieren wenn der vorgeschlagene Termin schon vergangen ist — sonst
+  // landet die Buchung sofort als "abgelaufen" im Vergangen-Tab und der Trainer
+  // verliert die Auszahlung (Bug B-26-04 Symptom-Klasse).
+  if (booking.proposed_date && booking.proposed_time) {
+    const proposedAt = new Date(`${booking.proposed_date}T${booking.proposed_time}`);
+    if (proposedAt <= new Date()) {
+      return res.status(400).json({ error: 'Der vorgeschlagene Termin liegt in der Vergangenheit. Bitte direkt mit deinem Trainer einen neuen Termin vereinbaren — diese Buchung muss leider storniert werden.' });
+    }
+  }
+
   const oldDate = booking.scheduled_date;
   const oldTime = (booking.scheduled_time || '').slice(0, 5);
   const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
@@ -4020,8 +4031,18 @@ async function handleLocationAccept(req, res, supabase) {
   const bookingId = stripGpPrefix(body.bookingId)
   if (!bookingId) return res.status(400).json({ success: false, error: 'bookingId ist Pflicht' })
 
-  const { data: booking } = await supabase.from('bookings').select('selected_location_id, location_name, location_address, notes').eq('id', bookingId).single()
+  const { data: booking } = await supabase.from('bookings').select('selected_location_id, location_name, location_address, scheduled_date, scheduled_time, notes').eq('id', bookingId).single()
   if (!booking) return res.status(404).json({ success: false, error: 'Buchung nicht gefunden' })
+
+  // B-2026-05-26-13: Defense-in-Depth zur Welle-2b Client-Pruefung. Standort-
+  // Wechsel aendert den Termin nicht — wenn der aktuelle Termin schon vergangen
+  // ist, ist der Wechsel sinnlos.
+  if (booking.scheduled_date && booking.scheduled_time) {
+    const scheduledAt = new Date(`${booking.scheduled_date}T${booking.scheduled_time}`);
+    if (scheduledAt <= new Date()) {
+      return res.status(400).json({ success: false, error: 'Der Termin liegt in der Vergangenheit. Standort-Wechsel ist nicht moeglich — diese Buchung muss leider storniert werden.' });
+    }
+  }
 
   // Teilspec 1: Status bleibt 'bestaetigt' — der Treffpunkt-Vorschlag wird ueber das Flag markiert,
   // beim Akzeptieren wird das Flag zurueckgesetzt.
