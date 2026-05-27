@@ -35,7 +35,7 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
           </a>
         </div>`).join('');
 
-  return `<aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+  return `<aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="light">
   <div class="container-fluid">
     <h1 class="navbar-brand navbar-brand-autodark">
       <a href="/admin/dashboard.html" style="text-decoration:none;color:inherit">
@@ -106,7 +106,7 @@ window.renderTrainerSidebar = function renderTrainerSidebar(activePage) {
           </a>
         </div>`).join('');
 
-  return `<aside class="navbar navbar-vertical navbar-expand-lg d-none d-lg-flex" data-bs-theme="dark">
+  return `<aside class="navbar navbar-vertical navbar-expand-lg d-none d-lg-flex" data-bs-theme="light">
   <div class="container-fluid">
     <h1 class="navbar-brand navbar-brand-autodark">
       <a href="/trainer-portal/dashboard.html" style="text-decoration:none;color:inherit">

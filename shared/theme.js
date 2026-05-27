@@ -6,8 +6,12 @@
   var STORAGE_KEY = 'pf-theme';
 
   function getPreferredTheme() {
+    // Portal ist ab sofort immer hell — alten Dark-Wert im Speicher ueberschreiben
     var stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) return stored;
+    if (stored === 'dark') {
+      localStorage.setItem(STORAGE_KEY, 'light');
+      return 'light';
+    }
     return 'light';
   }
 
