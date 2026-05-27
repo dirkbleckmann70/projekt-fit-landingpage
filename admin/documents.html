@@ -130,6 +130,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
@@ -193,7 +194,7 @@
               ? '<div class="empty-folder">Keine Dokumente in diesem Ordner.</div>'
               : files.map(f => renderFileRow(f)).join('')}
             <div class="folder-upload-area">
-              <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+              <label class="pf-btn pf-btn-neutral" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
                 <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:none"
                   onchange="uploadFiles('${folder.id}', this)">
                 + Datei hochladen
@@ -221,8 +222,8 @@
           <div class="file-meta">${date} · ${size}${uploader}</div>
         </div>
         <div class="file-actions">
-          <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewDocument('${f.path}')">Anzeigen</button>
-          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteDocument('${f.id}','${f.path}','${f.filename.replace(/'/g, "\\'")}')">&#x1F5D1;</button>
+          <button class="pf-btn pf-btn-neutral" onclick="viewDocument('${f.path}')">Anzeigen</button>
+          <button class="pf-btn pf-btn-danger" onclick="deleteDocument('${f.id}','${f.path}','${f.filename.replace(/'/g, "\\'")}')"><i class="ti ti-trash"></i></button>
         </div>
       </div>
     `;

@@ -35,19 +35,15 @@
       <!-- KPI Row: bewusst nur 2 KPIs (Trainer betroffen + Gesamt-Schulden) -->
       <div class="row row-deck row-cards mb-3" id="kpi-row">
         <div class="col-sm-6 col-lg-6">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Trainer betroffen</div>
-              <div class="kpi-value" id="kpi-trainers">--</div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-trainers">--</div>
+            <div class="pf-stat-label">Trainer betroffen</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg-6">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Gesamt-Schulden</div>
-              <div class="kpi-value text-primary" id="kpi-sum">--</div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-sum">--</div>
+            <div class="pf-stat-label">Gesamt-Schulden</div>
           </div>
         </div>
       </div>
@@ -76,6 +72,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
@@ -148,7 +145,7 @@
         <td>${count}</td>
         <td class="td-amount text-accent">${eur}</td>
         <td>
-          <button class="btn btn-sm btn-outline-warning"
+          <button class="pf-btn pf-btn-neutral"
                   data-action="offset"
                   data-id="${trainerId}"
                   data-name="${trainerName}"

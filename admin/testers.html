@@ -30,27 +30,21 @@
       <!-- KPI Cards -->
       <div class="row row-deck row-cards mb-3" id="kpi-grid">
         <div class="col-sm-6 col-lg-4">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Aktive Tester</div>
-              <div class="kpi-value" id="kpi-active"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-active"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="pf-stat-label">Aktive Tester</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg-4">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Inaktive</div>
-              <div class="kpi-value" id="kpi-inactive"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-inactive"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="pf-stat-label">Inaktive</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg-4">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Gesamt</div>
-              <div class="kpi-value" id="kpi-total"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-total"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="pf-stat-label">Gesamt</div>
           </div>
         </div>
       </div>
@@ -59,7 +53,7 @@
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h3 class="card-title" id="form-title">Neuen Tester hinzufügen</h3>
-          <button class="btn btn-ghost-secondary btn-sm" id="form-cancel-btn" style="display:none" onclick="resetForm()">Abbrechen</button>
+          <button class="pf-btn pf-btn-neutral" id="form-cancel-btn" style="display:none" onclick="resetForm()">Abbrechen</button>
         </div>
         <div class="card-body">
           <form id="tester-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
@@ -91,7 +85,7 @@
               <label class="form-label">Notiz</label>
               <input type="text" id="input-notes" class="form-control" placeholder="z.B. Beta-Tester, QA">
             </div>
-            <button type="submit" class="btn btn-primary" id="submit-btn">Hinzufügen</button>
+            <button type="submit" class="pf-btn pf-btn-primary" id="submit-btn">Hinzufügen</button>
           </form>
         </div>
       </div>
@@ -128,6 +122,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
@@ -189,17 +184,16 @@
           </td>
           <td class="text-muted">${t.notes || '–'}</td>
           <td>
-            <button class="btn btn-sm ${t.is_active ? 'btn-primary' : 'btn-ghost-secondary'}"
-              onclick="toggleField('${t.id}', 'is_active', ${!t.is_active})"
-              style="min-width:70px">
+            <button class="${t.is_active ? 'pf-btn pf-btn-primary' : 'pf-btn pf-btn-neutral'}"
+              onclick="toggleField('${t.id}', 'is_active', ${!t.is_active})">
               ${t.is_active ? 'Aktiv' : 'Inaktiv'}
             </button>
           </td>
           <td class="text-muted">${formatDate(t.created_at)}</td>
           <td>
             <div style="display:flex;gap:6px">
-              <button class="btn btn-ghost-secondary btn-sm" onclick="editTester('${t.id}')">✏️</button>
-              <button class="btn btn-ghost-secondary btn-sm" onclick="deleteTester('${t.id}', '${t.email}')" style="color:var(--tblr-danger)">🗑️</button>
+              <button class="pf-btn pf-btn-edit" onclick="editTester('${t.id}')"><i class="ti ti-edit"></i></button>
+              <button class="pf-btn pf-btn-danger" onclick="deleteTester('${t.id}', '${t.email}')"><i class="ti ti-trash"></i></button>
             </div>
           </td>
         </tr>

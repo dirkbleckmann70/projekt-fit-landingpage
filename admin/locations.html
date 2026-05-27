@@ -204,7 +204,7 @@
       <div class="cities-wrap" id="cities-wrap">
         <div class="cities-header">
           <div class="cities-title">Städte &amp; Locations</div>
-          <button class="btn btn-primary" onclick="openCityModal()"><i class="ti ti-plus"></i> Neue Stadt</button>
+          <button class="pf-btn pf-btn-primary" onclick="openCityModal()"><i class="ti ti-plus"></i> Neue Stadt</button>
         </div>
         <div id="cities-body">
           <div style="padding:32px;text-align:center;color:var(--tblr-muted)">
@@ -239,8 +239,8 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-primary" id="city-save-btn" onclick="saveCity()">Speichern</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-primary" id="city-save-btn" onclick="saveCity()">Speichern</button>
       </div>
     </div>
   </div>
@@ -322,8 +322,8 @@
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-primary" id="loc-save-btn" onclick="saveLocation()">Speichern</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-primary" id="loc-save-btn" onclick="saveLocation()">Speichern</button>
       </div>
     </div>
   </div>
@@ -341,8 +341,8 @@
         <p id="delete-modal-text" class="text-secondary">Soll diese Location wirklich gelöscht werden?</p>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-danger" id="delete-confirm-btn">Löschen</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-danger" id="delete-confirm-btn">Löschen</button>
       </div>
     </div>
   </div>
@@ -350,6 +350,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
@@ -428,13 +429,13 @@
           ${activeBadge}
           <span class="city-count">${count} Location${count !== 1 ? 's' : ''}</span>
           <div class="city-actions-inline d-flex gap-1" onclick="event.stopPropagation()">
-            <button class="btn btn-sm btn-ghost-secondary" title="Bearbeiten" onclick="openCityModal('${city.id}')"><i class="ti ti-edit"></i></button>
-            <button class="btn btn-sm btn-ghost-secondary" title="${city.is_active !== false ? 'Deaktivieren' : 'Aktivieren'}"
+            <button class="pf-btn pf-btn-edit" title="Bearbeiten" onclick="openCityModal('${city.id}')"><i class="ti ti-edit"></i></button>
+            <button class="pf-btn pf-btn-neutral" title="${city.is_active !== false ? 'Deaktivieren' : 'Aktivieren'}"
               onclick="toggleCityActive('${city.id}', ${city.is_active === false})"
               style="color:${city.is_active !== false ? 'var(--tblr-danger)' : 'var(--tblr-success)'}">
               <i class="ti ${city.is_active !== false ? 'ti-player-pause' : 'ti-check'}"></i>
             </button>
-            <button class="btn btn-sm btn-ghost-secondary" title="Stadt löschen" onclick="deleteCity('${city.id}', '${escHtml(city.city)}')" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>
+            <button class="pf-btn pf-btn-danger" title="Stadt löschen" onclick="deleteCity('${city.id}', '${escHtml(city.city)}')"><i class="ti ti-trash"></i></button>
           </div>
         </div>
         <div class="city-locations">
@@ -452,7 +453,7 @@
       return `
         <div class="loc-subheader">
           <span style="color:var(--tblr-muted);font-size:13px"><div class="spinner-border spinner-border-sm"></div> Lade Locations…</span>
-          <button class="btn btn-sm btn-primary" onclick="openNewLocModal('${cityId}')"><i class="ti ti-plus"></i> Neue Location</button>
+          <button class="pf-btn pf-btn-primary" onclick="openNewLocModal('${cityId}')"><i class="ti ti-plus"></i> Neue Location</button>
         </div>`;
     }
 
@@ -463,7 +464,7 @@
     return `
       <div class="loc-subheader">
         <span style="color:var(--tblr-muted);font-size:13px">${locs.length} Location${locs.length !== 1 ? 's' : ''}</span>
-        <button class="btn btn-primary btn-sm" onclick="openNewLocModal('${cityId}')">+ Neue Location</button>
+        <button class="pf-btn pf-btn-primary" onclick="openNewLocModal('${cityId}')">+ Neue Location</button>
       </div>
       ${rows}`;
   }
@@ -486,8 +487,8 @@
           ${l.description ? `<div class="loc-info-desc">${escHtml(l.description)}</div>` : ''}
         </div>
         <div class="loc-item-actions d-flex gap-1">
-          <button class="btn btn-sm btn-ghost-secondary" title="Bearbeiten" onclick="openEditLocModal('${cityId}', '${l.id}')"><i class="ti ti-edit"></i></button>
-          <button class="btn btn-sm btn-ghost-secondary" title="Löschen" onclick="confirmDeleteLoc('${cityId}', '${l.id}', '${escHtml(l.name || '')}')" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>
+          <button class="pf-btn pf-btn-edit" title="Bearbeiten" onclick="openEditLocModal('${cityId}', '${l.id}')"><i class="ti ti-edit"></i></button>
+          <button class="pf-btn pf-btn-danger" title="Löschen" onclick="confirmDeleteLoc('${cityId}', '${l.id}', '${escHtml(l.name || '')}')"><i class="ti ti-trash"></i></button>
         </div>
       </li>`;
   }
