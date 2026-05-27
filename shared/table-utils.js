@@ -6,6 +6,7 @@
 // options (optional):
 //   extraButtons: [{label, icon, className, onClick}]  – seitenspezifische Buttons
 //   countLabel: 'Trainern' | 'Kunden' | ...           – Default: 'Eintraegen'
+//   onRowClick: function(rowData, trElement) {}        – Klick auf Tabellenzeile (nicht auf .pf-btn)
 (function () {
   'use strict';
 
@@ -19,9 +20,13 @@
     options = options || {};
     var extraButtons = options.extraButtons || [];
     var countLabel = options.countLabel || 'Eintraegen';
+    var onRowClick = options.onRowClick || null;
 
     var table = document.getElementById(tableId);
     if (!table) { console.warn('initSortableTable: Tabelle nicht gefunden:', tableId); return null; }
+
+    // Erzwingt einzeilige Darstellung der Zeilen (CSS-Klasse aus table-utils.css)
+    table.classList.add('pf-table-fixed');
 
     var thead = table.querySelector('thead');
     if (!thead) { console.warn('initSortableTable: kein <thead> in', tableId); return null; }
@@ -38,6 +43,7 @@
     var onChangeCb = null;
     var filterStates  = {};
     var filterVisible = false;
+    var _lastResult   = [];   // letztes apply()-Ergebnis fuer Zeilen-Klick-Lookup
 
     // ── Toolbar (Count-Bar) mit Tabler-Design ────────────────────────
     var toolbar = document.createElement('div');
@@ -339,6 +345,9 @@
         countText.textContent = result.length + ' von ' + allData.length + ' ' + countLabel;
       }
 
+      // Aktuelles Ergebnis fuer Zeilen-Klick-Lookup merken
+      _lastResult = result;
+
       return result;
     }
 
@@ -355,6 +364,30 @@
 
     // Initiale Toolbar-Anzeige
     _updateToolbar();
+
+    // ── Zeilen-Klick via Event-Delegation ───────────────────────────
+    // Gilt auch nach Re-Render (Filter/Sort), da am tbody statt an einzelnen <tr> haengend.
+    // .pf-btn-Klicks stoppen die Weiterleitung, damit Aktions-Buttons den Zeilen-Klick nicht ausloesen.
+    if (onRowClick) {
+      var tbody = table.querySelector('tbody');
+      if (tbody) {
+        tbody.addEventListener('click', function (e) {
+          // Aktions-Button: nicht weiterleiten
+          if (e.target.closest('.pf-btn')) {
+            e.stopPropagation();
+            return;
+          }
+          var tr = e.target.closest('tr');
+          if (!tr) return;
+          var idx = tr.dataset.rowIndex;
+          if (idx === undefined) return;
+          var rowData = _lastResult[parseInt(idx, 10)];
+          if (rowData !== undefined) {
+            onRowClick(rowData, tr);
+          }
+        });
+      }
+    }
 
     return {
       apply:           apply,
