@@ -51,8 +51,8 @@
 </div>
 
 <!-- ─── Trainer Detail Modal ──────────────────────────────────────── -->
-<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+<div class="modal modal-blur fade pf-modal-lg" id="detail-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modal-title">Trainer-Details</h5>
@@ -61,17 +61,17 @@
       <div class="modal-body" id="modal-body">
         <!-- Filled dynamically -->
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" onclick="closeModal('detail-modal')">Abbrechen</button>
-        <button class="btn btn-primary" id="modal-save-btn" onclick="saveTrainer()">Speichern</button>
+      <div class="modal-footer pf-modal-footer">
+        <button class="pf-btn pf-btn-neutral" onclick="closeModal('detail-modal')">Abbrechen</button>
+        <button class="pf-btn pf-btn-primary" id="modal-save-btn" onclick="saveTrainer()">Speichern</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ─── New Trainer Modal ─────────────────────────────────────────── -->
-<div class="modal modal-blur fade" id="new-modal" tabindex="-1">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+<div class="modal modal-blur fade pf-modal-lg" id="new-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Neuen Trainer anlegen</h5>
@@ -79,116 +79,105 @@
       </div>
       <div class="modal-body">
         <form id="new-trainer-form">
-          <div class="row mb-3">
-            <div class="col-md-6">
+          <div class="pf-form-grid pf-form-grid-2col">
+            <div class="form-group">
               <label class="form-label">Vorname *</label>
-              <input class="form-control" id="new-firstname" required>
+              <input class="pf-field" id="new-firstname" required>
             </div>
-            <div class="col-md-6">
+            <div class="form-group">
               <label class="form-label">Nachname *</label>
-              <input class="form-control" id="new-lastname" required>
+              <input class="pf-field" id="new-lastname" required>
             </div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="form-group">
               <label class="form-label">E-Mail *</label>
-              <input class="form-control" type="email" id="new-email" required>
+              <input class="pf-field" type="email" id="new-email" required>
             </div>
-            <div class="col-md-6">
+            <div class="form-group">
               <label class="form-label">Telefon</label>
-              <input class="form-control" id="new-phone">
+              <input class="pf-field" id="new-phone">
             </div>
-          </div>
 
-          <hr class="form-divider">
-          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Adresse</h3>
+            <div class="pf-form-divider">Adresse</div>
 
-          <div class="mb-3">
-            <label class="form-label">Straße und Hausnummer</label>
-            <input class="form-control" id="new-street">
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="form-group pf-form-full">
+              <label class="form-label">Straße und Hausnummer</label>
+              <input class="pf-field" id="new-street">
+            </div>
+            <div class="form-group">
               <label class="form-label">PLZ</label>
-              <input class="form-control" id="new-postal">
+              <input class="pf-field" id="new-postal">
             </div>
-            <div class="col-md-6">
+            <div class="form-group">
               <label class="form-label">Ort (Wohnort)</label>
-              <input class="form-control" id="new-wohnort">
+              <input class="pf-field" id="new-wohnort">
             </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Einsatzort *</label>
-            <select class="form-select" id="new-city" required>
-              <option value="">Einsatzort wählen...</option>
-            </select>
-          </div>
+            <div class="form-group pf-form-full">
+              <label class="form-label">Einsatzort *</label>
+              <select class="pf-field" id="new-city" required>
+                <option value="">Einsatzort wählen...</option>
+              </select>
+            </div>
 
-          <hr class="form-divider">
-          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Profil</h3>
+            <div class="pf-form-divider">Profil</div>
 
-          <div class="mb-3">
-            <label class="form-label">Qualifikation / Spezialisierung</label>
-            <textarea class="form-control" id="new-specializations" rows="2"></textarea>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Bio</label>
-            <textarea class="form-control" id="new-bio" rows="3"></textarea>
-          </div>
+            <div class="form-group pf-form-full">
+              <label class="form-label">Qualifikation / Spezialisierung</label>
+              <textarea class="pf-field" id="new-specializations" rows="2"></textarea>
+            </div>
+            <div class="form-group pf-form-full">
+              <label class="form-label">Bio</label>
+              <textarea class="pf-field" id="new-bio" rows="3"></textarea>
+            </div>
 
-          <hr class="form-divider">
-          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Steuerdaten & Preise</h3>
+            <div class="pf-form-divider">Steuerdaten & Preise</div>
 
-          <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="form-group">
               <label class="form-label">Steuernummer</label>
-              <input class="form-control" id="new-steuernummer">
+              <input class="pf-field" id="new-steuernummer">
             </div>
-            <div class="col-md-6" style="display:flex;align-items:center;padding-top:24px">
+            <div class="form-group" style="display:flex;align-items:center;padding-top:24px">
               <label class="form-check">
                 <input class="form-check-input" type="checkbox" id="new-kleinunternehmer">
                 <span class="form-check-label">Kleinunternehmer</span>
               </label>
             </div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="form-group">
               <label class="form-label">Kundenpreis / Stundensatz (EUR)</label>
-              <input class="form-control" type="number" id="new-hourly-rate" placeholder="79.00" step="0.01" min="0">
+              <input class="pf-field" type="number" id="new-hourly-rate" placeholder="79.00" step="0.01" min="0">
             </div>
-            <div class="col-md-6">
+            <div class="form-group">
               <label class="form-label">Trainer-Vergütung (EUR)</label>
-              <input class="form-control" type="number" id="new-payout" placeholder="35.00" step="0.01" min="0">
+              <input class="pf-field" type="number" id="new-payout" placeholder="35.00" step="0.01" min="0">
             </div>
-          </div>
-          <hr class="form-divider">
-          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Lizenzen & Zertifikate</h3>
 
-          <div class="mb-3">
-            <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-              <input type="file" id="new-license-files" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
-                onchange="updateNewFilePreview()">
-              + Lizenzen hochladen
-            </label>
-            <span style="font-size:12px;color:var(--text-muted);margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
-          </div>
-          <div id="new-file-preview"></div>
-          <p style="font-size:12px;color:var(--text-muted);margin-top:4px">Optional – Lizenzen können auch später im Trainer-Detail hochgeladen werden</p>
+            <div class="pf-form-divider">Lizenzen & Zertifikate</div>
 
-          <hr class="form-divider">
+            <div class="form-group pf-form-full">
+              <label class="pf-btn pf-btn-neutral" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+                <input type="file" id="new-license-files" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
+                  onchange="updateNewFilePreview()">
+                + Lizenzen hochladen
+              </label>
+              <span style="font-size:12px;color:var(--pf-text-muted);margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
+            </div>
+            <div class="form-group pf-form-full" id="new-file-preview"></div>
+            <p class="pf-form-full" style="font-size:12px;color:var(--pf-text-muted);margin-top:4px">Optional – Lizenzen können auch später im Trainer-Detail hochgeladen werden</p>
 
-          <div class="mb-3">
-            <label class="form-label">Status</label>
-            <select class="form-select" id="new-status">
-              <option value="pending">Pending</option>
-              <option value="active">Active</option>
-            </select>
+            <div class="pf-form-divider"></div>
+
+            <div class="form-group pf-form-full">
+              <label class="form-label">Status</label>
+              <select class="pf-field" id="new-status">
+                <option value="pending">Pending</option>
+                <option value="active">Active</option>
+              </select>
+            </div>
           </div>
         </form>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-primary" onclick="createTrainer()">Anlegen</button>
+      <div class="modal-footer pf-modal-footer">
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-primary" onclick="createTrainer()">Anlegen</button>
       </div>
     </div>
   </div>
@@ -196,6 +185,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
@@ -244,9 +234,10 @@
       null,
     ], {
       extraButtons: [
-        { label: 'Neuer Trainer', icon: 'ti-plus', className: 'btn btn-sm btn-primary', onClick: 'openNewTrainerModal()' }
+        { label: 'Neuer Trainer', icon: 'ti-plus', className: 'pf-btn pf-btn-primary', onClick: 'openNewTrainerModal()' }
       ],
-      countLabel: 'Trainern'
+      countLabel: 'Trainern',
+      onRowClick: function(rowData) { openDetailModal(rowData.id); },
     });
     tableFilter.onFilterChange(() => renderTrainers());
   })();
@@ -272,16 +263,16 @@
       return;
     }
 
-    tbody.innerHTML = filtered.map(t => {
+    tbody.innerHTML = filtered.map((t, idx) => {
       const rating = t.rating ? `${t.rating} ★ (${t.review_count || 0})` : '–';
       const canActivate = t.status === 'pending' || t.status === 'gesperrt';
       const canDeactivate = t.status === 'active' && t.is_active;
       const licenseCount = (t.license_files || []).length;
       const licenseBadge = licenseCount > 0
-        ? `<span class="badge badge-active">${licenseCount} Datei${licenseCount > 1 ? 'en' : ''}</span>`
-        : '<span class="badge" style="background:rgba(232,147,10,0.12);color:#e8930a">Keine</span>';
+        ? DESIGN.badge('confirmed').replace('</span>', ` (${licenseCount})</span>`)
+        : DESIGN.badge('expired').replace('</span>', ' Keine</span>');
       return `
-        <tr>
+        <tr data-row-index="${idx}" style="cursor:pointer">
           <td style="display:flex;align-items:center;gap:8px">
             ${t.avatar_url
               ? `<img src="${t.avatar_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover">`
@@ -291,17 +282,17 @@
           </td>
           <td>${t.city || '–'}</td>
           <td class="text-secondary">${t.email || '–'}</td>
-          <td>${statusBadge(t.status)}</td>
+          <td>${DESIGN.badge(t.status)}</td>
           <td>${licenseBadge}</td>
           <td class="text-accent">${rating}</td>
           <td class="text-muted">${formatDate(t.created_at)}</td>
           <td>
             <div class="d-flex gap-1">
-              <button class="btn btn-sm btn-ghost-secondary" title="Details" onclick="openDetailModal('${t.id}')"><i class="ti ti-eye"></i></button>
-              ${canActivate ? `<button class="btn btn-sm btn-ghost-secondary" title="Aktivieren" onclick="activateTrainer('${t.id}')" style="color:var(--tblr-success)"><i class="ti ti-check"></i></button>` : ''}
-              ${canDeactivate ? `<button class="btn btn-sm btn-ghost-secondary" title="Deaktivieren" onclick="deactivateTrainer('${t.id}')" style="color:var(--tblr-danger)"><i class="ti ti-player-pause"></i></button>` : ''}
+              <button class="pf-btn pf-btn-edit" title="Details" onclick="openDetailModal('${t.id}')"><i class="ti ti-eye"></i> Details</button>
+              ${canActivate ? `<button class="pf-btn pf-btn-primary" title="Aktivieren" onclick="activateTrainer('${t.id}')"><i class="ti ti-check"></i> Aktivieren</button>` : ''}
+              ${canDeactivate ? `<button class="pf-btn pf-btn-danger" title="Deaktivieren" onclick="deactivateTrainer('${t.id}')"><i class="ti ti-player-pause"></i> Deaktivieren</button>` : ''}
               ${t.status !== 'active'
-                ? `<button class="btn btn-sm btn-ghost-secondary" title="Trainer löschen" onclick="deleteTrainer('${t.id}','${(t.full_name||'').replace(/'/g,"\\'")}')" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>`
+                ? `<button class="pf-btn pf-btn-danger" title="Trainer löschen" onclick="deleteTrainer('${t.id}','${(t.full_name||'').replace(/'/g,"\\'")}')" ><i class="ti ti-trash"></i> Löschen</button>`
                 : ''}
             </div>
           </td>
@@ -377,133 +368,118 @@
       <div id="avatar-section" style="text-align:center;margin-bottom:20px">
         <div id="avatar-preview" style="margin-bottom:10px">
           ${t.avatar_url
-            ? `<img id="avatar-img" src="${t.avatar_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,0.1)">`
-            : `<div id="avatar-placeholder" style="width:80px;height:80px;border-radius:50%;background:#374151;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff">${(t.full_name||'T').charAt(0)}</div>`
+            ? `<img id="avatar-img" src="${t.avatar_url}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:2px solid var(--pf-border)">`
+            : `<div id="avatar-placeholder" style="width:80px;height:80px;border-radius:50%;background:#e2e8f0;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#475569">${(t.full_name||'T').charAt(0)}</div>`
           }
         </div>
         <div style="display:flex;gap:8px;justify-content:center;align-items:center">
-          <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0">
+          <label class="pf-btn pf-btn-neutral" style="cursor:pointer;margin:0">
             <input type="file" id="avatar-file-input" accept="image/jpeg,image/png" style="display:none"
               onchange="handleAvatarFileChange(this)">
             Bild ändern
           </label>
           ${t.avatar_url
-            ? `<button class="btn btn-sm" style="background:transparent;color:var(--error);border:1px solid var(--error);cursor:pointer"
+            ? `<button class="pf-btn pf-btn-danger"
                 onclick="deleteTrainerAvatar()">Bild löschen</button>`
             : ''
           }
         </div>
-        <div id="avatar-status" style="font-size:12px;color:var(--text-secondary);margin-top:6px;min-height:18px"></div>
+        <div id="avatar-status" style="font-size:12px;color:var(--pf-text-secondary);margin-top:6px;min-height:18px"></div>
       </div>
-      <div class="row mb-3">
-        <div class="col-md-6">
+
+      <div class="pf-form-grid pf-form-grid-2col">
+        <div class="form-group">
           <label class="form-label">Vorname *</label>
-          <input class="form-control" id="edit-firstname" value="${firstName}">
+          <input class="pf-field" id="edit-firstname" value="${firstName}">
         </div>
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">Nachname *</label>
-          <input class="form-control" id="edit-lastname" value="${lastName}">
+          <input class="pf-field" id="edit-lastname" value="${lastName}">
         </div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">E-Mail</label>
-          <input class="form-control" id="edit-email" type="email" value="${t.email || ''}">
+          <input class="pf-field" id="edit-email" type="email" value="${t.email || ''}">
         </div>
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">Telefon</label>
-          <input class="form-control" id="edit-phone" value="${t.phone || ''}">
+          <input class="pf-field" id="edit-phone" value="${t.phone || ''}">
         </div>
-      </div>
 
-      <hr class="form-divider">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Adresse</h3>
+        <div class="pf-form-divider">Adresse</div>
 
-      <div class="mb-3">
-        <label class="form-label">Straße und Hausnummer</label>
-        <input class="form-control" id="edit-street" value="${t.street_address || ''}">
-      </div>
-      <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="form-group pf-form-full">
+          <label class="form-label">Straße und Hausnummer</label>
+          <input class="pf-field" id="edit-street" value="${t.street_address || ''}">
+        </div>
+        <div class="form-group">
           <label class="form-label">PLZ</label>
-          <input class="form-control" id="edit-postal" value="${t.postal_code || ''}">
+          <input class="pf-field" id="edit-postal" value="${t.postal_code || ''}">
         </div>
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">Ort (Wohnort)</label>
-          <input class="form-control" id="edit-wohnort" value="${t.wohnort || ''}">
+          <input class="pf-field" id="edit-wohnort" value="${t.wohnort || ''}">
         </div>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Einsatzort</label>
-        <select class="form-select" id="edit-city">
-          <option value="">Einsatzort wählen...</option>
-          ${serviceLocations.map(l => `<option value="${l.city}" ${t.city === l.city ? 'selected' : ''}>${l.city}</option>`).join('')}
-        </select>
-      </div>
+        <div class="form-group pf-form-full">
+          <label class="form-label">Einsatzort</label>
+          <select class="pf-field" id="edit-city">
+            <option value="">Einsatzort wählen...</option>
+            ${serviceLocations.map(l => `<option value="${l.city}" ${t.city === l.city ? 'selected' : ''}>${l.city}</option>`).join('')}
+          </select>
+        </div>
 
-      <hr class="form-divider">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Profil</h3>
+        <div class="pf-form-divider">Profil</div>
 
-      <div class="mb-3">
-        <label class="form-label">Qualifikation / Spezialisierung</label>
-        <textarea class="form-control" id="edit-specializations" rows="2">${t.specializations || ''}</textarea>
-      </div>
-      <div class="mb-3">
-        <label class="form-label">Bio</label>
-        <textarea class="form-control" id="edit-bio" rows="3">${t.bio || ''}</textarea>
-      </div>
+        <div class="form-group pf-form-full">
+          <label class="form-label">Qualifikation / Spezialisierung</label>
+          <textarea class="pf-field" id="edit-specializations" rows="2">${t.specializations || ''}</textarea>
+        </div>
+        <div class="form-group pf-form-full">
+          <label class="form-label">Bio</label>
+          <textarea class="pf-field" id="edit-bio" rows="3">${t.bio || ''}</textarea>
+        </div>
 
-      <hr class="form-divider">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Steuerdaten & Preise</h3>
+        <div class="pf-form-divider">Steuerdaten & Preise</div>
 
-      <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">Steuernummer</label>
-          <input class="form-control" id="edit-steuernummer" value="${t.steuernummer || ''}">
+          <input class="pf-field" id="edit-steuernummer" value="${t.steuernummer || ''}">
         </div>
-        <div class="col-md-6" style="display:flex;align-items:center;padding-top:24px">
+        <div class="form-group" style="display:flex;align-items:center;padding-top:24px">
           <label class="form-check">
             <input class="form-check-input" type="checkbox" id="edit-kleinunternehmer" ${t.is_kleinunternehmer ? 'checked' : ''}>
             <span class="form-check-label">Kleinunternehmer</span>
           </label>
         </div>
-      </div>
 
-      <hr class="form-divider">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Status & Preise</h3>
+        <div class="pf-form-divider">Status & Preise</div>
 
-      <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">Status</label>
-          <select class="form-select" id="edit-status">
+          <select class="pf-field" id="edit-status">
             <option value="pending" ${t.status === 'pending' ? 'selected' : ''}>Pending</option>
             <option value="active" ${t.status === 'active' ? 'selected' : ''}>Active</option>
             <option value="pausiert" ${t.status === 'pausiert' ? 'selected' : ''}>Pausiert</option>
             <option value="gesperrt" ${t.status === 'gesperrt' ? 'selected' : ''}>Gesperrt</option>
           </select>
         </div>
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">Aktiv (sichtbar für Kunden)</label>
-          <select class="form-select" id="edit-is-active">
+          <select class="pf-field" id="edit-is-active">
             <option value="false" ${!t.is_active ? 'selected' : ''}>Nein</option>
             <option value="true" ${t.is_active ? 'selected' : ''}>Ja</option>
           </select>
         </div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">Kundenpreis / Stundensatz (EUR)</label>
-          <input class="form-control" type="number" id="edit-hourly-rate" step="0.01" min="0" value="${t.hourly_rate_cents ? (t.hourly_rate_cents / 100).toFixed(2) : ''}">
+          <input class="pf-field" type="number" id="edit-hourly-rate" step="0.01" min="0" value="${t.hourly_rate_cents ? (t.hourly_rate_cents / 100).toFixed(2) : ''}">
         </div>
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">Trainer-Vergütung (EUR)</label>
-          <input class="form-control" type="number" id="edit-payout" step="0.01" min="0" value="${t.payout_cents ? (t.payout_cents / 100).toFixed(2) : ''}">
+          <input class="pf-field" type="number" id="edit-payout" step="0.01" min="0" value="${t.payout_cents ? (t.payout_cents / 100).toFixed(2) : ''}">
         </div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-md-6">
+        <div class="form-group">
           <label class="form-label">MwSt-Satz (%)</label>
-          <input class="form-control" type="number" id="edit-mwst-satz" step="1" min="0" max="100" value="${t.mwst_satz ?? 19}">
+          <input class="pf-field" type="number" id="edit-mwst-satz" step="1" min="0" max="100" value="${t.mwst_satz ?? 19}">
           <div class="form-hint">Standard 19. Kleinunternehmer (§19 UStG) = 0.</div>
         </div>
       </div>
@@ -512,12 +488,12 @@
       ${t.status !== 'active' && t.status === 'pending' && !t.auth_user_id ? `
       <div class="alert alert-warning mt-3 d-flex align-items-center justify-content-between">
         <span><i class="ti ti-alert-circle me-2"></i>Neuer Trainer — noch nicht aktiviert.</span>
-        <button class="btn btn-success btn-sm" onclick="activateFromModal('${t.id}')"><i class="ti ti-check me-1"></i>Aktivieren & Onboarding-E-Mail senden</button>
+        <button class="pf-btn pf-btn-primary" onclick="activateFromModal('${t.id}')"><i class="ti ti-check me-1"></i>Aktivieren & Onboarding-E-Mail senden</button>
       </div>` : ''}
       ${t.status !== 'active' && t.auth_user_id ? `
-      <div class="alert mt-3 d-flex align-items-center justify-content-between" style="background:rgba(64,145,108,0.08);border:1px solid rgba(64,145,108,0.2)">
+      <div class="alert mt-3 d-flex align-items-center justify-content-between" style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2)">
         <span><i class="ti ti-player-pause me-2"></i>Trainer ist <strong>${t.status}</strong> — derzeit deaktiviert.</span>
-        <button class="btn btn-success btn-sm" onclick="activateFromModal('${t.id}')"><i class="ti ti-check me-1"></i>Reaktivieren</button>
+        <button class="pf-btn pf-btn-primary" onclick="activateFromModal('${t.id}')"><i class="ti ti-check me-1"></i>Reaktivieren</button>
       </div>` : ''}
 
       ${t.auth_user_id ? `<p class="text-muted mt-2" style="font-size:12px">Auth User ID: ${t.auth_user_id}</p>` : ''}
@@ -531,12 +507,12 @@
       </div>
 
       <div style="margin-top:12px">
-        <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+        <label class="pf-btn pf-btn-neutral" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
           <input type="file" id="admin-file-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
             onchange="adminUploadFiles('${id}', 'license')">
           + Neue Lizenz hochladen
         </label>
-        <span id="admin-upload-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
+        <span id="admin-upload-status" style="font-size:12px;color:var(--pf-text-muted);margin-left:8px"></span>
       </div>
 
       <hr class="form-divider">
@@ -547,12 +523,12 @@
       </div>
 
       <div style="margin-top:12px">
-        <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+        <label class="pf-btn pf-btn-neutral" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
           <input type="file" id="admin-contract-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
             onchange="adminUploadFiles('${id}', 'contract')">
           + Vertrag hochladen
         </label>
-        <span id="admin-contract-upload-status" style="font-size:12px;color:#8888A0;margin-left:8px"></span>
+        <span id="admin-contract-upload-status" style="font-size:12px;color:var(--pf-text-muted);margin-left:8px"></span>
       </div>
 
       <hr class="form-divider">
@@ -571,7 +547,7 @@
       <hr class="form-divider">
       <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Urlaub / Abwesenheit</h3>
 
-      <button class="btn btn-secondary btn-sm mb-3" onclick="document.getElementById('vacation-form').classList.toggle('d-none')">
+      <button class="pf-btn pf-btn-neutral mb-3" onclick="document.getElementById('vacation-form').classList.toggle('d-none')">
         <i class="ti ti-plus"></i> Urlaub eintragen
       </button>
 
@@ -579,15 +555,15 @@
         <div class="row g-2 align-items-end">
           <div class="col-md-3">
             <label class="form-label">Von</label>
-            <input type="date" class="form-control" id="admin-vac-start">
+            <input type="date" class="pf-field" id="admin-vac-start">
           </div>
           <div class="col-md-3">
             <label class="form-label">Bis</label>
-            <input type="date" class="form-control" id="admin-vac-end">
+            <input type="date" class="pf-field" id="admin-vac-end">
           </div>
           <div class="col-md-3">
             <label class="form-label">Grund</label>
-            <select class="form-select" id="admin-vac-reason">
+            <select class="pf-field" id="admin-vac-reason">
               <option value="urlaub">Urlaub</option>
               <option value="krank">Krank</option>
               <option value="privat">Privat</option>
@@ -595,8 +571,8 @@
             </select>
           </div>
           <div class="col-md-3">
-            <button class="btn btn-primary btn-sm" onclick="createVacation('${id}')">Speichern</button>
-            <button class="btn btn-ghost-secondary btn-sm" onclick="document.getElementById('vacation-form').classList.add('d-none')">Abbrechen</button>
+            <button class="pf-btn pf-btn-primary" onclick="createVacation('${id}')">Speichern</button>
+            <button class="pf-btn pf-btn-neutral" onclick="document.getElementById('vacation-form').classList.add('d-none')">Abbrechen</button>
           </div>
         </div>
       </div>
@@ -768,21 +744,21 @@
 
   function renderLicenseList(files, trainerId) {
     if (!files || files.length === 0) {
-      return '<p style="color:#8888A0;font-size:13px">Keine Lizenzen hochgeladen.</p>';
+      return '<p style="color:var(--pf-text-muted);font-size:13px">Keine Lizenzen hochgeladen.</p>';
     }
     return files.map(f => {
       const date = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('de-DE') : '–';
       const size = f.size_bytes ? formatFileSize(f.size_bytes) : '–';
       const icon = (f.content_type === 'application/pdf' || f.filename.endsWith('.pdf')) ? 'PDF' : 'IMG';
       return `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px">
-          <div style="width:36px;height:36px;border-radius:8px;background:rgba(232,147,10,0.12);color:#e8930a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${icon}</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--pf-bg-page);border:1px solid var(--pf-border);border-radius:10px;margin-bottom:8px">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(251,146,60,0.1);color:#ea580c;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${icon}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.filename}</div>
-            <div style="font-size:11px;color:#8888A0">${date} &middot; ${size}</div>
+            <div style="font-size:11px;color:var(--pf-text-muted)">${date} &middot; ${size}</div>
           </div>
-          <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewLicense('${f.path}')">Anzeigen</button>
-          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteLicense('${trainerId}','${f.path}')">L&ouml;schen</button>
+          <button class="pf-btn pf-btn-edit" style="font-size:11px" onclick="viewLicense('${f.path}')">Anzeigen</button>
+          <button class="pf-btn pf-btn-danger" style="font-size:11px" onclick="deleteLicense('${trainerId}','${f.path}')">L&ouml;schen</button>
         </div>
       `;
     }).join('');
@@ -790,21 +766,21 @@
 
   function renderContractList(files, trainerId) {
     if (!files || files.length === 0) {
-      return '<p style="color:#8888A0;font-size:13px">Kein Vertrag hochgeladen.</p>';
+      return '<p style="color:var(--pf-text-muted);font-size:13px">Kein Vertrag hochgeladen.</p>';
     }
     return files.map(f => {
       const date = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('de-DE') : '–';
       const size = f.size_bytes ? formatFileSize(f.size_bytes) : '–';
       const icon = (f.content_type === 'application/pdf' || f.filename.endsWith('.pdf')) ? 'PDF' : 'IMG';
       return `
-        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px">
-          <div style="width:36px;height:36px;border-radius:8px;background:rgba(46,117,182,0.12);color:#2E75B6;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${icon}</div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--pf-bg-page);border:1px solid var(--pf-border);border-radius:10px;margin-bottom:8px">
+          <div style="width:36px;height:36px;border-radius:8px;background:rgba(3,105,161,0.1);color:#0369a1;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${icon}</div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.filename}</div>
-            <div style="font-size:11px;color:#8888A0">${date} &middot; ${size}</div>
+            <div style="font-size:11px;color:var(--pf-text-muted)">${date} &middot; ${size}</div>
           </div>
-          <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewLicense('${f.path}')">Anzeigen</button>
-          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteContract('${trainerId}','${f.path}')">L&ouml;schen</button>
+          <button class="pf-btn pf-btn-edit" style="font-size:11px" onclick="viewLicense('${f.path}')">Anzeigen</button>
+          <button class="pf-btn pf-btn-danger" style="font-size:11px" onclick="deleteContract('${trainerId}','${f.path}')">L&ouml;schen</button>
         </div>
       `;
     }).join('');
@@ -1092,7 +1068,7 @@
       <div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:8px;margin-bottom:6px;font-size:13px">
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${f.name}</span>
         <span style="color:var(--text-muted);font-size:11px;flex-shrink:0">${formatFileSize(f.size)}</span>
-        <button type="button" class="btn btn-icon btn-icon-delete" style="font-size:12px;padding:2px 6px;min-width:auto" onclick="removeNewFile(${i})">&times;</button>
+        <button type="button" class="pf-btn pf-btn-danger" style="font-size:12px;padding:2px 6px;min-width:auto" onclick="removeNewFile(${i})">&times;</button>
       </div>
     `).join('');
   }
@@ -1250,7 +1226,7 @@
           '<td>' + formatDate(v.end_date) + '</td>' +
           '<td>' + days + ' Tage</td>' +
           '<td>' + (reasonMap[v.reason] || v.reason || '–') + '</td>' +
-          '<td><button class="btn btn-sm btn-outline-danger" onclick="deleteVacation(\'' + v.id + '\', \'' + v.trainer_id + '\')"><i class="ti ti-trash"></i></button></td>' +
+          '<td><button class="pf-btn pf-btn-danger" onclick="deleteVacation(\'' + v.id + '\', \'' + v.trainer_id + '\')"><i class="ti ti-trash"></i> Löschen</button></td>' +
           '</tr>';
       }).join('');
     } catch(e) {
