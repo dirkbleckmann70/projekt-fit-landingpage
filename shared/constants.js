@@ -293,6 +293,23 @@ const ADMIN_EDITABLE_STATUSES = Object.freeze([
   BOOKING_STATUS.STRITTIG,
 ]);
 
+// ─── Status Badge HTML (bevorzugter Weg ab Task 5) ───────────────────────────
+//
+// Nutzt window.DESIGN.badge() aus shared/design-tokens.js (muss vorher geladen sein).
+// Faellt auf STATUS_BADGE_CLASS + STATUS_LABELS zurueck wenn design-tokens.js fehlt.
+// Die Einzeldefinitionen STATUS_BADGE_CLASS + STATUS_LABELS bleiben erhalten —
+// bestehende Seiten referenzieren sie direkt (werden in Tasks 6–13 umgestellt).
+
+function statusBadge(status) {
+  if (window.DESIGN && window.DESIGN.badge) {
+    return window.DESIGN.badge(status);
+  }
+  // Fallback wenn design-tokens noch nicht geladen
+  const cls = STATUS_BADGE_CLASS[status] || 'badge bg-secondary';
+  const label = STATUS_LABELS[status] || status;
+  return `<span class="${cls}">${label}</span>`;
+}
+
 // ─── Überfällig-Erkennung ─────────────────────────────────────────────────
 
 function isOverdue(booking) {
@@ -311,6 +328,12 @@ function overdueDays(booking) {
   const scheduled = new Date(booking.scheduled_date);
   const now = new Date();
   return Math.floor((now - scheduled) / (1000 * 60 * 60 * 24));
+}
+
+// ─── Browser-Exports ──────────────────────────────────────────────────────
+
+if (typeof window !== 'undefined') {
+  window.statusBadge = statusBadge;
 }
 
 // ─── Optional: Node/Test-Export (Browser ignoriert das) ───────────────────
@@ -335,5 +358,6 @@ if (typeof module !== 'undefined' && module.exports) {
     ADMIN_EDITABLE_STATUSES,
     isOverdue,
     overdueDays,
+    statusBadge,
   };
 }
