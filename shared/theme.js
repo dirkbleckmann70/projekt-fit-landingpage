@@ -8,7 +8,7 @@
   function getPreferredTheme() {
     var stored = localStorage.getItem(STORAGE_KEY);
     if (stored) return stored;
-    return 'dark';
+    return 'light';
   }
 
   function setTheme(theme) {

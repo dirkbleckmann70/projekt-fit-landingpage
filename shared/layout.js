@@ -10,30 +10,25 @@ const MOON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20"
 
 window.renderAdminSidebar = function renderAdminSidebar(activePage) {
   const items = [
-    { id: 'dashboard',        label: 'Dashboard',         icon: 'layout-dashboard', href: '/admin/dashboard.html' },
-    { id: 'calendar',         label: 'Kalender',          icon: 'calendar',         href: '/admin/calendar.html' },
-    { id: 'trainers',         label: 'Trainer',           icon: 'users',            href: '/admin/trainers.html' },
-    { id: 'bookings',         label: 'Buchungen',         icon: 'clipboard-list',   href: '/admin/bookings.html' },
-    { id: 'open-payments',    label: 'Offene Zahlungen',  icon: 'credit-card-off',  href: '/admin/open-payments.html' },
-    { id: 'trainer-debts',    label: 'Trainer-Schulden',  icon: 'wallet-off',       href: '/admin/trainer-debts.html' },
-    { id: 'customers',        label: 'Kunden',            icon: 'user',             href: '/admin/customers.html' },
-    { id: 'finances',         label: 'Finanzen',          icon: 'currency-euro',    href: '/admin/finances.html' },
-    { id: 'groups',           label: 'Gruppentrainings',  icon: 'users-group',      href: '/admin/groups.html' },
-    { id: 'cards',            label: '10er-Karten',       icon: 'ticket',           href: '/admin/cards.html' },
-    { id: 'documents',        label: 'Dokumente',         icon: 'file-text',        href: '/admin/documents.html' },
-    { id: 'locations',        label: 'Einsatzorte',       icon: 'map-pin',          href: '/admin/locations.html' },
-    { id: 'testers',          label: 'Tester & Admins',   icon: 'settings',         href: '/admin/testers.html' },
-    { id: 'invoices',         label: 'Belege',            icon: 'file-invoice',     href: '/admin/invoices.html' },
-    { id: 'company-settings', label: 'Einstellungen',     icon: 'adjustments',      href: '/admin/company-settings.html' },
+    { id: 'dashboard',        label: 'Dashboard',        emoji: '📊', href: '/admin/dashboard.html' },
+    { id: 'bookings',         label: 'Buchungen',        emoji: '📋', href: '/admin/bookings.html' },
+    { id: 'customers',        label: 'Kunden',           emoji: '👥', href: '/admin/customers.html' },
+    { id: 'trainers',         label: 'Trainer',          emoji: '🏋️', href: '/admin/trainers.html' },
+    { id: 'calendar',         label: 'Kalender',         emoji: '📅', href: '/admin/calendar.html' },
+    { id: 'cards',            label: '10er-Karten',      emoji: '🎫', href: '/admin/cards.html' },
+    { id: 'groups',           label: 'Gruppentrainings', emoji: '👥', href: '/admin/groups.html' },
+    { id: 'finances',         label: 'Finanzen',         emoji: '💰', href: '/admin/finances.html' },
+    { id: 'invoices',         label: 'Belege',           emoji: '📄', href: '/admin/invoices.html' },
+    { id: 'company-settings', label: 'Einstellungen',    emoji: '⚙️', href: '/admin/company-settings.html' },
   ];
 
   const navItems = items.map(p => `
-        <li class="nav-item">
-          <a class="nav-link${p.id === activePage ? ' active' : ''}" href="${p.href}">
-            <span class="nav-link-icon"><i class="ti ti-${p.icon}"></i></span>
-            <span class="nav-link-title">${p.label}</span>
+        <div class="pf-sidebar-item${p.id === activePage ? ' active' : ''}">
+          <a href="${p.href}" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span class="pf-sidebar-icon">${p.emoji}</span>
+            <span>${p.label}</span>
           </a>
-        </li>`).join('');
+        </div>`).join('');
 
   return `<aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
   <div class="container-fluid">
@@ -43,8 +38,8 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
       </a>
     </h1>
     <div class="collapse navbar-collapse" id="sidebar-menu">
-      <ul class="navbar-nav pt-lg-3">${navItems}
-      </ul>
+      <div class="pt-lg-3">${navItems}
+      </div>
     </div>
   </div>
 </aside>`;
@@ -89,21 +84,22 @@ window.renderAdminHeader = function renderAdminHeader(title, userEmail) {
 
 window.renderTrainerSidebar = function renderTrainerSidebar(activePage) {
   const items = [
-    { id: 'dashboard',    label: 'Dashboard',    icon: 'layout-dashboard', href: '/trainer-portal/dashboard.html' },
-    { id: 'bookings',     label: 'Buchungen',    icon: 'clipboard-list',   href: '/trainer-portal/bookings.html' },
-    { id: 'availability', label: 'Kalender',     icon: 'calendar',         href: '/trainer-portal/availability.html' },
-    { id: 'finances',     label: 'Finanzen',     icon: 'currency-euro',    href: '/trainer-portal/finances.html' },
-    { id: 'invoices',     label: 'Gutschriften', icon: 'file-invoice',     href: '/trainer-portal/invoices.html' },
-    { id: 'profile',      label: 'Profil',       icon: 'user',             href: '/trainer-portal/profile.html' },
+    { id: 'dashboard',    label: 'Dashboard',    emoji: '📊', href: '/trainer-portal/dashboard.html' },
+    { id: 'bookings',     label: 'Buchungen',    emoji: '📋', href: '/trainer-portal/bookings.html' },
+    { id: 'calendar',     label: 'Kalender',     emoji: '📅', href: '/trainer-portal/availability.html' },
+    { id: 'availability', label: 'Verfügbarkeit',emoji: '🕐', href: '/trainer-portal/availability.html' },
+    { id: 'finances',     label: 'Finanzen',     emoji: '💰', href: '/trainer-portal/finances.html' },
+    { id: 'invoices',     label: 'Gutschriften', emoji: '📄', href: '/trainer-portal/invoices.html' },
+    { id: 'profile',      label: 'Profil',       emoji: '👤', href: '/trainer-portal/profile.html' },
   ];
 
   const navItems = items.map(p => `
-        <li class="nav-item">
-          <a class="nav-link${p.id === activePage ? ' active' : ''}" href="${p.href}">
-            <span class="nav-link-icon"><i class="ti ti-${p.icon}"></i></span>
-            <span class="nav-link-title">${p.label}</span>
+        <div class="pf-sidebar-item${p.id === activePage ? ' active' : ''}">
+          <a href="${p.href}" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
+            <span class="pf-sidebar-icon">${p.emoji}</span>
+            <span>${p.label}</span>
           </a>
-        </li>`).join('');
+        </div>`).join('');
 
   return `<aside class="navbar navbar-vertical navbar-expand-lg d-none d-lg-flex" data-bs-theme="dark">
   <div class="container-fluid">
@@ -113,8 +109,8 @@ window.renderTrainerSidebar = function renderTrainerSidebar(activePage) {
       </a>
     </h1>
     <div class="collapse navbar-collapse" id="sidebar-menu">
-      <ul class="navbar-nav pt-lg-3">${navItems}
-      </ul>
+      <div class="pt-lg-3">${navItems}
+      </div>
     </div>
   </div>
 </aside>`;
@@ -123,15 +119,22 @@ window.renderTrainerSidebar = function renderTrainerSidebar(activePage) {
 // ─── Trainer Bottom Nav (Mobile) ────────────────────────────────────────────
 
 window.renderTrainerBottomNav = function renderTrainerBottomNav(activePage) {
-  const items = [
+  const mainItems = [
     { id: 'dashboard',    label: 'Home',      icon: 'home',           href: '/trainer-portal/dashboard.html' },
     { id: 'bookings',     label: 'Buchungen', icon: 'clipboard-list', href: '/trainer-portal/bookings.html' },
-    { id: 'availability', label: 'Kalender',  icon: 'calendar',       href: '/trainer-portal/availability.html' },
+    { id: 'calendar',     label: 'Kalender',  icon: 'calendar',       href: '/trainer-portal/availability.html' },
     { id: 'finances',     label: 'Finanzen',  icon: 'currency-euro',  href: '/trainer-portal/finances.html' },
     { id: 'profile',      label: 'Profil',    icon: 'user',           href: '/trainer-portal/profile.html' },
   ];
 
-  const navLinks = items.map(p => {
+  const moreItems = [
+    { id: 'availability', label: 'Verfügbarkeit', icon: 'clock',        href: '/trainer-portal/availability.html' },
+    { id: 'invoices',     label: 'Gutschriften',  icon: 'file-invoice', href: '/trainer-portal/invoices.html' },
+  ];
+
+  const isMoreActive = moreItems.some(p => p.id === activePage);
+
+  const navLinks = mainItems.map(p => {
     const color = p.id === activePage ? 'var(--tblr-primary)' : 'var(--tblr-secondary-color)';
     return `<a href="${p.href}" style="display:flex;flex-direction:column;align-items:center;text-decoration:none;font-size:11px;gap:2px;color:${color}">
       <i class="ti ti-${p.icon}" style="font-size:22px"></i>
@@ -139,9 +142,35 @@ window.renderTrainerBottomNav = function renderTrainerBottomNav(activePage) {
     </a>`;
   }).join('\n  ');
 
+  const moreColor = isMoreActive ? 'var(--tblr-primary)' : 'var(--tblr-secondary-color)';
+  const moreDropdownItems = moreItems.map(p => {
+    const itemColor = p.id === activePage ? 'var(--tblr-primary)' : 'inherit';
+    return `<a href="${p.href}" style="display:flex;align-items:center;gap:8px;padding:10px 16px;text-decoration:none;color:${itemColor};font-size:14px">
+        <i class="ti ti-${p.icon}" style="font-size:18px"></i>
+        ${p.label}
+      </a>`;
+  }).join('\n      ');
+
   return `<nav class="d-lg-none" style="position:fixed;bottom:0;left:0;right:0;z-index:1030;background:var(--tblr-card-bg);border-top:1px solid var(--tblr-border-color);display:flex;justify-content:space-around;padding:8px 0">
   ${navLinks}
-</nav>`;
+  <div style="position:relative;display:flex;flex-direction:column;align-items:center">
+    <button onclick="document.getElementById('pf-more-menu').classList.toggle('d-none')" style="display:flex;flex-direction:column;align-items:center;background:none;border:none;font-size:11px;gap:2px;color:${moreColor};cursor:pointer;padding:0">
+      <i class="ti ti-dots" style="font-size:22px"></i>
+      Mehr
+    </button>
+    <div id="pf-more-menu" class="d-none" style="position:absolute;bottom:48px;right:0;background:var(--tblr-card-bg);border:1px solid var(--tblr-border-color);border-radius:8px;min-width:170px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:1040">
+      ${moreDropdownItems}
+    </div>
+  </div>
+</nav>
+<script>
+  document.addEventListener('click', function(e) {
+    var menu = document.getElementById('pf-more-menu');
+    if (menu && !menu.contains(e.target) && !e.target.closest('[onclick*="pf-more-menu"]')) {
+      menu.classList.add('d-none');
+    }
+  });
+</script>`;
 };
 
 // ─── Trainer Header ─────────────────────────────────────────────────────────
