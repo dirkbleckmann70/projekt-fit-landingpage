@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <script src="../shared/design-tokens.js"></script>
 </head>
 <body class="page">
 <script src="../shared/theme.js"></script>
@@ -73,7 +74,7 @@
             </label>
             <input type="file" id="avatar-upload" accept="image/*" style="display:none" onchange="uploadAvatar(this)">
           </div>
-          ${t.avatar_url ? '<div><button class="btn btn-ghost-danger btn-sm" onclick="removeAvatar()" style="font-size:11px">Bild entfernen</button></div>' : ''}
+          ${t.avatar_url ? '<div><button class="pf-btn pf-btn-danger" onclick="removeAvatar()">Bild entfernen</button></div>' : ''}
           <div style="font-size:18px;font-weight:700">${t.full_name || '–'}</div>
           <div class="text-secondary" style="font-size:13px">${t.email || ''}</div>
           ${t.rating ? `<div class="mt-1" style="color:var(--tblr-warning)">${t.rating} ★ (${t.review_count || 0} Bewertungen)</div>` : ''}
@@ -87,17 +88,17 @@
       <div class="card mb-3">
         <div class="card-header"><h3 class="card-title"><i class="ti ti-user me-2"></i>Kontaktdaten</h3></div>
         <div class="card-body">
-          <div class="mb-3">
-            <label class="form-label">Name</label>
+          <div class="pf-field mb-3">
+            <label>Name</label>
             <input class="form-control" id="f-name" value="${t.full_name || ''}">
           </div>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Telefon</label>
+          <div class="pf-form-grid">
+            <div class="pf-field">
+              <label>Telefon</label>
               <input class="form-control" id="f-phone" value="${t.phone || ''}">
             </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">E-Mail</label>
+            <div class="pf-field pf-field-readonly">
+              <label>E-Mail</label>
               <input class="form-control" value="${t.email || ''}" disabled>
             </div>
           </div>
@@ -108,18 +109,18 @@
       <div class="card mb-3">
         <div class="card-header"><h3 class="card-title"><i class="ti ti-map-pin me-2"></i>Adresse</h3></div>
         <div class="card-body">
-          <div class="row">
-            <div class="col-md-8 mb-3">
-              <label class="form-label">Straße + Nr.</label>
+          <div class="pf-form-grid">
+            <div class="pf-field" style="grid-column:span 2">
+              <label>Straße + Nr.</label>
               <input class="form-control" id="f-street" value="${t.street_address || ''}">
             </div>
-            <div class="col-md-4 mb-3">
-              <label class="form-label">PLZ</label>
+            <div class="pf-field">
+              <label>PLZ</label>
               <input class="form-control" id="f-postal" value="${t.postal_code || ''}">
             </div>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Wohnort</label>
+          <div class="pf-field mb-3">
+            <label>Wohnort</label>
             <input class="form-control" id="f-city" value="${t.city || ''}">
             <small class="form-hint">Dein Wohnort (nicht dein Trainingsort)</small>
           </div>
@@ -130,12 +131,12 @@
       <div class="card mb-3">
         <div class="card-header"><h3 class="card-title"><i class="ti ti-certificate me-2"></i>Berufliches Profil</h3></div>
         <div class="card-body">
-          <div class="mb-3">
-            <label class="form-label">Bio / Über mich</label>
+          <div class="pf-field mb-3">
+            <label>Bio / Über mich</label>
             <textarea class="form-control" id="f-bio" rows="4">${t.bio || ''}</textarea>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Spezialisierungen</label>
+          <div class="pf-field mb-3">
+            <label>Spezialisierungen</label>
             <input class="form-control" id="f-spec" value="${t.specializations || ''}" placeholder="z.B. HIIT, Yoga, Krafttraining">
             <small class="form-hint">Komma-getrennt</small>
           </div>
@@ -146,13 +147,13 @@
       <div class="card mb-3">
         <div class="card-header"><h3 class="card-title"><i class="ti ti-receipt-tax me-2"></i>Steuerdaten</h3></div>
         <div class="card-body">
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Steuernummer</label>
+          <div class="pf-form-grid">
+            <div class="pf-field">
+              <label>Steuernummer</label>
               <input class="form-control" id="f-steuer" value="${t.steuernummer || ''}">
             </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Kleinunternehmer</label>
+            <div class="pf-field">
+              <label>Kleinunternehmer</label>
               <select class="form-select" id="f-klein">
                 <option value="false" ${!t.is_kleinunternehmer ? 'selected' : ''}>Nein</option>
                 <option value="true" ${t.is_kleinunternehmer ? 'selected' : ''}>Ja (§19 UStG)</option>
@@ -169,18 +170,18 @@
         <div class="card-header"><h3 class="card-title">Vom Admin verwaltet</h3></div>
         <div class="card-body">
           <small class="form-hint mb-3 d-block">Diese Felder können nur vom Projekt Fit Team geändert werden.</small>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Vergütung</label>
+          <div class="pf-form-grid">
+            <div class="pf-field pf-field-readonly">
+              <label>Vergütung</label>
               <input class="form-control" value="${t.payout_cents ? formatEuro(t.payout_cents) : '–'}" disabled>
             </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Status</label>
+            <div class="pf-field pf-field-readonly">
+              <label>Status</label>
               <input class="form-control" value="${t.status || '–'}" disabled>
             </div>
           </div>
-          <div class="mb-3">
-            <label class="form-label">Mitglied seit</label>
+          <div class="pf-field pf-field-readonly mb-3">
+            <label>Mitglied seit</label>
             <input class="form-control" value="${formatDate(t.created_at)}" disabled>
           </div>
         </div>
@@ -194,7 +195,7 @@
             ${renderFileList(t.license_files || [], 'license')}
           </div>
           <div class="mt-3">
-            <label class="btn btn-outline-secondary btn-sm" style="cursor:pointer">
+            <label class="pf-btn pf-btn-neutral" style="cursor:pointer">
               <input type="file" id="license-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
                 onchange="uploadFiles('license')">
               <i class="ti ti-upload me-1"></i> Lizenz hochladen
@@ -212,7 +213,7 @@
             ${renderFileList(t.contract_files || [], 'contract')}
           </div>
           <div class="mt-3">
-            <label class="btn btn-outline-secondary btn-sm" style="cursor:pointer">
+            <label class="pf-btn pf-btn-neutral" style="cursor:pointer">
               <input type="file" id="contract-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
                 onchange="uploadFiles('contract')">
               <i class="ti ti-upload me-1"></i> Vertrag hochladen
@@ -222,7 +223,9 @@
         </div>
       </div>
 
-      <button class="btn btn-primary w-100 btn-lg mb-3" id="save-btn" onclick="saveProfile()">Profil speichern</button>
+      <div style="max-width:400px;margin:0 auto" class="mb-3">
+        <button class="pf-btn pf-btn-primary pf-btn-lg w-100" id="save-btn" onclick="saveProfile()">Profil speichern</button>
+      </div>
     `;
 
     if (window._profileDirty) window._profileDirty.destroy();
@@ -260,8 +263,8 @@
             <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.filename}</div>
             <div class="text-secondary" style="font-size:11px">${date} &middot; ${size}</div>
           </div>
-          <button class="btn btn-outline-secondary btn-sm" style="font-size:11px" onclick="viewFile('${f.path}')">Anzeigen</button>
-          <button class="btn btn-outline-danger btn-sm" style="font-size:11px" onclick="deleteFile('${f.path}','${type}')">Löschen</button>
+          <button class="pf-btn pf-btn-neutral" onclick="viewFile('${f.path}')">Anzeigen</button>
+          <button class="pf-btn pf-btn-danger" onclick="deleteFile('${f.path}','${type}')">Löschen</button>
         </div>
       `;
     }).join('');
@@ -363,7 +366,7 @@
   async function saveProfile() {
     const btn = document.getElementById('save-btn');
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Wird gespeichert...';
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Wird gespeichert...';
 
     const sb = getSupabase();
     const trainerId = window.currentTrainer.id;

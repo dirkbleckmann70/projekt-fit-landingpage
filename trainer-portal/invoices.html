@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <script src="../shared/design-tokens.js"></script>
   <style>
     /* ── Stripe Onboarding Banner ─────────────────────────────────── */
     .stripe-banner {
@@ -31,10 +32,7 @@
     .stripe-banner-btn:hover { opacity: 0.85; }
     .stripe-banner-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    /* Typ-Badges */
-    .badge-pt { background:rgba(46,117,182,0.12); color:#5BB8FF; border:1px solid rgba(91,184,255,0.25); }
-    .badge-gt { background:rgba(107,52,168,0.15); color:#C084FC; border:1px solid rgba(192,132,252,0.25); }
-    .badge-storno { background:rgba(231,76,60,0.12); color:#e74c3c; border:1px solid rgba(231,76,60,0.25); }
+    /* Typ-Badges werden via DESIGN.badge() gerendert */
 
     tr.storno-row td { color: #e74c3c !important; }
     .sum-row td { font-weight:700; border-top:2px solid rgba(255,255,255,0.12)!important; padding-top:12px!important; padding-bottom:12px!important; }
@@ -51,7 +49,7 @@
     <div class="container-xl">
 
       <div class="d-flex align-items-center justify-content-between mb-3">
-        <button class="btn btn-ghost-secondary btn-sm" onclick="exportCSV()"><i class="ti ti-download me-1"></i>CSV Export</button>
+        <button class="pf-btn pf-btn-neutral" onclick="exportCSV()"><i class="ti ti-download me-1"></i>CSV Export</button>
       </div>
 
       <!-- Stripe Onboarding Banner -->
@@ -60,28 +58,28 @@
       <!-- KPI-Leiste -->
       <div class="row row-deck row-cards mb-3">
         <div class="col-6 col-lg-3">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label">Gutschriften</div>
-            <div class="kpi-value" id="kpi-count"><div class="spinner-border spinner-border-sm"></div></div>
-          </div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Gutschriften</div>
+            <div class="pf-stat-num" id="kpi-count"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
         <div class="col-6 col-lg-3">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label">Gesamt Netto</div>
-            <div class="kpi-value" id="kpi-netto"><div class="spinner-border spinner-border-sm"></div></div>
-          </div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Gesamt Netto</div>
+            <div class="pf-stat-num" id="kpi-netto"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
         <div class="col-6 col-lg-3">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label">MwSt</div>
-            <div class="kpi-value" id="kpi-mwst"><div class="spinner-border spinner-border-sm"></div></div>
-          </div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">MwSt</div>
+            <div class="pf-stat-num" id="kpi-mwst"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
         <div class="col-6 col-lg-3">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label">Gesamt Brutto</div>
-            <div class="kpi-value text-primary" id="kpi-brutto"><div class="spinner-border spinner-border-sm"></div></div>
-          </div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Gesamt Brutto</div>
+            <div class="pf-stat-num" id="kpi-brutto"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
       </div>
 
@@ -90,18 +88,18 @@
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
           <h3 class="card-title">Gutschriften &amp; Stornobelege</h3>
           <div class="d-flex gap-2 flex-wrap">
-            <select id="year-select" class="form-select" style="width:auto" onchange="applyFilters()"></select>
-            <select id="month-select" class="form-select" style="width:auto" onchange="applyFilters()">
+            <div class="pf-field" style="width:auto;margin-bottom:0"><select id="year-select" class="form-select" onchange="applyFilters()"></select></div>
+            <div class="pf-field" style="width:auto;margin-bottom:0"><select id="month-select" class="form-select" onchange="applyFilters()">
               <option value="">Alle Monate</option>
               <option value="01">Januar</option><option value="02">Februar</option><option value="03">März</option>
               <option value="04">April</option><option value="05">Mai</option><option value="06">Juni</option>
               <option value="07">Juli</option><option value="08">August</option><option value="09">September</option>
               <option value="10">Oktober</option><option value="11">November</option><option value="12">Dezember</option>
-            </select>
-            <select id="type-select" class="form-select" style="width:auto" onchange="applyFilters()">
+            </select></div>
+            <div class="pf-field" style="width:auto;margin-bottom:0"><select id="type-select" class="form-select" onchange="applyFilters()">
               <option value="">Alle Typen</option>
               <option value="pt">PT</option><option value="gt">GT</option><option value="storno">Storno</option>
-            </select>
+            </select></div>
           </div>
         </div>
         <div class="table-responsive">
@@ -192,7 +190,7 @@
           <i class="ti ti-alert-circle" style="font-size:18px"></i>
           Auszahlung noch nicht eingerichtet – verbinde jetzt dein Stripe-Konto
         </div>
-        <button class="stripe-banner-btn" id="stripe-onboard-btn" onclick="startStripeOnboarding()">
+        <button class="pf-btn pf-btn-primary" id="stripe-onboard-btn" onclick="startStripeOnboarding()">
           Auszahlung einrichten
         </button>
       `;
@@ -244,7 +242,7 @@
             <i class="ti ti-alert-circle" style="font-size:18px"></i>
             Onboarding nicht abgeschlossen – bitte versuche es erneut
           </div>
-          <button class="stripe-banner-btn" id="stripe-onboard-btn" onclick="startStripeOnboarding()">
+          <button class="pf-btn pf-btn-primary" id="stripe-onboard-btn" onclick="startStripeOnboarding()">
             Erneut versuchen
           </button>
         `;
@@ -364,10 +362,10 @@
       const rowClass   = storno ? ' class="storno-row"' : '';
 
       const typeBadge  = storno
-        ? '<span class="badge badge-storno">Storno</span>'
+        ? `<span class="pf-badge" style="background:#fef2f2;color:#dc2626">Storno</span>`
         : bt === 'gt'
-          ? '<span class="badge badge-gt">GT</span>'
-          : '<span class="badge badge-pt">PT</span>';
+          ? `<span class="pf-badge" style="background:#f5f3ff;color:#7c3aed">GT</span>`
+          : `<span class="pf-badge" style="background:#eff6ff;color:#0369a1">PT</span>`;
 
       const kundenName = inv.customer_name || inv.recipient_name || '–';
       const nummer     = inv.invoice_number || inv.number || '–';
@@ -387,12 +385,12 @@
         ${bruttoCell}
         <td style="text-align:center">
           ${inv.pdf_path
-            ? `<button class="btn btn-icon btn-ghost-secondary btn-sm" onclick="downloadPdf('${inv.pdf_path}')" title="PDF herunterladen"><i class="ti ti-download"></i></button>`
+            ? `<button class="pf-btn pf-btn-neutral" onclick="downloadPdf('${inv.pdf_path}')" title="PDF herunterladen"><i class="ti ti-download"></i></button>`
             : '<span class="text-secondary" style="font-size:12px">–</span>'
           }
         </td>
         <td style="text-align:center">
-          <button class="btn btn-icon btn-ghost-secondary btn-sm" onclick="printInvoice('${inv.id}')" title="Drucken"><i class="ti ti-printer"></i></button>
+          <button class="pf-btn pf-btn-neutral" onclick="printInvoice('${inv.id}')" title="Drucken"><i class="ti ti-printer"></i></button>
         </td>
       </tr>`;
     }).join('');

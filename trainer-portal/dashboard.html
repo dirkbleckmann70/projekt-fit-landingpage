@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <script src="../shared/design-tokens.js"></script>
 </head>
 <body class="page">
 <script src="../shared/theme.js"></script>
@@ -27,37 +28,29 @@
       <!-- KPIs -->
       <div class="row row-deck row-cards mb-3">
         <div class="col-6 col-lg-3">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Nächste Buchung</div>
-              <div class="kpi-value" id="kpi-next" style="font-size:1rem"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Nächste Buchung</div>
+            <div class="pf-stat-num" id="kpi-next" style="font-size:1rem"><div class="spinner-border spinner-border-sm"></div></div>
           </div>
         </div>
         <div class="col-6 col-lg-3">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Buchungen (Monat)</div>
-              <div class="kpi-value" id="kpi-month"><div class="spinner-border spinner-border-sm"></div></div>
-              <div class="kpi-sub" id="kpi-month-total"></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Buchungen (Monat)</div>
+            <div class="pf-stat-num" id="kpi-month"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="kpi-sub" id="kpi-month-total"></div>
           </div>
         </div>
         <div class="col-6 col-lg-3">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Bewertung</div>
-              <div class="kpi-value text-warning" id="kpi-rating"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Bewertung</div>
+            <div class="pf-stat-num" id="kpi-rating"><div class="spinner-border spinner-border-sm"></div></div>
           </div>
         </div>
         <div class="col-6 col-lg-3">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Verdienst (Monat)</div>
-              <div class="kpi-value text-primary" id="kpi-earnings"><div class="spinner-border spinner-border-sm"></div></div>
-              <div class="kpi-sub" id="kpi-earnings-total"></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Verdienst (Monat)</div>
+            <div class="pf-stat-num" id="kpi-earnings"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="kpi-sub" id="kpi-earnings-total"></div>
           </div>
         </div>
       </div>
@@ -76,7 +69,7 @@
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h3 class="card-title">Nächste Termine</h3>
-          <a href="/trainer-portal/bookings.html" class="btn btn-ghost-secondary btn-sm">Alle</a>
+          <a href="/trainer-portal/bookings.html" class="pf-btn pf-btn-neutral">Alle</a>
         </div>
         <div id="upcoming-list">
           <div class="card-body"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</div>
@@ -262,7 +255,7 @@
               ${statusBadge(BOOKING_STATUS.PENDING)}
             </div>
             <div class="d-flex gap-2">
-              <a class="btn btn-outline-primary btn-sm" href="/trainer-portal/bookings.html"><i class="ti ti-eye"></i> Details & Aktionen</a>
+              <a class="pf-btn pf-btn-neutral" href="/trainer-portal/bookings.html"><i class="ti ti-eye me-1"></i>Details & Aktionen</a>
             </div>
           </div>
         `).join('') + '</div>';

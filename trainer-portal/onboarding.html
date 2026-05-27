@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <script src="../shared/design-tokens.js"></script>
   <style>
     /* Progress Bar */
     .progress-bar-steps { display:flex; align-items:center; gap:0; margin-bottom:2rem; position:relative; }
@@ -83,7 +84,7 @@
 
       <!-- Stripe Connect Button -->
       <div class="text-center mb-3">
-        <button class="btn btn-primary btn-lg" onclick="alert('Stripe Connect wird in Phase 2 aktiviert.\nDein Konto wird manuell eingerichtet.')">
+        <button class="pf-btn pf-btn-primary pf-btn-lg" onclick="alert('Stripe Connect wird in Phase 2 aktiviert.\nDein Konto wird manuell eingerichtet.')">
           <i class="ti ti-credit-card me-2"></i> Bankkonto verbinden (via Stripe)
         </button>
         <div class="form-hint mt-2">Sicher verschlüsselt &middot; Stripe ist PCI-DSS zertifiziert</div>

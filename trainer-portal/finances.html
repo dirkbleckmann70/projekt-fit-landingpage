@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
+  <script src="../shared/design-tokens.js"></script>
   <style>
     .fin-month-highlight td { background: rgba(64,145,108,0.07); }
     .fin-total-row td {
@@ -27,63 +28,63 @@
   <div class="page-body" style="padding-bottom:80px">
     <div class="container-xl">
 
-      <div class="d-flex align-items-center justify-content-between mb-3">
+      <div class="pf-table-toolbar d-flex align-items-center justify-content-between mb-3">
         <div class="d-flex align-items-center gap-2">
-          <a href="/trainer-portal/invoices.html" class="btn btn-ghost-secondary btn-sm">Gutschriften</a>
-          <select id="year-select" class="form-select" style="width:auto" onchange="onYearChange()"></select>
-          <button class="btn btn-ghost-secondary btn-sm" onclick="exportCSV()"><i class="ti ti-download me-1"></i>CSV Export</button>
+          <a href="/trainer-portal/invoices.html" class="pf-btn pf-btn-neutral">Gutschriften</a>
+          <div class="pf-field" style="width:auto;margin-bottom:0"><select id="year-select" class="form-select" onchange="onYearChange()"></select></div>
+          <button class="pf-btn pf-btn-neutral" onclick="exportCSV()"><i class="ti ti-download me-1"></i>CSV Export</button>
         </div>
       </div>
 
       <!-- Ebene 1: Jahres-KPIs -->
       <div class="row row-deck row-cards mb-3">
         <div class="col-6 col-lg">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label">Vergütung brutto</div>
-            <div class="kpi-value" id="kpi-brutto"><div class="spinner-border spinner-border-sm"></div></div>
-          </div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Vergütung brutto</div>
+            <div class="pf-stat-num" id="kpi-brutto"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
         <div class="col-6 col-lg">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label" id="kpi-mwst-label">MwSt 19%</div>
-            <div class="kpi-value" id="kpi-mwst"><div class="spinner-border spinner-border-sm"></div></div>
-          </div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label" id="kpi-mwst-label">MwSt 19%</div>
+            <div class="pf-stat-num" id="kpi-mwst"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
         <div class="col-6 col-lg">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label">Vergütung netto</div>
-            <div class="kpi-value" id="kpi-netto"><div class="spinner-border spinner-border-sm"></div></div>
-          </div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Vergütung netto</div>
+            <div class="pf-stat-num" id="kpi-netto"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
         <div class="col-6 col-lg">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label">Abzüge</div>
-            <div class="kpi-value" id="kpi-abzuege"><div class="spinner-border spinner-border-sm"></div></div>
-          </div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Abzüge</div>
+            <div class="pf-stat-num" id="kpi-abzuege"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
         <div class="col-6 col-lg">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label">Auszahlung</div>
-            <div class="kpi-value text-primary" id="kpi-auszahlung"><div class="spinner-border spinner-border-sm"></div></div>
-          </div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Auszahlung</div>
+            <div class="pf-stat-num" id="kpi-auszahlung"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
       </div>
 
       <!-- Ebene 1b: Auszahlungs-Status (B-2026-05-14-50) -->
       <div class="row row-deck row-cards mb-3">
         <div class="col-6 col-lg-6">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label"><i class="ti ti-check me-1"></i>Bereits ausgezahlt</div>
-            <div class="kpi-value" id="kpi-ausgezahlt" style="color:var(--tblr-success)"><div class="spinner-border spinner-border-sm"></div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label"><i class="ti ti-check me-1"></i>Bereits ausgezahlt</div>
+            <div class="pf-stat-num" id="kpi-ausgezahlt"><div class="spinner-border spinner-border-sm"></div></div>
             <div class="text-secondary" style="font-size:11px;margin-top:4px" id="kpi-ausgezahlt-info">–</div>
-          </div></div>
+          </div>
         </div>
         <div class="col-6 col-lg-6">
-          <div class="card"><div class="card-body">
-            <div class="kpi-label"><i class="ti ti-clock me-1"></i>Noch ausstehend</div>
-            <div class="kpi-value" id="kpi-ausstehend" style="color:var(--tblr-warning)"><div class="spinner-border spinner-border-sm"></div></div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-label"><i class="ti ti-clock me-1"></i>Noch ausstehend</div>
+            <div class="pf-stat-num" id="kpi-ausstehend"><div class="spinner-border spinner-border-sm"></div></div>
             <div class="text-secondary" style="font-size:11px;margin-top:4px" id="kpi-ausstehend-info">–</div>
-          </div></div>
+          </div>
         </div>
       </div>
 
@@ -148,7 +149,7 @@
 
 <!-- Detail Modal -->
 <div class="modal modal-blur fade" id="finance-detail-modal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered">
+  <div class="modal-dialog modal-dialog-centered pf-modal-md">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Buchungs-Details</h5>
@@ -156,7 +157,7 @@
       </div>
       <div class="modal-body" id="finance-modal-body"></div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schließen</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Schließen</button>
       </div>
     </div>
   </div>
@@ -487,7 +488,7 @@
         <td>${statusBadge(b.status)}</td>
         <td>${vergütungCell(b)}</td>
         <td class="text-warning">${b.discount_amount_cents > 0 ? `<span title="${b.discount_code || ''}">-${f(b.discount_amount_cents)}</span>` : '–'}</td>
-        <td><button class="btn btn-ghost-secondary btn-sm" onclick="openFinanceDetail('${b.id}')">Details</button></td>
+        <td><button class="pf-btn pf-btn-neutral" onclick="openFinanceDetail('${b.id}')">Details</button></td>
       </tr>`;
     }).join('');
 
@@ -530,28 +531,20 @@
     const netto  = effNetto(b);
     const mwst   = effMwSt(b);
     document.getElementById('finance-modal-body').innerHTML = `
-      <div class="row mb-3">
-        <div class="col-6"><label class="form-label text-secondary">Kunde</label><div>${b.customer_name || '–'}</div></div>
-        <div class="col-6"><label class="form-label text-secondary">Art</label><div>${b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training'}</div></div>
+      <div class="pf-form-grid">
+        <div class="pf-field pf-field-readonly"><label>Kunde</label><div>${b.customer_name || '–'}</div></div>
+        <div class="pf-field pf-field-readonly"><label>Art</label><div>${b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training'}</div></div>
+        <div class="pf-field pf-field-readonly"><label>Datum</label><div>${formatDate(b.scheduled_date)}</div></div>
+        <div class="pf-field pf-field-readonly"><label>Uhrzeit</label><div>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</div></div>
+        <div class="pf-field pf-field-readonly"><label>Stadt</label><div>${b.location_name || '–'}</div></div>
+        <div class="pf-field pf-field-readonly"><label>Status</label><div>${statusBadge(b.status)}</div></div>
+        <div class="pf-field pf-field-readonly"><label>Vergütung brutto</label><div style="color:var(--tblr-primary);font-weight:700">${f(brutto)}</div></div>
+        <div class="pf-field pf-field-readonly"><label>MwSt (${_mwstSatz}%)</label><div class="text-secondary">${f(mwst)}</div></div>
+        <div class="pf-field pf-field-readonly"><label>Vergütung netto</label><div style="font-weight:600">${f(netto)}</div></div>
+        <div class="pf-field pf-field-readonly"><label>Auszahlung</label><div style="color:var(--tblr-primary);font-weight:700">${f(netto)}</div></div>
+        ${b.notes ? `<div class="pf-field pf-field-readonly" style="grid-column:1/-1"><label>Notizen</label><div class="text-secondary">${b.notes}</div></div>` : ''}
       </div>
-      <div class="row mb-3">
-        <div class="col-6"><label class="form-label text-secondary">Datum</label><div>${formatDate(b.scheduled_date)}</div></div>
-        <div class="col-6"><label class="form-label text-secondary">Uhrzeit</label><div>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</div></div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-6"><label class="form-label text-secondary">Stadt</label><div>${b.location_name || '–'}</div></div>
-        <div class="col-6"><label class="form-label text-secondary">Status</label><div>${statusBadge(b.status)}</div></div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-6"><label class="form-label text-secondary">Vergütung brutto</label><div style="color:var(--tblr-primary);font-weight:700">${f(brutto)}</div></div>
-        <div class="col-6"><label class="form-label text-secondary">MwSt (${_mwstSatz}%)</label><div class="text-secondary">${f(mwst)}</div></div>
-      </div>
-      <div class="row mb-3">
-        <div class="col-6"><label class="form-label text-secondary">Vergütung netto</label><div style="font-weight:600">${f(netto)}</div></div>
-        <div class="col-6"><label class="form-label text-secondary">Auszahlung</label><div style="color:var(--tblr-primary);font-weight:700">${f(netto)}</div></div>
-      </div>
-      ${b.notes ? `<div class="mb-3"><label class="form-label text-secondary">Notizen</label><div class="text-secondary" style="font-size:14px">${b.notes}</div></div>` : ''}
-      <div class="text-secondary" style="font-size:11px;border-top:1px solid var(--tblr-border-color);padding-top:12px">Buchungs-ID: ${b.id}</div>
+      <div class="text-secondary" style="font-size:11px;border-top:1px solid var(--tblr-border-color);padding-top:12px;margin-top:4px">Buchungs-ID: ${b.id}</div>
     `;
     if (!_financeModal) _financeModal = new bootstrap.Modal(document.getElementById('finance-detail-modal'));
     _financeModal.show();
