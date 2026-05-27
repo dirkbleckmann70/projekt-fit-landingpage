@@ -10,6 +10,10 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
   <link rel="stylesheet" href="../shared/table-utils.css">
+  <style>
+    /* Zeilen-Klick-Cursor fuer Buchungs-Tabelle */
+    #bookings-table tbody tr { cursor: pointer; }
+  </style>
 </head>
 <body class="page">
 <script src="../shared/theme.js"></script>
@@ -65,7 +69,7 @@
 </div>
 
 <!-- Booking Detail Modal -->
-<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+<div class="modal modal-blur fade pf-modal-lg" id="detail-modal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
@@ -91,9 +95,11 @@
           </div>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schliessen</button>
-        <button class="btn btn-primary" id="modal-save-btn" onclick="saveBookingStatus()"><i class="ti ti-device-floppy"></i> Speichern</button>
+      <div class="modal-footer pf-modal-footer">
+        <button class="pf-btn pf-btn-danger pf-btn-lg" id="modal-storno-btn" style="display:none" onclick="modalStornoBooking()">Stornieren</button>
+        <div style="flex:1"></div>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Schliessen</button>
+        <button class="pf-btn pf-btn-primary" id="modal-save-btn" onclick="saveBookingStatus()"><i class="ti ti-device-floppy"></i> Speichern</button>
       </div>
     </div>
   </div>
@@ -101,6 +107,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
@@ -143,9 +150,10 @@
       // zum Mülleimer pro Zeile und verführerisch gefährlich (Massenlöschung mit
       // einem Klick). Pro-Zeile-Mülleimer bleibt für gezieltes Aufräumen.
       extraButtons: [
-        { label: 'CSV Export', icon: 'ti-download', className: 'btn btn-sm btn-ghost-secondary', onClick: 'exportCSV()' },
+        { label: 'CSV Export', icon: 'ti-download', className: 'pf-btn pf-btn-neutral', onClick: 'exportCSV()' },
       ],
-      countLabel: 'Buchungen'
+      countLabel: 'Buchungen',
+      onRowClick: function(rowData) { openDetail(rowData.id); },
     });
     tableFilter.onFilterChange(() => renderBookings());
 
@@ -176,11 +184,11 @@
   function bookingActions(b) {
     const s = (b.status || '').toUpperCase();
     const id = b.id;
-    const viewBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Details" onclick="openDetail('${id}')"><i class="ti ti-eye"></i></button>`;
-    const editBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Bearbeiten" onclick="openDetail('${id}')"><i class="ti ti-edit"></i></button>`;
-    const confirmBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Bestätigen" onclick="quickStatusChange('${id}',BOOKING_STATUS.CONFIRMED)" style="color:var(--tblr-success)"><i class="ti ti-check"></i></button>`;
-    const completeBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Abschließen" onclick="quickStatusChange('${id}',BOOKING_STATUS.COMPLETED)" style="color:var(--tblr-success)"><i class="ti ti-circle-check"></i></button>`;
-    const deleteBtn = `<button class="btn btn-sm btn-ghost-secondary" title="Löschen" onclick="deleteBooking('${id}')" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>`;
+    // View-Button entfernt — Zeilen-Klick oeffnet Details
+    const editBtn = `<button class="pf-btn pf-btn-edit" title="Bearbeiten" onclick="event.stopPropagation();openDetail('${id}')"><i class="ti ti-edit"></i> Bearbeiten</button>`;
+    const confirmBtn = `<button class="pf-btn pf-btn-primary" title="Bestätigen" onclick="event.stopPropagation();quickStatusChange('${id}',BOOKING_STATUS.CONFIRMED)"><i class="ti ti-check"></i> Bestätigen</button>`;
+    const completeBtn = `<button class="pf-btn pf-btn-primary" title="Abschließen" onclick="event.stopPropagation();quickStatusChange('${id}',BOOKING_STATUS.COMPLETED)"><i class="ti ti-circle-check"></i> Abschließen</button>`;
+    const deleteBtn = `<button class="pf-btn pf-btn-danger" title="Löschen" onclick="event.stopPropagation();deleteBooking('${id}')"><i class="ti ti-trash"></i> Löschen</button>`;
 
     // Storno-Button: oeffnet den Storno-Dialog (Stornobeleg + Rueckzahlung + Sorry-Code via
     // cancel-or-refund Edge Function). Frueher gab es zusaetzlich einen 'X'-Schnell-Storno der
@@ -190,31 +198,31 @@
     const gross = b.final_price_cents || b.price_cents || 0;
     const excluded = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED'];
     const stornoBtn = (!b.storno_invoice_id && !excluded.includes(s))
-      ? `<button class="btn btn-sm btn-ghost-secondary" title="Stornieren (mit Stornobeleg + Rueckzahlung)" onclick="stornoBooking('${id}','${custName}',${gross})" style="color:var(--tblr-danger)"><i class="ti ti-x"></i></button>`
+      ? `<button class="pf-btn pf-btn-danger" title="Stornieren (mit Stornobeleg + Rueckzahlung)" onclick="event.stopPropagation();stornoBooking('${id}','${custName}',${gross})"><i class="ti ti-x"></i> Stornieren</button>`
       : '';
 
-    // Abgeschlossene/unveränderliche Zustände → Ansehen + Löschen
+    // Abgeschlossene/unveränderliche Zustände → Bearbeiten + Storno + Löschen
     if (['COMPLETED', 'CANCELLED', 'REFUNDED', 'DISPUTED', 'ESCALATED'].includes(s)) {
-      return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${stornoBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${editBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
-    // EXPIRED → Ansehen + Bearbeiten + Löschen
+    // EXPIRED → Bearbeiten + Löschen
     if (s === BOOKING_STATUS.EXPIRED.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${editBtn} ${deleteBtn}</div>`;
     }
-    // In Bearbeitung → Ansehen + Stornieren + Löschen
+    // In Bearbeitung → Stornieren + Löschen
     if (['CHECKED_IN', 'IN_PROGRESS'].includes(s)) {
-      return `<div class="d-flex gap-1">${viewBtn} ${stornoBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${stornoBtn} ${deleteBtn}</div>`;
     }
-    // PENDING → Ansehen + Bestätigen + Stornieren + Löschen
+    // PENDING → Bestätigen + Stornieren + Löschen
     if (s === BOOKING_STATUS.PENDING.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${confirmBtn} ${stornoBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${confirmBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
-    // CONFIRMED → Ansehen + Abschließen + Stornieren + Löschen
+    // CONFIRMED → Abschließen + Stornieren + Löschen
     if (s === BOOKING_STATUS.CONFIRMED.toUpperCase()) {
-      return `<div class="d-flex gap-1">${viewBtn} ${completeBtn} ${stornoBtn} ${deleteBtn}</div>`;
+      return `<div class="d-flex gap-1">${completeBtn} ${stornoBtn} ${deleteBtn}</div>`;
     }
     // Fallback
-    return `<div class="d-flex gap-1">${viewBtn} ${editBtn} ${stornoBtn} ${deleteBtn}</div>`;
+    return `<div class="d-flex gap-1">${editBtn} ${stornoBtn} ${deleteBtn}</div>`;
   }
 
   function stornoBooking(bookingId, customerName, grossCents) {
@@ -238,6 +246,16 @@
       });
     }
     return false;
+  }
+
+  // Modal-Footer-Storno: ruft stornoBooking() fuer die aktuell geoeffnete Buchung auf
+  function modalStornoBooking() {
+    if (!editingBookingId) return;
+    const b = allBookings.find(x => x.id === editingBookingId);
+    if (!b) return;
+    const custName = (b.customer_name || '').replace(/'/g,"\\'");
+    const gross = b.final_price_cents || b.price_cents || 0;
+    stornoBooking(b.id, custName, gross);
   }
 
   // Nutzt CANCELLED_STATUSES aus shared/constants.js (lowercase)
@@ -275,11 +293,11 @@
       return;
     }
 
-    tbody.innerHTML = filtered.map(b => {
+    tbody.innerHTML = filtered.map((b, idx) => {
       const price = effectivePrice(b);
       const cost  = effectiveCost(b);
       return `
-        <tr class="${isOverdue(b) ? 'row-overdue' : ''}">
+        <tr class="${isOverdue(b) ? 'row-overdue' : ''}" data-row-index="${idx}">
           <td>${formatDate(b.scheduled_date)}</td>
           <td class="td-wrap">${b.trainer_city || b.city || '–'}</td>
           <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
@@ -400,104 +418,116 @@
 
     document.getElementById('modal-body').innerHTML = `
       <form id="booking-detail-form">
-      <div class="two-col">
+      <div class="pf-form-divider">Termin</div>
+      <div class="pf-form-grid pf-form-grid-2col">
         <div class="form-group">
           <label>Kunde</label>
-          <input class="form-control" value="${b.customer_name || b.customer_id || '–'}" disabled>
+          <input class="pf-field pf-field-readonly" value="${b.customer_name || b.customer_id || '–'}" disabled>
         </div>
         <div class="form-group">
           <label>Trainer</label>
           ${b.status === 'cancelled_by_trainer' || b.status === 'finding_replacement'
-            ? `<select class="form-control" id="edit-booking-trainer">
+            ? `<select class="pf-field" id="edit-booking-trainer">
                 <option value="${b.trainer_id}">${b.trainer_name || '–'} (aktuell – hat abgesagt)</option>
                 <option value="__cancel__">Kein Trainer verfuegbar – Buchung absagen</option>
               </select>
-              <button class="btn btn-warning btn-sm mt-2" type="button" onclick="assignReplacementTrainer()"><i class="ti ti-replace"></i> Ersatztrainer zuweisen</button>`
-            : `<input class="form-control" value="${b.trainer_name || '–'}" disabled>`}
+              <button class="pf-btn pf-btn-edit mt-2" type="button" onclick="assignReplacementTrainer()"><i class="ti ti-replace"></i> Ersatztrainer zuweisen</button>`
+            : `<input class="pf-field pf-field-readonly" value="${b.trainer_name || '–'}" disabled>`}
         </div>
-      </div>
-      <div class="two-col">
         <div class="form-group">
           <label>Datum</label>
-          <input class="form-control" type="date" id="edit-booking-date" value="${b.scheduled_date || ''}">
+          <input class="pf-field" type="date" id="edit-booking-date" value="${b.scheduled_date || ''}">
         </div>
         <div class="form-group">
           <label>Uhrzeit</label>
-          <input class="form-control" type="time" id="edit-booking-time" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : ''}">
+          <input class="pf-field" type="time" id="edit-booking-time" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : ''}">
+        </div>
+        <div class="form-group">
+          <label>Ort</label>
+          <input class="pf-field pf-field-readonly" value="${b.location_name || b.location || '–'}" disabled>
+        </div>
+        <div class="form-group">
+          <label>Art</label>
+          <input class="pf-field pf-field-readonly" value="${getBookingType(b)}" disabled>
         </div>
       </div>
-      ${(b.proposed_date || b.status === 'reschedule_proposed' || b.status === 'location_proposed') ? `<div style="background:rgba(244,169,64,0.08);border:1px solid rgba(244,169,64,0.25);border-radius:10px;padding:12px;margin-bottom:12px">
+      ${(b.proposed_date || b.status === 'reschedule_proposed' || b.status === 'location_proposed') ? `<div style="background:rgba(244,169,64,0.08);border:1px solid rgba(244,169,64,0.25);border-radius:10px;padding:12px;margin:12px 0">
         <div style="font-weight:700;color:#F4A940;margin-bottom:8px"><i class="ti ti-alert-triangle"></i> Trainer-Vorschlag (wartet auf Kundenbestaetigung)</div>
-        ${b.proposed_date ? `<div class="two-col">
+        ${b.proposed_date ? `<div class="pf-form-grid pf-form-grid-2col">
           <div class="form-group" style="margin:0">
             <label style="color:#F4A940">Neues Datum</label>
-            <input class="form-control" value="${formatDate(b.proposed_date)}" disabled style="color:#F4A940;font-weight:700">
+            <input class="pf-field pf-field-readonly" value="${formatDate(b.proposed_date)}" disabled style="color:#F4A940;font-weight:700">
           </div>
           <div class="form-group" style="margin:0">
             <label style="color:#F4A940">Neue Uhrzeit</label>
-            <input class="form-control" value="${b.proposed_time ? b.proposed_time.slice(0,5) + ' Uhr' : '–'}" disabled style="color:#F4A940;font-weight:700">
+            <input class="pf-field pf-field-readonly" value="${b.proposed_time ? b.proposed_time.slice(0,5) + ' Uhr' : '–'}" disabled style="color:#F4A940;font-weight:700">
           </div>
         </div>` : ''}
         ${b.status === 'location_proposed' ? `<div class="form-group" style="margin:${b.proposed_date ? '8px 0 0' : '0'}">
           <label style="color:#F4A940">Vorgeschlagener Treffpunkt</label>
-          <input class="form-control" value="${b.location_name || '–'}" disabled style="color:#F4A940;font-weight:700">
-          ${b.location_address ? '<input class="form-control mt-1" value="' + b.location_address + '" disabled style="color:#F4A940;font-size:13px">' : ''}
+          <input class="pf-field pf-field-readonly" value="${b.location_name || '–'}" disabled style="color:#F4A940;font-weight:700">
+          ${b.location_address ? '<input class="pf-field pf-field-readonly mt-1" value="' + b.location_address + '" disabled style="color:#F4A940;font-size:13px">' : ''}
         </div>` : ''}
       </div>` : ''}
-      <div class="two-col">
-        <div class="form-group">
-          <label>Ort</label>
-          <input class="form-control" value="${b.location_name || b.location || '–'}" disabled>
-        </div>
-        <div class="form-group">
-          <label>Art</label>
-          <input class="form-control" value="${getBookingType(b)}" disabled>
-        </div>
-      </div>
-      <div class="two-col">
+      <div class="pf-form-divider">Zahlung</div>
+      <div class="pf-form-grid pf-form-grid-2col">
         <div class="form-group">
           <label>Kundenpreis (EUR)</label>
-          <input class="form-control" type="number" step="0.01" min="0" id="edit-booking-price" value="${b.price_cents ? (b.price_cents / 100).toFixed(2) : '0.00'}">
+          <input class="pf-field" type="number" step="0.01" min="0" id="edit-booking-price" value="${b.price_cents ? (b.price_cents / 100).toFixed(2) : '0.00'}">
         </div>
         <div class="form-group">
           <label>Endpreis (EUR)</label>
-          <input class="form-control" type="number" step="0.01" min="0" id="edit-booking-final-price" value="${(b.final_price_cents || b.price_cents) ? ((b.final_price_cents || b.price_cents) / 100).toFixed(2) : '0.00'}">
+          <input class="pf-field" type="number" step="0.01" min="0" id="edit-booking-final-price" value="${(b.final_price_cents || b.price_cents) ? ((b.final_price_cents || b.price_cents) / 100).toFixed(2) : '0.00'}">
         </div>
-      </div>
-      <div class="two-col">
         <div class="form-group">
           <label>Trainer-Verguetung (EUR)</label>
-          <input class="form-control" type="number" step="0.01" min="0" id="edit-booking-payout" value="${b.trainer_payout_cents ? (b.trainer_payout_cents / 100).toFixed(2) : '0.00'}">
+          <input class="pf-field" type="number" step="0.01" min="0" id="edit-booking-payout" value="${b.trainer_payout_cents ? (b.trainer_payout_cents / 100).toFixed(2) : '0.00'}">
         </div>
         <div class="form-group">
           <label>Zahlung</label>
-          <input class="form-control" value="${getPaymentLabel(b)}" disabled>
+          <input class="pf-field pf-field-readonly" value="${getPaymentLabel(b)}" disabled>
         </div>
-      </div>
-      <div class="two-col">
         <div class="form-group">
           <label>Rabattcode</label>
-          <input class="form-control" value="${b.discount_code || '–'}" disabled>
+          <input class="pf-field pf-field-readonly" value="${b.discount_code || '–'}" disabled>
         </div>
         <div class="form-group">
           <label>Status</label>
-          <select class="form-control" id="edit-booking-status">
+          <select class="pf-field" id="edit-booking-status">
             ${ADMIN_EDITABLE_STATUSES.map(s =>
               `<option value="${s}" ${b.status === s ? 'selected' : ''}>${STATUS_LABELS[s] || s}</option>`
             ).join('')}
           </select>
         </div>
       </div>
-      <div class="form-group">
-        <label>Admin-Notiz (optional, wird als Audit-Log gespeichert)</label>
-        <input class="form-control" id="edit-booking-admin-note" placeholder="Grund fuer Aenderung...">
+      <div class="pf-form-divider">Notizen</div>
+      <div class="pf-form-grid">
+        <div class="form-group pf-form-full">
+          <label>Admin-Notiz (optional, wird als Audit-Log gespeichert)</label>
+          <input class="pf-field" id="edit-booking-admin-note" placeholder="Grund fuer Aenderung...">
+        </div>
+        ${b.notes ? `<div class="form-group pf-form-full"><label>Bisherige Notizen</label><textarea class="pf-field pf-field-readonly" disabled style="min-height:60px">${b.notes}</textarea></div>` : ''}
       </div>
-      ${b.notes ? `<div class="form-group"><label>Bisherige Notizen</label><textarea class="form-control" disabled style="min-height:60px">${b.notes}</textarea></div>` : ''}
       <div id="admin-contact-section"></div>
       <div id="location-proposals-section"></div>
       <p class="text-muted mt-1" style="font-size:12px">Erstellt: ${formatDateTime(b.created_at)} · ID: ${b.id}</p>
       </form>
     `;
+
+    // Storno-Button im Modal-Footer ein-/ausblenden
+    const stornoFooterBtn = document.getElementById('modal-storno-btn');
+    const st = (b.status || '').toUpperCase();
+    const excludedForStorno = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED'];
+    if (!b.storno_invoice_id && !excludedForStorno.includes(st)) {
+      stornoFooterBtn.style.display = '';
+      stornoFooterBtn.onclick = function() {
+        const custName = (b.customer_name || '').replace(/'/g,"\\'");
+        const gross = b.final_price_cents || b.price_cents || 0;
+        stornoBooking(b.id, custName, gross);
+      };
+    } else {
+      stornoFooterBtn.style.display = 'none';
+    }
 
     new bootstrap.Modal(document.getElementById('detail-modal')).show();
 
@@ -528,22 +558,22 @@
     if (!el) return;
     try {
       const sb = getSupabase();
-      let html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06)">';
+      let html = '<div class="pf-form-divider" style="margin-top:16px">Kontakt</div><div class="pf-form-grid pf-form-grid-2col">';
 
       // Kunden-Telefon
       if (b.customer_id) {
         const { data: cust } = await sb.from('customers').select('phone').eq('id', b.customer_id).single();
-        html += `<div class="form-group"><label>Kunde Tel.</label><input class="form-control" value="${cust?.phone || '–'}" disabled style="${cust?.phone ? 'color:#40916C;font-weight:600' : ''}"></div>`;
+        html += `<div class="form-group"><label>Kunde Tel.</label><input class="pf-field pf-field-readonly" value="${cust?.phone || '–'}" disabled style="${cust?.phone ? 'color:#16a34a;font-weight:600' : ''}"></div>`;
       } else {
-        html += '<div class="form-group"><label>Kunde Tel.</label><input class="form-control" value="–" disabled></div>';
+        html += '<div class="form-group"><label>Kunde Tel.</label><input class="pf-field pf-field-readonly" value="–" disabled></div>';
       }
 
       // Trainer-Telefon
       if (b.trainer_id) {
         const { data: trainer } = await sb.from('trainer_profiles').select('phone').eq('id', b.trainer_id).single();
-        html += `<div class="form-group"><label>Trainer Tel.</label><input class="form-control" value="${trainer?.phone || '–'}" disabled style="${trainer?.phone ? 'color:#40916C;font-weight:600' : ''}"></div>`;
+        html += `<div class="form-group"><label>Trainer Tel.</label><input class="pf-field pf-field-readonly" value="${trainer?.phone || '–'}" disabled style="${trainer?.phone ? 'color:#16a34a;font-weight:600' : ''}"></div>`;
       } else {
-        html += '<div class="form-group"><label>Trainer Tel.</label><input class="form-control" value="–" disabled></div>';
+        html += '<div class="form-group"><label>Trainer Tel.</label><input class="pf-field pf-field-readonly" value="–" disabled></div>';
       }
 
       html += '</div>';

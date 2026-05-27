@@ -95,9 +95,14 @@ function formatEuro(cents) {
 }
 
 // Status Badge HTML
-// Nutzt STATUS_BADGE_CLASS und STATUS_LABELS aus shared/constants.js wenn verfuegbar
+// Nutzt DESIGN.badge() aus design-tokens.js wenn verfuegbar, sonst Fallback
 function statusBadge(status) {
-  // Fallback-Map fuer den Fall, dass constants.js noch nicht geladen ist
+  const key = (status || '').toLowerCase();
+  // Design-System bevorzugen (design-tokens.js)
+  if (typeof window.DESIGN !== 'undefined' && typeof window.DESIGN.badge === 'function') {
+    return window.DESIGN.badge(key);
+  }
+  // Fallback-Map fuer den Fall, dass design-tokens.js noch nicht geladen ist
   const fallbackMap = {
     pending: 'badge-pending',
     active: 'badge-active',
@@ -113,11 +118,7 @@ function statusBadge(status) {
     reschedule_proposed: 'badge-pending',
     awaiting_checkout: 'badge-warning',
   };
-  // Shared constants bevorzugen (lowercase key)
-  const key = (status || '').toLowerCase();
-  const cls = (typeof STATUS_BADGE_CLASS !== 'undefined' && STATUS_BADGE_CLASS[key])
-    || fallbackMap[key]
-    || 'badge-pending';
+  const cls = fallbackMap[key] || 'badge-pending';
   const label = (typeof STATUS_LABELS !== 'undefined' && STATUS_LABELS[key])
     || status
     || '–';
