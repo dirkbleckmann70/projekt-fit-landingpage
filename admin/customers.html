@@ -37,11 +37,10 @@
                 <th>Vertrag</th>
                 <th>Gesundheit</th>
                 <th>Registriert am</th>
-                <th>Aktionen</th>
               </tr>
             </thead>
             <tbody id="customers-body">
-              <tr><td colspan="10" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Kunden werden geladen...</td></tr>
+              <tr><td colspan="9" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Kunden werden geladen...</td></tr>
             </tbody>
           </table>
         </div>
@@ -52,7 +51,7 @@
 </div>
 
 <!-- New Customer Modal -->
-<div class="modal modal-blur fade" id="new-modal" tabindex="-1">
+<div class="modal modal-blur fade pf-modal-sm" id="new-modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -61,60 +60,56 @@
       </div>
       <div class="modal-body">
         <form id="new-customer-form">
-          <div class="row g-3">
-            <div class="col-md-6 form-group">
+          <div class="pf-form-grid pf-form-grid-2col">
+            <div class="form-group">
               <label class="form-label">Vorname *</label>
-              <input class="form-control" id="new-firstname" required>
+              <input class="pf-field" id="new-firstname" required>
             </div>
-            <div class="col-md-6 form-group">
+            <div class="form-group">
               <label class="form-label">Nachname *</label>
-              <input class="form-control" id="new-lastname" required>
+              <input class="pf-field" id="new-lastname" required>
             </div>
-          </div>
-          <div class="row g-3">
-            <div class="col-md-6 form-group">
+            <div class="form-group">
               <label class="form-label">E-Mail *</label>
-              <input class="form-control" type="email" id="new-email" required>
+              <input class="pf-field" type="email" id="new-email" required>
             </div>
-            <div class="col-md-6 form-group">
+            <div class="form-group">
               <label class="form-label">Telefon</label>
-              <input class="form-control" id="new-phone">
+              <input class="pf-field" id="new-phone">
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Straße und Hausnummer</label>
-            <input class="form-control" id="new-street">
-          </div>
-          <div class="row g-3">
-            <div class="col-md-6 form-group">
+            <div class="form-group" style="grid-column:1/-1">
+              <label class="form-label">Straße und Hausnummer</label>
+              <input class="pf-field" id="new-street">
+            </div>
+            <div class="form-group">
               <label class="form-label">PLZ</label>
-              <input class="form-control" id="new-postal">
+              <input class="pf-field" id="new-postal">
             </div>
-            <div class="col-md-6 form-group">
+            <div class="form-group">
               <label class="form-label">Ort</label>
-              <input class="form-control" id="new-city">
+              <input class="pf-field" id="new-city">
             </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Geburtsdatum</label>
-            <input class="form-control" type="date" id="new-dob">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Notizen</label>
-            <textarea class="form-control" id="new-notes" rows="3"></textarea>
+            <div class="form-group" style="grid-column:1/-1">
+              <label class="form-label">Geburtsdatum</label>
+              <input class="pf-field" type="date" id="new-dob">
+            </div>
+            <div class="form-group" style="grid-column:1/-1">
+              <label class="form-label">Notizen</label>
+              <textarea class="pf-field" id="new-notes" rows="3"></textarea>
+            </div>
           </div>
         </form>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-primary" id="new-save-btn" onclick="createCustomer()">Anlegen</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-primary" id="new-save-btn" onclick="createCustomer()">Anlegen</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Customer Detail Modal -->
-<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
+<div class="modal modal-blur fade pf-modal-lg" id="detail-modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -122,11 +117,11 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body" id="detail-body"></div>
-      <div class="modal-footer" id="detail-footer">
-        <button class="btn btn-danger" id="detail-delete-btn" onclick="deleteCustomer()">Löschen</button>
+      <div class="modal-footer pf-modal-footer" id="detail-footer">
+        <button class="pf-btn pf-btn-danger pf-btn-lg" id="detail-delete-btn" onclick="deleteCustomer()">Löschen</button>
         <div style="flex:1"></div>
-        <button class="btn btn-ghost-secondary" onclick="closeDetailModal()">Schließen</button>
-        <button class="btn btn-primary" id="detail-save-btn" onclick="saveCustomer()">Speichern</button>
+        <button class="pf-btn pf-btn-neutral pf-btn-lg" onclick="closeDetailModal()">Schließen</button>
+        <button class="pf-btn pf-btn-primary pf-btn-lg" id="detail-save-btn" onclick="saveCustomer()">Speichern</button>
       </div>
     </div>
   </div>
@@ -157,8 +152,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-primary" id="unlock-save-btn" onclick="saveUnlock()">Speichern</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-primary" id="unlock-save-btn" onclick="saveUnlock()">Speichern</button>
       </div>
     </div>
   </div>
@@ -166,6 +161,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
@@ -203,12 +199,12 @@
       { key: 'contract',   type: 'select', getValue: c => c.service_contract_accepted ? 'Akzeptiert' : 'Offen' },
       { key: 'health',     type: 'select', getValue: c => c.health_declaration_accepted ? 'Akzeptiert' : 'Offen' },
       { key: 'created_at', type: 'date',   getValue: c => c.created_at ? c.created_at.slice(0, 10) : '' },
-      null,
     ], {
       extraButtons: [
-        { label: 'Kunde anlegen', icon: 'ti-plus', className: 'btn btn-sm btn-primary', onClick: 'openNewModal()' }
+        { label: 'Kunde anlegen', icon: 'ti-plus', className: 'pf-btn pf-btn-primary', onClick: 'openNewModal()' }
       ],
-      countLabel: 'Kunden'
+      countLabel: 'Kunden',
+      onRowClick: function(rowData) { showDetail(rowData.id); },
     });
     tableFilter.onFilterChange(() => renderCustomers());
   })();
@@ -220,7 +216,7 @@
       renderCustomers();
     } catch (err) {
       document.getElementById('customers-body').innerHTML =
-        `<tr><td colspan="7" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="9" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -230,23 +226,23 @@
     const tbody = document.getElementById('customers-body');
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:24px">Keine Kunden gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:24px">Keine Kunden gefunden</td></tr>';
       return;
     }
 
-    tbody.innerHTML = filtered.map(c => {
+    tbody.innerHTML = filtered.map((c, idx) => {
       const dobFormatted = c.date_of_birth ? formatDateDE(c.date_of_birth) : '–';
       const termsBadge = c.terms_accepted
-        ? '<span class="badge badge-active">Ja</span>'
-        : '<span class="badge badge-red">Nein</span>';
+        ? DESIGN.badge('confirmed')
+        : DESIGN.badge('cancelled');
       const contractBadge = c.service_contract_accepted
-        ? '<span class="badge badge-active">Ja</span>'
-        : '<span class="badge badge-red">Nein</span>';
+        ? DESIGN.badge('confirmed')
+        : DESIGN.badge('cancelled');
       const healthBadge = c.health_declaration_accepted
-        ? '<span class="badge badge-active">Ja</span>'
-        : '<span class="badge badge-red">Nein</span>';
+        ? DESIGN.badge('confirmed')
+        : DESIGN.badge('cancelled');
       return `
-        <tr>
+        <tr data-row-index="${idx}" style="cursor:pointer">
           <td><strong>${c.full_name || (c.first_name + ' ' + c.last_name) || '–'}</strong></td>
           <td class="text-secondary">${c.email || '–'}</td>
           <td>${c.phone || '–'}</td>
@@ -256,9 +252,6 @@
           <td>${contractBadge}</td>
           <td>${healthBadge}</td>
           <td class="text-muted">${formatDate(c.created_at)}</td>
-          <td>
-            <button class="btn btn-secondary btn-sm" onclick="showDetail('${c.id}')">Details</button>
-          </td>
         </tr>
       `;
     }).join('');
@@ -327,18 +320,18 @@
 
     // Vertragsstatus Badges
     const termsBadge = c.terms_accepted
-      ? '<span class="badge badge-active">Akzeptiert</span>'
-      : '<span class="badge badge-red">Nicht akzeptiert</span>';
+      ? DESIGN.badge('confirmed')
+      : DESIGN.badge('cancelled');
     const termsDate = c.terms_accepted_at ? formatDateTime(c.terms_accepted_at) : '–';
 
     const serviceContractBadge = c.service_contract_accepted
-      ? '<span class="badge badge-active">Akzeptiert</span>'
-      : '<span class="badge badge-red">Nicht akzeptiert</span>';
+      ? DESIGN.badge('confirmed')
+      : DESIGN.badge('cancelled');
     const serviceContractDate = c.service_contract_accepted_at ? formatDateTime(c.service_contract_accepted_at) : '–';
 
     const healthBadge = c.health_declaration_accepted
-      ? '<span class="badge badge-active">Akzeptiert</span>'
-      : '<span class="badge badge-red">Nicht ausgefüllt</span>';
+      ? DESIGN.badge('confirmed')
+      : DESIGN.badge('cancelled');
     const healthDate = c.health_declaration_accepted_at ? formatDateTime(c.health_declaration_accepted_at) : '–';
 
     // Gesundheitserklärung Details
@@ -392,87 +385,80 @@
         <div class="card-header"><h3 class="card-title">Buchungs-Aktion (Goodwill / Promo)</h3></div>
         <div class="card-body">
           <div id="unlock-status" class="mb-2"><span class="text-muted">Laden…</span></div>
-          <button id="unlock-set-btn" class="btn btn-primary btn-sm" onclick="openUnlockModal()">Aktion freischalten</button>
-          <button id="unlock-clear-btn" class="btn btn-outline-danger btn-sm ms-2" style="display:none;" onclick="clearUnlock()">Aktion beenden</button>
+          <button id="unlock-set-btn" class="pf-btn pf-btn-primary" onclick="openUnlockModal()">Aktion freischalten</button>
+          <button id="unlock-clear-btn" class="pf-btn pf-btn-danger ms-2" style="display:none;" onclick="clearUnlock()">Aktion beenden</button>
         </div>
       </div>
 
       <form id="customer-detail-form">
-      <div class="two-col">
+      <div class="pf-form-grid pf-form-grid-2col">
         <div class="form-group">
-          <label>Vorname</label>
-          <input class="form-control edit-field" id="edit-firstname" value="${c.first_name || ''}">
+          <label class="form-label">Vorname</label>
+          <input class="pf-field edit-field" id="edit-firstname" value="${c.first_name || ''}">
         </div>
         <div class="form-group">
-          <label>Nachname</label>
-          <input class="form-control edit-field" id="edit-lastname" value="${c.last_name || ''}">
-        </div>
-      </div>
-      <div class="two-col">
-        <div class="form-group">
-          <label>E-Mail</label>
-          <input class="form-control edit-field" type="email" id="edit-email" value="${c.email || ''}">
+          <label class="form-label">Nachname</label>
+          <input class="pf-field edit-field" id="edit-lastname" value="${c.last_name || ''}">
         </div>
         <div class="form-group">
-          <label>Telefon</label>
-          <input class="form-control edit-field" id="edit-phone" value="${c.phone || ''}">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Straße und Hausnummer</label>
-        <input class="form-control edit-field" id="edit-street" value="${c.street_address || ''}">
-      </div>
-      <div class="two-col">
-        <div class="form-group">
-          <label>PLZ</label>
-          <input class="form-control edit-field" id="edit-postal" value="${c.postal_code || ''}">
+          <label class="form-label">E-Mail</label>
+          <input class="pf-field edit-field" type="email" id="edit-email" value="${c.email || ''}">
         </div>
         <div class="form-group">
-          <label>Ort</label>
-          <input class="form-control edit-field" id="edit-city" value="${c.city || ''}">
+          <label class="form-label">Telefon</label>
+          <input class="pf-field edit-field" id="edit-phone" value="${c.phone || ''}">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Straße und Hausnummer</label>
+          <input class="pf-field edit-field" id="edit-street" value="${c.street_address || ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">PLZ</label>
+          <input class="pf-field edit-field" id="edit-postal" value="${c.postal_code || ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ort</label>
+          <input class="pf-field edit-field" id="edit-city" value="${c.city || ''}">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Geburtsdatum</label>
+          <input class="pf-field edit-field" type="date" id="edit-dob" value="${c.date_of_birth || ''}">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Notizen</label>
+          <textarea class="pf-field edit-field" id="edit-notes" rows="3">${c.notes || ''}</textarea>
         </div>
       </div>
-      <div class="form-group">
-        <label>Geburtsdatum</label>
-        <input class="form-control edit-field" type="date" id="edit-dob" value="${c.date_of_birth || ''}">
-      </div>
-      <div class="form-group">
-        <label>Notizen</label>
-        <textarea class="form-control edit-field" id="edit-notes" rows="3">${c.notes || ''}</textarea>
-      </div>
-      <p class="text-muted" style="font-size:12px">Registriert: ${formatDateTime(c.created_at)} · ID: ${c.id}</p>
+      <p class="text-muted" style="font-size:12px;margin-top:12px">Registriert: ${formatDateTime(c.created_at)} · ID: ${c.id}</p>
       </form>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Vertragsstatus</h3>
-      <div class="two-col">
+      <div class="pf-form-divider" style="margin-top:16px">Vertragsstatus</div>
+      <div class="pf-form-grid pf-form-grid-2col" style="margin-top:12px">
         <div class="form-group">
-          <label>AGB</label>
+          <label class="form-label">AGB</label>
           <div style="padding:4px 0">${termsBadge}</div>
           <span class="text-muted" style="font-size:11px">${termsDate}</span>
         </div>
         <div class="form-group">
-          <label>Dienstleistungsvertrag</label>
+          <label class="form-label">Dienstleistungsvertrag</label>
           <div style="padding:4px 0">${serviceContractBadge}</div>
           <span class="text-muted" style="font-size:11px">${serviceContractDate}</span>
         </div>
       </div>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Gesundheitserklärung ${healthBadge}</h3>
+      <div class="pf-form-divider" style="margin-top:16px">Gesundheitserklärung ${healthBadge}</div>
       ${healthHtml
         ? `<div style="background:#161625;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px 16px">${healthHtml}</div>
            <span class="text-muted" style="font-size:11px;display:block;margin-top:6px">Akzeptiert am: ${healthDate}</span>`
         : '<p class="text-muted" style="font-size:13px">Noch nicht ausgefüllt.</p>'
       }
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Dokumente & Verträge</h3>
+      <div class="pf-form-divider" style="margin-top:16px">Dokumente & Verträge</div>
       <div id="customer-docs">
         ${renderDocList(c.document_files || [], c.id)}
       </div>
       <div style="margin-top:12px">
-        <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+        <label class="pf-btn pf-btn-neutral" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
           <input type="file" id="customer-doc-upload" multiple accept=".pdf,.jpg,.jpeg,.png" style="display:none"
             onchange="uploadCustomerDoc('${c.id}')">
           + Dokument hochladen
@@ -480,8 +466,7 @@
         <span id="customer-doc-status" style="font-size:12px;color:var(--text-muted);margin-left:8px">PDF, JPG, PNG – max 10 MB</span>
       </div>
 
-      <hr style="border-color:#2a2a2a;margin:20px 0">
-      <h3 style="font-size:15px;font-weight:700;margin-bottom:16px">Buchungshistorie</h3>
+      <div class="pf-form-divider" style="margin-top:16px">Buchungshistorie</div>
       <div id="customer-bookings"><div class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</div></div>
     `;
 
@@ -694,8 +679,8 @@
             <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${f.filename}</div>
             <div style="font-size:11px;color:var(--text-muted)">${date} &middot; ${size}</div>
           </div>
-          <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px" onclick="viewCustomerDoc('${f.path}')">Anzeigen</button>
-          <button class="btn btn-danger btn-sm" style="font-size:11px;padding:4px 10px" onclick="deleteCustomerDoc('${customerId}','${f.path}')">L&ouml;schen</button>
+          <button class="pf-btn pf-btn-neutral" style="font-size:11px;padding:4px 10px" onclick="viewCustomerDoc('${f.path}')">Anzeigen</button>
+          <button class="pf-btn pf-btn-danger" style="font-size:11px;padding:4px 10px" onclick="deleteCustomerDoc('${customerId}','${f.path}')">L&ouml;schen</button>
         </div>
       `;
     }).join('');
