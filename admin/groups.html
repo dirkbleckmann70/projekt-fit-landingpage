@@ -19,10 +19,10 @@
     .fc .fc-toolbar-title { font-size: 16px !important; }
     .fc .fc-button { font-size: 12px; }
     /* Participant Bar */
-    .participant-bar { height:6px; border-radius:3px; background:rgba(255,255,255,0.1); overflow:hidden; margin-top:4px; }
+    .participant-bar { height:6px; border-radius:3px; background:rgba(0,0,0,0.06); overflow:hidden; margin-top:4px; }
     .participant-bar-fill { height:100%; border-radius:3px; transition:width 0.3s; }
     /* Series Badge */
-    .series-badge { display:inline-flex; align-items:center; gap:3px; font-size:11px; background:rgba(155,89,182,0.2); color:#9b59b6; padding:2px 6px; border-radius:4px; }
+    .series-badge { display:inline-flex; align-items:center; gap:3px; font-size:11px; background:rgba(155,89,182,0.15); color:#7c3aed; padding:2px 6px; border-radius:4px; }
     /* View Toggle Tabs */
     .nav-pills .nav-link.active { background:var(--tblr-primary); color:#fff; border-color:var(--tblr-primary); }
   </style>
@@ -42,35 +42,27 @@
       <!-- KPI Row -->
       <div class="row row-deck row-cards mb-3" id="kpi-row">
         <div class="col-sm-6 col-lg-3">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Aktive Kurse</div>
-              <div class="kpi-value" id="kpi-active">--</div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-active">--</div>
+            <div class="pf-stat-label">Aktive Kurse</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg-3">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Diese Woche</div>
-              <div class="kpi-value" id="kpi-week">--</div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-week">--</div>
+            <div class="pf-stat-label">Diese Woche</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg-3">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Teilnehmer (Monat)</div>
-              <div class="kpi-value text-primary" id="kpi-participants">--</div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-participants">--</div>
+            <div class="pf-stat-label">Teilnehmer (Monat)</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg-3">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Umsatz GT (Monat)</div>
-              <div class="kpi-value text-primary" id="kpi-revenue">--</div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-revenue">--</div>
+            <div class="pf-stat-label">Umsatz GT (Monat)</div>
           </div>
         </div>
       </div>
@@ -81,7 +73,7 @@
           <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#view-calendar" onclick="switchView('calendar')"><i class="ti ti-calendar"></i> Kalender</a></li>
         </ul>
         <div class="d-flex gap-2">
-          <button class="btn btn-primary" onclick="openNewModal()">+ Neues Gruppentraining</button>
+          <button class="pf-btn pf-btn-primary" onclick="openNewModal()">+ Neues Gruppentraining</button>
         </div>
       </div>
 
@@ -124,7 +116,7 @@
 </div>
 
 <!-- New / Edit Group Modal -->
-<div class="modal modal-blur fade" id="group-modal" tabindex="-1">
+<div class="modal modal-blur fade pf-modal-lg" id="group-modal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
@@ -137,114 +129,116 @@
             &#9888; Kurs dupliziert — bitte neues Datum eintragen
           </div>
 
-          <div class="row mb-3">
-            <div class="col-md-6">
+          <div class="pf-form-grid pf-form-grid-2col">
+            <div class="pf-form-divider">Termin</div>
+
+            <div>
               <label class="form-label" id="f-date-label">Datum *</label>
-              <input class="form-control" type="date" id="f-date" required>
+              <input class="form-control pf-field" type="date" id="f-date" required>
             </div>
-            <div class="col-md-6">
+            <div>
               <label class="form-label">Uhrzeit *</label>
-              <input class="form-control" type="time" id="f-time" required>
+              <input class="form-control pf-field" type="time" id="f-time" required>
             </div>
-          </div>
-          <!-- Serien-Toggle (Outlook-Pattern) -->
-          <div class="mb-3">
-            <label class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" id="f-series-toggle">
-              <span class="form-check-label"><i class="ti ti-repeat"></i> Serientermin</span>
-            </label>
-          </div>
-          <!-- Serien-Felder (nur sichtbar wenn Toggle aktiv) -->
-          <div id="series-section" style="display:none">
-            <div class="alert alert-info mb-3">
-              <div class="d-flex">
-                <i class="ti ti-info-circle alert-icon"></i>
-                <div>Erstellt mehrere Termine auf einmal. Datum oben wird zum Startdatum, jeder Termin wird als einzelner Kurs angelegt.</div>
-              </div>
+
+            <!-- Serien-Toggle (Outlook-Pattern) -->
+            <div class="pf-form-full">
+              <label class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="f-series-toggle">
+                <span class="form-check-label"><i class="ti ti-repeat"></i> Serientermin</span>
+              </label>
             </div>
-            <div class="row mb-3">
-              <div class="col-md-4">
-                <label class="form-label required">Enddatum</label>
-                <input type="date" class="form-control" id="f-series-end">
+
+            <!-- Serien-Felder (nur sichtbar wenn Toggle aktiv) -->
+            <div class="pf-form-full" id="series-section" style="display:none">
+              <div class="alert alert-info mb-3">
+                <div class="d-flex">
+                  <i class="ti ti-info-circle alert-icon"></i>
+                  <div>Erstellt mehrere Termine auf einmal. Datum oben wird zum Startdatum, jeder Termin wird als einzelner Kurs angelegt.</div>
+                </div>
               </div>
-              <div class="col-md-4">
-                <label class="form-label required">Rhythmus</label>
-                <select class="form-select" id="f-series-rhythm">
-                  <option value="weekly">Wöchentlich</option>
-                  <option value="biweekly">Alle 2 Wochen</option>
-                </select>
+              <div class="pf-form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+                <div>
+                  <label class="form-label required">Enddatum</label>
+                  <input type="date" class="form-control pf-field" id="f-series-end">
+                </div>
+                <div>
+                  <label class="form-label required">Rhythmus</label>
+                  <select class="form-select pf-field" id="f-series-rhythm">
+                    <option value="weekly">Wöchentlich</option>
+                    <option value="biweekly">Alle 2 Wochen</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">Wochentage</label>
+                  <div class="d-flex gap-1 flex-wrap" id="f-series-days">
+                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="1"><span class="form-check-label">Mo</span></label>
+                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="2"><span class="form-check-label">Di</span></label>
+                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="3"><span class="form-check-label">Mi</span></label>
+                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="4"><span class="form-check-label">Do</span></label>
+                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="5"><span class="form-check-label">Fr</span></label>
+                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="6"><span class="form-check-label">Sa</span></label>
+                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="7"><span class="form-check-label">So</span></label>
+                  </div>
+                </div>
               </div>
-              <div class="col-md-4">
-                <label class="form-label">Wochentage</label>
-                <div class="d-flex gap-1 flex-wrap" id="f-series-days">
-                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="1"><span class="form-check-label">Mo</span></label>
-                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="2"><span class="form-check-label">Di</span></label>
-                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="3"><span class="form-check-label">Mi</span></label>
-                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="4"><span class="form-check-label">Do</span></label>
-                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="5"><span class="form-check-label">Fr</span></label>
-                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="6"><span class="form-check-label">Sa</span></label>
-                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="7"><span class="form-check-label">So</span></label>
+              <div class="card mt-2" style="border:1px dashed var(--tblr-border-color)">
+                <div class="card-header py-2">
+                  <h4 class="card-title" style="font-size:13px"><i class="ti ti-calendar-event"></i> Vorschau</h4>
+                </div>
+                <div class="card-body py-2" id="f-series-preview" style="max-height:120px;overflow-y:auto;font-size:12px">
+                  Wochentage und Zeitraum wählen...
                 </div>
               </div>
             </div>
-            <div class="card mb-3" style="border:1px dashed var(--tblr-border-color)">
-              <div class="card-header py-2">
-                <h4 class="card-title" style="font-size:13px"><i class="ti ti-calendar-event"></i> Vorschau</h4>
-              </div>
-              <div class="card-body py-2" id="f-series-preview" style="max-height:120px;overflow-y:auto;font-size:12px">
-                Wochentage und Zeitraum wählen...
-              </div>
-            </div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-6">
+
+            <div class="pf-form-divider">Kurs</div>
+
+            <div>
               <label class="form-label">Kursname *</label>
-              <input class="form-control" id="f-name" required placeholder="z.B. Outdoor Bootcamp">
+              <input class="form-control pf-field" id="f-name" required placeholder="z.B. Outdoor Bootcamp">
             </div>
-            <div class="col-md-6">
+            <div>
               <label class="form-label">Trainer *</label>
-              <select class="form-select" id="f-trainer">
+              <select class="form-select pf-field" id="f-trainer">
                 <option value="">Trainer wählen...</option>
               </select>
             </div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-6">
+            <div>
               <label class="form-label">Stadt *</label>
-              <select class="form-select" id="f-city" required>
+              <select class="form-select pf-field" id="f-city" required>
                 <option value="">Stadt wählen...</option>
               </select>
             </div>
-            <div class="col-md-6">
+            <div>
               <label class="form-label">Ort / Treffpunkt</label>
-              <input class="form-control" id="f-location-name" placeholder="z.B. Stadtpark Eingang Nord">
+              <input class="form-control pf-field" id="f-location-name" placeholder="z.B. Stadtpark Eingang Nord">
             </div>
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Adresse</label>
-            <input class="form-control" id="f-location-address" placeholder="z.B. Musterstraße 1, 50667 Köln">
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Was Teilnehmer mitbringen sollen</label>
-            <input class="form-control" id="f-equipment" placeholder="Sportkleidung, Wasser, Handtuch">
-            <small class="form-hint">Komma-getrennt. Leer lassen für Standard (Sportkleidung, Wasser, Handtuch).</small>
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-6">
+            <div class="pf-form-full">
+              <label class="form-label">Adresse</label>
+              <input class="form-control pf-field" id="f-location-address" placeholder="z.B. Musterstraße 1, 50667 Köln">
+            </div>
+            <div class="pf-form-full">
+              <label class="form-label">Was Teilnehmer mitbringen sollen</label>
+              <input class="form-control pf-field" id="f-equipment" placeholder="Sportkleidung, Wasser, Handtuch">
+              <small class="form-hint">Komma-getrennt. Leer lassen für Standard (Sportkleidung, Wasser, Handtuch).</small>
+            </div>
+
+            <div class="pf-form-divider">Einstellungen</div>
+
+            <div>
               <label class="form-label">Dauer (Minuten)</label>
-              <input class="form-control" type="number" id="f-duration" value="60" min="15">
+              <input class="form-control pf-field" type="number" id="f-duration" value="60" min="15">
             </div>
-            <div class="col-md-6">
+            <div>
               <label class="form-label">Max. Teilnehmer</label>
-              <input class="form-control" type="number" id="f-max" value="12" min="1">
+              <input class="form-control pf-field" type="number" id="f-max" value="12" min="1">
             </div>
-          </div>
-          <div class="row mb-3">
-            <div class="col-md-6">
+            <div>
               <label class="form-label">Preis pro Person (EUR) *</label>
-              <input class="form-control" type="number" id="f-price" placeholder="Preis in EUR eingeben" step="0.01" min="0.01" required>
+              <input class="form-control pf-field" type="number" id="f-price" placeholder="Preis in EUR eingeben" step="0.01" min="0.01" required>
             </div>
-            <div class="col-md-6" style="display:flex;align-items:center;padding-top:24px">
+            <div style="display:flex;align-items:center;padding-top:24px">
               <label class="form-check">
                 <input class="form-check-input" type="checkbox" id="f-active" checked>
                 <span class="form-check-label">Aktiv</span>
@@ -254,15 +248,15 @@
         </form>
         <div id="modal-participants-section" style="display:none;margin-top:24px">
           <hr class="form-divider">
-          <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:#F0F0F5">Angemeldete Teilnehmer</h3>
+          <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--pf-text-primary)">Angemeldete Teilnehmer</h3>
           <div id="modal-participants-content">
             <div class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</div>
           </div>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-primary" id="modal-save-btn" onclick="saveGroup()">Speichern</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-primary" id="modal-save-btn" onclick="saveGroup()">Speichern</button>
       </div>
     </div>
   </div>
@@ -271,7 +265,7 @@
 <!-- Altes Serien-Modal entfernt — Serie ist jetzt im group-modal integriert -->
 
 <!-- Participants Modal -->
-<div class="modal modal-blur fade" id="participants-modal" tabindex="-1">
+<div class="modal modal-blur fade pf-modal-lg" id="participants-modal" tabindex="-1">
   <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
@@ -282,7 +276,7 @@
         <div class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Laden...</div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schließen</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Schließen</button>
       </div>
     </div>
   </div>
@@ -291,6 +285,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
@@ -349,7 +344,7 @@
     // F-1-Fund im Sicherheits-Review 11.05.2026).
     tableFilter = initSortableTable('groups-table', [
       { key: 'name',             type: 'text',   getValue: g => g.name || '' },
-      { key: 'city',             type: 'select', getValue: g => g.city || '\u2013' },
+      { key: 'city',             type: 'select', getValue: g => g.city || '–' },
       { key: 'trainer',          type: 'text',   getValue: g => activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '' },
       { key: 'scheduled_date',   type: 'date',   getValue: g => g.scheduled_date || '' },
       { key: 'participants',     type: 'number', getValue: g => g.current_participants || 0 },
@@ -357,7 +352,9 @@
       { key: 'price',            type: 'number', getValue: g => (g.price_per_person_cents || 0) / 100 },
       { key: 'status',           type: 'select', getValue: g => g.is_active ? 'Aktiv' : 'Inaktiv' },
       null,
-    ]);
+    ], {
+      onRowClick: function(rowData) { editGroup(rowData.id); },
+    });
     tableFilter.onFilterChange(() => renderGroups());
 
     await loadGroups();
@@ -454,7 +451,7 @@
       return;
     }
 
-    tbody.innerHTML = filtered.map(g => {
+    tbody.innerHTML = filtered.map((g, idx) => {
       const trainerName = activeTrainers.find(t => t.id === g.trainer_id)?.full_name || g.trainer_name || '--';
       const participants = g.current_participants || 0;
       const max = g.max_participants || 12;
@@ -463,9 +460,12 @@
       const barColor = fillPct > 70 ? 'var(--tblr-primary)' : (fillPct > 30 ? 'var(--tblr-primary)' : 'var(--tblr-warning)');
       const seriesBadge = g.series_id ? ' <span class="series-badge ms-1"><i class="ti ti-repeat" style="font-size:12px"></i> Wo</span>' : '';
       const dateTimeStr = g.scheduled_date ? formatDate(g.scheduled_date) + ' · ' + getTime(g) : getDayName(g) + ' · ' + getTime(g);
-      const inactiveStyle = !g.is_active ? ' style="opacity:0.5"' : '';
+      const inactiveStyle = !g.is_active ? ' style="opacity:0.5;cursor:pointer"' : ' style="cursor:pointer"';
+      const statusHtml = g.is_active
+        ? DESIGN.badge('confirmed').replace('>Bestätigt<', '>Aktiv<')
+        : '<span class="pf-badge" style="background:#f1f5f9;color:#64748b">Inaktiv</span>';
       return `
-        <tr${inactiveStyle}>
+        <tr data-row-index="${idx}"${inactiveStyle}>
           <td><strong>${g.name}</strong>${seriesBadge}</td>
           <td>${g.city || '--'}</td>
           <td>${trainerName}</td>
@@ -474,22 +474,23 @@
             <span class="fw-bold">${participants}</span><span class="text-secondary">/${max}</span>
             <div class="participant-bar"><div class="participant-bar-fill" style="width:${fillPct}%;background:${barColor}"></div></div>
           </td>
-          <td>
-            <input type="number" class="form-control form-control-sm" style="max-width:80px"
+          <td style="overflow:visible">
+            <input type="number" class="form-control form-control-sm" style="width:50px"
               value="${g.min_participants ?? 6}" min="1"${g.max_participants != null ? ` max="${g.max_participants}"` : ''}
               data-action="update-min-participants" data-id="${g.id}" data-max="${g.max_participants ?? ''}"
-              title="Mindest-Teilnehmer fuer Kurs-Durchfuehrung">
+              title="Mindest-Teilnehmer fuer Kurs-Durchfuehrung"
+              onclick="event.stopPropagation()">
           </td>
           <td class="fw-bold">${formatEuro(priceCents)}</td>
-          <td>${g.is_active ? '<span class="badge badge-active">Aktiv</span>' : '<span class="badge badge-paused">Inaktiv</span>'}</td>
+          <td>${statusHtml}</td>
           <td>
             <div class="d-flex gap-1">
-              <button class="btn btn-sm btn-ghost-secondary" onclick="editGroup('${g.id}')" title="Bearbeiten"><i class="ti ti-edit"></i></button>
-              <button class="btn btn-sm btn-ghost-secondary" onclick="duplicateGroup('${g.id}')" title="Duplizieren"><i class="ti ti-copy"></i></button>
-              <button class="btn btn-sm btn-ghost-secondary" onclick="showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')" title="Teilnehmer"><i class="ti ti-users"></i></button>
-              <button class="btn btn-sm btn-ghost-danger" onclick="stornoGroupClass('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}')" title="Kurs absagen"><i class="ti ti-ban"></i></button>
-              <button class="btn btn-sm btn-ghost-secondary" onclick="toggleActive('${g.id}', ${!g.is_active})" title="${g.is_active ? 'Deaktivieren' : 'Aktivieren'}" style="color:${g.is_active ? 'var(--tblr-danger)' : 'var(--tblr-success)'}"><i class="ti ${g.is_active ? 'ti-player-pause' : 'ti-check'}"></i></button>
-              ${!g.is_active ? `<button class="btn btn-sm btn-ghost-secondary" onclick="deleteGroup('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}')\" title="Löschen" style="color:var(--tblr-danger)"><i class="ti ti-trash"></i></button>` : ''}
+              <button class="pf-btn pf-btn-edit" onclick="event.stopPropagation();editGroup('${g.id}')">Bearbeiten</button>
+              <button class="pf-btn pf-btn-neutral" onclick="event.stopPropagation();duplicateGroup('${g.id}')">Kopieren</button>
+              <button class="pf-btn pf-btn-neutral" onclick="event.stopPropagation();showParticipants('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}', '${g.scheduled_date||''}', '${getTime(g)}')">Teilnehmer</button>
+              <button class="pf-btn pf-btn-danger" onclick="event.stopPropagation();stornoGroupClass('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}')" title="Kurs absagen">Absagen</button>
+              <button class="pf-btn ${g.is_active ? 'pf-btn-danger' : 'pf-btn-primary'}" onclick="event.stopPropagation();toggleActive('${g.id}', ${!g.is_active})">${g.is_active ? 'Deaktivieren' : 'Aktivieren'}</button>
+              ${!g.is_active ? `<button class="pf-btn pf-btn-danger" onclick="event.stopPropagation();deleteGroup('${g.id}', '${(g.name||'').replace(/'/g,"\\'")}')">Löschen</button>` : ''}
             </div>
           </td>
         </tr>
@@ -629,7 +630,7 @@
       const container = document.getElementById('modal-participants-content');
 
       if (participants.length === 0) {
-        container.innerHTML = '<p style="color:#8888A0;font-size:13px;padding:4px 0">Noch keine Anmeldungen</p>';
+        container.innerHTML = '<p style="color:var(--pf-text-secondary);font-size:13px;padding:4px 0">Noch keine Anmeldungen</p>';
         return;
       }
 
@@ -647,25 +648,25 @@
               ${participants.map(p => `
                 <tr>
                   <td>${p.customer_name || '–'}</td>
-                  <td style="color:#8888A0">${p.customer_phone || p.customer_email || '–'}</td>
+                  <td style="color:var(--pf-text-secondary)">${p.customer_phone || p.customer_email || '–'}</td>
                   <td class="text-accent">${formatEuro(priceCents)}</td>
                   <td>${p.customer_paid
-                    ? '<span style="color:var(--success)">✅ Bezahlt</span>'
-                    : '<span style="color:#8888A0">⏳ Offen</span>'}</td>
+                    ? DESIGN.badge('confirmed').replace('>Bestätigt<', '>Bezahlt<')
+                    : '<span class="pf-badge" style="background:#fff7ed;color:#ea580c">Offen</span>'}</td>
                 </tr>
               `).join('')}
             </tbody>
           </table>
         </div>
-        <div style="margin-top:12px;font-size:13px;color:#8888A0">
-          <strong style="color:#F0F0F5">${participants.length} Teilnehmer</strong>
+        <div style="margin-top:12px;font-size:13px;color:var(--pf-text-secondary)">
+          <strong style="color:var(--pf-text-primary)">${participants.length} Teilnehmer</strong>
           &nbsp;|&nbsp; Einnahmen gesamt:
-          <strong style="color:var(--accent)">${totalEur}</strong>
+          <strong style="color:var(--pf-accent-green)">${totalEur}</strong>
         </div>
       `;
     } catch (err) {
       document.getElementById('modal-participants-content').innerHTML =
-        `<p style="color:var(--error);font-size:13px">Fehler: ${err.message}</p>`;
+        `<p style="color:#dc2626;font-size:13px">Fehler: ${err.message}</p>`;
     }
   }
 
@@ -814,25 +815,21 @@
         <!-- SOLL / IST Cards -->
         <div class="row mb-3">
           <div class="col-6">
-            <div class="card">
-              <div class="card-body py-2 text-center">
-                <div class="text-secondary" style="font-size:12px">Angemeldet (SOLL)</div>
-                <div style="font-size:1.5rem;font-weight:700">${totalCount} <span class="text-secondary" style="font-size:14px">/ ${maxP}</span></div>
-              </div>
+            <div class="pf-stat-card" style="text-align:center">
+              <div class="pf-stat-label">Angemeldet (SOLL)</div>
+              <div class="pf-stat-num">${totalCount} <span style="font-size:14px;font-weight:400;color:var(--pf-text-secondary)">/ ${maxP}</span></div>
             </div>
           </div>
           <div class="col-6">
-            <div class="card">
-              <div class="card-body py-2 text-center">
-                <div class="text-secondary" style="font-size:12px">Teilgenommen (IST)</div>
-                <div style="font-size:1.5rem;font-weight:700;color:var(--tblr-primary)">${attendedCount}</div>
-              </div>
+            <div class="pf-stat-card" style="text-align:center">
+              <div class="pf-stat-label">Teilgenommen (IST)</div>
+              <div class="pf-stat-num" style="color:var(--pf-accent-green)">${attendedCount}</div>
             </div>
           </div>
         </div>
 
         <!-- Einnahmen-Zusammenfassung -->
-        <div class="alert" style="background:rgba(64,145,108,0.1);border:1px solid rgba(64,145,108,0.3);color:var(--tblr-primary)">
+        <div class="alert" style="background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);color:#16a34a">
           <strong>Einnahmen:</strong> ${totalCount} &times; ${formatEuro(priceCents)} = <strong>${totalEurAll}</strong>
           &nbsp;|&nbsp; Davon bezahlt: <strong>${paidEur}</strong> (${paidCount} von ${totalCount})
         </div>
@@ -854,9 +851,9 @@
               <tbody>
                 ${participants.map(p => {
                   const stornoBtn = (!p.storno_invoice_id && p.status !== 'cancelled' && p.status !== 'refunded')
-                    ? `<button class="btn btn-sm btn-ghost-danger" title="Teilnehmer stornieren"
+                    ? `<button class="pf-btn pf-btn-danger" title="Teilnehmer stornieren"
                         onclick="stornoParticipant('${p.id}', '${(p.customer_name || p.name || '').replace(/'/g,"\\'")}', ${p.final_price_cents ?? p.price_cents ?? priceCents})">
-                        <i class="ti ti-user-minus"></i>
+                        Stornieren
                       </button>`
                     : '';
                   return `
@@ -867,7 +864,7 @@
                     <td>
                       <input type="checkbox" disabled ${p.customer_paid ? 'checked' : ''}
                         title="Wird automatisch durch Stripe-Webhook gesetzt. Sonderfall ueber 'Manuell setzen'-Knopf rechts.">
-                      <button class="btn btn-sm btn-ghost-secondary" style="padding:2px 6px;margin-left:4px"
+                      <button class="pf-btn pf-btn-edit" style="padding:2px 6px;margin-left:4px"
                         title="Bezahlt-Status manuell setzen (mit Begruendung, Audit-Trail)"
                         onclick="manualSetField('${p.id}', 'customer_paid', ${!p.customer_paid})">
                         <i class="ti ti-edit"></i>
@@ -876,7 +873,7 @@
                     <td>
                       <input type="checkbox" disabled ${p.trainer_paid ? 'checked' : ''}
                         title="Wird automatisch durch process-payout gesetzt. Sonderfall ueber 'Manuell setzen'-Knopf rechts.">
-                      <button class="btn btn-sm btn-ghost-secondary" style="padding:2px 6px;margin-left:4px"
+                      <button class="pf-btn pf-btn-edit" style="padding:2px 6px;margin-left:4px"
                         title="Trainer-Honorar manuell setzen (mit Begruendung, Audit-Trail)"
                         onclick="manualSetField('${p.id}', 'trainer_paid', ${!p.trainer_paid})">
                         <i class="ti ti-edit"></i>
@@ -895,25 +892,25 @@
       }
 
       html += `
-        <hr style="border-color:#2a2a2a;margin:20px 0">
+        <hr style="border-color:var(--pf-border);margin:20px 0">
         <h3 style="font-size:14px;font-weight:700;margin-bottom:12px">Teilnehmer hinzufügen</h3>
-        <div class="row mb-3">
-          <div class="col-md-6">
+        <div class="pf-form-grid pf-form-grid-2col" style="margin-bottom:12px">
+          <div>
             <label class="form-label">Name *</label>
-            <input class="form-control" id="add-p-name" placeholder="Max Mustermann">
+            <input class="form-control pf-field" id="add-p-name" placeholder="Max Mustermann">
           </div>
-          <div class="col-md-6">
+          <div>
             <label class="form-label">E-Mail</label>
-            <input class="form-control" type="email" id="add-p-email" placeholder="max@beispiel.de">
+            <input class="form-control pf-field" type="email" id="add-p-email" placeholder="max@beispiel.de">
           </div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="addParticipant()">Teilnehmer hinzufügen</button>
+        <button class="pf-btn pf-btn-primary" onclick="addParticipant()">Teilnehmer hinzufügen</button>
       `;
 
       document.getElementById('participants-body').innerHTML = html;
     } catch (err) {
       document.getElementById('participants-body').innerHTML =
-        `<p class="text-error" style="padding:16px">Fehler: ${err.message}</p>`;
+        `<p style="color:#dc2626;padding:16px">Fehler: ${err.message}</p>`;
     }
   }
 
