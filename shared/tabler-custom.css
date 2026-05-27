@@ -1,49 +1,38 @@
-/* ProjektFit Tabler Overrides – v2 (Phase A Refactor Preview)
+/* ProjektFit / Pulsly – Tabler Overrides v3 (helles Thema)
  *
- * Änderungen gegenüber v1:
- *  [10] :root setzt keine direkten color/background mehr (Light-Mode Fix)
- *  [8]  Heading-Hierarchie fest definiert (h1..h4, body)
- *  [4]  Neue .form-divider Klasse ersetzt inline <hr style>
- *  [9]  Button-Varianten auf 4 reduziert + Ghost-Danger ergänzt
- *  [1]  .two-col entfernt → stattdessen .row .col-md-6 nutzen
- *  [6]  .text-muted als Alias auf .text-secondary gemappt
- *  [7]  Modal-Konvention via Kommentar dokumentiert (keine inline max-width)
- *
- *  Punkte 2, 3, 5 sind reine HTML-Anpassungen (kein CSS)
+ * Aenderungen gegenueber v2:
+ *  - Dark-Mode komplett entfernt (nur noch Light)
+ *  - Markenfarben auf Pulsly-Palette (#4ADE80, #FB923C)
+ *  - Neue Design-System-Klassen: pf-badge, pf-btn-*, pf-field, pf-modal-*,
+ *    pf-form-grid, pf-sidebar-item, pf-stat-card, FullCalendar-Hintergruende
+ *  - Alte Badge-/Button-Klassen bleiben uebergangsweise erhalten
  */
 
-/* ── Markenfarben (Variablen pro Theme, KEIN direktes color/background auf :root) ── */
-:root,
-[data-bs-theme="dark"],
-.page[data-bs-theme="dark"],
-body[data-bs-theme="dark"] {
-  --tblr-primary: #40916C !important;
-  --tblr-primary-rgb: 64, 145, 108 !important;
-  --tblr-warning: #e8930a !important;
-  --tblr-warning-rgb: 232, 147, 10 !important;
-  --tblr-body-bg: #0a0a0a !important;
-  --tblr-card-bg: #1a1a1a !important;
-  --tblr-border-color: #2a2a2a !important;
-  --tblr-font-sans-serif: 'Plus Jakarta Sans', sans-serif !important;
-  --tblr-body-color: #f0f0f5 !important;
-  --tblr-secondary-color: #8888a0 !important;
-  --tblr-muted-color: #666680 !important;
-  --tblr-card-border-color: #2a2a2a !important;
-  --tblr-navbar-bg: #111 !important;
-  /* FIX [10]: KEIN direktes color / background-color hier — das würde
-     via Inheritance den Light-Mode kaputtmachen. Variablen reichen. */
-}
-
-[data-bs-theme="light"],
-.page[data-bs-theme="light"],
-body[data-bs-theme="light"] {
-  --tblr-body-bg: #f5f7fb !important;
+/* ── Design-System Variablen (nur Light) ────────────────────────────────── */
+:root {
+  --pf-bg-page: #f8fafc;
+  --pf-bg-card: #ffffff;
+  --pf-bg-active: #f0fdf4;
+  --pf-accent-green: #4ADE80;
+  --pf-accent-orange: #FB923C;
+  --pf-text-primary: #1e293b;
+  --pf-text-secondary: #64748b;
+  --pf-text-muted: #94a3b8;
+  --pf-border: #e2e8f0;
+  --pf-border-light: #f1f5f9;
+  --tblr-primary: #4ADE80 !important;
+  --tblr-primary-rgb: 74, 222, 128 !important;
+  --tblr-warning: #FB923C !important;
+  --tblr-warning-rgb: 251, 146, 60 !important;
+  --tblr-body-bg: #f8fafc !important;
   --tblr-card-bg: #ffffff !important;
-  --tblr-border-color: #e6e7e9 !important;
+  --tblr-border-color: #e2e8f0 !important;
   --tblr-body-color: #1e293b !important;
-  --tblr-secondary-color: #626976 !important;
-  --tblr-muted-color: #8a94a6 !important;
+  --tblr-secondary-color: #64748b !important;
+  --tblr-muted-color: #94a3b8 !important;
+  --tblr-card-border-color: #e2e8f0 !important;
   --tblr-navbar-bg: #ffffff !important;
+  --tblr-font-sans-serif: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
 }
 
 /* ── Body + Basis-Farben ─────────────────────────────────────────────────── */
@@ -54,7 +43,7 @@ body {
 }
 .page-body { color: var(--tblr-body-color); }
 
-/* ── [8] Heading-Hierarchie (global, fest) ──────────────────────────────── */
+/* ── Heading-Hierarchie (global, fest) ──────────────────────────────────── */
 h1, .h1, .page-title { font-size: 1.75rem;   font-weight: 700; line-height: 1.25; color: var(--tblr-body-color); margin-bottom: 0.5rem; }
 h2, .h2             { font-size: 1.375rem;  font-weight: 700; line-height: 1.3;  color: var(--tblr-body-color); margin-bottom: 0.5rem; }
 h3, .h3, .card-title { font-size: 1.125rem; font-weight: 600; line-height: 1.35; color: var(--tblr-body-color); margin-bottom: 0.5rem; }
@@ -79,8 +68,7 @@ small, .small { font-size: 0.8125rem; }
 
 /* ── Tabellen ────────────────────────────────────────────────────────────── */
 .table { color: var(--tblr-body-color); }
-.table-hover > tbody > tr:hover { --tblr-table-hover-bg: rgba(255,255,255,0.03); }
-[data-bs-theme="light"] .table-hover > tbody > tr:hover { --tblr-table-hover-bg: rgba(0,0,0,0.02); }
+.table-hover > tbody > tr:hover { --tblr-table-hover-bg: rgba(0,0,0,0.02); }
 
 /* ── Formulare ───────────────────────────────────────────────────────────── */
 .form-control, .form-select {
@@ -92,7 +80,7 @@ small, .small { font-size: 0.8125rem; }
   background-color: var(--tblr-card-bg);
   border-color: var(--tblr-primary);
   color: var(--tblr-body-color);
-  box-shadow: 0 0 0 2px rgba(64,145,108,0.2);
+  box-shadow: 0 0 0 2px rgba(74,222,128,0.2);
 }
 .form-label {
   font-size: 0.6875rem;
@@ -111,7 +99,7 @@ small, .small { font-size: 0.8125rem; }
   margin-top: 0.25rem;
 }
 
-/* ── [4] Form-Divider (ersetzt inline <hr style="border-color:..."> ) ──── */
+/* ── Form-Divider ────────────────────────────────────────────────────────── */
 .form-divider {
   border: none;
   border-top: 1px solid var(--tblr-border-color);
@@ -120,9 +108,6 @@ small, .small { font-size: 0.8125rem; }
 }
 
 /* ── Modals ──────────────────────────────────────────────────────────────── */
-/* [7] Konvention: NUR Bootstrap-Standards verwenden.
-   Detail/Form = modal-lg, Create/Edit = (default md), Quick-Action = modal-sm
-   KEINE inline max-width Styles mehr verwenden. */
 .modal-content {
   background-color: var(--tblr-card-bg);
   color: var(--tblr-body-color);
@@ -140,21 +125,15 @@ small, .small { font-size: 0.8125rem; }
 .nav-link { color: var(--tblr-secondary-color); }
 .nav-link.active { color: var(--tblr-primary); }
 
-.navbar-vertical { background-color: #111 !important; }
-[data-bs-theme="light"] .navbar-vertical { background-color: #fff !important; }
-.navbar-vertical .nav-link { color: #8888a0; }
-.navbar-vertical .nav-link.active { color: var(--tblr-primary); background: rgba(64,145,108,0.1); }
-.navbar-vertical .nav-link:hover { color: #f0f0f5; }
-[data-bs-theme="light"] .navbar-vertical .nav-link { color: #626976; }
-[data-bs-theme="light"] .navbar-vertical .nav-link.active { color: var(--tblr-primary); }
-[data-bs-theme="light"] .navbar-vertical .nav-link:hover { color: #1e293b; }
+.navbar-vertical { background-color: #fff !important; }
+.navbar-vertical .nav-link { color: #626976; }
+.navbar-vertical .nav-link.active { color: var(--tblr-primary); background: rgba(74,222,128,0.1); }
+.navbar-vertical .nav-link:hover { color: #1e293b; }
 
 .navbar-vertical .navbar-brand { font-weight: 800; font-size: 1.1rem; }
 .navbar-vertical .navbar-brand span { color: var(--tblr-primary); }
 
-/* ── [9] Buttons – reduzierte Varianten ──────────────────────────────────── */
-/* Zugelassen: btn-primary, btn-outline-secondary, btn-danger, btn-ghost-secondary, btn-ghost-danger */
-
+/* ── Alte Buttons (uebergangsweise erhalten, werden seitenweise ersetzt) ── */
 .btn { font-weight: 600; }
 
 .btn-primary {
@@ -163,8 +142,8 @@ small, .small { font-size: 0.8125rem; }
   color: #fff;
 }
 .btn-primary:hover, .btn-primary:focus {
-  background-color: #357a5b;
-  border-color: #357a5b;
+  background-color: #3bc96e;
+  border-color: #3bc96e;
   color: #fff;
 }
 
@@ -174,12 +153,9 @@ small, .small { font-size: 0.8125rem; }
   background: transparent;
 }
 .btn-outline-secondary:hover {
-  background-color: rgba(255,255,255,0.05);
+  background-color: rgba(0,0,0,0.04);
   color: var(--tblr-body-color);
   border-color: var(--tblr-border-color);
-}
-[data-bs-theme="light"] .btn-outline-secondary:hover {
-  background-color: rgba(0,0,0,0.04);
 }
 
 .btn-danger {
@@ -196,9 +172,8 @@ small, .small { font-size: 0.8125rem; }
 }
 .btn-ghost-secondary:hover {
   color: var(--tblr-body-color);
-  background: rgba(255,255,255,0.05);
+  background: rgba(0,0,0,0.04);
 }
-[data-bs-theme="light"] .btn-ghost-secondary:hover { background: rgba(0,0,0,0.04); }
 
 .btn-ghost-danger {
   color: #e74c3c;
@@ -210,69 +185,51 @@ small, .small { font-size: 0.8125rem; }
   color: #c0392b;
 }
 
-/* ── [6] text-muted als Alias auf text-secondary (Migration) ─────────────── */
+/* ── text-muted Alias ────────────────────────────────────────────────────── */
 .text-muted { color: var(--tblr-secondary-color) !important; }
 
-/* ── Accent-Farbe ────────────────────────────────────────────────────────── */
-.text-accent { color: #e8930a !important; }
+/* ── Alte Badges (uebergangsweise erhalten, werden seitenweise ersetzt) ─── */
+.badge-pending { background: rgba(251, 146, 60, 0.15); color: #ea580c; }
+.badge-confirmed { background: rgba(74, 222, 128, 0.15); color: #16a34a; }
+.badge-completed { background: rgba(39, 174, 96, 0.15); color: #16a34a; }
+.badge-cancelled { background: rgba(231, 76, 60, 0.15); color: #dc2626; }
+.badge-cancelled-done { background: rgba(148, 163, 184, 0.18); color: #94a3b8; }
 
-/* ── KPI Cards ───────────────────────────────────────────────────────────── */
-.kpi-value { font-size: 1.75rem; font-weight: 700; line-height: 1.2; color: var(--tblr-body-color); }
-.kpi-label { font-size: 0.8125rem; color: var(--tblr-secondary-color); margin-bottom: 0.25rem; }
-.kpi-sub   { font-size: 0.75rem;  color: var(--tblr-secondary-color); margin-top: 0.25rem; }
-
-/* ── Status Badges (unverändert) ─────────────────────────────────────────── */
-.badge-pending { background: rgba(232, 147, 10, 0.15); color: #e8930a; }
-.badge-confirmed { background: rgba(64, 145, 108, 0.15); color: #40916C; }
-.badge-completed { background: rgba(39, 174, 96, 0.15); color: #27ae60; }
-/* Stornierungen: abgeschlossen, kein Admin-Todo */
-.badge-cancelled { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
-.badge-cancelled-done { background: rgba(136, 136, 160, 0.18); color: #999; }
-
-/* Admin-Todo: Trainer-Stornierung, Dispute, Eskalation — Aktion nötig! */
 .badge-action-needed {
-  background: rgba(232, 147, 10, 0.2);
-  color: #e8930a;
+  background: rgba(251, 146, 60, 0.2);
+  color: #ea580c;
   font-weight: 600;
-  border: 1px solid rgba(232, 147, 10, 0.4);
+  border: 1px solid rgba(251, 146, 60, 0.4);
   animation: pulse-action 2s ease-in-out infinite;
 }
-@keyframes pulse-action { 0%,100% { border-color: rgba(232, 147, 10, 0.4); } 50% { border-color: rgba(232, 147, 10, 0.8); } }
+@keyframes pulse-action { 0%,100% { border-color: rgba(251, 146, 60, 0.4); } 50% { border-color: rgba(251, 146, 60, 0.8); } }
 
-.badge-expired { background: rgba(136, 136, 160, 0.15); color: #8888a0; }
-.badge-warning { background: rgba(232, 147, 10, 0.15); color: #e8930a; }
-.badge-active { background: rgba(64, 145, 108, 0.15); color: #40916C; }
-.badge-paused { background: rgba(136, 136, 160, 0.15); color: #8888a0; }
-.badge-blocked { background: rgba(231, 76, 60, 0.15); color: #e74c3c; }
+.badge-expired { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+.badge-warning { background: rgba(251, 146, 60, 0.15); color: #ea580c; }
+.badge-active { background: rgba(74, 222, 128, 0.15); color: #16a34a; }
+.badge-paused { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
+.badge-blocked { background: rgba(231, 76, 60, 0.15); color: #dc2626; }
 .badge-overdue {
   background: rgba(231, 76, 60, 0.2);
-  color: #e74c3c;
+  color: #dc2626;
   animation: pulse-overdue 2s ease-in-out infinite;
 }
 @keyframes pulse-overdue { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-/* ── Tabellen-Overflow-Fix: Spaltenbreiten + horizontaler Scroll ────────── */
+/* ── Tabellen-Overflow-Fix ───────────────────────────────────────────────── */
 .table-responsive { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
 .table-responsive > .table { min-width: 900px; }
 
-/* Kompakte Tabellenzellen: kein Umbruch, kleinere Schrift */
+/* Kompakte Tabellenzellen */
 .table th, .table td { white-space: nowrap; padding: 0.4rem 0.5rem !important; font-size: 0.8125rem; }
 
-/* Spalten die umbrechen duerfen (explizite Klasse statt nth-child) */
+/* Spalten die umbrechen duerfen */
 .td-wrap { white-space: normal !important; min-width: 80px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
 
-/* Betrags-Spalten: rechtsbuendig, kompakt */
+/* Betrags-Spalten: rechtsbuendig */
 .td-amount { text-align: right; min-width: 60px; font-variant-numeric: tabular-nums; }
 
-/* ── [1] .two-col DEPRECATED: nicht mehr definieren, Bootstrap-Grid nutzen ── */
-/* Migration: <div class="two-col"> ... </div>
-   →          <div class="row g-3">
-                <div class="col-md-6"> ... </div>
-                <div class="col-md-6"> ... </div>
-              </div>
-*/
-
-/* ── Toast + Loading + Action-Cell (unverändert) ─────────────────────────── */
+/* ── Toast + Loading + Action-Cell ───────────────────────────────────────── */
 .toast-container-pf {
   position: fixed; top: 1rem; right: 1rem; z-index: 9999;
   display: flex; flex-direction: column; gap: 0.5rem;
@@ -286,26 +243,62 @@ small, .small { font-size: 0.8125rem; }
 .action-cell .btn-sm { min-width: unset; justify-content: center; text-align: center; padding: 4px 8px; border-radius: 4px; }
 .action-cell .btn-icon { min-width: 32px; flex-shrink: 0; }
 
-/* ── Scrollbar (Dark Mode) ───────────────────────────────────────────────── */
-[data-bs-theme="dark"] ::-webkit-scrollbar { width: 8px; }
-[data-bs-theme="dark"] ::-webkit-scrollbar-track { background: #111; }
-[data-bs-theme="dark"] ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-
 /* ── Tabellen: Overdue-Zeile ─────────────────────────────────────────────── */
-tr.row-overdue { border-left: 3px solid #e74c3c; }
+tr.row-overdue { border-left: 3px solid #dc2626; }
 
-/* ── FullCalendar (unverändert) ──────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════════
+   NEUE DESIGN-SYSTEM-KLASSEN (pf-*)
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── pf-badge ────────────────────────────────────────────────────────────── */
+.pf-badge { display: inline-block; padding: 3px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+/* ── pf-btn (Neue Button-Klassen) ────────────────────────────────────────── */
+.pf-btn { display: inline-block; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; white-space: nowrap; text-decoration: none; transition: opacity 0.15s; }
+.pf-btn:hover { opacity: 0.85; }
+.pf-btn-primary { background: #4ADE80; color: #fff; }
+.pf-btn-danger { background: #fef2f2; color: #dc2626; }
+.pf-btn-neutral { background: #f1f5f9; color: #475569; }
+.pf-btn-edit { background: #eff6ff; color: #0369a1; }
+.pf-btn-lg { padding: 8px 18px; font-size: 13px; }
+
+/* ── pf-field (Neue Formular-Felder) ─────────────────────────────────────── */
+.pf-field { padding: 9px 13px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; color: #1e293b; background: #ffffff; width: 100%; }
+.pf-field:focus { outline: none; border-color: #4ADE80; box-shadow: 0 0 0 3px rgba(74,222,128,0.15); }
+.pf-field-readonly { background: #f8fafc; color: #475569; border-color: #e2e8f0; }
+
+/* ── pf-modal (Groessen-Klassen) ─────────────────────────────────────────── */
+.pf-modal-sm .modal-dialog { max-width: 600px; }
+.pf-modal-md .modal-dialog { max-width: 720px; }
+.pf-modal-lg .modal-dialog { max-width: 920px; }
+.pf-modal-footer { display: flex; align-items: center; gap: 8px; background: #fafbfc; }
+
+/* ── pf-form-grid ────────────────────────────────────────────────────────── */
+.pf-form-grid { display: grid; gap: 14px; }
+.pf-form-grid-2col { grid-template-columns: 1fr 1fr; }
+.pf-form-full { grid-column: 1 / -1; }
+.pf-form-divider { grid-column: 1 / -1; font-size: 13px; font-weight: 700; color: #1e293b; padding: 4px 0 6px; border-bottom: 1px solid #f1f5f9; margin-top: 4px; }
+
+/* ── pf-sidebar-item ─────────────────────────────────────────────────────── */
+.pf-sidebar-item { padding: 9px 20px; font-size: 13px; color: #64748b; display: flex; align-items: center; gap: 10px; border-left: 3px solid transparent; cursor: pointer; }
+.pf-sidebar-item:hover { color: #1e293b; background: rgba(0,0,0,0.02); }
+.pf-sidebar-item.active { background: #f0fdf4; color: #16a34a; font-weight: 600; border-left-color: #4ADE80; }
+
+/* ── pf-stat-card ────────────────────────────────────────────────────────── */
+.pf-stat-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px 16px; }
+.pf-stat-card .pf-stat-num { font-size: 24px; font-weight: 800; color: #1e293b; line-height: 1.2; }
+.pf-stat-card .pf-stat-label { font-size: 12px; color: #64748b; margin-top: 2px; }
+.pf-stat-card.warn { border-color: #fed7aa; background: #fffbeb; }
+.pf-stat-card.warn .pf-stat-num { color: #ea580c; }
+
+/* ── FullCalendar (helles Thema) ─────────────────────────────────────────── */
 .fc {
   --fc-border-color: var(--tblr-border-color);
   --fc-page-bg-color: var(--tblr-card-bg);
-  --fc-neutral-bg-color: rgba(255,255,255,0.05);
-  --fc-today-bg-color: rgba(64,145,108,0.08);
-  --fc-event-border-color: transparent;
-  font-family: 'Plus Jakarta Sans', sans-serif;
-}
-[data-bs-theme="light"] .fc {
   --fc-neutral-bg-color: #f8f9fa;
-  --fc-today-bg-color: rgba(64,145,108,0.06);
+  --fc-today-bg-color: rgba(74,222,128,0.06);
+  --fc-event-border-color: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 .fc .fc-col-header-cell { font-size: 13px; font-weight: 600; padding: 8px 0; }
 .fc .fc-timegrid-slot { height: 40px; font-size: 12px; }
@@ -316,22 +309,30 @@ tr.row-overdue { border-left: 3px solid #e74c3c; }
   background: var(--tblr-card-bg); color: var(--tblr-body-color);
   border: 1px solid var(--tblr-border-color);
 }
-.fc .fc-button:hover { background: rgba(255,255,255,0.1); }
+.fc .fc-button:hover { background: rgba(0,0,0,0.03); }
 .fc .fc-button-active, .fc .fc-button:active {
   background: var(--tblr-primary) !important;
   color: #fff !important; border-color: var(--tblr-primary) !important;
 }
 .fc .fc-event { border-radius: 4px; font-size: 11px; padding: 2px 4px; cursor: pointer; }
-.fc .fc-timegrid-now-indicator-line { border-color: #e74c3c; border-width: 2px; }
+.fc .fc-timegrid-now-indicator-line { border-color: #dc2626; border-width: 2px; }
 .fc .fc-scrollgrid { border-color: var(--tblr-border-color); }
 .fc .fc-scrollgrid td, .fc .fc-scrollgrid th { border-color: var(--tblr-border-color); }
 
-.fc-event-pt-confirmed { background: rgba(64,145,108,0.85); border-left: 3px solid #40916C; }
-.fc-event-pt-pending { background: rgba(232,147,10,0.7); border-left: 3px solid #e8930a; }
-.fc-event-gt { background: rgba(155,89,182,0.7); border-left: 3px solid #9b59b6; }
-.fc-event-gt-inactive { background: rgba(155,89,182,0.25); border-left: 3px solid rgba(155,89,182,0.4); color: var(--tblr-secondary-color); opacity: 0.6; }
-.fc-event-cancelled { background: rgba(231,76,60,0.3); border-left: 3px solid #e74c3c; text-decoration: line-through; color: var(--tblr-secondary-color); }
-.fc-event-available { background: rgba(39,174,96,0.15); border-left: 3px solid rgba(39,174,96,0.4); color: var(--tblr-secondary-color); font-style: italic; }
-.fc-event-avail { background: rgba(64,145,108,0.3); border: 1px solid rgba(64,145,108,0.6); border-radius: 4px; cursor: pointer; color: var(--tblr-primary); font-weight: 600; }
-.fc-event-avail:hover { background: rgba(64,145,108,0.45); }
-.fc-event-vacation { background: rgba(231,76,60,0.4); border-left: 3px solid #e74c3c; color: #fff; }
+/* FullCalendar Event-Typen (bestehende, Farben auf neue Palette) */
+.fc-event-pt-confirmed { background: rgba(74,222,128,0.25); border-left: 3px solid #4ADE80; color: #166534; }
+.fc-event-pt-pending { background: rgba(251,146,60,0.25); border-left: 3px solid #FB923C; color: #9a3412; }
+.fc-event-gt { background: rgba(56,189,248,0.25); border-left: 3px solid #38BDF8; color: #1e40af; }
+.fc-event-gt-inactive { background: rgba(56,189,248,0.10); border-left: 3px solid rgba(56,189,248,0.4); color: var(--tblr-secondary-color); opacity: 0.6; }
+.fc-event-cancelled { background: rgba(231,76,60,0.15); border-left: 3px solid #dc2626; text-decoration: line-through; color: var(--tblr-secondary-color); }
+.fc-event-available { background: rgba(74,222,128,0.10); border-left: 3px solid rgba(74,222,128,0.4); color: var(--tblr-secondary-color); font-style: italic; }
+.fc-event-avail { background: rgba(74,222,128,0.15); border: 1px solid rgba(74,222,128,0.5); border-radius: 4px; cursor: pointer; color: #16a34a; font-weight: 600; }
+.fc-event-avail:hover { background: rgba(74,222,128,0.30); }
+.fc-event-vacation { background: rgba(231,76,60,0.25); border-left: 3px solid #dc2626; color: #991b1b; }
+
+/* FullCalendar Verfuegbarkeits-Hintergruende (neu) */
+.fc-available { background-color: #f0fdf4 !important; }
+.fc-holiday { background-color: #fef2f2 !important; }
+.fc-event-booking { background: #dcfce7; border-left: 3px solid #4ADE80; color: #166534; }
+.fc-event-request { background: #fff7ed; border-left: 3px solid #FB923C; color: #9a3412; }
+.fc-event-group { background: #dbeafe; border-left: 3px solid #38BDF8; color: #1e40af; }
