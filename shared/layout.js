@@ -17,8 +17,13 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
     { id: 'calendar',         label: 'Kalender',         emoji: '📅', href: '/admin/calendar.html' },
     { id: 'cards',            label: '10er-Karten',      emoji: '🎫', href: '/admin/cards.html' },
     { id: 'groups',           label: 'Gruppentrainings', emoji: '👥', href: '/admin/groups.html' },
+    { id: 'open-payments',    label: 'Offene Zahlungen', emoji: '⏳', href: '/admin/open-payments.html' },
+    { id: 'locations',        label: 'Einsatzorte',      emoji: '📍', href: '/admin/locations.html' },
     { id: 'finances',         label: 'Finanzen',         emoji: '💰', href: '/admin/finances.html' },
     { id: 'invoices',         label: 'Belege',           emoji: '📄', href: '/admin/invoices.html' },
+    { id: 'documents',        label: 'Dokumente',        emoji: '📁', href: '/admin/documents.html' },
+    { id: 'testers',          label: 'Tester',           emoji: '🧪', href: '/admin/testers.html' },
+    { id: 'trainer-debts',    label: 'Trainer-Schulden',  emoji: '📊', href: '/admin/trainer-debts.html' },
     { id: 'company-settings', label: 'Einstellungen',    emoji: '⚙️', href: '/admin/company-settings.html' },
   ];
 
