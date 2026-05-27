@@ -48,7 +48,7 @@ index.html              # Hauptseite (Dark Theme, Geraete-Erkennung)
 beta.html               # Smart-Link /beta (iOS TestFlight / Android Warteliste)
 datenschutz.html        # Datenschutzerklaerung (DSGVO)
 impressum.html          # Impressum (§5 TMG)
-agb.html                # AGB (noch Platzhalter)
+agb.html                # AGB (17 Paragraphen, vollstaendig)
 confirm.html            # E-Mail Bestaetigung
 dienstleistungsvertrag.html  # Trainer-Vertrag
 admin/                  # Admin-Portal (projektfit.net/admin)
