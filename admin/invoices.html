@@ -9,83 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
-  <style>
-    .filter-bar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 16px;
-    }
-    .filter-bar select,
-    .filter-bar input[type="text"] {
-      font-family: inherit;
-      font-size: 13px;
-    }
-    .filter-bar input[type="text"] { min-width: 200px; }
-
-    .badge-rg  { background: rgba(64,145,108,0.15); color: #40916C; border: 1px solid rgba(64,145,108,0.3); }
-    .badge-gs  { background: rgba(52,152,219,0.15); color: #52b3e8; border: 1px solid rgba(52,152,219,0.3); }
-    .badge-sb  { background: rgba(231,76,60,0.15);  color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); }
-    .badge-pt  { background: rgba(224,122,58,0.15); color: #E07A3A; border: 1px solid rgba(224,122,58,0.3); }
-    .badge-gt  { background: rgba(155,89,182,0.15); color: #bb8fe8; border: 1px solid rgba(155,89,182,0.3); }
-
-    .row-storno td { color: #e74c3c !important; opacity: 0.85; }
-
-    .sum-row td {
-      background: rgba(64,145,108,0.07);
-      font-weight: 700;
-      border-top: 2px solid rgba(64,145,108,0.3);
-    }
-
-    .icon-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 4px 6px;
-      border-radius: 6px;
-      color: #888;
-      transition: color 0.15s, background 0.15s;
-      font-size: 16px;
-      line-height: 1;
-    }
-    .icon-btn:hover { color: var(--tblr-body-color); background: rgba(0,0,0,0.05); }
-    .icon-btn.download:hover { color: #40916C; }
-    .icon-btn.print:hover   { color: #E07A3A; }
-
-    .email-ok   { color: #27AE60; }
-    .email-pend { color: #F39C12; font-size: 12px; }
-
-    /* Detail Modal fields */
-    .detail-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px 20px;
-    }
-    @media (max-width: 600px) { .detail-grid { grid-template-columns: 1fr; } }
-    .detail-item label {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      color: #888;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 4px;
-    }
-    .detail-item .val {
-      font-size: 14px;
-    }
-    .detail-section-title {
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--tblr-primary);
-      margin: 20px 0 10px;
-      padding-bottom: 6px;
-      border-bottom: 1px solid rgba(32,107,196,0.2);
-    }
-  </style>
+  <link rel="stylesheet" href="../shared/table-utils.css">
 </head>
 <body class="page">
 <script src="../shared/theme.js"></script>
@@ -103,20 +27,20 @@
         <div class="card-header d-flex justify-content-between align-items-center">
           <h3 class="card-title">Belege</h3>
           <div class="d-flex gap-2">
-            <button class="btn btn-ghost-secondary btn-sm" onclick="exportCSV()"><i class="ti ti-download"></i> CSV-Export</button>
-            <button class="btn btn-primary btn-sm" onclick="exportZip()"><i class="ti ti-file-zip"></i> Export für Steuerberater (ZIP)</button>
+            <button class="pf-btn pf-btn-neutral" onclick="exportCSV()"><i class="ti ti-download"></i> CSV-Export</button>
+            <button class="pf-btn pf-btn-primary" onclick="exportZip()"><i class="ti ti-file-zip"></i> Export für Steuerberater (ZIP)</button>
           </div>
         </div>
         <div class="card-body">
 
           <!-- Filter-Leiste -->
-          <div class="filter-bar">
-            <select class="form-select form-select-sm" id="filter-year" onchange="applyFilters()">
+          <div class="pf-table-toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px">
+            <select class="pf-field" style="width:auto;padding:6px 12px;font-size:13px" id="filter-year" onchange="applyFilters()">
               <option value="2026">2026</option>
               <option value="2025">2025</option>
               <option value="2024">2024</option>
             </select>
-            <select class="form-select form-select-sm" id="filter-month" onchange="applyFilters()">
+            <select class="pf-field" style="width:auto;padding:6px 12px;font-size:13px" id="filter-month" onchange="applyFilters()">
               <option value="">Alle Monate</option>
               <option value="01">Januar</option>
               <option value="02">Februar</option>
@@ -131,14 +55,14 @@
               <option value="11">November</option>
               <option value="12">Dezember</option>
             </select>
-            <select class="form-select form-select-sm" id="filter-type" onchange="applyFilters()">
+            <select class="pf-field" style="width:auto;padding:6px 12px;font-size:13px" id="filter-type" onchange="applyFilters()">
               <option value="">Alle Typen</option>
               <option value="invoice">Rechnungen</option>
               <option value="credit_note">Gutschriften</option>
               <option value="cancellation">Stornos</option>
               <option value="rechnung_gt_card">GT-Karte</option>
             </select>
-            <input type="text" class="form-control form-control-sm" id="filter-search" placeholder="Suche (Nr., Empfänger...)" oninput="applyFilters()">
+            <input type="text" class="pf-field" style="width:auto;min-width:200px;padding:6px 12px;font-size:13px" id="filter-search" placeholder="Suche (Nr., Empfänger...)" oninput="applyFilters()">
           </div>
 
         </div>
@@ -162,12 +86,12 @@
               <tr><td colspan="10" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Belege werden geladen...</td></tr>
             </tbody>
             <tfoot id="invoices-tfoot" style="display:none">
-              <tr class="sum-row">
-                <td colspan="5" style="text-align:right;color:#888;font-size:12px" id="sum-label">Gesamt</td>
-                <td id="sum-netto"></td>
-                <td id="sum-mwst"></td>
-                <td id="sum-brutto"></td>
-                <td colspan="2"></td>
+              <tr style="font-weight:700;border-top:2px solid rgba(74,222,128,0.3)">
+                <td colspan="5" style="text-align:right;color:#888;font-size:12px;background:rgba(74,222,128,0.07)" id="sum-label">Gesamt</td>
+                <td style="background:rgba(74,222,128,0.07)" id="sum-netto"></td>
+                <td style="background:rgba(74,222,128,0.07)" id="sum-mwst"></td>
+                <td style="background:rgba(74,222,128,0.07)" id="sum-brutto"></td>
+                <td colspan="2" style="background:rgba(74,222,128,0.07)"></td>
               </tr>
             </tfoot>
           </table>
@@ -179,8 +103,8 @@
 </div>
 
 <!-- Detail Modal -->
-<div class="modal modal-blur fade" id="detail-modal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal modal-blur fade pf-modal-lg" id="detail-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="modal-title">Beleg-Details</h5>
@@ -188,8 +112,8 @@
       </div>
       <div class="modal-body" id="modal-body"></div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schließen</button>
-        <button class="btn btn-secondary" id="modal-pdf-btn" onclick="openPdf(currentInvoiceId)">PDF öffnen</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Schließen</button>
+        <button class="pf-btn pf-btn-primary" id="modal-pdf-btn" onclick="openPdf(currentInvoiceId)">PDF öffnen</button>
       </div>
     </div>
   </div>
@@ -197,6 +121,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
@@ -271,10 +196,10 @@
 
   function typeBadge(inv) {
     const t = inv.invoice_type || 'invoice';
-    if (t === 'credit_note')      return '<span class="badge badge-gs">GS</span>';
-    if (t === 'cancellation')     return '<span class="badge badge-sb">SB</span>';
-    if (t === 'rechnung_gt_card') return '<span class="badge badge-gt">GT-Karte</span>';
-    return '<span class="badge badge-rg">RG</span>';
+    if (t === 'credit_note')      return '<span class="pf-badge" style="background:#eff6ff;color:#0369a1">GS</span>';
+    if (t === 'cancellation')     return '<span class="pf-badge" style="background:#fef2f2;color:#dc2626">SB</span>';
+    if (t === 'rechnung_gt_card') return '<span class="pf-badge" style="background:#faf5ff;color:#7c3aed">GT-Karte</span>';
+    return '<span class="pf-badge" style="background:#f0fdf4;color:#16a34a">RG</span>';
   }
 
   function typeLabel(inv) {
@@ -287,14 +212,14 @@
 
   function trainingBadge(inv) {
     const t = (inv.training_type || '').toLowerCase();
-    if (t === 'group' || t === 'gruppentraining') return '<span class="badge badge-gt">GT</span>';
-    if (t === 'personal' || t === 'pt')           return '<span class="badge badge-pt">PT</span>';
+    if (t === 'group' || t === 'gruppentraining') return '<span class="pf-badge" style="background:#faf5ff;color:#7c3aed">GT</span>';
+    if (t === 'personal' || t === 'pt')           return '<span class="pf-badge" style="background:#fff7ed;color:#ea580c">PT</span>';
     return '<span class="text-muted">–</span>';
   }
 
   function emailBadge(inv) {
-    if (inv.email_sent_at) return `<span class="email-ok" title="Gesendet: ${formatDate(inv.email_sent_at)}">&#10003;</span>`;
-    return '<span class="email-pend">ausstehend</span>';
+    if (inv.email_sent_at) return `<span class="pf-badge" style="background:#f0fdf4;color:#16a34a" title="Gesendet: ${formatDate(inv.email_sent_at)}">&#10003;</span>`;
+    return '<span class="pf-badge" style="background:#fff7ed;color:#ea580c">ausstehend</span>';
   }
 
   // Deutsches Klartext-Label fuer den Zahlungs-Status einer Rechnung.
@@ -336,14 +261,14 @@
     }
 
     tbody.innerHTML = filteredInvoices.map(inv => {
-      const rowClass = isStorno(inv) ? 'row-storno' : '';
+      const rowStyle = isStorno(inv) ? 'color:#dc2626;opacity:0.85;' : '';
       const numberCell = inv.storno_ref
         ? `${inv.invoice_number || '–'} <span class="text-muted small">(storniert via SB ${inv.storno_ref})</span>`
         : (inv.status === 'cancelled'
            ? `<s>${inv.invoice_number || '–'}</s> <span class="text-danger small">storniert</span>`
            : (inv.invoice_number || '–'));
       return `
-        <tr class="${rowClass}" style="cursor:pointer" onclick="openDetail('${inv.id}')">
+        <tr style="cursor:pointer;${rowStyle}" onclick="openDetail('${inv.id}')">
           <td><strong>${numberCell}</strong></td>
           <td>${typeBadge(inv)}</td>
           <td>${trainingBadge(inv)}</td>
@@ -354,8 +279,8 @@
           <td><strong>${fmtCents(inv.gross_amount_cents)}</strong></td>
           <td>${emailBadge(inv)}</td>
           <td onclick="event.stopPropagation()">
-            <button class="icon-btn download" title="PDF herunterladen" onclick="openPdf('${inv.id}')">&#8659;</button>
-            <button class="icon-btn print"    title="Drucken"           onclick="printPdf('${inv.id}')">&#9113;</button>
+            <button class="pf-btn pf-btn-neutral" title="PDF herunterladen" onclick="openPdf('${inv.id}')"><i class="ti ti-download"></i> PDF</button>
+            <button class="pf-btn pf-btn-neutral" title="Drucken" onclick="printPdf('${inv.id}')"><i class="ti ti-printer"></i> Drucken</button>
           </td>
         </tr>`;
     }).join('');
@@ -386,44 +311,48 @@
 
     document.getElementById('modal-title').textContent = `Beleg ${inv.invoice_number || id} – ${typeLabel(inv)}`;
 
+    const sectionTitle = 'font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#4ADE80;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid rgba(74,222,128,0.2)';
+    const gridStyle = 'display:grid;grid-template-columns:1fr 1fr;gap:12px 20px';
+    const lblStyle = 'display:block;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px';
+
     document.getElementById('modal-body').innerHTML = `
-      <div class="detail-section-title">Beleg-Informationen</div>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Belegnummer</label><div class="val">${inv.invoice_number || '–'}</div></div>
-        <div class="detail-item"><label>Typ</label><div class="val">${typeBadge(inv)} ${typeLabel(inv)}</div></div>
-        <div class="detail-item"><label>Ausstellungsdatum</label><div class="val">${formatDate(inv.issued_at)}</div></div>
-        <div class="detail-item"><label>Leistungsdatum</label><div class="val">${formatDate(inv.service_date)}</div></div>
-        <div class="detail-item"><label>Fälligkeitsdatum</label><div class="val">${formatDate(inv.due_date)}</div></div>
-        <div class="detail-item"><label>Trainingstyp</label><div class="val">${trainingBadge(inv)}</div></div>
+      <div style="${sectionTitle}">Beleg-Informationen</div>
+      <div style="${gridStyle}">
+        <div><label style="${lblStyle}">Belegnummer</label><div>${inv.invoice_number || '–'}</div></div>
+        <div><label style="${lblStyle}">Typ</label><div>${typeBadge(inv)} ${typeLabel(inv)}</div></div>
+        <div><label style="${lblStyle}">Ausstellungsdatum</label><div>${formatDate(inv.issued_at)}</div></div>
+        <div><label style="${lblStyle}">Leistungsdatum</label><div>${formatDate(inv.service_date)}</div></div>
+        <div><label style="${lblStyle}">Fälligkeitsdatum</label><div>${formatDate(inv.due_date)}</div></div>
+        <div><label style="${lblStyle}">Trainingstyp</label><div>${trainingBadge(inv)}</div></div>
       </div>
 
-      <div class="detail-section-title">Empfänger</div>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Name</label><div class="val">${inv.recipient_name || '–'}</div></div>
-        <div class="detail-item"><label>E-Mail</label><div class="val">${inv.recipient_email || '–'}</div></div>
-        <div class="detail-item"><label>Adresse</label><div class="val">${inv.recipient_address || '–'}</div></div>
-        <div class="detail-item"><label>USt-IdNr.</label><div class="val">${inv.recipient_vat_id || '–'}</div></div>
+      <div style="${sectionTitle}">Empfänger</div>
+      <div style="${gridStyle}">
+        <div><label style="${lblStyle}">Name</label><div>${inv.recipient_name || '–'}</div></div>
+        <div><label style="${lblStyle}">E-Mail</label><div>${inv.recipient_email || '–'}</div></div>
+        <div><label style="${lblStyle}">Adresse</label><div>${inv.recipient_address || '–'}</div></div>
+        <div><label style="${lblStyle}">USt-IdNr.</label><div>${inv.recipient_vat_id || '–'}</div></div>
       </div>
 
-      <div class="detail-section-title">Beträge</div>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Nettobetrag</label><div class="val">${fmtCents(inv.net_amount_cents)}</div></div>
-        <div class="detail-item"><label>MwSt-Satz</label><div class="val">${inv.vat_rate != null ? inv.vat_rate + ' %' : '–'}</div></div>
-        <div class="detail-item"><label>MwSt-Betrag</label><div class="val">${fmtCents(inv.vat_amount_cents)}</div></div>
-        <div class="detail-item"><label>Bruttobetrag</label><div class="val" style="color:var(--tblr-primary);font-weight:700">${fmtCents(inv.gross_amount_cents)}</div></div>
+      <div style="${sectionTitle}">Beträge</div>
+      <div style="${gridStyle}">
+        <div><label style="${lblStyle}">Nettobetrag</label><div>${fmtCents(inv.net_amount_cents)}</div></div>
+        <div><label style="${lblStyle}">MwSt-Satz</label><div>${inv.vat_rate != null ? inv.vat_rate + ' %' : '–'}</div></div>
+        <div><label style="${lblStyle}">MwSt-Betrag</label><div>${fmtCents(inv.vat_amount_cents)}</div></div>
+        <div><label style="${lblStyle}">Bruttobetrag</label><div style="color:#4ADE80;font-weight:700">${fmtCents(inv.gross_amount_cents)}</div></div>
       </div>
 
-      <div class="detail-section-title">Status & Versand</div>
-      <div class="detail-grid">
-        <div class="detail-item"><label>Zahlungsstatus</label><div class="val">${paymentStatusLabel(inv.payment_status)}</div></div>
-        <div class="detail-item"><label>E-Mail gesendet</label><div class="val">${inv.email_sent_at ? formatDateTime(inv.email_sent_at) : '<span class="email-pend">Nein</span>'}</div></div>
-        <div class="detail-item"><label>PDF vorhanden</label><div class="val">${inv.pdf_path ? '<span class="email-ok">Ja</span>' : '<span class="text-muted">Nein</span>'}</div></div>
-        <div class="detail-item"><label>Erstellt am</label><div class="val">${formatDateTime(inv.created_at)}</div></div>
+      <div style="${sectionTitle}">Status & Versand</div>
+      <div style="${gridStyle}">
+        <div><label style="${lblStyle}">Zahlungsstatus</label><div>${paymentStatusLabel(inv.payment_status)}</div></div>
+        <div><label style="${lblStyle}">E-Mail gesendet</label><div>${inv.email_sent_at ? formatDateTime(inv.email_sent_at) : '<span class="pf-badge" style="background:#fff7ed;color:#ea580c">Nein</span>'}</div></div>
+        <div><label style="${lblStyle}">PDF vorhanden</label><div>${inv.pdf_path ? '<span class="pf-badge" style="background:#f0fdf4;color:#16a34a">Ja</span>' : '<span class="text-muted">Nein</span>'}</div></div>
+        <div><label style="${lblStyle}">Erstellt am</label><div>${formatDateTime(inv.created_at)}</div></div>
       </div>
 
       ${inv.notes ? `
-      <div class="detail-section-title">Notizen</div>
-      <div style="background:var(--tblr-bg-surface-secondary);border-radius:8px;padding:12px;font-size:13px">${inv.notes}</div>
+      <div style="${sectionTitle}">Notizen</div>
+      <div style="background:#f8fafc;border-radius:8px;padding:12px;font-size:13px">${inv.notes}</div>
       ` : ''}
 
       <p class="text-muted mt-3" style="font-size:11px">ID: ${inv.id}</p>

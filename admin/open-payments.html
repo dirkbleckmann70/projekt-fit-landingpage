@@ -26,35 +26,27 @@
       <!-- KPI Row -->
       <div class="row row-deck row-cards mb-3" id="kpi-row">
         <div class="col-sm-6 col-lg-3">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Offene Faelle</div>
-              <div class="kpi-value" id="kpi-total">--</div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-total">--</div>
+            <div class="pf-stat-label">Offene Faelle</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg-3">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Offener Betrag</div>
-              <div class="kpi-value text-primary" id="kpi-sum">--</div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-sum">--</div>
+            <div class="pf-stat-label">Offener Betrag</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg-3">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Bar gemeldet — zu verifizieren</div>
-              <div class="kpi-value text-warning" id="kpi-cash">--</div>
-            </div>
+          <div class="pf-stat-card warn">
+            <div class="pf-stat-num" id="kpi-cash">--</div>
+            <div class="pf-stat-label">Bar gemeldet — zu verifizieren</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg-3">
-          <div class="card">
-            <div class="card-body py-3">
-              <div class="kpi-label">Faellig &gt; 7 Tage</div>
-              <div class="kpi-value text-danger" id="kpi-overdue">--</div>
-            </div>
+          <div class="pf-stat-card" style="border-color:#fecaca;background:#fef2f2">
+            <div class="pf-stat-num" style="color:#dc2626" id="kpi-overdue">--</div>
+            <div class="pf-stat-label">Faellig &gt; 7 Tage</div>
           </div>
         </div>
       </div>
@@ -86,6 +78,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
@@ -179,9 +172,11 @@
       const cents = bookingAmount(row);
       const eur = formatEuro(cents);
       const days = row.days_open == null ? 0 : Number(row.days_open);
-      const daysClass = days >= 7 ? 'badge bg-red-lt' : 'badge bg-secondary';
+      const daysClass = days >= 7
+        ? 'pf-badge" style="background:#fef2f2;color:#dc2626'
+        : 'pf-badge" style="background:#f1f5f9;color:#64748b';
       const barCell = row.bar_gemeldet_am
-        ? `<span class="badge bg-orange-lt" title="Trainer/Admin hat Bar gemeldet — Eingang muss verifiziert werden">Bar gemeldet — bitte verifizieren</span>`
+        ? `<span class="pf-badge" style="background:#fff7ed;color:#ea580c" title="Trainer/Admin hat Bar gemeldet — Eingang muss verifiziert werden">Bar gemeldet — bitte verifizieren</span>`
         : '<span class="text-secondary">–</span>';
 
       // Pre-Push-Review W-1: Statt onclick mit String-Interpolation (XSS-Risiko
@@ -190,11 +185,11 @@
       const rowId = escapeHtml(row.id);
       const custLabel = escapeHtml(customerLabel(row));
       const actionsHtml = row.bar_gemeldet_am
-        ? `<button class="btn btn-sm btn-success" data-action="verify-cash" data-id="${rowId}"><i class="ti ti-check me-1"></i>Eingang verifizieren — Bar</button>`
+        ? `<button class="pf-btn pf-btn-primary" data-action="verify-cash" data-id="${rowId}"><i class="ti ti-check me-1"></i>Eingang verifizieren — Bar</button>`
         : `<div class="d-flex gap-1">
-             <button class="btn btn-sm btn-outline-primary" title="Erinnerungs-Mail an Kunde" data-action="send-reminder" data-id="${rowId}"><i class="ti ti-mail me-1"></i>Erinnerung</button>
-             <button class="btn btn-sm btn-outline-warning" title="Rechnung mit Zahlungsfrist stellen" data-action="issue-invoice" data-id="${rowId}"><i class="ti ti-file-invoice me-1"></i>Rechnung stellen</button>
-             <button class="btn btn-sm btn-outline-danger" title="Buchung stornieren (mit Stornobeleg)" data-action="storno" data-id="${rowId}" data-name="${custLabel}" data-cents="${cents}"><i class="ti ti-x me-1"></i>Stornieren</button>
+             <button class="pf-btn pf-btn-neutral" title="Erinnerungs-Mail an Kunde" data-action="send-reminder" data-id="${rowId}"><i class="ti ti-mail me-1"></i>Erinnerung</button>
+             <button class="pf-btn pf-btn-edit" title="Rechnung mit Zahlungsfrist stellen" data-action="issue-invoice" data-id="${rowId}"><i class="ti ti-file-invoice me-1"></i>Rechnung stellen</button>
+             <button class="pf-btn pf-btn-danger" title="Buchung stornieren (mit Stornobeleg)" data-action="storno" data-id="${rowId}" data-name="${custLabel}" data-cents="${cents}"><i class="ti ti-x me-1"></i>Stornieren</button>
            </div>`;
 
       return `<tr>

@@ -22,62 +22,50 @@
     <div class="container-xl">
 
       <!-- Kopfzeile: Jahresauswahl + CSV -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <div class="pf-table-toolbar" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
         <h2 style="font-size:18px;font-weight:700;margin:0">Finanzübersicht</h2>
         <div style="display:flex;align-items:center;gap:10px">
-          <select id="year-select" class="form-control" style="width:auto;padding:6px 14px;font-size:14px" onchange="onYearChange()"></select>
-          <button class="btn btn-ghost-secondary btn-sm" onclick="exportCSV()">CSV Export</button>
+          <select id="year-select" class="pf-field" style="width:auto;padding:6px 14px;font-size:14px" onchange="onYearChange()"></select>
+          <button class="pf-btn pf-btn-neutral" onclick="exportCSV()"><i class="ti ti-download"></i> CSV Export</button>
         </div>
       </div>
 
       <!-- Ebene 1: Jahres-KPIs -->
       <div class="row row-deck row-cards mb-3">
         <div class="col-sm-6 col-lg">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Einnahmen brutto</div>
-              <div class="kpi-value" id="kpi-brutto"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-brutto"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="pf-stat-label">Einnahmen brutto</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label" id="kpi-mwst-label">MwSt</div>
-              <div class="kpi-value" id="kpi-mwst"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-mwst"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="pf-stat-label" id="kpi-mwst-label">MwSt</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Einnahmen netto</div>
-              <div class="kpi-value" id="kpi-netto"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-netto"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="pf-stat-label">Einnahmen netto</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Trainer-Kosten</div>
-              <div class="kpi-value" id="kpi-kosten"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-kosten"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="pf-stat-label">Trainer-Kosten</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Erlöse</div>
-              <div class="kpi-value" id="kpi-erloese"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-erloese"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="pf-stat-label">Erlöse</div>
           </div>
         </div>
         <div class="col-sm-6 col-lg">
-          <div class="card">
-            <div class="card-body">
-              <div class="kpi-label">Kartenumsatz</div>
-              <div class="kpi-value" id="kpi-kartenumsatz"><div class="spinner-border spinner-border-sm"></div></div>
-            </div>
+          <div class="pf-stat-card">
+            <div class="pf-stat-num" id="kpi-kartenumsatz"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="pf-stat-label">Kartenumsatz</div>
           </div>
         </div>
       </div>
@@ -178,7 +166,7 @@
 </div>
 
 <!-- Finance Detail Modal -->
-<div class="modal modal-blur fade" id="finance-detail-modal" tabindex="-1">
+<div class="modal modal-blur fade pf-modal-md" id="finance-detail-modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -187,7 +175,7 @@
       </div>
       <div class="modal-body" id="finance-modal-body"></div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Schließen</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Schließen</button>
       </div>
     </div>
   </div>
@@ -195,6 +183,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
@@ -401,15 +390,15 @@
         <td>${formatDate(b.scheduled_date)}</td>
         <td class="td-wrap">${b.customer_name || '–'}</td>
         <td class="td-wrap">${b.trainer_name || '–'}</td>
-        <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${art}</span></td>
+        <td><span class="pf-badge" style="background:${b.booking_type === 'group' ? '#faf5ff;color:#7c3aed' : '#fff7ed;color:#ea580c'}">${art}</span></td>
         <td class="td-amount">${f(effBrutto(b))}</td>
         <td class="td-amount text-warning">${b.discount_code ? `<span title="${b.discount_code}">-${f(b.discount_amount_cents || 0)}</span>` : '–'}</td>
         <td class="td-amount text-muted">${f(effMwSt(b))}</td>
         <td class="td-amount">${f(effNetto(b))}</td>
         <td class="td-amount text-muted">${f(effKosten(b))}</td>
         <td class="td-amount">${f(effErloese(b))}</td>
-        <td>${statusBadge(b.status)}</td>
-        <td><button class="btn btn-secondary btn-sm" onclick="openFinanceDetail('${b.id}')">Details</button></td>
+        <td>${typeof DESIGN !== 'undefined' ? DESIGN.badge(b.status) : statusBadge(b.status)}</td>
+        <td><button class="pf-btn pf-btn-neutral" onclick="openFinanceDetail('${b.id}')">Details</button></td>
       </tr>`;
     }).join('');
 
@@ -444,7 +433,7 @@
           <td>${f(c.mwst_betrag_cent)}</td>
           <td>${f(c.bruttobetrag_cent)}</td>
           <td>${c.leistungsbeschreibung || '–'}</td>
-          <td>${statusBadge(c.status || 'pending')}</td>
+          <td>${typeof DESIGN !== 'undefined' ? DESIGN.badge(c.status || 'pending') : statusBadge(c.status || 'pending')}</td>
         </tr>
       `).join('');
     } catch (err) {
@@ -525,31 +514,31 @@
     if (!b) return;
     document.getElementById('finance-modal-body').innerHTML = `
       <div class="two-col">
-        <div class="form-group"><label>Trainer</label><input class="form-control" value="${b.trainer_name || '–'}" disabled></div>
-        <div class="form-group"><label>Kunde</label><input class="form-control" value="${b.customer_name || b.customer_id || '–'}" disabled></div>
+        <div class="form-group"><label>Trainer</label><input class="pf-field pf-field-readonly" value="${b.trainer_name || '–'}" disabled></div>
+        <div class="form-group"><label>Kunde</label><input class="pf-field pf-field-readonly" value="${b.customer_name || b.customer_id || '–'}" disabled></div>
       </div>
       <div class="two-col">
-        <div class="form-group"><label>Datum</label><input class="form-control" value="${formatDate(b.scheduled_date)}" disabled></div>
-        <div class="form-group"><label>Uhrzeit</label><input class="form-control" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}" disabled></div>
+        <div class="form-group"><label>Datum</label><input class="pf-field pf-field-readonly" value="${formatDate(b.scheduled_date)}" disabled></div>
+        <div class="form-group"><label>Uhrzeit</label><input class="pf-field pf-field-readonly" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}" disabled></div>
       </div>
       <div class="two-col">
-        <div class="form-group"><label>Stadt</label><input class="form-control" value="${b.trainer_city || b.city || '–'}" disabled></div>
-        <div class="form-group"><label>Art</label><input class="form-control" value="${b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training'}" disabled></div>
+        <div class="form-group"><label>Stadt</label><input class="pf-field pf-field-readonly" value="${b.trainer_city || b.city || '–'}" disabled></div>
+        <div class="form-group"><label>Art</label><input class="pf-field pf-field-readonly" value="${b.booking_type === 'group' ? 'Gruppentraining' : 'Personal Training'}" disabled></div>
       </div>
-      <div class="form-group"><label>Treffpunkt</label><input class="form-control" value="${b.location_name || b.location_address || b.location || '–'}" disabled></div>
+      <div class="form-group"><label>Treffpunkt</label><input class="pf-field pf-field-readonly" value="${b.location_name || b.location_address || b.location || '–'}" disabled></div>
       <div class="two-col">
-        <div class="form-group"><label>Status</label><input class="form-control" value="${b.status || '–'}" disabled></div>
-        <div class="form-group"><label>Zahlung</label><input class="form-control" value="${paymentLabel(b)}" disabled></div>
-      </div>
-      <div class="two-col">
-        <div class="form-group"><label>Einnahmen brutto</label><input class="form-control" value="${f(effBrutto(b))}" disabled></div>
-        <div class="form-group"><label>MwSt (${b.trainer_mwst_satz ?? 19}%)</label><input class="form-control" value="${f(effMwSt(b))}" disabled></div>
+        <div class="form-group"><label>Status</label><input class="pf-field pf-field-readonly" value="${b.status || '–'}" disabled></div>
+        <div class="form-group"><label>Zahlung</label><input class="pf-field pf-field-readonly" value="${paymentLabel(b)}" disabled></div>
       </div>
       <div class="two-col">
-        <div class="form-group"><label>Einnahmen netto</label><input class="form-control" value="${f(effNetto(b))}" disabled></div>
-        <div class="form-group"><label>Trainer-Kosten</label><input class="form-control" value="${f(effKosten(b))}" disabled></div>
+        <div class="form-group"><label>Einnahmen brutto</label><input class="pf-field pf-field-readonly" value="${f(effBrutto(b))}" disabled></div>
+        <div class="form-group"><label>MwSt (${b.trainer_mwst_satz ?? 19}%)</label><input class="pf-field pf-field-readonly" value="${f(effMwSt(b))}" disabled></div>
       </div>
-      <div class="form-group"><label>Erlöse</label><input class="form-control" value="${f(effErloese(b))}" disabled></div>
+      <div class="two-col">
+        <div class="form-group"><label>Einnahmen netto</label><input class="pf-field pf-field-readonly" value="${f(effNetto(b))}" disabled></div>
+        <div class="form-group"><label>Trainer-Kosten</label><input class="pf-field pf-field-readonly" value="${f(effKosten(b))}" disabled></div>
+      </div>
+      <div class="form-group"><label>Erlöse</label><input class="pf-field pf-field-readonly" value="${f(effErloese(b))}" disabled></div>
       <p class="text-muted mt-1" style="font-size:12px">Erstellt: ${formatDateTime(b.created_at)} &middot; ID: ${b.id}</p>
     `;
     new bootstrap.Modal(document.getElementById('finance-detail-modal')).show();
