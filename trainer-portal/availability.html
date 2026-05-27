@@ -56,28 +56,60 @@
         </div>
       </div>
 
-      <!-- FullCalendar -->
-      <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h3 class="card-title">Kalender</h3>
-          <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#vacation-modal">
-            <i class="ti ti-plane-departure"></i> Urlaub
-          </button>
-        </div>
-        <div class="card-body">
-          <div id="calendar"></div>
-        </div>
-      </div>
+      <!-- FullCalendar + Zusammenfassung -->
+      <div class="row mb-3">
+        <div class="col-lg-8">
+          <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h3 class="card-title">Kalender</h3>
+              <button class="pf-btn pf-btn-danger" data-bs-toggle="modal" data-bs-target="#vacation-modal">
+                <i class="ti ti-plane-departure"></i> Urlaub
+              </button>
+            </div>
+            <div class="card-body">
+              <div id="calendar"></div>
+            </div>
+          </div>
 
-      <!-- Summary Table -->
-      <div class="card">
-        <div class="card-header"><h3 class="card-title">Zusammenfassung</h3></div>
-        <div class="card-body p-0">
-          <table class="table table-sm table-vcenter card-table">
-            <thead><tr><th>Datum</th><th>Zeiten</th><th class="text-end">Stunden</th></tr></thead>
-            <tbody id="summary-body"></tbody>
-            <tfoot><tr class="fw-bold"><td>Gesamt</td><td></td><td class="text-end" id="total-hours">&ndash;</td></tr></tfoot>
-          </table>
+          <!-- Legende -->
+          <div class="card mb-3">
+            <div class="card-body py-2">
+              <div class="d-flex flex-wrap gap-3" style="font-size:12px">
+                <span><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#f0fdf4;border:1px solid #bbf7d0;vertical-align:middle;margin-right:4px"></span> Verfügbar</span>
+                <span><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#ffffff;border:1px solid #e2e8f0;vertical-align:middle;margin-right:4px"></span> Nicht eingetragen</span>
+                <span><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#fef2f2;border:1px solid #fecaca;vertical-align:middle;margin-right:4px"></span> Urlaub</span>
+                <span><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#dbeafe;border:1px solid #93c5fd;vertical-align:middle;margin-right:4px"></span> PT-Buchung</span>
+                <span><span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:#dcfce7;border:1px solid #86efac;vertical-align:middle;margin-right:4px"></span> GT-Termin</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Zusammenfassung rechts -->
+        <div class="col-lg-4">
+          <div class="card mb-3">
+            <div class="card-header"><h3 class="card-title">Wochenübersicht</h3></div>
+            <div class="card-body p-0">
+              <div id="weekly-summary" class="p-3" style="font-size:13px">
+                <div class="text-secondary text-center py-3">Wird geladen...</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header"><h3 class="card-title">Zusammenfassung</h3></div>
+            <div class="card-body p-0">
+              <table class="table table-sm table-vcenter card-table">
+                <thead><tr><th>Datum</th><th>Zeiten</th><th class="text-end">Stunden</th></tr></thead>
+                <tbody id="summary-body"></tbody>
+                <tfoot><tr class="fw-bold"><td>Gesamt</td><td></td><td class="text-end" id="total-hours">&ndash;</td></tr></tfoot>
+              </table>
+            </div>
+          </div>
+
+          <div class="text-secondary mt-2" style="font-size:11px">
+            <i class="ti ti-info-circle"></i> Zeiten werden im Kalender per Klick eingetragen.
+          </div>
         </div>
       </div>
 
@@ -88,7 +120,7 @@
 <div id="bottom-nav"></div>
 
 <!-- Availability Modal (Einzeltermin + Serientermin) -->
-<div class="modal modal-blur fade" id="avail-modal" tabindex="-1">
+<div class="modal modal-blur fade pf-modal-md" id="avail-modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -173,8 +205,8 @@
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-primary" id="avail-save-btn" onclick="saveAvailabilityFromModal()">
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-primary" id="avail-save-btn" onclick="saveAvailabilityFromModal()">
           <i class="ti ti-check"></i> Speichern
         </button>
       </div>
@@ -183,7 +215,7 @@
 </div>
 
 <!-- Edit/Delete Modal (fuer bestehende Eintraege) -->
-<div class="modal modal-blur fade" id="edit-modal" tabindex="-1">
+<div class="modal modal-blur fade pf-modal-sm" id="edit-modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -205,16 +237,16 @@
       </div>
       <div class="modal-footer d-flex justify-content-between">
         <div>
-          <button class="btn btn-outline-danger" id="edit-delete-btn" onclick="deleteFromEditModal()">
-            <i class="ti ti-trash"></i> Loeschen
+          <button class="pf-btn pf-btn-danger" id="edit-delete-btn" onclick="deleteFromEditModal()">
+            <i class="ti ti-trash"></i> Löschen
           </button>
-          <button class="btn btn-outline-danger d-none" id="edit-delete-series-btn" onclick="deleteSeriesFromEditModal()">
-            <i class="ti ti-trash"></i> Ganze Serie loeschen
+          <button class="pf-btn pf-btn-danger d-none" id="edit-delete-series-btn" onclick="deleteSeriesFromEditModal()">
+            <i class="ti ti-trash"></i> Ganze Serie löschen
           </button>
         </div>
         <div class="d-flex gap-2">
-          <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-          <button class="btn btn-primary" onclick="updateFromEditModal()"><i class="ti ti-check"></i> Speichern</button>
+          <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+          <button class="pf-btn pf-btn-primary" onclick="updateFromEditModal()"><i class="ti ti-check"></i> Speichern</button>
         </div>
       </div>
     </div>
@@ -222,7 +254,7 @@
 </div>
 
 <!-- Vacation Modal -->
-<div class="modal modal-blur fade" id="vacation-modal" tabindex="-1">
+<div class="modal modal-blur fade pf-modal-sm" id="vacation-modal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header">
@@ -230,13 +262,15 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label required">Von</label>
-          <input type="date" class="form-control" id="vacation-start">
-        </div>
-        <div class="mb-3">
-          <label class="form-label required">Bis</label>
-          <input type="date" class="form-control" id="vacation-end">
+        <div class="row mb-3">
+          <div class="col-6">
+            <label class="form-label required">Von</label>
+            <input type="date" class="form-control" id="vacation-start">
+          </div>
+          <div class="col-6">
+            <label class="form-label required">Bis</label>
+            <input type="date" class="form-control" id="vacation-end">
+          </div>
         </div>
         <div class="mb-3">
           <label class="form-label">Grund</label>
@@ -248,12 +282,12 @@
           </select>
         </div>
         <div class="alert alert-warning">
-          <i class="ti ti-alert-triangle"></i> Waehrend des Urlaubs koennen keine neuen Buchungen fuer dich erstellt werden.
+          <i class="ti ti-alert-triangle"></i> Während des Urlaubs können keine neuen Buchungen für dich erstellt werden.
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-ghost-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-danger" onclick="saveVacation()"><i class="ti ti-check"></i> Urlaub speichern</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-danger" onclick="saveVacation()"><i class="ti ti-check"></i> Urlaub speichern</button>
       </div>
     </div>
   </div>
@@ -262,6 +296,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
@@ -513,10 +548,10 @@
       bootstrap.Modal.getOrCreateInstance(document.getElementById('edit-modal')).show();
     } else if (props.type === 'booking') {
       var b = props.booking;
-      alert('PT-Buchung\n\nKunde: ' + (b.customer_name || '–') + '\nDatum: ' + (b.scheduled_date || '') + '\nUhrzeit: ' + (b.scheduled_time || '') + '\nStatus: ' + (b.status || ''));
+      showPfToast('PT-Buchung', (b.customer_name || '–') + ' – ' + (b.scheduled_date || '') + ' ' + (b.scheduled_time || '').substring(0,5) + ' (' + (b.status || '') + ')', 'info');
     } else if (props.type === 'gt') {
       var g = props.group;
-      alert('Gruppentraining\n\n' + (g.name || '–') + '\nDatum: ' + (g.scheduled_date || '') + '\nTeilnehmer: ' + (g.current_participants || 0) + '/' + (g.max_participants || '–'));
+      showPfToast('Gruppentraining', (g.name || '–') + ' – ' + (g.scheduled_date || '') + ' (' + (g.current_participants || 0) + '/' + (g.max_participants || '–') + ' Teilnehmer)', 'info');
     } else if (props.type === 'vacation') {
       var v = props.vacation;
       if (confirm('Urlaub loeschen?\n\n' + v.start_date + ' bis ' + v.end_date)) {
@@ -678,8 +713,8 @@
     var startTime = document.getElementById('avail-start-time').value;
     var endTime = document.getElementById('avail-end-time').value;
 
-    if (!date || !startTime || !endTime) { alert('Bitte alle Felder ausfuellen.'); return; }
-    if (endTime <= startTime) { alert('Endzeit muss nach Startzeit liegen.'); return; }
+    if (!date || !startTime || !endTime) { showPfToast('Eingabe fehlt', 'Bitte alle Felder ausfüllen.', 'warning'); return; }
+    if (endTime <= startTime) { showPfToast('Ungültige Zeit', 'Endzeit muss nach Startzeit liegen.', 'warning'); return; }
 
     var isSeries = document.getElementById('series-toggle').checked;
     var sb = getSupabase();
@@ -692,7 +727,7 @@
 
       if (isSeries) {
         var dates = generateSeriesDates();
-        if (dates.length === 0) { alert('Keine Termine generiert. Bitte Wochentage pruefen.'); btn.disabled = false; return; }
+        if (dates.length === 0) { showPfToast('Keine Termine', 'Bitte Wochentage prüfen.', 'warning'); btn.disabled = false; return; }
         var seriesId = crypto.randomUUID();
         dates.forEach(function(d) {
           var dd = new Date(d + 'T12:00:00');
@@ -734,7 +769,7 @@
       showAlert('alert-box', (isSeries ? rows.length + ' Serientermine' : 'Termin') + ' gespeichert!', 'success');
       calendar.refetchEvents();
     } catch (err) {
-      alert('Speichern fehlgeschlagen: ' + err.message);
+      showPfToast('Fehler', 'Speichern fehlgeschlagen: ' + err.message, 'danger');
     } finally {
       btn.disabled = false;
     }
@@ -755,7 +790,7 @@
       showAlert('alert-box', 'Termin geloescht.', 'success');
       calendar.refetchEvents();
     } catch (err) {
-      alert('Loeschen fehlgeschlagen: ' + err.message);
+      showPfToast('Fehler', 'Löschen fehlgeschlagen: ' + err.message, 'danger');
     }
   }
 
@@ -774,7 +809,7 @@
       showAlert('alert-box', 'Serie geloescht.', 'success');
       calendar.refetchEvents();
     } catch (err) {
-      alert('Loeschen fehlgeschlagen: ' + err.message);
+      showPfToast('Fehler', 'Löschen fehlgeschlagen: ' + err.message, 'danger');
     }
   }
 
@@ -784,7 +819,7 @@
     var props = editingEvent.extendedProps;
     var newStart = document.getElementById('edit-start-time').value;
     var newEnd = document.getElementById('edit-end-time').value;
-    if (!newStart || !newEnd || newEnd <= newStart) { alert('Ungueltige Zeiten.'); return; }
+    if (!newStart || !newEnd || newEnd <= newStart) { showPfToast('Ungültige Zeit', 'Start muss vor Ende liegen.', 'warning'); return; }
 
     var sb = getSupabase();
     try {
@@ -802,7 +837,7 @@
       showAlert('alert-box', 'Termin aktualisiert.', 'success');
       calendar.refetchEvents();
     } catch (err) {
-      alert('Speichern fehlgeschlagen: ' + err.message);
+      showPfToast('Fehler', 'Speichern fehlgeschlagen: ' + err.message, 'danger');
     }
   }
 
@@ -811,8 +846,8 @@
     var startDate = document.getElementById('vacation-start').value;
     var endDate = document.getElementById('vacation-end').value;
     var reason = document.getElementById('vacation-reason').value;
-    if (!startDate || !endDate) { alert('Bitte Von und Bis Datum angeben'); return; }
-    if (endDate < startDate) { alert('Bis-Datum muss nach Von-Datum liegen'); return; }
+    if (!startDate || !endDate) { showPfToast('Eingabe fehlt', 'Bitte Von und Bis Datum angeben.', 'warning'); return; }
+    if (endDate < startDate) { showPfToast('Ungültiges Datum', 'Bis-Datum muss nach Von-Datum liegen.', 'warning'); return; }
 
     var sb = getSupabase();
     try {
@@ -833,7 +868,7 @@
       document.getElementById('vacation-end').value = '';
       document.getElementById('vacation-reason').value = 'urlaub';
     } catch (err) {
-      alert('Fehler: ' + err.message);
+      showPfToast('Fehler', err.message, 'danger');
     }
   }
 
@@ -846,7 +881,7 @@
       calEvent.remove();
       showAlert('alert-box', 'Urlaub geloescht.', 'success');
     } catch (err) {
-      alert('Fehler: ' + err.message);
+      showPfToast('Fehler', err.message, 'danger');
     }
   }
 
@@ -903,8 +938,134 @@
       html += '<tr><td colspan="2" class="text-secondary">... und ' + remaining.length + ' weitere Tage</td><td class="text-end">' + remH.toFixed(1).replace('.0', '') + 'h</td></tr>';
     }
 
-    tbody.innerHTML = html || '<tr><td colspan="3" class="text-center text-secondary p-3">Keine Verfuegbarkeit eingetragen</td></tr>';
+    tbody.innerHTML = html || '<tr><td colspan="3" class="text-center text-secondary p-3">Keine Verfügbarkeit eingetragen</td></tr>';
     document.getElementById('total-hours').textContent = totalH.toFixed(1).replace('.0', '') + 'h sichtbar';
+
+    // ── Wochenübersicht (rechtes Panel) ──
+    updateWeeklySummary(byDate);
+
+    // ── Kalender-Zellenfarben (fc-available / fc-holiday) ──
+    updateCellColors(byDate);
+  }
+
+  function updateWeeklySummary(byDate) {
+    var panel = document.getElementById('weekly-summary');
+    if (!panel) return;
+
+    // Slots nach Wochentag gruppieren
+    var byWeekday = {};
+    Object.keys(byDate).forEach(function(dateStr) {
+      var d = new Date(dateStr + 'T12:00:00');
+      var wd = isoDay(d.getDay());
+      if (!byWeekday[wd]) byWeekday[wd] = [];
+      byDate[dateStr].forEach(function(slot) {
+        var key = slot.start + '-' + slot.end;
+        var exists = byWeekday[wd].some(function(s) { return s.start + '-' + s.end === key; });
+        if (!exists) byWeekday[wd].push(slot);
+      });
+    });
+
+    // Urlaubstage sammeln
+    var vacationDates = [];
+    calendar.getEvents().forEach(function(e) {
+      if (e.extendedProps.type === 'vacation') {
+        var vStart = e.start;
+        var vEnd = e.end || vStart;
+        var cur = new Date(vStart);
+        while (cur < vEnd) {
+          vacationDates.push(toLocalDateStr(cur));
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
+    });
+
+    var wHtml = '';
+    [1, 2, 3, 4, 5, 6, 7].forEach(function(wd) {
+      var label = dayNamesFull[wd];
+      var slots = byWeekday[wd];
+      if (slots && slots.length > 0) {
+        slots.sort(function(a, b) { return a.start.localeCompare(b.start); });
+        var times = slots.map(function(s) { return s.start + ' – ' + s.end; }).join(', ');
+        wHtml += '<div class="d-flex justify-content-between py-1" style="border-bottom:1px solid var(--tblr-border-color)">';
+        wHtml += '<span class="fw-bold">' + label + '</span>';
+        wHtml += '<span class="text-secondary">' + times + '</span>';
+        wHtml += '</div>';
+      } else {
+        wHtml += '<div class="d-flex justify-content-between py-1" style="border-bottom:1px solid var(--tblr-border-color)">';
+        wHtml += '<span class="text-secondary">' + label + '</span>';
+        wHtml += '<span class="text-secondary">–</span>';
+        wHtml += '</div>';
+      }
+    });
+
+    // Urlaub anzeigen
+    if (vacationDates.length > 0) {
+      var uniqueDates = vacationDates.filter(function(d, i, a) { return a.indexOf(d) === i; }).sort();
+      wHtml += '<div class="mt-2 pt-2" style="border-top:1px solid var(--tblr-border-color)">';
+      wHtml += '<div class="fw-bold" style="color:#dc2626;font-size:12px"><i class="ti ti-plane-departure"></i> Urlaub</div>';
+      // Zusammenhängende Bereiche
+      var ranges = [];
+      var rStart = uniqueDates[0]; var rEnd = uniqueDates[0];
+      for (var i = 1; i < uniqueDates.length; i++) {
+        var prev = new Date(rEnd + 'T12:00:00');
+        prev.setDate(prev.getDate() + 1);
+        if (toLocalDateStr(prev) === uniqueDates[i]) {
+          rEnd = uniqueDates[i];
+        } else {
+          ranges.push({ start: rStart, end: rEnd });
+          rStart = uniqueDates[i]; rEnd = uniqueDates[i];
+        }
+      }
+      ranges.push({ start: rStart, end: rEnd });
+      ranges.forEach(function(r) {
+        wHtml += '<div class="text-secondary" style="font-size:12px">' + formatDateDE(r.start);
+        if (r.start !== r.end) wHtml += ' – ' + formatDateDE(r.end);
+        wHtml += '</div>';
+      });
+      wHtml += '</div>';
+    }
+
+    panel.innerHTML = wHtml || '<div class="text-secondary text-center py-3">Keine Zeiten eingetragen</div>';
+  }
+
+  function updateCellColors(byDate) {
+    // Verfügbare Tage: fc-available auf die td-Zellen im Kalender-Header
+    // FullCalendar day headers haben data-date Attribute
+    var availDates = Object.keys(byDate);
+    var vacationDates = [];
+    calendar.getEvents().forEach(function(e) {
+      if (e.extendedProps.type === 'vacation') {
+        var vStart = e.start;
+        var vEnd = e.end || vStart;
+        var cur = new Date(vStart);
+        while (cur < vEnd) {
+          vacationDates.push(toLocalDateStr(cur));
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
+    });
+
+    // Kolumnen-Header einfärben (th[data-date])
+    document.querySelectorAll('.fc-col-header-cell[data-date]').forEach(function(th) {
+      var date = th.getAttribute('data-date');
+      th.classList.remove('fc-available', 'fc-holiday');
+      if (vacationDates.indexOf(date) !== -1) {
+        th.classList.add('fc-holiday');
+      } else if (availDates.indexOf(date) !== -1) {
+        th.classList.add('fc-available');
+      }
+    });
+
+    // Tag-Spalten im timeGrid einfärben (td[data-date] in .fc-timegrid-cols)
+    document.querySelectorAll('.fc-timegrid-col[data-date]').forEach(function(td) {
+      var date = td.getAttribute('data-date');
+      td.classList.remove('fc-available', 'fc-holiday');
+      if (vacationDates.indexOf(date) !== -1) {
+        td.classList.add('fc-holiday');
+      } else if (availDates.indexOf(date) !== -1) {
+        td.classList.add('fc-available');
+      }
+    });
   }
 
   // ── Init ───────────────────────────────────────────────────

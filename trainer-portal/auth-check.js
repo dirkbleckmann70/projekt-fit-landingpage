@@ -119,38 +119,8 @@ function formatEuro(cents) {
   return (cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
 }
 
-function statusBadge(status) {
-  const map = {
-    PENDING: 'badge-pending',
-    CONFIRMED: 'badge-confirmed',
-    COMPLETED: 'badge-completed',
-    CANCELLED: 'badge-cancelled',
-    pending: 'badge-pending',
-    confirmed: 'badge-confirmed',
-    completed: 'badge-completed',
-    cancelled: 'badge-cancelled',
-    cancelled_by_trainer: 'badge-cancelled',
-    expired: 'badge-expired',
-    EXPIRED: 'badge-expired',
-    paid: 'badge-completed',
-  };
-  const cls = map[status] || 'badge-pending';
-  const labels = {
-    PENDING: 'Anfrage',
-    CONFIRMED: 'Bestätigt',
-    COMPLETED: 'Abgeschlossen',
-    CANCELLED: 'Storniert',
-    EXPIRED: 'Abgelaufen',
-    pending: 'Anfrage',
-    confirmed: 'Bestätigt',
-    completed: 'Abgeschlossen',
-    cancelled: 'Storniert',
-    expired: 'Abgelaufen',
-    cancelled_by_trainer: 'Abgelehnt',
-    paid: 'Bezahlt',
-  };
-  return `<span class="badge ${cls}">${labels[status] || status}</span>`;
-}
+// statusBadge wird zentral aus shared/constants.js bereitgestellt.
+// Bei verfügbarem DESIGN (design-tokens.js) nutzt sie DESIGN.badge().
 
 function showAlert(id, message, type = 'success') {
   const el = document.getElementById(id);

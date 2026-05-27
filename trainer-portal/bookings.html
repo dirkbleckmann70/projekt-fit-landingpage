@@ -10,25 +10,11 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="../shared/tabler-custom.css">
   <style>
-    /* Row highlights */
+    /* Row highlights (hidden table) */
     #bookings-table tbody tr.row-pending { background: rgba(231,76,60,0.05); }
     #bookings-table tbody tr.row-pending:hover { background: rgba(231,76,60,0.09); }
     #bookings-table tbody tr.row-done { opacity: 0.55; }
 
-    /* Status badges */
-    .badge-neue-anfrage { background: rgba(231,76,60,0.15); color: #e74c3c; border: 1px solid rgba(231,76,60,0.4); }
-    .badge-bestaetigt   { background: rgba(39,174,96,0.15);  color: #27ae60; border: 1px solid rgba(39,174,96,0.4); }
-    .badge-erledigt     { background: rgba(136,136,160,0.12); color: #8888a0; border: 1px solid rgba(136,136,160,0.3); }
-    .badge-storniert    { background: rgba(85,85,106,0.12);   color: #55556a; border: 1px solid rgba(85,85,106,0.3); }
-    .badge-reschedule   { background: rgba(244,169,64,0.15); color: #F4A940; border: 1px solid rgba(244,169,64,0.4); }
-    .badge-overdue      { background: rgba(231,76,60,0.2); color: #e74c3c; }
-
-    .btn-confirm { color: #27ae60; border: 1px solid rgba(39,174,96,0.5); background: rgba(39,174,96,0.08); }
-    .btn-confirm:hover { background: rgba(39,174,96,0.18); }
-    .btn-decline { color: #e74c3c; border: 1px solid rgba(231,76,60,0.5); background: rgba(231,76,60,0.08); }
-    .btn-decline:hover { background: rgba(231,76,60,0.18); }
-    .btn-reschedule { color: #F4A940; border: 1px solid rgba(244,169,64,0.5); background: rgba(244,169,64,0.08); }
-    .btn-reschedule:hover { background: rgba(244,169,64,0.18); }
     .bk-actions { display: flex; gap: 6px; flex-wrap: nowrap; align-items: center; }
     .bk-sub { font-size: 12px; color: var(--tblr-secondary-color); margin-top: 2px; }
 
@@ -129,15 +115,15 @@
       </div>
       <div class="modal-body" id="detail-modal-body"></div>
       <div class="modal-footer" id="detail-modal-footer">
-        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schließen</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Schließen</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Location Select Modal -->
-<div class="modal modal-blur fade" id="location-select-modal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered modal-sm">
+<div class="modal modal-blur fade pf-modal-sm" id="location-select-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Treffpunkt wählen</h5>
@@ -168,17 +154,17 @@
         </div>
       </div>
       <div class="modal-footer gap-2">
-        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-sm btn-reschedule" id="btn-alt-location" onclick="toggleTrainerLocation()" style="display:none">Anderen Treffpunkt</button>
-        <button class="btn btn-sm btn-confirm" onclick="submitLocationChoice()">Bestätigen</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-edit" id="btn-alt-location" onclick="toggleTrainerLocation()" style="display:none">Anderen Treffpunkt</button>
+        <button class="pf-btn pf-btn-primary" onclick="submitLocationChoice()">Bestätigen</button>
       </div>
     </div>
   </div>
 </div>
 
 <!-- Reschedule Modal -->
-<div class="modal modal-blur fade" id="reschedule-modal" tabindex="-1">
-  <div class="modal-dialog modal-dialog-centered reschedule-modal modal-sm">
+<div class="modal modal-blur fade pf-modal-sm" id="reschedule-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered reschedule-modal">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Termin / Ort aendern</h5>
@@ -234,8 +220,8 @@
         </div>
       </div>
       <div class="modal-footer gap-2">
-        <button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-sm btn-confirm" id="reschedule-submit" onclick="submitReschedule()">Vorschlagen</button>
+        <button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="pf-btn pf-btn-primary" id="reschedule-submit" onclick="submitReschedule()">Vorschlagen</button>
       </div>
     </div>
   </div>
@@ -243,6 +229,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
 <script src="../shared/constants.js"></script>
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
@@ -346,12 +333,10 @@
   function statusBadgeBK(item) {
     if (item._type === 'gt') {
       return item.is_active
-        ? '<span class="badge badge-bestaetigt">Aktiv</span>'
-        : '<span class="badge badge-storniert">Inaktiv</span>';
+        ? DESIGN.badge('confirmed')
+        : DESIGN.badge('expired');
     }
-    const label = (typeof STATUS_LABELS !== 'undefined' && STATUS_LABELS[item.status]) || item.status;
-    const badgeClass = (typeof STATUS_BADGE_CLASS !== 'undefined' && STATUS_BADGE_CLASS[item.status]) || 'badge-erledigt';
-    return `<span class="badge ${badgeClass}">${label}</span>`;
+    return DESIGN.badge(item.status);
   }
 
   function rowClass(item) {
@@ -611,32 +596,32 @@
     // Abgelaufene aktive Termine visuell als "Abgelaufen" markieren
     var isExpiredActive = isTerminVorbei(item) && (item._type === 'gt' ? item.is_active : ACTIVE.includes(item.status));
     const badge = isExpiredActive
-      ? '<span class="badge badge-overdue">Abgelaufen</span>'
+      ? DESIGN.badge('expired')
       : statusBadgeBK(item);
 
     let actions = '';
     if (item._type === 'gt') {
-      actions = `<button class="btn btn-sm btn-outline-primary" onclick="showGTDetail('${item.gc_id}')"><i class="ti ti-eye"></i> Details</button>`;
+      actions = `<button class="pf-btn pf-btn-neutral" onclick="showGTDetail('${item.gc_id}')"><i class="ti ti-eye"></i> Details</button>`;
     } else if (item.status === BOOKING_STATUS.PENDING || item.status === BOOKING_STATUS.REPLACEMENT_PENDING) {
       var isReplacement = item.status === BOOKING_STATUS.REPLACEMENT_PENDING;
       actions = `
-        ${isReplacement ? '<div class="badge badge-reschedule mb-2">Ersatztrainer-Anfrage</div><br>' : ''}
-        <button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
-        <button class="btn btn-sm btn-success" onclick="openLocationSelectModal('${item.id}')"><i class="ti ti-check"></i> Bestaetigen</button>
-        <button class="btn btn-sm btn-outline-secondary" onclick="openRescheduleModal('${item.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
-        <button class="btn btn-sm btn-outline-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
+        ${isReplacement ? '<div class="pf-badge" style="background:#faf5ff;color:#7c3aed;margin-bottom:8px">Ersatztrainer-Anfrage</div><br>' : ''}
+        <button class="pf-btn pf-btn-neutral" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
+        <button class="pf-btn pf-btn-primary" onclick="openLocationSelectModal('${item.id}')"><i class="ti ti-check"></i> Bestätigen</button>
+        <button class="pf-btn pf-btn-edit" onclick="openRescheduleModal('${item.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
+        <button class="pf-btn pf-btn-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
     } else if (item.status === BOOKING_STATUS.CONFIRMED) {
       actions = `
-        <button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
-        <button class="btn btn-sm btn-outline-secondary" onclick="openRescheduleModal('${item.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
-        <button class="btn btn-sm btn-outline-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
+        <button class="pf-btn pf-btn-neutral" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
+        <button class="pf-btn pf-btn-edit" onclick="openRescheduleModal('${item.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
+        <button class="pf-btn pf-btn-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
     } else if (item.status === 'reschedule_proposed' || item.status === 'location_proposed') {
       // Wartet auf Kunde — Trainer kann nur Details sehen oder absagen
       actions = `
-        <button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
-        <button class="btn btn-sm btn-outline-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
+        <button class="pf-btn pf-btn-neutral" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>
+        <button class="pf-btn pf-btn-danger" onclick="updateBooking('${item.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
     } else {
-      actions = `<button class="btn btn-sm btn-outline-primary" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>`;
+      actions = `<button class="pf-btn pf-btn-neutral" onclick="showDetail('${item.id}')"><i class="ti ti-eye"></i> Details</button>`;
     }
 
     let warningLine = '';
@@ -701,21 +686,21 @@
     const revenue = calcRevenue(b);
     let actions;
     if (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.REPLACEMENT_PENDING) {
-      actions = `${b.status === BOOKING_STATUS.REPLACEMENT_PENDING ? '<span class="badge badge-reschedule me-1">Ersatz</span>' : ''}<button class="btn btn-ghost-secondary btn-sm" onclick="showDetail('${b.id}')">Details</button>
-         <button class="btn btn-sm btn-confirm" onclick="openLocationSelectModal('${b.id}')">Bestätigen</button>
-         <button class="btn btn-sm btn-reschedule" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
-         <button class="btn btn-sm btn-decline" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)">Ablehnen</button>`;
+      actions = `${b.status === BOOKING_STATUS.REPLACEMENT_PENDING ? DESIGN.badge('reschedule_proposed') : ''}<button class="pf-btn pf-btn-neutral" onclick="showDetail('${b.id}')">Details</button>
+         <button class="pf-btn pf-btn-primary" onclick="openLocationSelectModal('${b.id}')">Bestätigen</button>
+         <button class="pf-btn pf-btn-edit" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
+         <button class="pf-btn pf-btn-danger" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)">Ablehnen</button>`;
     } else if (b.status === BOOKING_STATUS.CONFIRMED) {
-      actions = `<button class="btn btn-sm btn-reschedule" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
-         <button class="btn btn-ghost-secondary btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
+      actions = `<button class="pf-btn pf-btn-edit" onclick="openRescheduleModal('${b.id}')">Termin ändern</button>
+         <button class="pf-btn pf-btn-neutral" onclick="showDetail('${b.id}')">Details</button>`;
     } else if (b.status === 'reschedule_proposed') {
-      actions = `<span class="badge badge-reschedule">Vorschlag: ${b.proposed_date ? formatDate(b.proposed_date) + ' ' + (b.proposed_time||'').slice(0,5) : '–'}</span> <button class="btn btn-ghost-secondary btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
+      actions = `${DESIGN.badge('reschedule_proposed')} <button class="pf-btn pf-btn-neutral" onclick="showDetail('${b.id}')">Details</button>`;
     } else {
-      actions = `<button class="btn btn-ghost-secondary btn-sm" onclick="showDetail('${b.id}')">Details</button>`;
+      actions = `<button class="pf-btn pf-btn-neutral" onclick="showDetail('${b.id}')">Details</button>`;
     }
     return `
       <tr class="${rowClass(b)}">
-        <td>${statusBadgeBK(b)}${isOverdue(b) ? `<span class="badge badge-overdue ms-1">${overdueDays(b)}d überfällig</span>` : ''}</td>
+        <td>${statusBadgeBK(b)}${isOverdue(b) ? ` <span class="pf-badge" style="background:#fef2f2;color:#dc2626">${overdueDays(b)}d überfällig</span>` : ''}</td>
         <td style="white-space:nowrap">${b.scheduled_date ? formatDate(b.scheduled_date) : '–'}</td>
         <td style="white-space:nowrap" class="text-secondary">${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
         <td>${b.customer_name || 'Kunde'}</td>
@@ -742,7 +727,7 @@
         <td><span class="badge" style="background:rgba(64,145,108,0.12);color:var(--tblr-primary);border:1px solid rgba(64,145,108,0.25)">GT</span></td>
         <td>${gc.city || '–'}</td>
         <td style="color:var(--tblr-primary)">${revenue}</td>
-        <td><div class="bk-actions"><button class="btn btn-ghost-secondary btn-sm" onclick="showGTDetail('${gc.gc_id}')">Details</button></div></td>
+        <td><div class="bk-actions"><button class="pf-btn pf-btn-neutral" onclick="showGTDetail('${gc.gc_id}')">Details</button></div></td>
       </tr>`;
   }
 
@@ -804,11 +789,11 @@
     // Footer: Checkout-Button wenn Termin vorbei + noch nicht ausgecheckt + Teilnehmer vorhanden
     let footerHtml = '';
     if (terminVorbei && !alreadyCheckedOut && gc.participants.length > 0) {
-      footerHtml = `<button class="btn btn-success btn-sm" onclick="gtCheckout('${gcId}')"><i class="ti ti-check"></i> Kurs abschliessen</button>`;
+      footerHtml = `<button class="pf-btn pf-btn-primary" onclick="gtCheckout('${gcId}')"><i class="ti ti-check"></i> Kurs abschliessen</button>`;
     } else if (alreadyCheckedOut) {
-      footerHtml = `<span class="badge bg-success-lt"><i class="ti ti-check"></i> Bereits abgeschlossen</span>`;
+      footerHtml = `<span class="pf-badge" style="background:#f0fdf4;color:#16a34a"><i class="ti ti-check"></i> Bereits abgeschlossen</span>`;
     }
-    footerHtml += '<button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schliessen</button>';
+    footerHtml += '<button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Schliessen</button>';
     document.getElementById('detail-modal-footer').innerHTML = footerHtml;
 
     if (!_detailModal) _detailModal = new bootstrap.Modal(document.getElementById('detail-modal'));
@@ -950,18 +935,18 @@
     // Aktions-Buttons im Footer je nach Status
     var footerHtml = '';
     if (b.status === BOOKING_STATUS.PENDING || b.status === BOOKING_STATUS.REPLACEMENT_PENDING) {
-      footerHtml = `<button class="btn btn-success btn-sm" onclick="confirmFromDetail('${b.id}')"><i class="ti ti-check"></i> Bestätigen</button>
-        <button class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
-        <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
+      footerHtml = `<button class="pf-btn pf-btn-primary" onclick="confirmFromDetail('${b.id}')"><i class="ti ti-check"></i> Bestätigen</button>
+        <button class="pf-btn pf-btn-edit" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
+        <button class="pf-btn pf-btn-danger" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Ablehnen</button>`;
     } else if (b.status === 'reschedule_proposed' || b.status === 'location_proposed') {
       // Wartet auf Kunde — Trainer kann nur absagen
-      footerHtml = `<span class="badge badge-reschedule me-2">Wartet auf Kundenbestaetigung</span>
-        <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
+      footerHtml = `${DESIGN.badge('reschedule_proposed')}
+        <button class="pf-btn pf-btn-danger" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
     } else if (b.status === BOOKING_STATUS.CONFIRMED) {
-      footerHtml = `<button class="btn btn-outline-secondary btn-sm" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
-        <button class="btn btn-outline-danger btn-sm" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
+      footerHtml = `<button class="pf-btn pf-btn-edit" onclick="bootstrap.Modal.getInstance(document.getElementById('detail-modal')).hide();openRescheduleModal('${b.id}')"><i class="ti ti-calendar-event"></i> Umbuchen</button>
+        <button class="pf-btn pf-btn-danger" onclick="updateBooking('${b.id}',BOOKING_STATUS.CANCELLED_BY_TRAINER)"><i class="ti ti-x"></i> Absagen</button>`;
     }
-    footerHtml += '<button class="btn btn-ghost-secondary btn-sm" data-bs-dismiss="modal">Schliessen</button>';
+    footerHtml += '<button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Schliessen</button>';
     document.getElementById('detail-modal-footer').innerHTML = footerHtml;
 
     if (!_detailModal) _detailModal = new bootstrap.Modal(document.getElementById('detail-modal'));
@@ -1144,7 +1129,7 @@
           var selLoc = rescheduleBookingLocations.find(l => l.id === rescheduleSelectedLocationId);
           var selName = ((selLoc && selLoc.name) || '').trim();
           if (selLoc && selName === activeName) {
-            alert('Dieser Treffpunkt ist bereits der aktive — bitte den anderen waehlen.');
+            showPfToast('Hinweis', 'Dieser Treffpunkt ist bereits der aktive — bitte den anderen wählen.', 'warning');
             btn.disabled = false; btn.textContent = 'Vorschlagen';
             return;
           }
@@ -1159,7 +1144,7 @@
           // Legacy-Freitext-Pfad (Alt-Buchungen mit <2 booking_locations).
           var locName = document.getElementById('reschedule-loc-name').value.trim();
           var locAddress = document.getElementById('reschedule-loc-address').value.trim();
-          if (!locName) { alert('Bitte einen Treffpunkt-Namen eingeben.'); btn.disabled = false; btn.textContent = 'Vorschlagen'; return; }
+          if (!locName) { showPfToast('Eingabe fehlt', 'Bitte einen Treffpunkt-Namen eingeben.', 'warning'); btn.disabled = false; btn.textContent = 'Vorschlagen'; return; }
 
           await adminApi('/api/admin?action=bookings', {
             method: 'PUT',
@@ -1177,7 +1162,7 @@
         showAlert('Ort-Vorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
       } else {
         // Zeit-Vorschlag (bestehende Logik)
-        if (rescheduleSelectedHour === null) { alert('Bitte eine Uhrzeit auswaehlen.'); btn.disabled = false; btn.textContent = 'Vorschlagen'; return; }
+        if (rescheduleSelectedHour === null) { showPfToast('Eingabe fehlt', 'Bitte eine Uhrzeit auswählen.', 'warning'); btn.disabled = false; btn.textContent = 'Vorschlagen'; return; }
 
         var dateVal = document.getElementById('reschedule-date').value;
         var timeVal = String(rescheduleSelectedHour).padStart(2, '0') + ':00';
@@ -1465,7 +1450,7 @@
             admin_note: 'Trainer-Ort-Vorschlag: ' + altName.value.trim() + (altAddr && altAddr.value.trim() ? ' (' + altAddr.value.trim() + ')' : '')
           })
         });
-      } catch(e) { alert('Fehler: ' + e.message); return; }
+      } catch(e) { showPfToast('Fehler', e.message, 'danger'); return; }
       document.querySelectorAll('.modal.show').forEach(function(m) { var inst = bootstrap.Modal.getInstance(m); if (inst) inst.hide(); });
       showAlert('Ort-Vorschlag gesendet! Der Kunde hat 24h Zeit zu antworten.', 'success');
       await loadBookings();
@@ -1475,7 +1460,7 @@
     // Kunden-Treffpunkt auswaehlen + bestaetigen
     var selectedLocId = window._selectedLocationId;
     if (!selectedLocId) {
-      alert('Bitte einen Treffpunkt auswaehlen.');
+      showPfToast('Hinweis', 'Bitte einen Treffpunkt auswählen.', 'warning');
       return;
     }
 
@@ -1500,7 +1485,7 @@
       showAlert('Buchung bestaetigt! Treffpunkt: ' + locName, 'success');
       await loadBookings();
     } catch (err) {
-      alert('Fehler: ' + err.message);
+      showPfToast('Fehler', err.message, 'danger');
     }
   }
 </script>
