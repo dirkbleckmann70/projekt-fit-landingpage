@@ -4,10 +4,17 @@
 // Nutzt Tabler Icons (CDN: ti ti-* Klassen) statt inline SVGs.
 // Einbinden: <script src="/shared/layout.js"></script>
 
-// Pulsly-Wortmarke gemaess reference_pulsly_logo_system.md:
-//   "puls" in Pulsly-Gruen, "ly" in Pulsly-Orange.
-// Inline-Styles, damit die Marke unabhaengig vom CSS-Lade-Status korrekt aussieht.
-const PULSLY_BRAND = '<span style="color:#4ADE80">puls</span><span style="color:#FB923C">ly</span>';
+// Pulsly-Wortmarke K2 (Brainstorm 28.05.2026 — locked):
+//   Archivo Black lowercase, monochrom (currentColor) + Inline-Puls-Signatur + oranger Dot.
+//   Wortmarke faerbt sich automatisch nach Theme (currentColor erbt vom Eltern-Element).
+//   Akzent: App-Orange #FB923C (Puls + Dot).
+if (typeof document !== 'undefined' && !document.querySelector('link[href*="Archivo+Black"]')) {
+  const fontLink = document.createElement('link');
+  fontLink.rel = 'stylesheet';
+  fontLink.href = 'https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap';
+  document.head.appendChild(fontLink);
+}
+const PULSLY_BRAND = '<svg viewBox="0 0 200 80" style="height:1.4em;vertical-align:-0.42em" xmlns="http://www.w3.org/2000/svg" aria-label="pulsly"><text x="20" y="50" font-family="\'Archivo Black\', sans-serif" font-size="36" letter-spacing="-1.6" fill="currentColor">pulsly</text><path d="M138,45 L143,45 L146,42 L149,48 L152,45 L156,45 L159,30 L162,60 L165,38 L168,52 L171,45 L175,45" stroke="#FB923C" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="179" cy="45" r="4" fill="#FB923C"/></svg>';
 
 // ─── Admin Sidebar ──────────────────────────────────────────────────────────
 
