@@ -346,13 +346,16 @@ tr.row-overdue { border-left: 3px solid #dc2626; }
 .fc-event-cancelled    { background: rgba(231,76,60,0.35); border-left: 4px solid #dc2626; text-decoration: line-through; color: #7f1d1d; font-weight: 500; }
 /* fc-event-available: Verfuegbarkeit im Admin-Kalender — zarter Teppich */
 .fc-event-available    { background: rgba(74,222,128,0.25); border-left: 4px solid #4ADE80; color: #14532d; font-weight: 500; font-style: normal; }
-/* fc-event-avail: Verfuegbarkeit im Trainer-Portal — zarter Teppich, einheitlich nur Links-Streifen */
-.fc-event-avail        { background: rgba(74,222,128,0.25); border: none; border-left: 4px solid #4ADE80; border-radius: 4px; cursor: pointer; color: #14532d; font-weight: 500; }
-.fc-event-avail:hover  { background: rgba(74,222,128,0.40); }
+/* fc-event-avail: Verfuegbarkeit im Trainer-Portal — Farben aus der Legende */
+.fc-event-avail        { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; cursor: pointer; color: #14532d; font-weight: 500; }
+.fc-event-avail:hover  { background: #dcfce7; }
 .fc-event-vacation     { background: rgba(231,76,60,0.45); border-left: 4px solid #dc2626; color: #7f1d1d; font-weight: 600; }
 
 /* FullCalendar Verfuegbarkeits-Hintergruende (neu) */
-.fc-available { background-color: #f0fdf4 !important; }
+/* fc-available: Spalten-Hintergrund WEG. Verfuegbarkeit zeigt sich nur durch
+   die fc-event-avail-Bloecke an den eingetragenen Zeiten — nicht durch ganze
+   Tagesspalten (User-Vorgabe 28.05.2026). */
+.fc-available { background-color: transparent !important; }
 .fc-holiday { background-color: #fef2f2 !important; }
 .fc-event-booking { background: #dcfce7; border-left: 3px solid #4ADE80; color: #166534; }
 .fc-event-request { background: #fff7ed; border-left: 3px solid #FB923C; color: #9a3412; }
