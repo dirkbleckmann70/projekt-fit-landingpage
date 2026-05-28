@@ -1073,7 +1073,7 @@
     var trainer = await checkTrainerAuth();
     if (!trainer) return;
 
-    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('availability');
+    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('calendar');
     document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('availability');
     document.getElementById('header').innerHTML = renderTrainerHeader('Kalender', window.currentTrainer?.email || '');
     initRealtimeToasts(getSupabase(), 'trainer');

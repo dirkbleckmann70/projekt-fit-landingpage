@@ -25,54 +25,50 @@
 
       <h1 class="mb-3" id="welcome">Willkommen!</h1>
 
-      <!-- KPIs -->
-      <div class="row row-deck row-cards mb-3">
-        <div class="col-6 col-lg-3">
-          <div class="pf-stat-card">
-            <div class="pf-stat-label">Nächste Buchung</div>
-            <div class="pf-stat-num" id="kpi-next" style="font-size:1rem"><div class="spinner-border spinner-border-sm"></div></div>
-          </div>
-        </div>
-        <div class="col-6 col-lg-3">
-          <div class="pf-stat-card">
-            <div class="pf-stat-label">Buchungen (Monat)</div>
-            <div class="pf-stat-num" id="kpi-month"><div class="spinner-border spinner-border-sm"></div></div>
-            <div class="kpi-sub" id="kpi-month-total"></div>
-          </div>
-        </div>
-        <div class="col-6 col-lg-3">
-          <div class="pf-stat-card">
-            <div class="pf-stat-label">Bewertung</div>
-            <div class="pf-stat-num" id="kpi-rating"><div class="spinner-border spinner-border-sm"></div></div>
-          </div>
-        </div>
-        <div class="col-6 col-lg-3">
-          <div class="pf-stat-card">
-            <div class="pf-stat-label">Verdienst (Monat)</div>
-            <div class="pf-stat-num" id="kpi-earnings"><div class="spinner-border spinner-border-sm"></div></div>
-            <div class="kpi-sub" id="kpi-earnings-total"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Pending Requests -->
+      <!-- Pending Requests — oben, weil prioritaet -->
       <div class="card mb-3">
         <div class="card-header">
           <h3 class="card-title">Neue Anfragen</h3>
+          <span class="ms-auto badge bg-warning-lt" id="pending-count" style="display:none"></span>
         </div>
         <div id="pending-list">
           <div class="card-body"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</div>
         </div>
       </div>
 
-      <!-- Upcoming Bookings -->
+      <!-- Upcoming Bookings — direkt darunter -->
       <div class="card mb-3">
         <div class="card-header d-flex justify-content-between align-items-center">
-          <h3 class="card-title">Nächste Termine</h3>
-          <a href="/trainer-portal/bookings.html" class="pf-btn pf-btn-neutral">Alle</a>
+          <h3 class="card-title">Naechste Termine</h3>
+          <a href="/trainer-portal/bookings.html" class="pf-btn pf-btn-neutral">Alle anzeigen</a>
         </div>
         <div id="upcoming-list">
           <div class="card-body"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</div>
+        </div>
+      </div>
+
+      <!-- Zahlen-Reihe unten — drei Karten (Naechste-Buchung-Kachel raus,
+           weil sie der Pending-Liste oben widerspricht) -->
+      <div class="row row-deck row-cards mb-3">
+        <div class="col-12 col-lg-4">
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Buchungen (Monat)</div>
+            <div class="pf-stat-num" id="kpi-month"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="kpi-sub" id="kpi-month-total"></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-4">
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Verdienst (Monat)</div>
+            <div class="pf-stat-num" id="kpi-earnings"><div class="spinner-border spinner-border-sm"></div></div>
+            <div class="kpi-sub" id="kpi-earnings-total"></div>
+          </div>
+        </div>
+        <div class="col-12 col-lg-4">
+          <div class="pf-stat-card">
+            <div class="pf-stat-label">Bewertung</div>
+            <div class="pf-stat-num" id="kpi-rating"><div class="spinner-border spinner-border-sm"></div></div>
+          </div>
         </div>
       </div>
 
@@ -106,7 +102,6 @@
     const trainerId = trainer.id;
 
     if (!trainerId) {
-      document.getElementById('kpi-next').textContent = '–';
       document.getElementById('kpi-month').textContent = '–';
       document.getElementById('kpi-rating').textContent = '–';
       document.getElementById('kpi-earnings').textContent = '–';
@@ -185,11 +180,7 @@
       const list = document.getElementById('upcoming-list');
       if (!upcoming || upcoming.length === 0) {
         list.innerHTML = '<div class="card-body text-center text-secondary"><i class="ti ti-calendar-off mb-2" style="font-size:2rem"></i><br>Keine kommenden Termine</div>';
-        document.getElementById('kpi-next').textContent = 'Keine';
       } else {
-        document.getElementById('kpi-next').textContent =
-          formatDate(upcoming[0].scheduled_date) + ' ' + formatTime(upcoming[0].scheduled_time);
-
         list.innerHTML = '<div class="card-body p-0">' + upcoming.map(b => `
           <div class="p-3 border-bottom" style="border-color:var(--tblr-border-color)!important">
             <div class="d-flex justify-content-between align-items-start">
@@ -208,7 +199,6 @@
     } catch (err) {
       console.error('Upcoming:', err);
       document.getElementById('upcoming-list').innerHTML = '<div class="card-body text-danger">Fehler beim Laden</div>';
-      document.getElementById('kpi-next').textContent = '–';
     }
 
     // ─── Pending Requests ─────────────────────────────────────────
@@ -239,9 +229,15 @@
       window._dashPending = pendingBookings;
 
       const pList = document.getElementById('pending-list');
+      const pBadge = document.getElementById('pending-count');
       if (pendingBookings.length === 0) {
         pList.innerHTML = '<div class="card-body text-center text-secondary">Keine offenen Anfragen</div>';
+        if (pBadge) pBadge.style.display = 'none';
       } else {
+        if (pBadge) {
+          pBadge.textContent = pendingBookings.length + ' offen';
+          pBadge.style.display = '';
+        }
         pList.innerHTML = '<div class="card-body p-0">' + pendingBookings.map(b => `
           <div class="p-3 border-bottom" style="border-color:var(--tblr-border-color)!important">
             <div class="d-flex justify-content-between align-items-start mb-2">

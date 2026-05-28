@@ -77,7 +77,9 @@ window.renderAdminHeader = function renderAdminHeader(title, userEmail) {
             </button>
           </div>
           <span class="text-secondary d-none d-md-inline">${userEmail}</span>
-          <button class="btn btn-ghost-secondary btn-sm" onclick="adminLogout()">Logout</button>
+          <button class="pf-btn pf-btn-neutral" onclick="adminLogout()" title="Abmelden">
+            <i class="ti ti-logout"></i> Logout
+          </button>
         </div>
       </div>
     </div>
@@ -92,7 +94,6 @@ window.renderTrainerSidebar = function renderTrainerSidebar(activePage) {
     { id: 'dashboard',    label: 'Dashboard',    emoji: '📊', href: '/trainer-portal/dashboard.html' },
     { id: 'bookings',     label: 'Buchungen',    emoji: '📋', href: '/trainer-portal/bookings.html' },
     { id: 'calendar',     label: 'Kalender',     emoji: '📅', href: '/trainer-portal/availability.html' },
-    { id: 'availability', label: 'Verfügbarkeit',emoji: '🕐', href: '/trainer-portal/availability.html' },
     { id: 'finances',     label: 'Finanzen',     emoji: '💰', href: '/trainer-portal/finances.html' },
     { id: 'invoices',     label: 'Gutschriften', emoji: '📄', href: '/trainer-portal/invoices.html' },
     { id: 'profile',      label: 'Profil',       emoji: '👤', href: '/trainer-portal/profile.html' },
@@ -190,7 +191,9 @@ window.renderTrainerHeader = function renderTrainerHeader(title, trainerEmail) {
       <div class="col-auto ms-auto d-print-none">
         <div class="d-flex align-items-center gap-2">
           <span class="text-secondary d-none d-md-inline">${trainerEmail || ''}</span>
-          <button class="btn btn-ghost-secondary btn-sm" onclick="trainerLogout()">Logout</button>
+          <button class="pf-btn pf-btn-neutral" onclick="trainerLogout()" title="Abmelden">
+            <i class="ti ti-logout"></i> Logout
+          </button>
         </div>
       </div>
     </div>
