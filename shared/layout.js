@@ -47,10 +47,10 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
 
   return `<aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="light">
   <div class="container-fluid">
-    <h1 class="navbar-brand navbar-brand-autodark">
-      <a href="/admin/dashboard.html" style="text-decoration:none;color:inherit;display:flex;flex-direction:column;align-items:center;gap:6px">
-        ${PULSLY_BRAND}
-        <span style="color:var(--tblr-secondary-color);font-weight:600;font-size:0.85rem;letter-spacing:0.18em;text-transform:uppercase">Admin</span>
+    <h1 class="navbar-brand navbar-brand-autodark" style="display:block;width:100%;text-align:center;padding:8px 0;margin-bottom:8px">
+      <a href="/admin/dashboard.html" style="text-decoration:none;color:inherit;display:inline-block;text-align:center">
+        <span style="display:block;text-align:center;line-height:0">${PULSLY_BRAND}</span>
+        <span style="display:block;text-align:center;color:var(--tblr-secondary-color);font-weight:600;font-size:0.85rem;letter-spacing:0.18em;text-transform:uppercase;margin-top:8px">Admin</span>
       </a>
     </h1>
     <div class="collapse navbar-collapse" id="sidebar-menu">
@@ -117,9 +117,9 @@ window.renderTrainerSidebar = function renderTrainerSidebar(activePage) {
 
   return `<aside class="navbar navbar-vertical navbar-expand-lg d-none d-lg-flex" data-bs-theme="light">
   <div class="container-fluid">
-    <h1 class="navbar-brand navbar-brand-autodark">
-      <a href="/trainer-portal/dashboard.html" style="text-decoration:none;color:inherit">
-        ${PULSLY_BRAND}
+    <h1 class="navbar-brand navbar-brand-autodark" style="display:block;width:100%;text-align:center;padding:8px 0;margin-bottom:8px">
+      <a href="/trainer-portal/dashboard.html" style="text-decoration:none;color:inherit;display:inline-block;text-align:center">
+        <span style="display:block;text-align:center;line-height:0">${PULSLY_BRAND}</span>
       </a>
     </h1>
     <div class="collapse navbar-collapse" id="sidebar-menu">
