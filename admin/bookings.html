@@ -299,11 +299,11 @@
       return `
         <tr class="${isOverdue(b) ? 'row-overdue' : ''}" data-row-index="${idx}">
           <td>${formatDate(b.scheduled_date)}</td>
-          <td class="td-wrap">${b.trainer_city || b.city || '–'}</td>
+          <td>${b.trainer_city || b.city || '–'}</td>
           <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
           <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
-          <td class="td-wrap">${b.trainer_name || '–'}</td>
-          <td class="td-wrap">${b.customer_name || b.customer_id || '–'}</td>
+          <td>${b.trainer_name || '–'}</td>
+          <td>${b.customer_name || b.customer_id || '–'}</td>
           <td>${statusBadge(b.status)}${isOverdue(b) ? `<span class="badge badge-overdue">${overdueDays(b)}d</span>` : ''}</td>
           <td class="td-amount text-accent">${price > 0 ? formatEuro(price) : '–'}</td>
           <td class="td-amount text-warning">${b.discount_code ? `<span title="${b.discount_code}">-${formatEuro(b.discount_amount_cents || 0)}</span>` : '–'}</td>
