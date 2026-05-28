@@ -14,7 +14,7 @@ if (typeof document !== 'undefined' && !document.querySelector('link[href*="Arch
   fontLink.href = 'https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap';
   document.head.appendChild(fontLink);
 }
-const PULSLY_BRAND = '<svg viewBox="0 0 200 80" style="height:1.4em;vertical-align:-0.42em" xmlns="http://www.w3.org/2000/svg" aria-label="pulsly"><text x="20" y="50" font-family="\'Archivo Black\', sans-serif" font-size="36" letter-spacing="-1.6" fill="currentColor">pulsly</text><path d="M138,45 L143,45 L146,42 L149,48 L152,45 L156,45 L159,30 L162,60 L165,38 L168,52 L171,45 L175,45" stroke="#FB923C" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="179" cy="45" r="4" fill="#FB923C"/></svg>';
+const PULSLY_BRAND = '<svg viewBox="0 0 200 80" style="height:4.2em;vertical-align:-1.26em" xmlns="http://www.w3.org/2000/svg" aria-label="pulsly"><text x="20" y="50" font-family="\'Archivo Black\', sans-serif" font-size="36" letter-spacing="-1.6" fill="currentColor">pulsly</text><path d="M138,45 L143,45 L146,42 L149,48 L152,45 L156,45 L159,30 L162,60 L165,38 L168,52 L171,45 L175,45" stroke="#FB923C" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="179" cy="45" r="4" fill="#FB923C"/></svg>';
 
 // ─── Admin Sidebar ──────────────────────────────────────────────────────────
 
