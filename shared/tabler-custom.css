@@ -308,15 +308,14 @@ tr.row-overdue { border-left: 3px solid #dc2626; }
   --fc-border-color: var(--tblr-border-color);
   --fc-page-bg-color: var(--tblr-card-bg);
   --fc-neutral-bg-color: #f8f9fa;
-  /* "Heute"-Hintergrund neutral grau statt gruenlich, sonst nicht von
-     der Verfuegbarkeits-Spalte (fc-available, hellgruen) unterscheidbar. */
-  --fc-today-bg-color: rgba(0,0,0,0.025);
+  /* Heute bekommt KEINE eigene Spalten-Faerbung — Spaltenfarbe zeigt nur
+     "Verfuegbar" (gruen) / "Urlaub" (rot) / "Sonst" (weiss). Heute ist durch
+     das Datum im Header + die rote Jetzt-Linie ausreichend markiert. */
+  --fc-today-bg-color: transparent;
   --fc-event-border-color: transparent;
   --fc-event-text-color: #1e293b;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
-/* "Heute" zusaetzlich durch fetten Tagesname im Header sichtbar machen */
-.fc .fc-col-header-cell.fc-day-today { font-weight: 800; color: var(--tblr-body-color); }
 .fc .fc-col-header-cell { font-size: 13px; font-weight: 600; padding: 8px 0; }
 .fc .fc-timegrid-slot { height: 40px; font-size: 12px; }
 .fc .fc-timegrid-slot-label { color: var(--tblr-secondary-color); }
