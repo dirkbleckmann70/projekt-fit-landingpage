@@ -29,7 +29,7 @@
 <div class="page-wrapper">
   <div class="page-header d-print-none" id="header"></div>
   <div class="page-body" style="padding-bottom:80px">
-    <div class="container-xl">
+    <div class="container-fluid">
 
       <div id="alert-box" class="alert d-none"></div>
 
@@ -1107,6 +1107,12 @@
       nowIndicator: true,
       selectable: true,
       selectMirror: true,
+      // Klick-zum-Eintragen darf bestehende Verfuegbarkeit ueberdecken
+      // (B-2026-05-28-05). Buchungen + Urlaub blockieren weiter.
+      selectOverlap: function(event) {
+        var cls = event.classNames || [];
+        return cls.indexOf('fc-event-avail') !== -1 || cls.indexOf('fc-event-legacy') !== -1 || cls.indexOf('fc-event-series') !== -1;
+      },
       editable: false,
       eventResizableFromStart: true,
       headerToolbar: {

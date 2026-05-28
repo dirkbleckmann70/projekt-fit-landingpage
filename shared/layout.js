@@ -4,7 +4,10 @@
 // Nutzt Tabler Icons (CDN: ti ti-* Klassen) statt inline SVGs.
 // Einbinden: <script src="/shared/layout.js"></script>
 
-const MOON_SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+// Pulsly-Wortmarke gemaess reference_pulsly_logo_system.md:
+//   "puls" in Pulsly-Gruen, "ly" in Pulsly-Orange.
+// Inline-Styles, damit die Marke unabhaengig vom CSS-Lade-Status korrekt aussieht.
+const PULSLY_BRAND = '<span style="color:#4ADE80">puls</span><span style="color:#FB923C">ly</span>';
 
 // ─── Admin Sidebar ──────────────────────────────────────────────────────────
 
@@ -39,7 +42,7 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
   <div class="container-fluid">
     <h1 class="navbar-brand navbar-brand-autodark">
       <a href="/admin/dashboard.html" style="text-decoration:none;color:inherit">
-        Projekt <span>Fit</span> Admin
+        ${PULSLY_BRAND} <span style="color:var(--tblr-secondary-color);font-weight:500">Admin</span>
       </a>
     </h1>
     <div class="collapse navbar-collapse" id="sidebar-menu">
@@ -53,7 +56,7 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
 // ─── Admin Header ───────────────────────────────────────────────────────────
 
 window.renderAdminHeader = function renderAdminHeader(title, userEmail) {
-  return `<div class="container-xl">
+  return `<div class="container-fluid">
   <div class="page-header d-print-none">
     <div class="row align-items-center">
       <div class="col-auto">
@@ -67,9 +70,6 @@ window.renderAdminHeader = function renderAdminHeader(title, userEmail) {
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="d-flex align-items-center gap-2">
-          <button id="theme-toggle" class="btn btn-icon btn-ghost-secondary" onclick="toggleTheme()" title="Theme wechseln">
-            ${MOON_SVG}
-          </button>
           <div id="toast-trigger" class="position-relative">
             <button class="btn btn-icon btn-ghost-secondary" title="Benachrichtigungen">
               <i class="ti ti-bell"></i>
@@ -110,7 +110,7 @@ window.renderTrainerSidebar = function renderTrainerSidebar(activePage) {
   <div class="container-fluid">
     <h1 class="navbar-brand navbar-brand-autodark">
       <a href="/trainer-portal/dashboard.html" style="text-decoration:none;color:inherit">
-        Projekt <span>Fit</span>
+        ${PULSLY_BRAND}
       </a>
     </h1>
     <div class="collapse navbar-collapse" id="sidebar-menu">
@@ -181,7 +181,7 @@ window.renderTrainerBottomNav = function renderTrainerBottomNav(activePage) {
 // ─── Trainer Header ─────────────────────────────────────────────────────────
 
 window.renderTrainerHeader = function renderTrainerHeader(title, trainerEmail) {
-  return `<div class="container-xl">
+  return `<div class="container-fluid">
   <div class="page-header d-print-none">
     <div class="row align-items-center">
       <div class="col">
@@ -189,9 +189,6 @@ window.renderTrainerHeader = function renderTrainerHeader(title, trainerEmail) {
       </div>
       <div class="col-auto ms-auto d-print-none">
         <div class="d-flex align-items-center gap-2">
-          <button id="theme-toggle" class="btn btn-icon btn-ghost-secondary" onclick="toggleTheme()" title="Theme wechseln">
-            ${MOON_SVG}
-          </button>
           <span class="text-secondary d-none d-md-inline">${trainerEmail || ''}</span>
           <button class="btn btn-ghost-secondary btn-sm" onclick="trainerLogout()">Logout</button>
         </div>

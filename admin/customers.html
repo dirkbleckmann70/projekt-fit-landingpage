@@ -19,7 +19,7 @@
 <div class="page-wrapper">
   <div class="page-header d-print-none" id="header"></div>
   <div class="page-body">
-    <div class="container-xl">
+    <div class="container-fluid">
 
       <div id="alert-box" class="alert"></div>
 
@@ -37,10 +37,11 @@
                 <th>Vertrag</th>
                 <th>Gesundheit</th>
                 <th>Registriert am</th>
+                <th>Aktionen</th>
               </tr>
             </thead>
             <tbody id="customers-body">
-              <tr><td colspan="9" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Kunden werden geladen...</td></tr>
+              <tr><td colspan="10" class="loading-overlay"><div class="spinner-border spinner-border-sm"></div> Kunden werden geladen...</td></tr>
             </tbody>
           </table>
         </div>
@@ -187,8 +188,9 @@
     document.getElementById('header').innerHTML = renderAdminHeader('Kunden', user.email);
     initRealtimeToasts(getSupabase(), 'admin');
 
-    await loadCustomers();
-
+    // Filter+Sort-Mechanik VOR Daten-Laden aufsetzen \u2014 sonst greift onRowClick
+    // beim ersten Render nicht und die Filter-Selects bleiben leer
+    // (gleiche Reihenfolge wie in bookings.html, siehe Hinweis dort vom 11.05.2026).
     tableFilter = initSortableTable('customers-table', [
       { key: 'full_name',  type: 'text',   getValue: c => c.full_name || (c.first_name + ' ' + c.last_name) || '' },
       { key: 'email',      type: 'text',   getValue: c => c.email || '' },
@@ -199,6 +201,7 @@
       { key: 'contract',   type: 'select', getValue: c => c.service_contract_accepted ? 'Akzeptiert' : 'Offen' },
       { key: 'health',     type: 'select', getValue: c => c.health_declaration_accepted ? 'Akzeptiert' : 'Offen' },
       { key: 'created_at', type: 'date',   getValue: c => c.created_at ? c.created_at.slice(0, 10) : '' },
+      null,   // Aktionen-Spalte: kein Filter
     ], {
       extraButtons: [
         { label: 'Kunde anlegen', icon: 'ti-plus', className: 'pf-btn pf-btn-primary', onClick: 'openNewModal()' }
@@ -207,6 +210,8 @@
       onRowClick: function(rowData) { showDetail(rowData.id); },
     });
     tableFilter.onFilterChange(() => renderCustomers());
+
+    await loadCustomers();
   })();
 
   async function loadCustomers() {
@@ -216,7 +221,7 @@
       renderCustomers();
     } catch (err) {
       document.getElementById('customers-body').innerHTML =
-        `<tr><td colspan="9" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="10" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
     }
   }
 
@@ -226,7 +231,7 @@
     const tbody = document.getElementById('customers-body');
 
     if (filtered.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:24px">Keine Kunden gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted" style="padding:24px">Keine Kunden gefunden</td></tr>';
       return;
     }
 
@@ -241,6 +246,8 @@
       const healthBadge = c.health_declaration_accepted
         ? DESIGN.badge('confirmed')
         : DESIGN.badge('cancelled');
+      const editBtn = `<button class="pf-btn pf-btn-edit" title="Bearbeiten" onclick="event.stopPropagation();showDetail('${c.id}')"><i class="ti ti-edit"></i> Bearbeiten</button>`;
+      const deleteBtn = `<button class="pf-btn pf-btn-danger" title="Loeschen" onclick="event.stopPropagation();quickDeleteCustomer('${c.id}')"><i class="ti ti-trash"></i> Loeschen</button>`;
       return `
         <tr data-row-index="${idx}" style="cursor:pointer">
           <td><strong>${c.full_name || (c.first_name + ' ' + c.last_name) || '–'}</strong></td>
@@ -252,9 +259,18 @@
           <td>${contractBadge}</td>
           <td>${healthBadge}</td>
           <td class="text-muted">${formatDate(c.created_at)}</td>
+          <td><div class="d-flex gap-1">${editBtn} ${deleteBtn}</div></td>
         </tr>
       `;
     }).join('');
+  }
+
+  // Schnell-Loesch-Funktion fuer den Aktions-Knopf in der Zeile. Setzt
+  // currentDetailId temporaer fuer deleteCustomer() und fuehrt es aus, ohne
+  // erst den Detail-Dialog zu oeffnen.
+  async function quickDeleteCustomer(id) {
+    currentDetailId = id;
+    await deleteCustomer();
   }
 
   // New Customer
