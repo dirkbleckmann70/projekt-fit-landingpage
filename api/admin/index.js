@@ -2763,7 +2763,7 @@ async function handleBookingsPut(req, res, supabase) {
     // Vorgeschlagene Location muss zu DIESER Buchung gehoeren.
     const { data: loc, error: locErr } = await supabase
       .from('booking_locations')
-      .select('id, name, address')
+      .select('id, name, address, is_custom')
       .eq('id', proposedLocationId)
       .eq('booking_id', bookingId)
       .single();
@@ -2777,14 +2777,36 @@ async function handleBookingsPut(req, res, supabase) {
     }
 
     update.selected_location_id = loc.id;
-    update.flag_neuer_ort_vorgeschlagen = true;
-    update.location_proposed_at = new Date().toISOString();
+
+    const locTimestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    let locAuditNote;
+
+    if (loc.is_custom !== true) {
+      // B-29-02/B-29-03: Trainer waehlt einen der vom Kunden angebotenen Orte
+      // (is_custom=false) -> SOFORT uebernehmen, KEINE Kunden-Bestaetigung noetig.
+      // Geschaeftsregel ARCHITEKTUR.md Vorgang 3 (29.05.2026).
+      // `!== true`: null/undefined (Altdaten) gelten als Kunden-Ort.
+      // Haengendes Vorschlag-Flag aus einem frueheren Drittort-Vorschlag AKTIV
+      // bereinigen — sonst zeigt der Kunde weiter den Annehmen-Block.
+      update.location_name = loc.name;
+      update.location_address = loc.address;
+      update.flag_neuer_ort_vorgeschlagen = false;
+      update.location_proposed_by = null;
+      update.location_proposed_at = null;
+      locAuditNote = `[Location ${locTimestamp}] Trainer waehlt Kunden-Treffpunkt (sofort uebernommen): ${loc.name} (vorher: ${currentLoc.location_name || '—'})`;
+    } else {
+      // Trainer-Drittort (is_custom=true) -> Vorschlag mit Kunden-Bestaetigung
+      // (bisheriges Verhalten). Name/Adresse werden erst beim Akzeptieren
+      // (handleLocationAccept) in die Buchung uebernommen.
+      update.flag_neuer_ort_vorgeschlagen = true;
+      update.location_proposed_by = 'trainer';
+      update.location_proposed_at = new Date().toISOString();
+      locAuditNote = `[Location ${locTimestamp}] Trainer schlaegt eigenen Treffpunkt vor: ${loc.name} (vorher: ${currentLoc.location_name || '—'})`;
+    }
 
     // Audit anhaengen. Wenn der reschedule-Block oben update.notes bereits
     // gesetzt hat (paralleler Termin- + Ort-Vorschlag), an dessen Wert
     // anhaengen — sonst Basis aus DB-Notes der Buchung.
-    const locTimestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
-    const locAuditNote = `[Location ${locTimestamp}] Trainer schlaegt vor: ${loc.name} (vorher: ${currentLoc.location_name || '—'})`;
     if (update.notes !== undefined) {
       update.notes = `${update.notes}\n${locAuditNote}`;
     } else {
@@ -4049,6 +4071,8 @@ async function handleLocationAccept(req, res, supabase) {
   const update = {
     status: 'bestaetigt',
     flag_neuer_ort_vorgeschlagen: false,
+    location_proposed_by: null,
+    location_proposed_at: null,
     notes: '',
     updated_at: new Date().toISOString(),
   }
