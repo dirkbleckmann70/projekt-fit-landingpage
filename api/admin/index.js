@@ -1140,6 +1140,7 @@ function mapStatusForFrontend(row) {
   if (status === 'bestaetigt') {
     if (row.flag_neuer_termin_vorgeschlagen) return 'reschedule_proposed';
     if (row.flag_neuer_ort_vorgeschlagen) return 'location_proposed';
+    if (row.flag_ersatz_trainer_gesucht) return 'finding_replacement';
     return 'confirmed';
   }
   if (status === 'laeuft gerade') {
@@ -1174,7 +1175,15 @@ function mapStatusForDb(legacyStatus) {
     case 'pending':
       return { status: 'angefragt' };
     case 'confirmed':
-      return { status: 'bestaetigt', flag_neuer_termin_vorgeschlagen: false, flag_neuer_ort_vorgeschlagen: false };
+      return { status: 'bestaetigt', flag_neuer_termin_vorgeschlagen: false, flag_neuer_ort_vorgeschlagen: false, flag_ersatz_trainer_gesucht: false };
+    // Ersatz-Trainer-Vorgang (ARCHITEKTUR.md Vorgang 6): Status bleibt 'bestaetigt'
+    // + Zusatz-Merkmal flag_ersatz_trainer_gesucht (analog reschedule/location).
+    // Beim 7-Status-Umbau (Teilspec 1) wurde dieses Mapping vergessen → die
+    // Ersatztrainer-Zuweisung im Portal lief in den DB-CHECK-Constraint.
+    case 'finding_replacement':
+    case 'replacement_pending':
+    case 'replacement_found':
+      return { status: 'bestaetigt', flag_ersatz_trainer_gesucht: true };
     case 'reschedule_proposed':
       return { status: 'bestaetigt', flag_neuer_termin_vorgeschlagen: true };
     case 'location_proposed':
