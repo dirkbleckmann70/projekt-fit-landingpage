@@ -96,3 +96,4 @@ blog/                   # Blog (Uebersicht + Artikel)
 - **Variablen-Scope** — Funktionen wie `renderBookingCard()` muessen auf Script-Ebene definierte Variablen zugreifen koennen. Nicht in innere Bloecke packen.
 - **isTerminVorbei()** — Lokales Datum-Parsing: `new Date(y, mo-1, da, h+1, m)`. Nicht `new Date(dateString)` (UTC-Bug).
 - **Trainer-erlaubte API-Endpoints** — `customer_names`, `booking_locations` (GET) + `bookings` (PUT) + `location-accept/reject`, `reschedule-accept/reject` (PUT).
+- **Status-Mapping vollständig halten** — `mapStatusForDb`/`mapStatusForFrontend` (`api/admin/index.js`): jeder Sub-Status braucht expliziten Case; `default:` reicht 1:1 durch → DB-CHECK-Verletzung (nur 7 Kanon-Werte). Bei neuem Sub-Status BEIDE Richtungen + App (`bookingService.ts`) ergänzen. Sub-Status = `bestaetigt` + Flag (reschedule/location/ersatz_trainer). Beleg B-2026-05-30-03.
