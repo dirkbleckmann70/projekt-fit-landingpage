@@ -292,6 +292,11 @@
 
   function renderBookings() {
     let filtered = tableFilter ? tableFilter.apply(allBookings) : allBookings;
+    // Dringende Faelle (laufende Ersatztrainer-Suche) visuell nach oben ziehen —
+    // sonst gehen sie unter den 20 Datensaetzen unter (User-Befund 31.05.).
+    // Stabile Sortierung: nur Ersatz-Faelle hoch, sonst Reihenfolge unveraendert.
+    filtered = filtered.slice().sort((a, b) =>
+      (b.flag_ersatz_trainer_gesucht === true ? 1 : 0) - (a.flag_ersatz_trainer_gesucht === true ? 1 : 0));
 
     const tbody = document.getElementById('bookings-body');
     const tfoot  = document.getElementById('bookings-tfoot');

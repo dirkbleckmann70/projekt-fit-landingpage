@@ -217,6 +217,11 @@ small, .small { font-size: 0.8125rem; }
 .badge-active { background: rgba(74, 222, 128, 0.15); color: #16a34a; }
 .badge-paused { background: rgba(148, 163, 184, 0.15); color: #94a3b8; }
 .badge-blocked { background: rgba(231, 76, 60, 0.15); color: #dc2626; }
+
+/* Ersatztrainer-Badges (Menue-Zaehler, Glocke): weisse Schrift auf farbigem Grund —
+   sonst erbt die Schrift das Pulsly-Gruen und ist auf rot nicht erkennbar (User 31.05.). */
+.badge.bg-red, .badge.bg-orange { color: #fff !important; }
+
 .badge-overdue {
   background: rgba(231, 76, 60, 0.2);
   color: #dc2626;
