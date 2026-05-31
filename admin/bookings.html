@@ -318,7 +318,7 @@
           <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
           <td>${b.trainer_name || '–'}</td>
           <td>${b.customer_name || b.customer_id || '–'}</td>
-          <td>${statusBadge(b.status)}${b.flag_ersatz_trainer_gesucht === true ? ` <span class="badge bg-orange" title="Ersatztrainer wird gesucht" style="margin-left:4px">🔄 Ersatz gesucht</span>` : ''}${isOverdue(b) ? `<span class="badge badge-overdue">${overdueDays(b)}d</span>` : ''}</td>
+          <td>${statusBadge(b.status)}${b.flag_ersatz_trainer_gesucht === true ? ` <span class="badge bg-red" title="Ersatztrainer wird gesucht – Aktion nötig" style="margin-left:6px;border-radius:50%">1</span>` : ''}${isOverdue(b) ? `<span class="badge badge-overdue">${overdueDays(b)}d</span>` : ''}</td>
           <td class="td-amount text-accent">${price > 0 ? formatEuro(price) : '–'}</td>
           <td class="td-amount text-warning">${b.discount_code ? `<span title="${b.discount_code}">-${formatEuro(b.discount_amount_cents || 0)}</span>` : '–'}</td>
           <td class="td-amount text-muted">${cost > 0 ? formatEuro(cost) : '–'}</td>
