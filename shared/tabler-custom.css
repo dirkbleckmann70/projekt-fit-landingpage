@@ -131,7 +131,7 @@ small, .small { font-size: 0.8125rem; }
 .navbar-vertical .nav-link:hover { color: #1e293b; }
 
 .navbar-vertical .navbar-brand { font-weight: 800; font-size: 1.1rem; }
-.navbar-vertical .navbar-brand span { color: var(--tblr-primary); }
+.navbar-vertical .navbar-brand span { color: #0a0a0a; }
 
 /* Inhalts-Bereich linksseitig um Sidebar-Breite einruecken (B-2026-05-28-01).
    Bootstrap-Breakpoint lg (>= 992 px) entspricht dem Punkt, ab dem Tabler die
