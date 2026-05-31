@@ -25,6 +25,15 @@
 
       <h1 class="mb-3" id="welcome">Willkommen!</h1>
 
+      <!-- Vertretung gesucht — Ersatztrainer-Vorgang 6. Versteckt wenn keine Anfragen. -->
+      <div class="card mb-3" id="replacement-card" style="display:none">
+        <div class="card-header">
+          <h3 class="card-title">Vertretung gesucht</h3>
+          <span class="ms-auto badge bg-warning-lt" id="replacement-count" style="display:none"></span>
+        </div>
+        <div id="replacement-list"></div>
+      </div>
+
       <!-- Pending Requests — oben, weil prioritaet -->
       <div class="card mb-3">
         <div class="card-header">
@@ -259,7 +268,82 @@
     } catch (err) {
       console.error('Pending:', err);
     }
+
+    // ─── Vertretung gesucht (Ersatztrainer-Vorgang 6) ─────────────
+    // Eigenes try/catch: darf das Dashboard nicht blockieren, falls der
+    // Endpunkt noch nicht deployed ist.
+    window._replCandidateId = trainerId;
+    await loadReplacementRequests();
   })();
+
+  // Offene Vertretungs-Anfragen des angemeldeten Trainers laden + rendern.
+  async function loadReplacementRequests() {
+    const card = document.getElementById('replacement-card');
+    const list = document.getElementById('replacement-list');
+    const badge = document.getElementById('replacement-count');
+    if (!card || !list) return;
+    try {
+      const { data, error } = await getSupabase().functions.invoke('list-replacement-requests', { body: {} });
+      if (error) throw error;
+      const requests = (data && data.requests) || [];
+      if (requests.length === 0) {
+        card.style.display = 'none';
+        if (badge) badge.style.display = 'none';
+        return;
+      }
+      card.style.display = '';
+      if (badge) {
+        badge.textContent = requests.length + ' offen';
+        badge.style.display = '';
+      }
+      list.innerHTML = '<div class="card-body p-0">' + requests.map(function(req) {
+        return '' +
+          '<div class="p-3 border-bottom" style="border-color:var(--tblr-border-color)!important">' +
+            '<div class="d-flex justify-content-between align-items-start mb-2">' +
+              '<div>' +
+                '<div class="fw-bold">' + (req.location_name || 'Training') + '</div>' +
+                '<div class="text-secondary" style="font-size:13px">' +
+                  '<i class="ti ti-calendar" style="font-size:14px"></i> ' + formatDate(req.date) + ' · ' + formatTime(req.time) + '<br>' +
+                  '<i class="ti ti-map-pin" style="font-size:14px"></i> ' + (req.location_address || req.location_name || '–') +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="d-flex gap-2">' +
+              '<button class="pf-btn pf-btn-primary" onclick="acceptReplacement(this, \'' + req.booking_id + '\')">' +
+                '<i class="ti ti-check me-1"></i>Übernehmen' +
+              '</button>' +
+            '</div>' +
+          '</div>';
+      }).join('') + '</div>';
+    } catch (err) {
+      console.warn('Vertretungs-Anfragen laden fehlgeschlagen:', err && err.message);
+      card.style.display = 'none';
+    }
+  }
+
+  // Eine Vertretung uebernehmen — erste Zusage gewinnt.
+  async function acceptReplacement(btn, bookingId) {
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    var prevHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Übernehmen...';
+    try {
+      const { data, error } = await getSupabase().functions.invoke('replacement-accept', {
+        body: { booking_id: bookingId, candidate_trainer_id: window._replCandidateId },
+      });
+      if (error) throw error;
+      if (data && data.won === true) {
+        showPfToast('Zugesagt', 'Du wurdest dem Kunden vorgeschlagen.', 'success');
+      } else {
+        showPfToast('Schon vergeben', 'Ein Kollege war schneller.', 'warning');
+      }
+      await loadReplacementRequests();
+    } catch (err) {
+      btn.disabled = false;
+      btn.innerHTML = prevHtml;
+      showPfToast('Fehler', 'Übernahme nicht möglich: ' + (err && err.message ? err.message : 'unbekannt'), 'danger');
+    }
+  }
 
   async function updateBooking(bookingId, status) {
     // Alle offenen Modals schliessen

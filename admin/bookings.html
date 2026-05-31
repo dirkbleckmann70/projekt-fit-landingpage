@@ -304,7 +304,7 @@
           <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
           <td>${b.trainer_name || '–'}</td>
           <td>${b.customer_name || b.customer_id || '–'}</td>
-          <td>${statusBadge(b.status)}${isOverdue(b) ? `<span class="badge badge-overdue">${overdueDays(b)}d</span>` : ''}</td>
+          <td>${statusBadge(b.status)}${(b.flag_ersatz_trainer_gesucht === true && b.status !== 'finding_replacement') ? ` <span title="Ersatztrainer wird gesucht">${DESIGN.badge('finding_replacement')}</span>` : ''}${isOverdue(b) ? `<span class="badge badge-overdue">${overdueDays(b)}d</span>` : ''}</td>
           <td class="td-amount text-accent">${price > 0 ? formatEuro(price) : '–'}</td>
           <td class="td-amount text-warning">${b.discount_code ? `<span title="${b.discount_code}">-${formatEuro(b.discount_amount_cents || 0)}</span>` : '–'}</td>
           <td class="td-amount text-muted">${cost > 0 ? formatEuro(cost) : '–'}</td>

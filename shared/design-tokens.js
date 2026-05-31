@@ -36,6 +36,7 @@
     awaiting_checkout:    { bg: '#fff7ed', text: '#ea580c', label: 'Checkout offen' },
     rejected:             { bg: '#fef2f2', text: '#dc2626', label: 'Abgelehnt' },
     cancelled_by_trainer: { bg: '#fef2f2', text: '#dc2626', label: 'Trainer-Absage' },
+    finding_replacement:  { bg: '#fffbeb', text: '#b45309', label: 'Ersatz gesucht' },
   };
 
   /**
