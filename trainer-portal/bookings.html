@@ -56,6 +56,16 @@
 
       <div id="alert-box" class="alert d-none"></div>
 
+      <!-- Ersatztrainer Vorgang 6: eingehende Vertretungs-Anfragen (fremde Buchungen),
+           ganz oben weil dringend. Versteckt wenn keine offen. -->
+      <div class="card mb-3" id="bk-replacement-card" style="display:none;border:1px solid rgba(244,169,64,0.45)">
+        <div class="card-header" style="background:rgba(244,169,64,0.08)">
+          <h3 class="card-title"><i class="ti ti-arrows-exchange me-1"></i>Vertretung gesucht</h3>
+          <span class="ms-auto badge bg-orange" id="bk-replacement-count" style="display:none"></span>
+        </div>
+        <div id="bk-replacement-list"></div>
+      </div>
+
       <div id="bk-tfoot" style="display:none;text-align:right;font-size:14px" class="text-secondary mb-2">
         Gesamt (best. + erl.): <strong id="bk-sum-value" class="text-primary">--</strong>
       </div>
@@ -417,6 +427,8 @@
     tableFilter.onFilterChange(() => renderBookings());
 
     await loadBookings();
+    window._bkReplCandidateId = window.currentTrainer.id;
+    await loadReplacementRequests();
 
     const sb = getSupabase();
     sb.channel('bookings-realtime')
@@ -529,6 +541,55 @@
       }
       return sum;
     }, 0);
+  }
+
+  // Ersatztrainer Vorgang 6: offene Vertretungs-Anfragen an diesen Trainer laden +
+  // ganz oben anzeigen (fremde Buchungen, kommen ueber list-replacement-requests).
+  async function loadReplacementRequests() {
+    const card = document.getElementById('bk-replacement-card');
+    const list = document.getElementById('bk-replacement-list');
+    const badge = document.getElementById('bk-replacement-count');
+    if (!card || !list) return;
+    try {
+      const r = await getSupabase().functions.invoke('list-replacement-requests', { body: {} });
+      if (r.error) throw r.error;
+      const requests = (r.data && r.data.requests) || [];
+      if (requests.length === 0) { card.style.display = 'none'; if (badge) badge.style.display = 'none'; return; }
+      card.style.display = '';
+      if (badge) { badge.textContent = requests.length + ' offen'; badge.style.display = ''; }
+      const fmt = (d) => (typeof formatDate === 'function' ? formatDate(d) : d);
+      list.innerHTML = '<div class="card-body p-0">' + requests.map(function (req) {
+        return '<div class="p-3 border-bottom" style="border-color:var(--tblr-border-color)!important">' +
+            '<div class="mb-2"><div class="fw-bold">' + (req.location_name || 'Training') + '</div>' +
+              '<div class="text-secondary" style="font-size:13px">' +
+                '<i class="ti ti-calendar"></i> ' + fmt(req.date) + ' · ' + (req.time ? String(req.time).slice(0, 5) : '') + ' Uhr<br>' +
+                '<i class="ti ti-map-pin"></i> ' + (req.location_address || req.location_name || '–') +
+              '</div></div>' +
+            '<button class="pf-btn pf-btn-primary" onclick="acceptReplacement(this, \'' + req.booking_id + '\')"><i class="ti ti-check me-1"></i>Übernehmen</button>' +
+          '</div>';
+      }).join('') + '</div>';
+    } catch (err) {
+      console.warn('Vertretungs-Anfragen laden:', err && err.message);
+      card.style.display = 'none';
+    }
+  }
+
+  async function acceptReplacement(btn, bookingId) {
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    var prev = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Übernehmen...';
+    try {
+      const r = await getSupabase().functions.invoke('replacement-accept', { body: { booking_id: bookingId, candidate_trainer_id: window._bkReplCandidateId } });
+      if (r.error) throw r.error;
+      if (r.data && r.data.won === true) showPfToast('Zugesagt', 'Du wurdest dem Kunden vorgeschlagen. Sobald er bestätigt, gehört der Termin dir.', 'success');
+      else showPfToast('Schon vergeben', 'Ein Kollege war schneller.', 'warning');
+      await loadReplacementRequests();
+      if (window.pfLoadTrainerBookingsBadge) window.pfLoadTrainerBookingsBadge();
+    } catch (err) {
+      btn.disabled = false; btn.innerHTML = prev;
+      showPfToast('Fehler', 'Übernahme nicht möglich: ' + (err && err.message ? err.message : 'unbekannt'), 'danger');
+    }
   }
 
   function renderBookings() {
