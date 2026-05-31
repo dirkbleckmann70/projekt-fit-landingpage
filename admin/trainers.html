@@ -112,10 +112,8 @@
               <input class="pf-field" id="new-wohnort">
             </div>
             <div class="form-group pf-form-full">
-              <label class="form-label">Einsatzort *</label>
-              <select class="pf-field" id="new-city" required>
-                <option value="">Einsatzort wählen...</option>
-              </select>
+              <label class="form-label">Einsatzorte * <span class="text-muted" style="font-weight:400">(mehrere mit Strg/Cmd)</span></label>
+              <select class="pf-field" id="new-city" multiple size="4" required></select>
             </div>
 
             <div class="pf-form-divider">Profil</div>
@@ -213,7 +211,7 @@
       const citySel = document.getElementById('new-city');
       serviceLocations.forEach(l => {
         const opt = document.createElement('option');
-        opt.value = l.city;
+        opt.value = l.id;           // Mehr-Städte: Wert = city_id (für trainer_set_cities)
         opt.textContent = l.city;
         citySel.appendChild(opt);
       });
@@ -420,10 +418,14 @@
           <input class="pf-field" id="edit-wohnort" value="${t.wohnort || ''}">
         </div>
         <div class="form-group pf-form-full">
-          <label class="form-label">Einsatzort</label>
-          <select class="pf-field" id="edit-city">
-            <option value="">Einsatzort wählen...</option>
-            ${serviceLocations.map(l => `<option value="${l.city}" ${t.city === l.city ? 'selected' : ''}>${l.city}</option>`).join('')}
+          <label class="form-label">Einsatzorte <span class="text-muted" style="font-weight:400">(mehrere mit Strg/Cmd)</span></label>
+          <select class="pf-field" id="edit-city" multiple size="4">
+            ${serviceLocations.map(l => {
+              const sel = (Array.isArray(t.city_ids) && t.city_ids.length)
+                ? t.city_ids.includes(l.id)        // neue Mehr-Städte-Zuordnung
+                : (t.city === l.city);             // Fallback: altes Einzelfeld
+              return `<option value="${l.id}" ${sel ? 'selected' : ''}>${l.city}</option>`;
+            }).join('')}
           </select>
         </div>
 
@@ -894,6 +896,13 @@
   async function saveTrainer() {
     if (!editingTrainerId) return;
 
+    // Mehr-Städte: mindestens eine Stadt Pflicht.
+    const editCityIds = [...document.getElementById('edit-city').selectedOptions].map(o => o.value);
+    if (editCityIds.length === 0) {
+      showPfToast('Einsatzort fehlt', 'Bitte mindestens eine Stadt auswählen.', 'warning');
+      return;
+    }
+
     const btn = document.getElementById('modal-save-btn');
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div> Speichern...';
@@ -906,7 +915,7 @@
       street_address: document.getElementById('edit-street').value.trim() || null,
       postal_code: document.getElementById('edit-postal').value.trim() || null,
       wohnort: document.getElementById('edit-wohnort').value.trim() || null,
-      city: document.getElementById('edit-city').value.trim(),
+      city_ids: editCityIds,   // Mehr-Städte: atomar via trainer_set_cities; city wird serverseitig = erste Stadt
       specializations: document.getElementById('edit-specializations').value.trim() || null,
       bio: document.getElementById('edit-bio').value.trim() || null,
       steuernummer: document.getElementById('edit-steuernummer').value.trim() || null,
@@ -1077,10 +1086,10 @@
     const firstname = document.getElementById('new-firstname').value.trim();
     const lastname = document.getElementById('new-lastname').value.trim();
     const email = document.getElementById('new-email').value.trim();
-    const city = document.getElementById('new-city').value.trim();
+    const cityIds = [...document.getElementById('new-city').selectedOptions].map(o => o.value);
 
-    if (!firstname || !lastname || !email || !city) {
-      alert('Vorname, Nachname, E-Mail und Einsatzort sind Pflichtfelder.');
+    if (!firstname || !lastname || !email || cityIds.length === 0) {
+      alert('Vorname, Nachname, E-Mail und mindestens ein Einsatzort sind Pflichtfelder.');
       return;
     }
 
@@ -1091,7 +1100,7 @@
           full_name: firstname + ' ' + lastname,
           email: email,
           phone: document.getElementById('new-phone').value.trim() || null,
-          city: city,
+          city_ids: cityIds,   // Mehr-Städte: city wird serverseitig = erste Stadt
           street_address: document.getElementById('new-street').value.trim() || null,
           postal_code: document.getElementById('new-postal').value.trim() || null,
           wohnort: document.getElementById('new-wohnort').value.trim() || null,

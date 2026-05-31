@@ -1592,6 +1592,31 @@ async function handleData(req, res, supabase) {
         });
       }
 
+      // Mehr-Städte-Zuweisung (31.05.): zugewiesene Städte je Trainer anhängen.
+      // Additiv — `t.city` (Einzelfeld) bleibt unverändert als Fallback.
+      try {
+        const [{ data: junction }, { data: serviceCities }] = await Promise.all([
+          supabase.from('trainer_service_cities').select('trainer_id, city_id'),
+          supabase.from('service_locations').select('id, city'),
+        ]);
+        const cityName = {};
+        (serviceCities || []).forEach(c => { cityName[c.id] = c.city; });
+        const byTrainer = {};
+        (junction || []).forEach(r => {
+          if (!byTrainer[r.trainer_id]) byTrainer[r.trainer_id] = [];
+          byTrainer[r.trainer_id].push({ city_id: r.city_id, city: cityName[r.city_id] });
+        });
+        (data || []).forEach(t => {
+          const list = byTrainer[t.id] || [];
+          // Fallback: noch keine Junction-Zuordnung → Einzelfeld city.
+          t.cities = list.length ? list : (t.city ? [{ city_id: null, city: t.city }] : []);
+          t.city_ids = list.map(c => c.city_id);
+        });
+      } catch (e) {
+        // Junction nicht verfügbar → Frontend nutzt t.city (Fallback)
+        console.error('all_trainers cities-Anreicherung fehlgeschlagen:', e?.message || e);
+      }
+
       return res.json({ data });
     }
 
@@ -2205,17 +2230,26 @@ async function handleData(req, res, supabase) {
 
 async function handleTrainersPost(req, res, supabase) {
   const body = await getBody(req);
-  const { full_name, email, phone, city, street_address, postal_code, wohnort, specializations, bio, steuernummer, is_kleinunternehmer, hourly_rate_cents, payout_cents, status } = body;
+  const { full_name, email, phone, city, street_address, postal_code, wohnort, specializations, bio, steuernummer, is_kleinunternehmer, hourly_rate_cents, payout_cents, status, city_ids } = body;
 
-  if (!full_name || !email || !city) {
-    return res.status(400).json({ error: 'Name, E-Mail und Einsatzort sind Pflichtfelder' });
+  const hasCityIds = Array.isArray(city_ids) && city_ids.length > 0;
+
+  // Stadtname fürs Übergangsfeld: aus city ODER aus der ersten gewählten Stadt.
+  let cityName = city;
+  if (!cityName && hasCityIds) {
+    const { data: sl } = await supabase.from('service_locations').select('city').eq('id', city_ids[0]).single();
+    cityName = sl?.city || null;
+  }
+
+  if (!full_name || !email || !cityName) {
+    return res.status(400).json({ error: 'Name, E-Mail und mindestens eine Stadt sind Pflichtfelder' });
   }
 
   const { data, error } = await supabase.from('trainer_profiles').insert({
     full_name,
     email: email.trim().toLowerCase(),
     phone: phone || null,
-    city,
+    city: cityName,
     street_address: street_address || null,
     postal_code: postal_code || null,
     wohnort: wohnort || null,
@@ -2230,14 +2264,31 @@ async function handleTrainersPost(req, res, supabase) {
   }).select();
 
   if (error) throw error;
+
+  // K3: bei Mehrfach-Auswahl die Städte atomar über die RPC setzen.
+  const newId = data?.[0]?.id;
+  if (newId && hasCityIds) {
+    const { error: rpcErr } = await supabase.rpc('trainer_set_cities', {
+      p_trainer_id: newId,
+      p_city_ids: city_ids,
+    });
+    if (rpcErr) throw rpcErr;
+  }
+
   return res.json({ success: true, data: data?.[0] });
 }
 
 async function handleTrainersPut(req, res, supabase) {
   const body = await getBody(req);
-  const { trainerId, ...fields } = body;
+  // K7: city_ids gehört NICHT in die trainer_profiles-Allow-List (eigene Junction).
+  const { trainerId, city_ids, ...fields } = body;
 
   if (!trainerId) return res.status(400).json({ error: 'trainerId ist erforderlich' });
+
+  const hasCityIds = Array.isArray(city_ids);
+  if (hasCityIds && city_ids.length === 0) {
+    return res.status(400).json({ error: 'Mindestens eine Stadt ist erforderlich' });
+  }
 
   const allowed = [
     'full_name', 'email', 'phone', 'city', 'specializations', 'bio',
@@ -2249,13 +2300,29 @@ async function handleTrainersPut(req, res, supabase) {
   for (const key of allowed) {
     if (key in fields) update[key] = fields[key];
   }
+  // Wenn Städte über city_ids kommen, besitzt die RPC das city-Feld (erste Stadt).
+  if (hasCityIds) delete update.city;
 
-  if (Object.keys(update).length === 0) {
+  // Feld-Update (falls vorhanden) — K4: .select() gegen RLS-Silent-Fail.
+  if (Object.keys(update).length > 0) {
+    const { data, error } = await supabase.from('trainer_profiles').update(update).eq('id', trainerId).select();
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Trainer nicht gefunden oder nicht aktualisierbar (RLS?)' });
+    }
+  } else if (!hasCityIds) {
     return res.status(400).json({ error: 'Keine aktualisierbaren Felder angegeben' });
   }
 
-  const { error } = await supabase.from('trainer_profiles').update(update).eq('id', trainerId);
-  if (error) throw error;
+  // K3: Städte atomar über die RPC setzen (DELETE+INSERT+city-Übergang in einer Transaktion).
+  if (hasCityIds) {
+    const { error: rpcErr } = await supabase.rpc('trainer_set_cities', {
+      p_trainer_id: trainerId,
+      p_city_ids: city_ids,
+    });
+    if (rpcErr) throw rpcErr;
+  }
+
   return res.json({ success: true });
 }
 

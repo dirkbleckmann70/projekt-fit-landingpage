@@ -134,11 +134,13 @@
     var citySel = document.getElementById('city-filter');
     var cities = new Set();
     trainers.forEach(function(t) {
+      // Mehr-Städte: alle zugewiesenen Städte (Fallback Einzelfeld city).
+      var names = (t.cities && t.cities.length) ? t.cities.map(function(c){ return c.city; }) : (t.city ? [t.city] : []);
       var opt = document.createElement('option');
       opt.value = t.id;
-      opt.textContent = t.full_name + (t.city ? ' (' + t.city + ')' : '');
+      opt.textContent = t.full_name + (names.length ? ' (' + names.join(', ') + ')' : '');
       sel.appendChild(opt);
-      if (t.city) cities.add(t.city);
+      names.forEach(function(n){ if (n) cities.add(n); });
     });
     Array.from(cities).sort().forEach(function(c) {
       var opt = document.createElement('option');
@@ -158,7 +160,10 @@
 
       // Build trainer ID list (filter by city if set)
       var trainerIds = trainers.map(function(t) { return t.id; });
-      if (city) trainerIds = trainers.filter(function(t) { return t.city === city; }).map(function(t) { return t.id; });
+      if (city) trainerIds = trainers.filter(function(t) {
+        // Mehr-Städte: Trainer matcht, wenn die Stadt in seinen Einsatzorten liegt (Fallback Einzelfeld).
+        return (t.cities && t.cities.length) ? t.cities.some(function(c){ return c.city === city; }) : (t.city === city);
+      }).map(function(t) { return t.id; });
       if (trainerId) trainerIds = [trainerId];
       if (trainerIds.length === 0) { success([]); return; }
 
@@ -385,11 +390,14 @@
     var city = document.getElementById('city-filter').value;
     var tSel = document.getElementById('trainer-filter');
     tSel.innerHTML = '<option value="">Alle Trainer</option>';
-    var filtered = city ? trainers.filter(function(t) { return t.city === city; }) : trainers;
+    var filtered = city ? trainers.filter(function(t) {
+      return (t.cities && t.cities.length) ? t.cities.some(function(c){ return c.city === city; }) : (t.city === city);
+    }) : trainers;
     filtered.forEach(function(t) {
+      var names = (t.cities && t.cities.length) ? t.cities.map(function(c){ return c.city; }) : (t.city ? [t.city] : []);
       var opt = document.createElement('option');
       opt.value = t.id;
-      opt.textContent = t.full_name + (t.city ? ' (' + t.city + ')' : '');
+      opt.textContent = t.full_name + (names.length ? ' (' + names.join(', ') + ')' : '');
       tSel.appendChild(opt);
     });
     calendar.refetchEvents();
