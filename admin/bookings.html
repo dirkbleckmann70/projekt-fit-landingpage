@@ -303,12 +303,17 @@
   }
 
   function renderBookings() {
-    let filtered = tableFilter ? tableFilter.apply(allBookings) : allBookings;
+    const filtered = tableFilter ? tableFilter.apply(allBookings) : allBookings;
     // Dringende Faelle (laufende Ersatztrainer-Suche) visuell nach oben ziehen —
     // sonst gehen sie unter den 20 Datensaetzen unter (User-Befund 31.05.).
-    // Stabile Sortierung: nur Ersatz-Faelle hoch, sonst Reihenfolge unveraendert.
-    filtered = filtered.slice().sort((a, b) =>
-      (b.flag_ersatz_trainer_gesucht === true ? 1 : 0) - (a.flag_ersatz_trainer_gesucht === true ? 1 : 0));
+    // WICHTIG (B-2026-05-31-06): `data-row-index` MUSS der Index im apply()-Ergebnis
+    // bleiben — table-utils schlaegt den Zeilen-Klick ueber _lastResult[data-row-index]
+    // nach. Wuerde man (wie zuvor) nach dem Umsortieren neu indizieren, oeffnet ein
+    // Klick auf einen hochgezogenen Ersatz-Fall die FALSCHE Buchung. Daher nur die
+    // ANZEIGE umsortieren, den gemerkten Index aber an der richtigen Buchung lassen.
+    const displayOrder = filtered.map((b, i) => ({ b, i }))
+      .sort((x, y) =>
+        (y.b.flag_ersatz_trainer_gesucht === true ? 1 : 0) - (x.b.flag_ersatz_trainer_gesucht === true ? 1 : 0));
 
     const tbody = document.getElementById('bookings-body');
     const tfoot  = document.getElementById('bookings-tfoot');
@@ -319,11 +324,11 @@
       return;
     }
 
-    tbody.innerHTML = filtered.map((b, idx) => {
+    tbody.innerHTML = displayOrder.map(({ b, i }) => {
       const price = effectivePrice(b);
       const cost  = effectiveCost(b);
       return `
-        <tr class="${isOverdue(b) ? 'row-overdue' : ''}" data-row-index="${idx}">
+        <tr class="${isOverdue(b) ? 'row-overdue' : ''}" data-row-index="${i}">
           <td>${ersatzDotUnseen(b) ? `<span class="badge bg-red" title="Ersatztrainer wird gesucht – Aktion nötig" style="border-radius:50%;margin-right:6px">1</span>` : ''}${formatDate(b.scheduled_date)}</td>
           <td>${b.trainer_city || b.city || '–'}</td>
           <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
