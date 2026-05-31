@@ -556,17 +556,17 @@
     const countEl = document.getElementById('tab-aktuell-count');
     const fmt = (d) => (typeof formatDate === 'function' ? formatDate(d) : d);
     const cards = reqs.map(function (req) {
-      return '<div class="card mb-2" style="border-left:3px solid var(--tblr-danger)">' +
+      return '<div class="card mb-2" style="max-width:50%;border-left:3px solid var(--tblr-danger)">' +
           '<div class="card-body">' +
-            '<div class="d-flex justify-content-between align-items-start">' +
+            '<div class="d-flex align-items-start gap-2 mb-2">' +
+              '<span class="badge bg-red" style="border-radius:50%" title="Neue Vertretungs-Anfrage – Aktion nötig">1</span>' +
               '<div><div class="fw-bold">Vertretung: ' + (req.location_name || 'Training') + '</div>' +
                 '<div class="text-secondary" style="font-size:13px">' +
                   '<i class="ti ti-calendar"></i> ' + fmt(req.date) + ' · ' + (req.time ? String(req.time).slice(0, 5) : '') + ' Uhr · ' +
                   '<i class="ti ti-map-pin"></i> ' + (req.location_address || req.location_name || '–') +
                 '</div></div>' +
-              '<span class="badge bg-red" style="border-radius:50%" title="Neue Vertretungs-Anfrage – Aktion nötig">1</span>' +
             '</div>' +
-            '<div class="mt-2"><button class="pf-btn pf-btn-primary" onclick="acceptReplacement(this, \'' + req.booking_id + '\')"><i class="ti ti-check me-1"></i>Übernehmen</button></div>' +
+            '<div class="d-flex gap-2 flex-wrap"><button class="pf-btn pf-btn-primary" onclick="acceptReplacement(this, \'' + req.booking_id + '\')"><i class="ti ti-check me-1"></i>Übernehmen</button></div>' +
           '</div></div>';
     }).join('');
     // „Keine aktuellen Buchungen"-Platzhalter entfernen, falls vorhanden.
