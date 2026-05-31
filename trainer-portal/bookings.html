@@ -555,24 +555,82 @@
     if (!container || reqs.length === 0) return;
     const countEl = document.getElementById('tab-aktuell-count');
     const fmt = (d) => (typeof formatDate === 'function' ? formatDate(d) : d);
+    // Roter „1"-Punkt = reine Nachrichten-Info (WhatsApp-Stil): nur solange die
+    // Anfrage auf diesem Geraet noch NICHT geoeffnet wurde. Die Karte selbst bleibt
+    // immer (Trainer muss ja noch „Übernehmen" koennen) — nur der Punkt verschwindet.
+    var unseenCount = 0;
     const cards = reqs.map(function (req) {
+      var unseen = !(window.pfBadgeSeen && window.pfBadgeSeen.isSeen('trainer-ersatz', req.request_id));
+      if (unseen) unseenCount++;
+      var dot = unseen
+        ? '<span class="badge bg-red" style="border-radius:50%" title="Neue Vertretungs-Anfrage – Aktion nötig">1</span>'
+        : '';
       return '<div class="card mb-2" style="max-width:50%;border-left:3px solid var(--tblr-danger)">' +
           '<div class="card-body">' +
             '<div class="d-flex align-items-start gap-2 mb-2">' +
-              '<span class="badge bg-red" style="border-radius:50%" title="Neue Vertretungs-Anfrage – Aktion nötig">1</span>' +
+              dot +
               '<div><div class="fw-bold">Vertretung: ' + (req.location_name || 'Training') + '</div>' +
                 '<div class="text-secondary" style="font-size:13px">' +
                   '<i class="ti ti-calendar"></i> ' + fmt(req.date) + ' · ' + (req.time ? String(req.time).slice(0, 5) : '') + ' Uhr · ' +
                   '<i class="ti ti-map-pin"></i> ' + (req.location_address || req.location_name || '–') +
                 '</div></div>' +
             '</div>' +
-            '<div class="d-flex gap-2 flex-wrap"><button class="pf-btn pf-btn-primary" onclick="acceptReplacement(this, \'' + req.booking_id + '\')"><i class="ti ti-check me-1"></i>Übernehmen</button></div>' +
+            '<div class="d-flex gap-2 flex-wrap">' +
+              '<button class="pf-btn pf-btn-neutral" onclick="showReplacementDetail(\'' + req.booking_id + '\')"><i class="ti ti-eye me-1"></i>Details</button>' +
+              '<button class="pf-btn pf-btn-primary" onclick="acceptReplacement(this, \'' + req.booking_id + '\')"><i class="ti ti-check me-1"></i>Übernehmen</button>' +
+            '</div>' +
           '</div></div>';
     }).join('');
     // „Keine aktuellen Buchungen"-Platzhalter entfernen, falls vorhanden.
     if (container.children.length === 1 && container.textContent.indexOf('Keine aktuellen') !== -1) container.innerHTML = '';
     container.insertAdjacentHTML('afterbegin', cards);
-    if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + reqs.length;
+    if (countEl) countEl.textContent = (parseInt(countEl.textContent, 10) || 0) + unseenCount;
+  }
+
+  // Weg A: Detailfenster zur Vertretung VOR der Zusage — nur Eckdaten zum Entscheiden
+  // (Datum, Uhrzeit, Treffpunkt + Adresse, Vergütung). KEINE Kundendaten — die sieht
+  // der Trainer erst, wenn er übernommen hat und der Kunde bestätigt (dann normale
+  // Buchung in seiner Liste). Markiert die Anfrage zugleich als gesehen.
+  function showReplacementDetail(bookingId) {
+    const reqs = window._bkReplReqs || [];
+    const req = reqs.find(function (r) { return r.booking_id === bookingId; });
+    if (!req) return;
+    const fmt = (d) => (typeof formatDate === 'function' ? formatDate(d) : d);
+    const payout = (req.trainer_payout_cents != null)
+      ? req.trainer_payout_cents
+      : (window.currentTrainer && window.currentTrainer.payout_cents);
+    const payoutStr = (payout != null) ? formatEuro(payout) : '–';
+
+    document.getElementById('detail-modal-body').innerHTML = `
+      <div class="alert alert-info mb-3" style="font-size:13px">
+        <i class="ti ti-info-circle me-1"></i>Vertretungs-Anfrage. Die Kundendaten siehst du, sobald du übernimmst und der Kunde bestätigt.
+      </div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Art</label><div>Personal Training</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Vergütung</label><div style="color:var(--tblr-primary);font-weight:700">${payoutStr}</div></div>
+      </div>
+      <div class="row mb-3">
+        <div class="col-6"><label class="form-label text-secondary">Datum</label><div>${req.date ? fmt(req.date) : '–'}</div></div>
+        <div class="col-6"><label class="form-label text-secondary">Uhrzeit</label><div>${req.time ? String(req.time).slice(0,5) : '–'} Uhr</div></div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label text-secondary">Treffpunkt</label>
+        <div><strong>${req.location_name || '–'}</strong>${req.location_address ? '<br><span class="text-secondary" style="font-size:13px">' + req.location_address + '</span>' : ''}</div>
+      </div>
+    `;
+    document.getElementById('detail-modal-footer').innerHTML =
+      `<button class="pf-btn pf-btn-primary" onclick="acceptReplacementFromDetail(this, '${req.booking_id}')"><i class="ti ti-check"></i> Übernehmen</button>` +
+      `<button class="pf-btn pf-btn-neutral" data-bs-dismiss="modal">Schliessen</button>`;
+
+    // WhatsApp-Stil: geoeffnet = gesehen. Punkt an Karte + Menue-Zaehler auffrischen.
+    if (window.pfBadgeSeen) {
+      window.pfBadgeSeen.markSeen('trainer-ersatz', req.request_id);
+      renderBookings();
+      if (window.pfLoadTrainerBookingsBadge) window.pfLoadTrainerBookingsBadge();
+    }
+
+    if (!_detailModal) _detailModal = new bootstrap.Modal(document.getElementById('detail-modal'));
+    _detailModal.show();
   }
 
   async function acceptReplacement(btn, bookingId) {
@@ -587,9 +645,21 @@
       else showPfToast('Schon vergeben', 'Ein Kollege war schneller.', 'warning');
       await loadReplacementRequests();
       if (window.pfLoadTrainerBookingsBadge) window.pfLoadTrainerBookingsBadge();
+      return true;
     } catch (err) {
       btn.disabled = false; btn.innerHTML = prev;
       showPfToast('Fehler', 'Übernahme nicht möglich: ' + (err && err.message ? err.message : 'unbekannt'), 'danger');
+      return false;
+    }
+  }
+
+  // Übernehmen aus dem Detailfenster: Knopf bleibt sichtbar (Spinner), Modal wird
+  // erst bei Erfolg geschlossen — bei Fehler bleibt es offen mit Hinweis-Toast.
+  async function acceptReplacementFromDetail(btn, bookingId) {
+    const ok = await acceptReplacement(btn, bookingId);
+    if (ok) {
+      var m = bootstrap.Modal.getInstance(document.getElementById('detail-modal'));
+      if (m) m.hide();
     }
   }
 

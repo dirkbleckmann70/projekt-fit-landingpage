@@ -229,22 +229,56 @@ window.pfSetBookingsBadge = function pfSetBookingsBadge(count) {
   });
 };
 
-// Admin: zaehlt Buchungen mit laufender Ersatz-Suche.
+// "Gesehen"-Merker fuer die roten Nachrichten-Punkte (WhatsApp-Stil): reinklicken
+// -> Punkt weg, bleibt auch nach Neuladen weg. LOKAL pro Geraet/Browser. Beeinflusst
+// AUSSCHLIESSLICH die Anzeige des Punkts/Zaehlers — NICHT den echten Buchungs-Zustand
+// (flag_ersatz_trainer_gesucht bleibt unveraendert, Sortierung/Zuweisung unberuehrt).
+// Schluessel: 'admin-ersatz' (booking_id|search_started_at) bzw. 'trainer-ersatz'
+// (request_id). Neue Ersatz-Suche => neuer Schluessel => Punkt erscheint wieder.
+window.pfBadgeSeen = {
+  _key: function (ns) { return 'pf-seen-' + ns; },
+  _load: function (ns) {
+    try { return JSON.parse(localStorage.getItem(this._key(ns)) || '[]'); }
+    catch (e) { return []; }
+  },
+  isSeen: function (ns, id) {
+    if (!id && id !== 0) return false;
+    return this._load(ns).indexOf(String(id)) !== -1;
+  },
+  markSeen: function (ns, id) {
+    if (!id && id !== 0) return;
+    var arr = this._load(ns);
+    if (arr.indexOf(String(id)) === -1) {
+      arr.push(String(id));
+      if (arr.length > 200) arr = arr.slice(arr.length - 200); // Wachstum begrenzen
+      try { localStorage.setItem(this._key(ns), JSON.stringify(arr)); } catch (e) {}
+    }
+  }
+};
+
+// Admin: zaehlt Buchungen mit laufender Ersatz-Suche, die noch NICHT gesehen wurden.
 window.pfLoadAdminBookingsBadge = async function pfLoadAdminBookingsBadge() {
   try {
     if (typeof adminApi !== 'function') return;
     var res = await adminApi('/api/admin?action=data&type=all_bookings');
-    var n = (res.data || []).filter(function (b) { return b.flag_ersatz_trainer_gesucht === true; }).length;
+    var n = (res.data || []).filter(function (b) {
+      return b.flag_ersatz_trainer_gesucht === true &&
+        !window.pfBadgeSeen.isSeen('admin-ersatz', b.id + '|' + (b.replacement_search_started_at || ''));
+    }).length;
     window.pfSetBookingsBadge(n);
   } catch (e) { /* still */ }
 };
 
-// Trainer: zaehlt offene Vertretungs-Anfragen an den angemeldeten Trainer.
+// Trainer: zaehlt offene Vertretungs-Anfragen an den angemeldeten Trainer, die noch
+// NICHT gesehen wurden.
 window.pfLoadTrainerBookingsBadge = async function pfLoadTrainerBookingsBadge() {
   try {
     if (typeof getSupabase !== 'function') return;
     var r = await getSupabase().functions.invoke('list-replacement-requests', { body: {} });
     var reqs = (r && r.data && r.data.requests) ? r.data.requests : [];
-    window.pfSetBookingsBadge(reqs.length);
+    var n = reqs.filter(function (req) {
+      return !window.pfBadgeSeen.isSeen('trainer-ersatz', req.request_id);
+    }).length;
+    window.pfSetBookingsBadge(n);
   } catch (e) { /* Endpunkt evtl. noch nicht live */ }
 };

@@ -180,8 +180,20 @@
   // Ersatztrainer Vorgang 6: Menue-Zaehler (Sidebar „Buchungen" + Header-Glocke)
   // aus den frisch geladenen Buchungen setzen — nutzt die zentrale Funktion in
   // layout.js (setzt Sidebar-Badge + Glocke einheitlich).
+  // Roter Nachrichten-Punkt: nur fuer Ersatz-Suchen, die der Admin auf diesem
+  // Geraet noch NICHT geoeffnet hat (WhatsApp-Stil). Der echte Zustand
+  // flag_ersatz_trainer_gesucht bleibt davon unberuehrt.
+  function ersatzSeenKey(b) {
+    return b.id + '|' + (b.replacement_search_started_at || '');
+  }
+  function ersatzDotUnseen(b) {
+    if (b.flag_ersatz_trainer_gesucht !== true) return false;
+    if (window.pfBadgeSeen && window.pfBadgeSeen.isSeen('admin-ersatz', ersatzSeenKey(b))) return false;
+    return true;
+  }
+
   function updateErsatzBadge() {
-    const n = allBookings.filter(b => b.flag_ersatz_trainer_gesucht === true).length;
+    const n = allBookings.filter(b => ersatzDotUnseen(b)).length;
     if (window.pfSetBookingsBadge) window.pfSetBookingsBadge(n);
   }
 
@@ -312,7 +324,7 @@
       const cost  = effectiveCost(b);
       return `
         <tr class="${isOverdue(b) ? 'row-overdue' : ''}" data-row-index="${idx}">
-          <td>${b.flag_ersatz_trainer_gesucht === true ? `<span class="badge bg-red" title="Ersatztrainer wird gesucht – Aktion nötig" style="border-radius:50%;margin-right:6px">1</span>` : ''}${formatDate(b.scheduled_date)}</td>
+          <td>${ersatzDotUnseen(b) ? `<span class="badge bg-red" title="Ersatztrainer wird gesucht – Aktion nötig" style="border-radius:50%;margin-right:6px">1</span>` : ''}${formatDate(b.scheduled_date)}</td>
           <td>${b.trainer_city || b.city || '–'}</td>
           <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
           <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
@@ -429,6 +441,14 @@
     const b = allBookings.find(x => x.id === id);
     if (!b) return;
     editingBookingId = id;
+
+    // WhatsApp-Stil: Eintrag geoeffnet -> roter Nachrichten-Punkt als gesehen
+    // markieren (lokal). Zeile + Menue-Zaehler + Glocke sofort auffrischen.
+    if (b.flag_ersatz_trainer_gesucht === true && window.pfBadgeSeen) {
+      window.pfBadgeSeen.markSeen('admin-ersatz', ersatzSeenKey(b));
+      renderBookings();
+      updateErsatzBadge();
+    }
 
     document.getElementById('modal-body').innerHTML = `
       <form id="booking-detail-form">
