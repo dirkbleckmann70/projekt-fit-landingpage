@@ -311,9 +311,12 @@
     // nach. Wuerde man (wie zuvor) nach dem Umsortieren neu indizieren, oeffnet ein
     // Klick auf einen hochgezogenen Ersatz-Fall die FALSCHE Buchung. Daher nur die
     // ANZEIGE umsortieren, den gemerkten Index aber an der richtigen Buchung lassen.
+    // Hochgezogen werden NUR noch UNGESEHENE Ersatz-Faelle (roter Punkt) — wie eine
+    // ungelesene Nachricht. Sobald der Admin reingeschaut hat (gesehen), faellt die
+    // Buchung in die normale Sortierung zurueck und laesst sich frei einsortieren.
     const displayOrder = filtered.map((b, i) => ({ b, i }))
       .sort((x, y) =>
-        (y.b.flag_ersatz_trainer_gesucht === true ? 1 : 0) - (x.b.flag_ersatz_trainer_gesucht === true ? 1 : 0));
+        (ersatzDotUnseen(y.b) ? 1 : 0) - (ersatzDotUnseen(x.b) ? 1 : 0));
 
     const tbody = document.getElementById('bookings-body');
     const tfoot  = document.getElementById('bookings-tfoot');
