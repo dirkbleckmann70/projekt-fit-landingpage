@@ -177,19 +177,12 @@
     }
   }
 
-  // Ersatztrainer Vorgang 6: zentrale Glocke (notif-badge) mit Anzahl Buchungen,
-  // fuer die gerade ein Ersatztrainer gesucht wird.
+  // Ersatztrainer Vorgang 6: Menue-Zaehler (Sidebar „Buchungen" + Header-Glocke)
+  // aus den frisch geladenen Buchungen setzen — nutzt die zentrale Funktion in
+  // layout.js (setzt Sidebar-Badge + Glocke einheitlich).
   function updateErsatzBadge() {
-    const badge = document.getElementById('notif-badge');
-    if (!badge) return;
     const n = allBookings.filter(b => b.flag_ersatz_trainer_gesucht === true).length;
-    if (n > 0) {
-      badge.textContent = n;
-      badge.title = `${n} Buchung${n === 1 ? '' : 'en'} mit laufender Ersatztrainer-Suche`;
-      badge.classList.remove('d-none');
-    } else {
-      badge.classList.add('d-none');
-    }
+    if (window.pfSetBookingsBadge) window.pfSetBookingsBadge(n);
   }
 
   function getBookingType(b) {
@@ -320,7 +313,7 @@
           <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
           <td>${b.trainer_name || '–'}</td>
           <td>${b.customer_name || b.customer_id || '–'}</td>
-          <td>${statusBadge(b.status)}${(b.flag_ersatz_trainer_gesucht === true && b.status !== 'finding_replacement') ? ` <span title="Ersatztrainer wird gesucht">${DESIGN.badge('finding_replacement')}</span>` : ''}${isOverdue(b) ? `<span class="badge badge-overdue">${overdueDays(b)}d</span>` : ''}</td>
+          <td>${statusBadge(b.status)}${b.flag_ersatz_trainer_gesucht === true ? ` <span class="badge bg-orange" title="Ersatztrainer wird gesucht" style="margin-left:4px">🔄 Ersatz gesucht</span>` : ''}${isOverdue(b) ? `<span class="badge badge-overdue">${overdueDays(b)}d</span>` : ''}</td>
           <td class="td-amount text-accent">${price > 0 ? formatEuro(price) : '–'}</td>
           <td class="td-amount text-warning">${b.discount_code ? `<span title="${b.discount_code}">-${formatEuro(b.discount_amount_cents || 0)}</span>` : '–'}</td>
           <td class="td-amount text-muted">${cost > 0 ? formatEuro(cost) : '–'}</td>
@@ -461,6 +454,7 @@
         <div class="form-group">
           <label>Ort</label>
           <input class="pf-field pf-field-readonly" value="${b.location_name || b.location || '–'}" disabled>
+          ${b.location_address ? '<input class="pf-field pf-field-readonly mt-1" value="' + b.location_address + '" disabled style="font-size:13px" title="Adresse">' : ''}
         </div>
         <div class="form-group">
           <label>Art</label>

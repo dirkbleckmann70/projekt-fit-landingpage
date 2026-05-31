@@ -42,9 +42,12 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
           <a href="${p.href}" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
             <span class="pf-sidebar-icon">${p.emoji}</span>
             <span>${p.label}</span>
+            <span class="badge bg-red ms-auto d-none" id="pf-menu-badge-${p.id}"></span>
           </a>
         </div>`).join('');
 
+  // Nach dem DOM-Einbau den Ersatz-Suche-Zaehler laden (laeuft auf jeder Admin-Seite).
+  setTimeout(function () { if (window.pfLoadAdminBookingsBadge) window.pfLoadAdminBookingsBadge(); }, 60);
   return `<aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="light">
   <div class="container-fluid">
     <h1 class="navbar-brand navbar-brand-autodark" style="display:block;width:100%;text-align:center;padding:8px 0;margin-bottom:8px">
@@ -112,9 +115,12 @@ window.renderTrainerSidebar = function renderTrainerSidebar(activePage) {
           <a href="${p.href}" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:10px">
             <span class="pf-sidebar-icon">${p.emoji}</span>
             <span>${p.label}</span>
+            <span class="badge bg-red ms-auto d-none" id="pf-menu-badge-${p.id}"></span>
           </a>
         </div>`).join('');
 
+  // Nach dem DOM-Einbau den Vertretungs-Anfrage-Zaehler laden (jede Trainer-Seite).
+  setTimeout(function () { if (window.pfLoadTrainerBookingsBadge) window.pfLoadTrainerBookingsBadge(); }, 60);
   return `<aside class="navbar navbar-vertical navbar-expand-lg d-none d-lg-flex" data-bs-theme="light">
   <div class="container-fluid">
     <h1 class="navbar-brand navbar-brand-autodark" style="display:block;width:100%;text-align:center;padding:8px 0;margin-bottom:8px">
@@ -150,8 +156,9 @@ window.renderTrainerBottomNav = function renderTrainerBottomNav(activePage) {
 
   const navLinks = mainItems.map(p => {
     const color = p.id === activePage ? 'var(--tblr-primary)' : 'var(--tblr-secondary-color)';
-    return `<a href="${p.href}" style="display:flex;flex-direction:column;align-items:center;text-decoration:none;font-size:11px;gap:2px;color:${color}">
+    return `<a href="${p.href}" style="display:flex;flex-direction:column;align-items:center;text-decoration:none;font-size:11px;gap:2px;color:${color};position:relative">
       <i class="ti ti-${p.icon}" style="font-size:22px"></i>
+      <span class="badge bg-red d-none" id="pf-navbadge-${p.id}" style="position:absolute;top:-4px;right:6px;font-size:9px;padding:1px 5px">0</span>
       ${p.label}
     </a>`;
   }).join('\n  ');
@@ -207,4 +214,37 @@ window.renderTrainerHeader = function renderTrainerHeader(title, trainerEmail) {
     </div>
   </div>
 </div>`;
+};
+
+// ─── Ersatztrainer-Menü-Badge (Vorgang 6) ───────────────────────────────────
+// Setzt den Zaehler am Menuepunkt „Buchungen" (Desktop-Sidebar + Mobile-Nav) +
+// im Admin zusaetzlich die Header-Glocke. count<=0 -> versteckt.
+window.pfSetBookingsBadge = function pfSetBookingsBadge(count) {
+  var n = Number(count) || 0;
+  ['pf-menu-badge-bookings', 'pf-navbadge-bookings', 'notif-badge'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (n > 0) { el.textContent = n; el.classList.remove('d-none'); }
+    else { el.classList.add('d-none'); }
+  });
+};
+
+// Admin: zaehlt Buchungen mit laufender Ersatz-Suche.
+window.pfLoadAdminBookingsBadge = async function pfLoadAdminBookingsBadge() {
+  try {
+    if (typeof adminApi !== 'function') return;
+    var res = await adminApi('/api/admin?action=data&type=all_bookings');
+    var n = (res.data || []).filter(function (b) { return b.flag_ersatz_trainer_gesucht === true; }).length;
+    window.pfSetBookingsBadge(n);
+  } catch (e) { /* still */ }
+};
+
+// Trainer: zaehlt offene Vertretungs-Anfragen an den angemeldeten Trainer.
+window.pfLoadTrainerBookingsBadge = async function pfLoadTrainerBookingsBadge() {
+  try {
+    if (typeof getSupabase !== 'function') return;
+    var r = await getSupabase().functions.invoke('list-replacement-requests', { body: {} });
+    var reqs = (r && r.data && r.data.requests) ? r.data.requests : [];
+    window.pfSetBookingsBadge(reqs.length);
+  } catch (e) { /* Endpunkt evtl. noch nicht live */ }
 };
