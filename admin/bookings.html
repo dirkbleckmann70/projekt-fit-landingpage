@@ -170,9 +170,25 @@
         return da.localeCompare(db);
       });
       renderBookings();
+      updateErsatzBadge();
     } catch (err) {
       document.getElementById('bookings-body').innerHTML =
         `<tr><td colspan="12" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+    }
+  }
+
+  // Ersatztrainer Vorgang 6: zentrale Glocke (notif-badge) mit Anzahl Buchungen,
+  // fuer die gerade ein Ersatztrainer gesucht wird.
+  function updateErsatzBadge() {
+    const badge = document.getElementById('notif-badge');
+    if (!badge) return;
+    const n = allBookings.filter(b => b.flag_ersatz_trainer_gesucht === true).length;
+    if (n > 0) {
+      badge.textContent = n;
+      badge.title = `${n} Buchung${n === 1 ? '' : 'en'} mit laufender Ersatztrainer-Suche`;
+      badge.classList.remove('d-none');
+    } else {
+      badge.classList.add('d-none');
     }
   }
 
