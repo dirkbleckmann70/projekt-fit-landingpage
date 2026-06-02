@@ -38,6 +38,8 @@ Jede Aenderung MUSS committed + gepusht werden → Vercel deployed automatisch.
 - **table-utils.js:** Generiert Toolbar automatisch. KEINE manuellen count-bar HTML-Elemente. Extras ueber `initSortableTable(id, config, { extraButtons, countLabel })`.
 - **Action-Buttons:** Icon-only Ghost-Buttons (`btn btn-sm btn-ghost-secondary` + Tabler Icon). Keine Text-Buttons in Tabellen.
 - **cleanUrls Gotcha:** `/admin` ohne Slash loest relative Pfade falsch auf. Redirects in `vercel.json` sind Pflicht fuer Index-Seiten.
+- **Inline-JS-Syntax pruefen (kein Build/tsc im Portal):** `node --check api/admin/index.js` fuer die Serverless-Function; fuer `<script>`-Bloecke in HTML: `node -e` mit `new Function(code)` ueber jeden Nicht-`src`-Script-Block (faengt Template-Literal-/Klammer-Fehler vor dem Vercel-Deploy).
+- **`form-dirty.js` schluesselt Felder ueber `el.id`** — bei Checkbox-/Mehrfach-Listen MUSS jede Checkbox eine eindeutige `id` haben, sonst meldet das „Ungespeicherte Aenderungen"-Tracking das Formular dauerhaft als geaendert.
 
 ---
 
