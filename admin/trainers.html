@@ -30,7 +30,7 @@
             <thead>
               <tr>
                 <th>Name</th>
-                <th>Stadt</th>
+                <th>Einsatzorte</th>
                 <th>E-Mail</th>
                 <th>Status</th>
                 <th>Lizenzen</th>
@@ -224,7 +224,7 @@
 
     tableFilter = initSortableTable('trainers-table', [
       { key: 'full_name',     type: 'text',   getValue: t => t.full_name || '' },
-      { key: 'city',          type: 'select', getValue: t => t.city || '\u2013' },
+      { key: 'city',          type: 'text',   getValue: t => (t.cities || []).map(c => c.city).join(', ') || '\u2013' },
       { key: 'email',         type: 'text',   getValue: t => t.email || '' },
       { key: 'status',        type: 'select', getValue: t => t.status || '\u2013' },
       { key: 'license_count', type: 'select', getValue: t => (t.license_files || []).length > 0 ? `${(t.license_files || []).length} Datei(en)` : 'Keine' },
@@ -279,7 +279,7 @@
             }
             <strong>${t.full_name || '–'}</strong>
           </td>
-          <td>${t.city || '–'}</td>
+          <td>${(t.cities || []).map(c => c.city).join(', ') || '–'}</td>
           <td class="text-secondary">${t.email || '–'}</td>
           <td>${DESIGN.badge(t.status)}</td>
           <td>${licenseBadge}</td>
