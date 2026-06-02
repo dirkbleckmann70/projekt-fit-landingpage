@@ -135,7 +135,7 @@
     var cities = new Set();
     trainers.forEach(function(t) {
       // Mehr-Städte: alle zugewiesenen Städte (Fallback Einzelfeld city).
-      var names = (t.cities && t.cities.length) ? t.cities.map(function(c){ return c.city; }) : (t.city ? [t.city] : []);
+      var names = (t.cities || []).map(function(c){ return c.city; });
       var opt = document.createElement('option');
       opt.value = t.id;
       opt.textContent = t.full_name + (names.length ? ' (' + names.join(', ') + ')' : '');
@@ -162,7 +162,7 @@
       var trainerIds = trainers.map(function(t) { return t.id; });
       if (city) trainerIds = trainers.filter(function(t) {
         // Mehr-Städte: Trainer matcht, wenn die Stadt in seinen Einsatzorten liegt (Fallback Einzelfeld).
-        return (t.cities && t.cities.length) ? t.cities.some(function(c){ return c.city === city; }) : (t.city === city);
+        return (t.cities || []).some(function(c){ return c.city === city; });
       }).map(function(t) { return t.id; });
       if (trainerId) trainerIds = [trainerId];
       if (trainerIds.length === 0) { success([]); return; }
@@ -391,10 +391,10 @@
     var tSel = document.getElementById('trainer-filter');
     tSel.innerHTML = '<option value="">Alle Trainer</option>';
     var filtered = city ? trainers.filter(function(t) {
-      return (t.cities && t.cities.length) ? t.cities.some(function(c){ return c.city === city; }) : (t.city === city);
+      return (t.cities || []).some(function(c){ return c.city === city; });
     }) : trainers;
     filtered.forEach(function(t) {
-      var names = (t.cities && t.cities.length) ? t.cities.map(function(c){ return c.city; }) : (t.city ? [t.city] : []);
+      var names = (t.cities || []).map(function(c){ return c.city; });
       var opt = document.createElement('option');
       opt.value = t.id;
       opt.textContent = t.full_name + (names.length ? ' (' + names.join(', ') + ')' : '');

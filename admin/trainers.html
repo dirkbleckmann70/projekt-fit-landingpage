@@ -424,9 +424,8 @@
             ${serviceLocations.length === 0
               ? '<span class="text-muted" style="font-size:13px">Keine Einsatzorte angelegt — zuerst unter „Standorte" anlegen.</span>'
               : serviceLocations.map(l => {
-                  const sel = (Array.isArray(t.city_ids) && t.city_ids.length)
-                    ? t.city_ids.includes(l.id)        // neue Mehr-Städte-Zuordnung
-                    : (t.city === l.city);             // Fallback: altes Einzelfeld
+                  // Häkchen NUR aus der Einsatzort-Zuweisung — Wohnort zählt NICHT.
+                  const sel = Array.isArray(t.city_ids) && t.city_ids.includes(l.id);
                   return `<label class="form-check" style="margin:0">
                     <input class="form-check-input edit-city-cb" type="checkbox" id="edit-city-cb-${l.id}" value="${l.id}" ${sel ? 'checked' : ''}>
                     <span class="form-check-label">${l.city}</span>

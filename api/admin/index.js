@@ -1309,6 +1309,32 @@ function deriveCancelReason({ currentStatus, scheduledDate, scheduledTime, actor
   return 'kunde_rechtzeitig';
 }
 
+// Reichert eine Liste Trainer-Objekte um ihre EINSATZORTE an (B-2026-06-02-04/05).
+// Quelle ist ausschliesslich die Zuweisung trainer_service_cities + nur AKTIVE Orte.
+// Der Wohnort (trainer_profiles.city) ist KEIN Einsatzort und wird hier nicht verwendet.
+// Setzt t.cities = [{ city_id, city }] und t.city_ids = [city_id]. Mutiert in-place.
+async function enrichTrainersWithCities(supabase, trainers) {
+  if (!trainers || trainers.length === 0) return;
+  const [{ data: junction }, { data: serviceCities }] = await Promise.all([
+    supabase.from('trainer_service_cities').select('trainer_id, city_id'),
+    supabase.from('service_locations').select('id, city').eq('is_active', true),
+  ]);
+  const cityName = {};
+  (serviceCities || []).forEach(c => { cityName[c.id] = c.city; });
+  const byTrainer = {};
+  (junction || []).forEach(r => {
+    // Inaktiver/gelöschter Ort → kein aktiver Name → überspringen.
+    if (!cityName[r.city_id]) return;
+    if (!byTrainer[r.trainer_id]) byTrainer[r.trainer_id] = [];
+    byTrainer[r.trainer_id].push({ city_id: r.city_id, city: cityName[r.city_id] });
+  });
+  trainers.forEach(t => {
+    const list = byTrainer[t.id] || [];
+    t.cities = list;
+    t.city_ids = list.map(c => c.city_id);
+  });
+}
+
 async function enrichBookings(supabase, bookings) {
   if (bookings.length === 0) return [];
 
@@ -1592,28 +1618,10 @@ async function handleData(req, res, supabase) {
         });
       }
 
-      // Mehr-Städte-Zuweisung (31.05.): zugewiesene Städte je Trainer anhängen.
-      // Additiv — `t.city` (Einzelfeld) bleibt unverändert als Fallback.
+      // Einsatzorte anreichern (nur aktive Zuweisung — Wohnort zählt NICHT, B-2026-06-02-04/05).
       try {
-        const [{ data: junction }, { data: serviceCities }] = await Promise.all([
-          supabase.from('trainer_service_cities').select('trainer_id, city_id'),
-          supabase.from('service_locations').select('id, city'),
-        ]);
-        const cityName = {};
-        (serviceCities || []).forEach(c => { cityName[c.id] = c.city; });
-        const byTrainer = {};
-        (junction || []).forEach(r => {
-          if (!byTrainer[r.trainer_id]) byTrainer[r.trainer_id] = [];
-          byTrainer[r.trainer_id].push({ city_id: r.city_id, city: cityName[r.city_id] });
-        });
-        (data || []).forEach(t => {
-          const list = byTrainer[t.id] || [];
-          // Fallback: noch keine Junction-Zuordnung → Einzelfeld city.
-          t.cities = list.length ? list : (t.city ? [{ city_id: null, city: t.city }] : []);
-          t.city_ids = list.map(c => c.city_id);
-        });
+        await enrichTrainersWithCities(supabase, data || []);
       } catch (e) {
-        // Junction nicht verfügbar → Frontend nutzt t.city (Fallback)
         console.error('all_trainers cities-Anreicherung fehlgeschlagen:', e?.message || e);
       }
 
@@ -1813,7 +1821,7 @@ async function handleData(req, res, supabase) {
       return res.json(data);
     }
 
-    // ─── Calendar: Trainer mit Stadt (für Filter) ───────────────────────
+    // ─── Calendar: Trainer mit Einsatzorten (für Filter) ────────────────
     case 'calendar_trainers': {
       const { data, error } = await supabase
         .from('trainer_profiles')
@@ -1821,6 +1829,12 @@ async function handleData(req, res, supabase) {
         .eq('status', 'active')
         .order('full_name');
       if (error) throw error;
+      // Einsatzorte anreichern — Kalender-Stadtfilter nutzt t.cities, NICHT den Wohnort (B-2026-06-02-04/05).
+      try {
+        await enrichTrainersWithCities(supabase, data || []);
+      } catch (e) {
+        console.error('calendar_trainers cities-Anreicherung fehlgeschlagen:', e?.message || e);
+      }
       return res.json({ data: data || [] });
     }
 
