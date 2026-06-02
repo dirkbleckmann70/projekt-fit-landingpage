@@ -14,3 +14,4 @@ Bei JEDER Aenderung an Admin- oder Trainer-Portal-Dateien diese Punkte pruefen:
 - [ ] Zeilen-Klick: `onRowClick` gesetzt, Aktions-Knoepfe mit `stopPropagation`
 - [ ] `design-tokens.js` ist als ERSTES Portal-Script eingebunden (vor constants.js)
 - [ ] Knoepfe haben TEXT-Labels, nicht nur Symbole
+- [ ] Mehrfachauswahl (mehrere Werte aus einer Liste) = anklickbare **Häkchen-Liste** (`form-check` + `input type=checkbox`), NIE natives `<select multiple>` (Strg/Cmd-Klick ist für Nutzer unsichtbar/unverständlich). Jede Checkbox braucht eine eindeutige `id` (sonst bricht `form-dirty.js`). Beleg: Trainer-Einsatzorte, 02.06.2026.

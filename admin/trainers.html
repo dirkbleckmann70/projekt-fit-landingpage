@@ -112,8 +112,8 @@
               <input class="pf-field" id="new-wohnort">
             </div>
             <div class="form-group pf-form-full">
-              <label class="form-label">Einsatzorte * <span class="text-muted" style="font-weight:400">(mehrere mit Strg/Cmd)</span></label>
-              <select class="pf-field" id="new-city" multiple size="4" required></select>
+              <label class="form-label">Einsatzorte * <span class="text-muted" style="font-weight:400">(mehrere möglich — anhaken)</span></label>
+              <div class="pf-field" id="new-city-list" style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:10px 13px"></div>
             </div>
 
             <div class="pf-form-divider">Profil</div>
@@ -208,13 +208,14 @@
     try {
       const res = await adminApi('/api/admin?action=data&type=active_locations');
       serviceLocations = res.data || [];
-      const citySel = document.getElementById('new-city');
-      serviceLocations.forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l.id;           // Mehr-Städte: Wert = city_id (für trainer_set_cities)
-        opt.textContent = l.city;
-        citySel.appendChild(opt);
-      });
+      const cityList = document.getElementById('new-city-list');
+      cityList.innerHTML = serviceLocations.length === 0
+        ? '<span class="text-muted" style="font-size:13px">Keine Einsatzorte angelegt — zuerst unter „Standorte" anlegen.</span>'
+        : serviceLocations.map(l => `
+            <label class="form-check" style="margin:0">
+              <input class="form-check-input new-city-cb" type="checkbox" id="new-city-cb-${l.id}" value="${l.id}">
+              <span class="form-check-label">${l.city}</span>
+            </label>`).join('');   // Mehr-Städte: Wert = city_id (für trainer_set_cities)
     } catch (err) {
       console.error('Einsatzorte laden fehlgeschlagen:', err);
     }
@@ -418,15 +419,20 @@
           <input class="pf-field" id="edit-wohnort" value="${t.wohnort || ''}">
         </div>
         <div class="form-group pf-form-full">
-          <label class="form-label">Einsatzorte <span class="text-muted" style="font-weight:400">(mehrere mit Strg/Cmd)</span></label>
-          <select class="pf-field" id="edit-city" multiple size="4">
-            ${serviceLocations.map(l => {
-              const sel = (Array.isArray(t.city_ids) && t.city_ids.length)
-                ? t.city_ids.includes(l.id)        // neue Mehr-Städte-Zuordnung
-                : (t.city === l.city);             // Fallback: altes Einzelfeld
-              return `<option value="${l.id}" ${sel ? 'selected' : ''}>${l.city}</option>`;
-            }).join('')}
-          </select>
+          <label class="form-label">Einsatzorte <span class="text-muted" style="font-weight:400">(mehrere möglich — anhaken)</span></label>
+          <div class="pf-field" id="edit-city-list" style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:10px 13px">
+            ${serviceLocations.length === 0
+              ? '<span class="text-muted" style="font-size:13px">Keine Einsatzorte angelegt — zuerst unter „Standorte" anlegen.</span>'
+              : serviceLocations.map(l => {
+                  const sel = (Array.isArray(t.city_ids) && t.city_ids.length)
+                    ? t.city_ids.includes(l.id)        // neue Mehr-Städte-Zuordnung
+                    : (t.city === l.city);             // Fallback: altes Einzelfeld
+                  return `<label class="form-check" style="margin:0">
+                    <input class="form-check-input edit-city-cb" type="checkbox" id="edit-city-cb-${l.id}" value="${l.id}" ${sel ? 'checked' : ''}>
+                    <span class="form-check-label">${l.city}</span>
+                  </label>`;
+                }).join('')}
+          </div>
         </div>
 
         <div class="pf-form-divider">Profil</div>
@@ -897,7 +903,7 @@
     if (!editingTrainerId) return;
 
     // Mehr-Städte: mindestens eine Stadt Pflicht.
-    const editCityIds = [...document.getElementById('edit-city').selectedOptions].map(o => o.value);
+    const editCityIds = [...document.querySelectorAll('#edit-city-list .edit-city-cb:checked')].map(cb => cb.value);
     if (editCityIds.length === 0) {
       showPfToast('Einsatzort fehlt', 'Bitte mindestens eine Stadt auswählen.', 'warning');
       return;
@@ -1086,7 +1092,7 @@
     const firstname = document.getElementById('new-firstname').value.trim();
     const lastname = document.getElementById('new-lastname').value.trim();
     const email = document.getElementById('new-email').value.trim();
-    const cityIds = [...document.getElementById('new-city').selectedOptions].map(o => o.value);
+    const cityIds = [...document.querySelectorAll('#new-city-list .new-city-cb:checked')].map(cb => cb.value);
 
     if (!firstname || !lastname || !email || cityIds.length === 0) {
       alert('Vorname, Nachname, E-Mail und mindestens ein Einsatzort sind Pflichtfelder.');
