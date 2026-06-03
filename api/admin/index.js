@@ -1929,6 +1929,21 @@ async function handleData(req, res, supabase) {
       return res.json(result);
     }
 
+    // ─── Angeschriebene Ersatz-Trainer einer Buchung (B-2026-06-02-03) ──
+    case 'replacement_requests': {
+      const rrBookingId = stripGpPrefix(req.query.booking_id);
+      if (!rrBookingId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rrBookingId)) {
+        return res.status(400).json({ error: 'booking_id (uuid) erforderlich' });
+      }
+      const { data, error } = await supabase
+        .from('replacement_requests')
+        .select('candidate_trainer_id, status, sent_at, answered_at, trainer_profiles(full_name)')
+        .eq('booking_id', rrBookingId)
+        .order('sent_at', { ascending: true });
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ data: data ?? [] });
+    }
+
     // ─── Status-Logbuch zu einer Buchung (booking_audit + payment_events + invoice_audit) ──
     case 'booking_audit_log': {
       const bookingId = stripGpPrefix(req.query.booking_id);
