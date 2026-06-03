@@ -2611,11 +2611,91 @@ async function handleDeleteTrainer(req, res, supabase) {
 
 async function handleBookingsPut(req, res, supabase) {
   const body = await getBody(req);
-  const { status, paid, scheduled_date, scheduled_time, price_cents, final_price_cents, trainer_payout_cents, trainer_id, location_name, location_address, admin_note } = body;
+  const { status, paid, scheduled_date, scheduled_time, price_cents, final_price_cents, trainer_payout_cents, trainer_id, location_name, location_address, admin_note, assign_replacement } = body;
   // GT-Buchungen kommen vom Frontend mit gp_-Prefix — strippen, sonst findet das UPDATE 0 Zeilen.
   const bookingId = stripGpPrefix(body.bookingId);
 
   if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
+
+  // ── Ersatztrainer FINAL zuweisen (Admin-Hoheit, Vorgang 6) — B-2026-06-02-09 ──
+  // Eigener Pfad mit fruehem return: umgeht bewusst den isConfirm/confirm-and-charge-
+  // Apparat (weiter unten) und den generischen admin_field_change-Audit. Fachlich =
+  // replacement-customer-confirm (atomarer Trainer-Tausch), plus Geschwister-
+  // Zurueckziehen (sonst nur in replacement-accept). KEINE Rechnungs-Aktion + KEINE
+  // erneute Abbuchung: der Trainer steht nicht auf der Kundenrechnung, die Trainer-
+  // Gutschrift entsteht erst bei Auszahlung mit dem dann gueltigen Trainer.
+  if (assign_replacement === true && trainer_id) {
+    const caller = await getCallerInfo(req);
+    if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+
+    const { data: current, error: curErr } = await supabase
+      .from('bookings')
+      .select('trainer_id, customer_id')
+      .eq('id', bookingId).single();
+    if (curErr || !current) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+
+    // Honorar-Satz des NEUEN Trainers per SELECT (app-Regel 3: nie hardcoded).
+    const { data: repl, error: replErr } = await supabase
+      .from('trainer_profiles').select('payout_cents, full_name, auth_user_id')
+      .eq('id', trainer_id).maybeSingle();
+    if (replErr || !repl) return res.status(400).json({ error: 'Ersatztrainer nicht gefunden' });
+
+    const nowIso = new Date().toISOString();
+
+    // Atomarer Tausch (pendant replacement-customer-confirm). .select() gegen
+    // RLS-Silent-Fail (CLAUDE.md).
+    const { data: swapped, error: swapErr } = await supabase.from('bookings').update({
+      trainer_id,
+      trainer_payout_cents: repl.payout_cents,
+      replacement_trainer_name: repl.full_name,
+      status: 'bestaetigt',
+      flag_ersatz_trainer_gesucht: false,
+      flag_ersatz_kunde_bestaetigung_offen: false,
+      replacement_customer_confirm_deadline: null,
+      updated_at: nowIso,
+    }).eq('id', bookingId).select('id');
+    if (swapErr) throw swapErr;
+    if (!swapped || swapped.length === 0) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+
+    // Geschwister-Anfragen aufraeumen (pendant replacement-accept): Gewinner →
+    // zugesagt, alle anderen offenen → zurueckgezogen.
+    await supabase.from('replacement_requests')
+      .update({ status: 'zugesagt', answered_at: nowIso })
+      .eq('booking_id', bookingId).eq('candidate_trainer_id', trainer_id)
+      .in('status', ['angeschrieben', 'kunden_vorschlag_offen']).select();
+    await supabase.from('replacement_requests')
+      .update({ status: 'zurueckgezogen', answered_at: nowIso })
+      .eq('booking_id', bookingId).neq('candidate_trainer_id', trainer_id)
+      .in('status', ['angeschrieben', 'kunden_vorschlag_offen']).select();
+
+    // Audit (best-effort, GoBD-Diff). Tabelle: booking_audit (NICHT _log).
+    try {
+      await supabase.from('booking_audit').insert({
+        booking_id: bookingId,
+        action: 'replacement_trainer_assigned',
+        actor_type: caller.actorType || 'admin',
+        actor_id: caller.authUid || null,
+        details: { old_trainer_id: current.trainer_id, new_trainer_id: trainer_id, new_trainer_name: repl.full_name },
+      });
+    } catch (e) { console.error('Audit replacement_trainer_assigned (best-effort):', e.message); }
+
+    // Push (best-effort): neuer Trainer + Kunde. send-push ist verify-jwt deployed →
+    // klassischer Service-Role-JWT (NICHT caller.token = Admin-ES256 → 401-Risiko).
+    const pushToken = process.env.SERVICE_ROLE_JWT ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+    try {
+      if (repl.auth_user_id) {
+        await callEdgeFunction('send-push', pushToken, { user_id: repl.auth_user_id, title: 'Du uebernimmst einen Termin', body: 'Du wurdest als Ersatztrainer eingetragen. Details in der App.', data: { type: 'replacement_assigned', bookingId } });
+      }
+      if (current.customer_id) {
+        const { data: cust } = await supabase.from('customers').select('auth_user_id').eq('id', current.customer_id).maybeSingle();
+        if (cust?.auth_user_id) {
+          await callEdgeFunction('send-push', pushToken, { user_id: cust.auth_user_id, title: 'Ersatztrainer bestaetigt', body: `${repl.full_name} uebernimmt deinen Termin.`, data: { type: 'replacement_confirmed', bookingId } });
+        }
+      }
+    } catch (e) { console.error('Ersatz-Push (best-effort):', e.message); }
+
+    return res.json({ success: true, replacement_assigned: true });
+  }
 
   const update = {};
 
