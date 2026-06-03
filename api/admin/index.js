@@ -2673,15 +2673,18 @@ async function handleBookingsPut(req, res, supabase) {
     if (!swapped || swapped.length === 0) return res.status(404).json({ error: 'Buchung nicht gefunden' });
 
     // Geschwister-Anfragen aufraeumen (pendant replacement-accept): Gewinner →
-    // zugesagt, alle anderen offenen → zurueckgezogen.
-    await supabase.from('replacement_requests')
-      .update({ status: 'zugesagt', answered_at: nowIso })
-      .eq('booking_id', bookingId).eq('candidate_trainer_id', trainer_id)
-      .in('status', ['angeschrieben', 'kunden_vorschlag_offen']).select();
-    await supabase.from('replacement_requests')
-      .update({ status: 'zurueckgezogen', answered_at: nowIso })
-      .eq('booking_id', bookingId).neq('candidate_trainer_id', trainer_id)
-      .in('status', ['angeschrieben', 'kunden_vorschlag_offen']).select();
+    // zugesagt, alle anderen offenen → zurueckgezogen. Best-effort: der Tausch ist
+    // bereits durch, ein Fehler hier darf den 200-Erfolg nicht kippen (nur loggen).
+    try {
+      await supabase.from('replacement_requests')
+        .update({ status: 'zugesagt', answered_at: nowIso })
+        .eq('booking_id', bookingId).eq('candidate_trainer_id', trainer_id)
+        .in('status', ['angeschrieben', 'kunden_vorschlag_offen']).select();
+      await supabase.from('replacement_requests')
+        .update({ status: 'zurueckgezogen', answered_at: nowIso })
+        .eq('booking_id', bookingId).neq('candidate_trainer_id', trainer_id)
+        .in('status', ['angeschrieben', 'kunden_vorschlag_offen']).select();
+    } catch (e) { console.error('Ersatz-Geschwister-Aufraeumen (best-effort):', e.message); }
 
     // Audit (best-effort, GoBD-Diff). Tabelle: booking_audit (NICHT _log).
     try {
