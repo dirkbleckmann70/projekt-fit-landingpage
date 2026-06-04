@@ -2719,6 +2719,11 @@ async function handleBookingsPut(req, res, supabase) {
   }
 
   const update = {};
+  // Logbuch Schritt 1: zusaetzliche Bewegungs-Eintraege (best-effort), die NACH
+  // dem erfolgreichen UPDATE geschrieben werden. Bewegungen die NICHT ueber den
+  // bestehenden admin_field_change-Audit (Preis/Payout/Trainer/Termin) oder ueber
+  // cancel-or-refund (Storno mit Geld) laufen, werden hier gesammelt.
+  const extraAudits = [];
 
   if (status !== undefined) {
     // Teilspec 1: Legacy-Status-Werte vom Frontend werden hier zentral auf den
@@ -2800,6 +2805,7 @@ async function handleBookingsPut(req, res, supabase) {
     const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
     const newNote = `[Admin ${timestamp}] ${admin_note}`;
     update.notes = existing?.notes ? `${existing.notes}\n${newNote}` : newNote;
+    extraAudits.push({ action: 'admin_note', details: { note: admin_note } });
   }
 
   // ─── Reschedule: Trainer schlaegt neuen Termin vor ─────────────────────
@@ -2913,6 +2919,7 @@ async function handleBookingsPut(req, res, supabase) {
     const auditNote = `[Reschedule ${timestamp}] Trainer schlaegt vor: ${proposed_date} ${proposed_time} (vorher: ${oldDate} ${oldTime})`;
     const { data: existingNotes } = await supabase.from('bookings').select('notes').eq('id', bookingId).single();
     update.notes = existingNotes?.notes ? `${existingNotes.notes}\n${auditNote}` : auditNote;
+    extraAudits.push({ action: 'rescheduled', details: { old_date: oldDate, new_date: proposed_date, old_time: oldTime, new_time: proposed_time } });
   }
 
   // ─── Location-Vorschlag: Trainer schlaegt anderen Treffpunkt vor ─────────
@@ -3016,6 +3023,7 @@ async function handleBookingsPut(req, res, supabase) {
     } else {
       update.notes = currentLoc.notes ? `${currentLoc.notes}\n${locAuditNote}` : locAuditNote;
     }
+    extraAudits.push({ action: 'location_changed', details: { old_location: currentLoc.location_name || '—', new_location: loc.name, is_trainer_proposal: isTrainerProposal } });
   }
 
   if (Object.keys(update).length === 0) {
@@ -3037,6 +3045,13 @@ async function handleBookingsPut(req, res, supabase) {
       .eq('id', bookingId)
       .single();
     oldAuditValues = oldRow;
+  }
+
+  // Logbuch Schritt 1: alten Status VOR dem UPDATE lesen (fuer Status-only-Audit).
+  let oldStatusForAudit = null;
+  if (status !== undefined) {
+    const { data: sRow } = await supabase.from('bookings').select('status').eq('id', bookingId).single();
+    oldStatusForAudit = sRow?.status ?? null;
   }
 
   // ─── Server-Hook (Schritt 4) ───────────────────────────────────────────────
@@ -3149,6 +3164,11 @@ async function handleBookingsPut(req, res, supabase) {
         delete update.status;
         delete update.storno_wer;
         delete update.storno_grund;
+      } else {
+        // Low-Stakes-Storno (angefragt/reserviert ohne Geld): laeuft direkt per
+        // UPDATE (kein cancel-or-refund) -> der cancelled-Audit muss hier ergaenzt
+        // werden, sonst fehlt die Bewegung im Logbuch. Best-effort nach dem UPDATE.
+        extraAudits.push({ action: 'cancelled', details: { reason: update.storno_grund || 'admin_storno', low_stakes: true } });
       }
     }
 
@@ -3194,6 +3214,31 @@ async function handleBookingsPut(req, res, supabase) {
     } catch (auditErr) {
       console.error('handleBookingsPut booking_audit insert fehlgeschlagen (best-effort):', auditErr.message);
     }
+  }
+
+  // Logbuch Schritt 1: gesammelte Zusatz-Bewegungen + Status-only-Aenderung
+  // best-effort schreiben. Der bestehende admin_field_change-Audit oben und der
+  // cancel-or-refund-cancelled-Eintrag werden NICHT dupliziert.
+  try {
+    const auditCaller = await getCallerInfo(req);
+    const auditActor = { actor_type: auditCaller?.actorType || 'admin', actor_id: auditCaller?.authUid || null };
+    for (const a of extraAudits) {
+      await supabase.from('booking_audit').insert({ booking_id: bookingId, ...auditActor, action: a.action, details: a.details });
+    }
+    // Status-only: Status wurde geaendert, aber KEINE Geld-/Termin-/Trainer-Felder
+    // (sonst greift der admin_field_change-Audit oben), der Status ueberlebte das
+    // UPDATE (also NICHT ueber confirm-and-charge konsumiert) und ist kein Storno
+    // (eigener cancelled-Eintrag).
+    if (status !== undefined && update.status !== undefined && update.status !== 'storniert' && changedAuditFields.length === 0) {
+      await supabase.from('booking_audit').insert({
+        booking_id: bookingId,
+        ...auditActor,
+        action: 'admin_field_change',
+        details: { field: 'status', from: oldStatusForAudit, to: update.status },
+      });
+    }
+  } catch (auditErr) {
+    console.error('handleBookingsPut Logbuch-Extra-Audit fehlgeschlagen (best-effort):', auditErr.message);
   }
 
   return res.json({ success: true });
@@ -4110,6 +4155,19 @@ async function handleRescheduleAccept(req, res, supabase) {
   if (!upd || upd.length === 0) {
     return res.status(404).json({ error: 'Buchung nicht gefunden (RLS-Block oder geloescht)' });
   }
+
+  // Logbuch Schritt 1: Kunden-Annahme der Termin-Aenderung als Bewegung (best-effort).
+  try {
+    const caller = await getCallerInfo(req);
+    await supabase.from('booking_audit').insert({
+      booking_id: bookingId,
+      action: 'rescheduled',
+      actor_type: caller?.actorType || 'customer',
+      actor_id: caller?.authUid || null,
+      details: { old_date: oldDate, new_date: booking.proposed_date, old_time: oldTime, new_time: (booking.proposed_time || '').slice(0, 5) },
+    });
+  } catch (e) { console.error('Audit rescheduled (customer accept, best-effort):', e.message); }
+
   return res.json({ success: true, newDate: booking.proposed_date, newTime: booking.proposed_time });
 }
 
@@ -4301,6 +4359,19 @@ async function handleLocationAccept(req, res, supabase) {
 
   if (error) return res.status(500).json({ success: false, error: error.message })
   if (!upd || upd.length === 0) return res.status(404).json({ success: false, error: 'Buchung nicht gefunden (RLS-Block oder geloescht)' })
+
+  // Logbuch Schritt 1: Kunden-Annahme des Treffpunkts als Bewegung (best-effort).
+  try {
+    const caller = await getCallerInfo(req);
+    await supabase.from('booking_audit').insert({
+      booking_id: bookingId,
+      action: 'location_changed',
+      actor_type: caller?.actorType || 'customer',
+      actor_id: caller?.authUid || null,
+      details: { old_location: booking.location_name || '—', new_location: update.location_name || booking.location_name || '—', is_trainer_proposal: false },
+    });
+  } catch (e) { console.error('Audit location_changed (customer accept, best-effort):', e.message); }
+
   return res.json({ success: true })
 }
 
