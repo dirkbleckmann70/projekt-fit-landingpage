@@ -117,7 +117,16 @@
         <h5 class="modal-title" id="detail-title">Kunden-Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body" id="detail-body"></div>
+      <div class="modal-body">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#cust-tab-details">Details</a></li>
+          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#cust-tab-history">Verlauf</a></li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane active show" id="cust-tab-details"><div id="detail-body"></div></div>
+          <div class="tab-pane" id="cust-tab-history"><div id="cust-history"></div></div>
+        </div>
+      </div>
       <div class="modal-footer pf-modal-footer" id="detail-footer">
         <button class="pf-btn pf-btn-danger pf-btn-lg" id="detail-delete-btn" onclick="deleteCustomer()">Löschen</button>
         <div style="flex:1"></div>
@@ -168,6 +177,7 @@
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
+<script src="../shared/audit-log.js"></script>
 <script src="../shared/form-dirty.js"></script>
 <script>
   let allCustomers = [];
@@ -488,6 +498,7 @@
 
     document.getElementById('detail-body').innerHTML = html;
     new bootstrap.Modal(document.getElementById('detail-modal')).show();
+    renderCustomerHistory(c.id);
 
     if (window._customerDirty) window._customerDirty.destroy();
     window._customerDirty = initFormDirty({
@@ -533,6 +544,21 @@
       document.getElementById('customer-bookings').innerHTML =
         `<p class="text-error" style="font-size:13px">Buchungen konnten nicht geladen werden: ${err.message}</p>`;
     }
+  }
+
+  async function renderCustomerHistory(customerId) {
+    const el = document.getElementById('cust-history');
+    if (!el) return;
+    el.innerHTML = '<div class="text-muted p-3">Verlauf wird geladen ...</div>';
+    let events = [];
+    try {
+      const resp = await adminApi('/api/admin?action=data&type=customer_audit_log&customer_id=' + encodeURIComponent(customerId));
+      events = (resp && resp.data) || [];
+    } catch (e) {
+      el.innerHTML = '<div class="text-warning p-3">Verlauf konnte nicht geladen werden: ' + auditEscape((e && e.message) || String(e)) + '</div>'; return;
+    }
+    if (!events.length) { el.innerHTML = '<div class="text-muted p-3">Keine Verlaufs-Eintraege fuer diesen Kunden.</div>'; return; }
+    el.innerHTML = '<div class="timeline">' + events.map(renderAuditEntry).join('') + '</div>';
   }
 
   // ─── B-2026-05-14-02: Abo-Stand + Buchungs-Aktion ─────────────────────────
