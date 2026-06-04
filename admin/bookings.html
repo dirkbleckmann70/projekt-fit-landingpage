@@ -822,6 +822,15 @@
     // Teilspec-2 (Phase 4 Crons): Checkout-Erinnerung + Auto-Freigabe
     checkout_erinnerung_gesendet:       { icon: '📨', label: 'Checkout-Erinnerung versandt' },
     checkout_auto_freigegeben:          { icon: '🏁', label: 'Checkout automatisch freigegeben' },
+    // Logbuch Schritt 1 (Konsolidierung): Admin-Korrekturen/Notiz, Ersatz-Detailschritte, Trainer-Checkout
+    admin_note:                         { icon: '📝', label: 'Notiz' },
+    admin_field_change:                 { icon: '✏️', label: 'Feld geaendert' },
+    manual_paid_set:                    { icon: '✏️', label: 'Bezahlt-Status manuell gesetzt' },
+    manual_payout_set:                  { icon: '✏️', label: 'Verguetung manuell gesetzt' },
+    manual_admin_added_participant:     { icon: '➕', label: 'Teilnehmer manuell hinzugefuegt' },
+    replacement_trainer_accepted:       { icon: '🔁', label: 'Ersatz: Trainer hat zugesagt' },
+    replacement_trainer_confirmed:      { icon: '✅', label: 'Ersatz bestaetigt' },
+    trainer_checkout:                   { icon: '🏁', label: 'Trainer hat Training abgeschlossen' },
   };
   // Werte stammen aus supabase/functions/_shared/payment-events.ts (PaymentEventAction-Type)
   const AUDIT_PAYMENT_ACTIONS = {
@@ -909,8 +918,8 @@
       } else if (action === 'escalated') {
         if (d.reason || d.grund) parts.push('Grund: ' + auditEscape(d.reason || d.grund));
       } else if (action === 'rescheduled') {
-        if (d.old_date) parts.push('alt: ' + auditEscape(d.old_date) + (d.old_time ? ' ' + auditEscape(d.old_time) : ''));
-        if (d.new_date) parts.push('neu: ' + auditEscape(d.new_date) + (d.new_time ? ' ' + auditEscape(d.new_time) : ''));
+        if (d.old_date) parts.push('alt: ' + auditEscape(formatDate(d.old_date)) + (d.old_time ? ' ' + auditEscape(d.old_time) : ''));
+        if (d.new_date) parts.push('neu: ' + auditEscape(formatDate(d.new_date)) + (d.new_time ? ' ' + auditEscape(d.new_time) : ''));
       } else if (action === 'location_changed') {
         if (d.old_location) parts.push('alt: ' + auditEscape(d.old_location));
         if (d.new_location) parts.push('neu: ' + auditEscape(d.new_location));
@@ -928,6 +937,25 @@
         if (d.old_trainer_id) parts.push('(vorher: ' + auditEscape(String(d.old_trainer_id).slice(0, 8)) + '…)');
       } else if (action === 'check_in' || action === 'check_out') {
         if (d.at) parts.push('Zeitpunkt: ' + auditEscape(formatDateTime(d.at)));
+      } else if (action === 'trainer_checkout') {
+        if (d.trainer_checked_out_at) parts.push('Zeitpunkt: ' + auditEscape(formatDateTime(d.trainer_checked_out_at)));
+      } else if (action === 'admin_note') {
+        if (d.note) parts.push('Notiz: ' + auditEscape(d.note));
+      } else if (action === 'admin_field_change') {
+        // Zwei Detail-Formen: Status-only {field,from,to} ODER Geld/Termin {changed_fields,...}
+        if (d.field === 'status') {
+          if (d.from) parts.push('Status vorher: ' + auditEscape(auditStatusLabel(d.from)));
+          if (d.to) parts.push('Status neu: ' + auditEscape(auditStatusLabel(d.to)));
+        } else if (Array.isArray(d.changed_fields) && d.changed_fields.length) {
+          parts.push('Geaenderte Felder: ' + auditEscape(d.changed_fields.join(', ')));
+        }
+        if (d.admin_note) parts.push('Notiz: ' + auditEscape(d.admin_note));
+      } else if (action === 'manual_paid_set' || action === 'manual_payout_set' || action === 'manual_admin_added_participant') {
+        if (d.admin_note) parts.push('Notiz: ' + auditEscape(d.admin_note));
+      } else if (action === 'replacement_trainer_accepted') {
+        if (d.trainer_id) parts.push('Trainer: ' + auditEscape(String(d.trainer_id).slice(0, 8)) + '…');
+      } else if (action === 'replacement_trainer_confirmed') {
+        if (d.new_trainer_id) parts.push('Neuer Trainer: ' + auditEscape(String(d.new_trainer_id).slice(0, 8)) + '…');
       }
     } else if (kind === 'payment') {
       if (d.reason) parts.push('Grund: ' + auditEscape(d.reason));
