@@ -181,7 +181,10 @@ export default async function handler(req, res) {
           scheduled_date: d,
           scheduled_time: time + ':00',
           start_time: time + ':00',
-          day_of_week: new Date(d + 'T12:00:00Z').getDay() || 7,
+          // B-2026-06-04-04: getDay() = 0-6 (So=0) → erfuellt CHECK group_classes_day_of_week_check
+          // (0..6). Das alte `|| 7` machte Sonntag zu 7 → Constraint-Verletzung beim Serien-Speichern.
+          // day_of_week ist bei datums-fixen Kursen ohnehin nur Metadaten (Anzeige via scheduled_date).
+          day_of_week: new Date(d + 'T12:00:00Z').getDay(),
           duration_minutes: duration_minutes || 60,
           max_participants: max_participants || 12,
           price_per_person_cents: Math.round(price_per_person_cents),
@@ -3287,7 +3290,7 @@ async function handleGroups(req, res, supabase) {
     // Calculate day_of_week from scheduled_date if provided
     let computedDayOfWeek = day_of_week;
     if (scheduled_date && computedDayOfWeek == null) {
-      computedDayOfWeek = new Date(scheduled_date + 'T12:00:00Z').getDay() || 7;
+      computedDayOfWeek = new Date(scheduled_date + 'T12:00:00Z').getDay(); // 0-6, CHECK-konform (B-2026-06-04-04)
     }
 
     const { equipment } = body;
@@ -3322,7 +3325,7 @@ async function handleGroups(req, res, supabase) {
 
     // Recalculate day_of_week if scheduled_date changed
     if (update.scheduled_date) {
-      update.day_of_week = new Date(update.scheduled_date + 'T12:00:00Z').getDay() || 7;
+      update.day_of_week = new Date(update.scheduled_date + 'T12:00:00Z').getDay(); // 0-6, CHECK-konform (B-2026-06-04-04)
     }
 
     if (Object.keys(update).length === 0) return res.status(400).json({ error: 'Keine aktualisierbaren Felder' });
