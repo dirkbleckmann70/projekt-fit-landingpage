@@ -107,6 +107,7 @@ window.renderTrainerSidebar = function renderTrainerSidebar(activePage) {
     { id: 'calendar',     label: 'Kalender',     emoji: '📅', href: '/trainer-portal/availability.html' },
     { id: 'finances',     label: 'Finanzen',     emoji: '💰', href: '/trainer-portal/finances.html' },
     { id: 'invoices',     label: 'Gutschriften', emoji: '📄', href: '/trainer-portal/invoices.html' },
+    { id: 'history',      label: 'Verlauf',      emoji: '🕓', href: '/trainer-portal/history.html' },
     { id: 'profile',      label: 'Profil',       emoji: '👤', href: '/trainer-portal/profile.html' },
   ];
 
@@ -150,6 +151,7 @@ window.renderTrainerBottomNav = function renderTrainerBottomNav(activePage) {
   const moreItems = [
     { id: 'availability', label: 'Verfügbarkeit', icon: 'clock',        href: '/trainer-portal/availability.html' },
     { id: 'invoices',     label: 'Gutschriften',  icon: 'file-invoice', href: '/trainer-portal/invoices.html' },
+    { id: 'history',      label: 'Verlauf',       icon: 'history',      href: '/trainer-portal/history.html' },
   ];
 
   const isMoreActive = moreItems.some(p => p.id === activePage);

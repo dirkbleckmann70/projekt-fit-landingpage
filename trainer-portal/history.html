@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="de" data-bs-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verlauf – Trainer-Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/css/tabler.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="../shared/tabler-custom.css">
+</head>
+<body class="page">
+<script src="../shared/theme.js"></script>
+
+<div id="sidebar"></div>
+
+<div class="page-wrapper">
+  <div class="page-header d-print-none" id="header"></div>
+  <div class="page-body" style="padding-bottom:80px">
+    <div class="container-fluid">
+
+      <div id="trainer-history" class="card"><div class="card-body"><div class="text-muted">Verlauf wird geladen ...</div></div></div>
+
+    </div>
+  </div>
+</div>
+
+<div id="bottom-nav"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tabler/core@1.0.0-beta21/dist/js/tabler.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../shared/design-tokens.js"></script>
+<script src="../shared/constants.js"></script>
+<script src="../shared/layout.js"></script>
+<script src="../shared/toast.js"></script>
+<script src="auth-check.js"></script>
+<script src="../shared/audit-log.js"></script>
+<script>
+  (async () => {
+    const trainer = await checkTrainerAuth();
+    if (!trainer) return;
+
+    document.getElementById('sidebar').innerHTML = renderTrainerSidebar('history');
+    document.getElementById('bottom-nav').innerHTML = renderTrainerBottomNav('history');
+    document.getElementById('header').innerHTML = renderTrainerHeader('Verlauf', window.currentTrainer?.email || '');
+    initRealtimeToasts(getSupabase(), 'trainer');
+
+    await loadTrainerHistory();
+  })();
+
+  async function loadTrainerHistory() {
+    const el = document.getElementById('trainer-history');
+    if (!el) return;
+    let events = [];
+    try {
+      const resp = await adminApi('/api/admin?action=data&type=trainer_audit_log');
+      events = (resp && resp.data) || [];
+    } catch (e) {
+      el.innerHTML = '<div class="card-body text-warning">Verlauf konnte nicht geladen werden: ' + auditEscape((e && e.message) || String(e)) + '</div>'; return;
+    }
+    if (!events.length) { el.innerHTML = '<div class="card-body text-muted">Noch keine Verlaufs-Eintraege.</div>'; return; }
+    el.innerHTML = '<div class="card-body"><div class="timeline">' + events.map(renderAuditEntry).join('') + '</div></div>';
+  }
+</script>
+</body>
+</html>
