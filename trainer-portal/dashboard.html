@@ -218,6 +218,10 @@
         .eq('trainer_id', trainerId)
         .eq('art', 'pt_einzel')
         .in('status', ['angefragt'])
+        // B-2026-06-04-10: nur ZUKUENFTIGE offene Anfragen zeigen (wie die
+        // Anstehende-Liste). Vergangene angefragt werden ohnehin nachts vom
+        // expire-past-bookings-Cron storniert -> sonst "Muell" im Dashboard.
+        .gte('scheduled_date', today)
         .order('created_at', { ascending: false })
         .limit(5);
 
