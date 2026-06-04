@@ -1062,6 +1062,10 @@ const PERSON_KEY_PAYMENT = new Set(['payment_succeeded','payment_captured','refu
 const PERSON_KEY_INVOICE = new Set(['created']);
 const PERSON_KEY_CASH = new Set(['gemeldet_durch_trainer','verifiziert_durch_admin']);
 const TRAINER_OPERATIONAL = new Set(['created','confirmed','rescheduled','location_changed','check_in','check_out','trainer_checkout','completed','cancelled','escalated','replacement_trainer_search_started','replacement_trainer_accepted','replacement_trainer_confirmed','replacement_trainer_assigned']);
+// HAERTUNG (Review C-2): NIEMALS Geld-/Preis-Felder aufnehmen
+// (price_cents, final_price_cents, refund_amount_cents, fee_cents, payout_cents,
+//  amount_cents, discount_*). Der Renderer (shared/audit-log.js) wuerde sie sonst
+// im Trainer-Portal sofort anzeigen. Nur betriebliche Termin-/Ort-/Ersatz-Felder.
 const TRAINER_DETAIL_KEYS = ['old_date','new_date','old_time','new_time','old_location','new_location','is_trainer_proposal','reason','storno_grund','storno_wer','trainer_id','new_trainer_id','old_trainer_id','new_trainer_name','kandidaten_count','art','booking_type','trainer_checked_out_at'];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
