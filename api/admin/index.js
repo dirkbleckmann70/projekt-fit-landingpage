@@ -4368,7 +4368,7 @@ async function handleLocationAccept(req, res, supabase) {
       action: 'location_changed',
       actor_type: caller?.actorType || 'customer',
       actor_id: caller?.authUid || null,
-      details: { old_location: booking.location_name || '—', new_location: update.location_name || booking.location_name || '—', is_trainer_proposal: false },
+      details: { old_location: booking.location_name || '—', new_location: update.location_name || booking.location_name || '—', is_trainer_proposal: true },
     });
   } catch (e) { console.error('Audit location_changed (customer accept, best-effort):', e.message); }
 
