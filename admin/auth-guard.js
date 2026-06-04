@@ -9,6 +9,14 @@ const SUPABASE_URL = 'https://ahsjydgknmysircubjsk.supabase.co';
 // (Memory: reference_supabase_edge_function_keys.md)
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoc2p5ZGdrbm15c2lyY3VianNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjk5NDAsImV4cCI6MjA4ODc0NTk0MH0.nGPKA30cm-EPsyt0Pn5YWxcMjMdNzg_1yN87LdK0rZI';
 
+// Auf window spiegeln, damit IIFE-Module (z.B. assets/js/storno-dialog.js via
+// `global.SUPABASE_URL`/`global.SUPABASE_ANON_KEY`) sie erreichen. `const` im
+// Skript-Scope ist KEINE window-Eigenschaft → war sonst `undefined` und das
+// Storno-fetch baute `undefined/functions/v1/cancel-or-refund` → Vercel-404
+// (B-2026-06-04: „Storno fehlgeschlagen — NOT_FOUND").
+window.SUPABASE_URL = SUPABASE_URL;
+window.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+
 let _sb = null;
 let _adminUser = null;
 
