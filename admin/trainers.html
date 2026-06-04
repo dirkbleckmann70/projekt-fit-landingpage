@@ -58,8 +58,15 @@
         <h5 class="modal-title" id="modal-title">Trainer-Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body" id="modal-body">
-        <!-- Filled dynamically -->
+      <div class="modal-body">
+        <ul class="nav nav-tabs mb-3" role="tablist">
+          <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tr-tab-details">Details</a></li>
+          <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tr-tab-history">Verlauf</a></li>
+        </ul>
+        <div class="tab-content">
+          <div class="tab-pane active show" id="tr-tab-details"><div id="modal-body"></div></div>
+          <div class="tab-pane" id="tr-tab-history"><div id="tr-history"></div></div>
+        </div>
       </div>
       <div class="modal-footer pf-modal-footer">
         <button class="pf-btn pf-btn-neutral" onclick="closeModal('detail-modal')">Abbrechen</button>
@@ -189,6 +196,7 @@
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
 <script src="auth-guard.js"></script>
+<script src="../shared/audit-log.js"></script>
 <script src="../shared/form-dirty.js"></script>
 <script>
   let allTrainers = [];
@@ -351,6 +359,21 @@
   }
 
   // ─── Detail Modal ─────────────────────────────────────────────────
+  async function renderTrainerHistory(trainerId) {
+    const el = document.getElementById('tr-history');
+    if (!el) return;
+    el.innerHTML = '<div class="text-muted p-3">Verlauf wird geladen ...</div>';
+    let events = [];
+    try {
+      const resp = await adminApi('/api/admin?action=data&type=trainer_audit_log&trainer_id=' + encodeURIComponent(trainerId));
+      events = (resp && resp.data) || [];
+    } catch (e) {
+      el.innerHTML = '<div class="text-warning p-3">Verlauf konnte nicht geladen werden: ' + auditEscape((e && e.message) || String(e)) + '</div>'; return;
+    }
+    if (!events.length) { el.innerHTML = '<div class="text-muted p-3">Keine Verlaufs-Eintraege fuer diesen Trainer.</div>'; return; }
+    el.innerHTML = '<div class="timeline">' + events.map(renderAuditEntry).join('') + '</div>';
+  }
+
   function openDetailModal(id) {
     const t = allTrainers.find(tr => tr.id === id);
     if (!t) return;
@@ -603,6 +626,8 @@
     `;
 
     new bootstrap.Modal(document.getElementById('detail-modal')).show();
+
+    renderTrainerHistory(id);
 
     if (window._trainerDirty) window._trainerDirty.destroy();
     window._trainerDirty = initFormDirty({
