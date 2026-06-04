@@ -503,7 +503,7 @@
     const headers = ['Datum','Uhrzeit','Kunde','Art','Stadt','Status',
                      'Vergütung brutto (EUR)','MwSt (EUR)','Vergütung netto (EUR)','Auszahlung (EUR)'];
     const rows = yearData.map(b => [
-      b.scheduled_date || '',
+      b.scheduled_date ? formatDate(b.scheduled_date) : '',
       b.scheduled_time ? b.scheduled_time.slice(0, 5) : '',
       b.customer_name  || '',
       b.booking_type === 'group' ? 'GT' : 'PT',

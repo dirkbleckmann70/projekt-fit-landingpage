@@ -771,7 +771,7 @@
     const filtered = tableFilter ? tableFilter.apply(allBookings) : allBookings;
     const headers = ['Datum','Ort','Uhrzeit','Art','Trainer','Kunde','Status','Einnahmen','Rabatt','Rabattcode','Kosten','Zahlung'];
     const rows = filtered.map(b => [
-      b.scheduled_date || '',
+      b.scheduled_date ? formatDate(b.scheduled_date) : '',
       b.trainer_city || b.city || '',
       b.scheduled_time ? b.scheduled_time.slice(0,5) : '',
       getBookingType(b),
