@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   // ── Auth Check ──
   // Bestimmte Endpoints sind auch fuer Trainer zugaenglich
-  const trainerAllowedTypes = ['customer_names', 'booking_locations'];
+  const trainerAllowedTypes = ['customer_names', 'booking_locations', 'trainer_audit_log'];
   const isTrainerAllowedRead = action === 'data' && req.method === 'GET' && trainerAllowedTypes.includes(req.query.type);
   const isTrainerAllowedWrite = (action === 'bookings' && req.method === 'PUT') ||
                                (action === 'update-participant' && req.method === 'PUT');
@@ -1053,6 +1053,83 @@ function getServiceClient() {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
+// ─── Personen-Logbuch (Verlauf pro Kunde + Trainer) ──────────────────────────
+// Whitelist welche Audit-Actions im Personen-Logbuch erscheinen. Trainer-Sicht
+// (TRAINER_OPERATIONAL) enthaelt KEINE Geld-Vorgaenge; Admin-Sicht (full) sieht
+// zusaetzlich Zahlungen, Rechnungen und Bar-Zahlungen.
+const PERSON_KEY_BOOKING = new Set(['created','confirmed','rescheduled','location_changed','check_in','check_out','trainer_checkout','completed','cancelled','escalated','replacement_trainer_search_started','replacement_trainer_accepted','replacement_trainer_confirmed','replacement_trainer_assigned','storno_invoice_created','admin_note','charge_succeeded','charge_failed_card','manual_paid_set','manual_payout_set','manual_admin_added_participant','admin_field_change','bar_verifiziert']);
+const PERSON_KEY_PAYMENT = new Set(['payment_succeeded','payment_captured','refund_created','transfer_created']);
+const PERSON_KEY_INVOICE = new Set(['created']);
+const PERSON_KEY_CASH = new Set(['gemeldet_durch_trainer','verifiziert_durch_admin']);
+const TRAINER_OPERATIONAL = new Set(['created','confirmed','rescheduled','location_changed','check_in','check_out','trainer_checkout','completed','cancelled','escalated','replacement_trainer_search_started','replacement_trainer_accepted','replacement_trainer_confirmed','replacement_trainer_assigned']);
+const TRAINER_DETAIL_KEYS = ['old_date','new_date','old_time','new_time','old_location','new_location','is_trainer_proposal','reason','storno_grund','storno_wer','trainer_id','new_trainer_id','old_trainer_id','new_trainer_name','kandidaten_count','art','booking_type','trainer_checked_out_at'];
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function buildPersonAuditLog(supabase, { column, personId, mode }) {
+  const { data: bks, error: bkErr } = await supabase
+    .from('bookings').select('id, scheduled_date, art')
+    .eq(column, personId).order('scheduled_date', { ascending: false }).limit(300);
+  if (bkErr) throw bkErr;
+  const ids = (bks || []).map(b => b.id);
+  if (!ids.length) return [];
+  const meta = new Map((bks || []).map(b => [b.id, { date: b.scheduled_date, art: b.art }]));
+  const refOf = id => { const m = meta.get(id); return m ? { date: m.date, art: m.art } : null; };
+
+  if (mode === 'trainer') {
+    const { data: aud } = await supabase.from('booking_audit')
+      .select('booking_id, action, actor_type, actor_id, details, created_at')
+      .in('booking_id', ids).order('created_at', { ascending: false }).limit(300);
+    return (aud || [])
+      .filter(e => TRAINER_OPERATIONAL.has(e.action))
+      .map(e => {
+        const src = e.details || {};
+        const details = {};
+        for (const k of TRAINER_DETAIL_KEYS) if (src[k] !== undefined) details[k] = src[k];
+        return { kind: 'booking', at: e.created_at, action: e.action, actor_type: e.actor_type, actor_id: e.actor_id, details, booking_ref: refOf(e.booking_id) };
+      });
+  }
+
+  const [invByBooking, invByGp] = await Promise.all([
+    supabase.from('invoices').select('id, invoice_number, storno_ref, booking_id, group_participant_id').in('booking_id', ids),
+    supabase.from('invoices').select('id, invoice_number, storno_ref, booking_id, group_participant_id').in('group_participant_id', ids),
+  ]);
+  const invMap = new Map();
+  for (const i of [...(invByBooking.data || []), ...(invByGp.data || [])]) invMap.set(i.id, i);
+  const invs = [...invMap.values()];
+  const invIdToNumber = new Map(invs.map(i => [i.id, i.invoice_number || i.storno_ref || i.id.slice(0, 8)]));
+  const invIdToBooking = new Map(invs.map(i => [i.id, i.booking_id || i.group_participant_id]));
+  const invoiceIds = invs.map(i => i.id);
+
+  const [auditRes, payRes, invAuditRes, cashRes] = await Promise.all([
+    supabase.from('booking_audit').select('booking_id, action, actor_type, actor_id, details, created_at')
+      .in('booking_id', ids).order('created_at', { ascending: false }).limit(300),
+    supabase.from('payment_events').select('entity_id, action, actor_type, actor_id, details, amount_cents, currency, stripe_object_type, stripe_object_id, occurred_at')
+      .in('entity_id', ids).in('entity_type', ['booking', 'group_participant']).order('occurred_at', { ascending: false }).limit(300),
+    invoiceIds.length
+      ? supabase.from('invoice_audit').select('invoice_id, action, actor_type, actor_id, details, timestamp')
+        .in('invoice_id', invoiceIds).order('timestamp', { ascending: false }).limit(300)
+      : Promise.resolve({ data: [] }),
+    supabase.from('cash_payment_audit').select('booking_id, action, actor_type, actor_id, amount_cents, pulsly_anteil_cents, details, occurred_at')
+      .in('booking_id', ids).order('occurred_at', { ascending: false }).limit(300),
+  ]);
+
+  return [
+    ...(auditRes.data || []).filter(e => PERSON_KEY_BOOKING.has(e.action)).map(e => ({
+      kind: 'booking', at: e.created_at, action: e.action, actor_type: e.actor_type, actor_id: e.actor_id, details: e.details, booking_ref: refOf(e.booking_id),
+    })),
+    ...(payRes.data || []).filter(e => PERSON_KEY_PAYMENT.has(e.action)).map(e => ({
+      kind: 'payment', at: e.occurred_at, action: e.action, actor_type: e.actor_type, actor_id: e.actor_id, details: e.details, amount_cents: e.amount_cents, currency: e.currency, stripe_object_type: e.stripe_object_type, stripe_object_id: e.stripe_object_id, booking_ref: refOf(e.entity_id),
+    })),
+    ...(invAuditRes.data || []).filter(e => PERSON_KEY_INVOICE.has(e.action)).map(e => ({
+      kind: 'invoice', at: e.timestamp, action: e.action, actor_type: e.actor_type, actor_id: e.actor_id, details: e.details, invoice_label: invIdToNumber.get(e.invoice_id) || null, booking_ref: refOf(invIdToBooking.get(e.invoice_id)),
+    })),
+    ...(cashRes.data || []).filter(e => PERSON_KEY_CASH.has(e.action)).map(e => ({
+      kind: 'cash', at: e.occurred_at, action: e.action, actor_type: e.actor_type, actor_id: e.actor_id, amount_cents: e.amount_cents, booking_ref: refOf(e.booking_id),
+      details: { ...(e.details || {}), pulsly_anteil_cents: e.pulsly_anteil_cents, trainer_anteil_cents: (e.amount_cents != null && e.pulsly_anteil_cents != null) ? e.amount_cents - e.pulsly_anteil_cents : null },
+    })),
+  ].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
+}
+
 // Token-Validierung: einen Anon-Key-Client benutzen, NICHT den Service-Role-
 // Client. Seit der Supabase-Auth-Migration 2025 liefert das JS-SDK ES256-
 // Tokens — der Service-Role-Client kann diese nicht validieren und
@@ -2049,6 +2126,30 @@ async function handleData(req, res, supabase) {
         })),
       ].sort((a, b) => (b.at || '').localeCompare(a.at || ''));
 
+      return res.json({ data: events });
+    }
+
+    // ─── Personen-Logbuch Kunde (Admin): voller Verlauf inkl. Geld-Vorgaenge ──
+    case 'customer_audit_log': {
+      const customerId = req.query.customer_id;
+      if (!customerId || !UUID_RE.test(customerId)) return res.status(400).json({ error: 'customer_id fehlt/ungueltig' });
+      const events = await buildPersonAuditLog(supabase, { column: 'customer_id', personId: customerId, mode: 'full' });
+      return res.json({ data: events });
+    }
+
+    // ─── Personen-Logbuch Trainer: Admin voll, Trainer eigen + OHNE Geld ──────
+    case 'trainer_audit_log': {
+      const caller = await getCallerInfo(req);
+      if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+      let trainerId, mode;
+      if (caller.actorType === 'admin') { trainerId = req.query.trainer_id; mode = 'full'; }
+      else if (caller.actorType === 'trainer') {
+        const { data: tp } = await supabase.from('trainer_profiles').select('id').eq('auth_user_id', caller.authUid).maybeSingle();
+        if (!tp) return res.status(403).json({ error: 'Kein Trainer-Profil' });
+        trainerId = tp.id; mode = 'trainer';
+      } else { return res.status(403).json({ error: 'Kein Zugriff' }); }
+      if (!trainerId || !UUID_RE.test(trainerId)) return res.status(400).json({ error: 'trainer_id fehlt/ungueltig' });
+      const events = await buildPersonAuditLog(supabase, { column: 'trainer_id', personId: trainerId, mode });
       return res.json({ data: events });
     }
 
