@@ -141,8 +141,8 @@
               <input class="form-control pf-field" type="time" id="f-time" required>
             </div>
 
-            <!-- Serien-Toggle (Outlook-Pattern) -->
-            <div class="pf-form-full">
+            <!-- Serien-Toggle (Outlook-Pattern) — nur bei NEUEM Kurs sichtbar (B-2026-06-04-04) -->
+            <div class="pf-form-full" id="series-toggle-row">
               <label class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" id="f-series-toggle">
                 <span class="form-check-label"><i class="ti ti-repeat"></i> Serientermin</span>
@@ -157,29 +157,31 @@
                   <div>Erstellt mehrere Termine auf einmal. Datum oben wird zum Startdatum, jeder Termin wird als einzelner Kurs angelegt.</div>
                 </div>
               </div>
-              <div class="pf-form-grid" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+              <div class="pf-form-grid" style="grid-template-columns:1fr 1fr;gap:10px">
                 <div>
-                  <label class="form-label required">Enddatum</label>
+                  <label class="form-label required">Bis (Enddatum)</label>
                   <input type="date" class="form-control pf-field" id="f-series-end">
                 </div>
                 <div>
-                  <label class="form-label required">Rhythmus</label>
+                  <label class="form-label required">Wie oft wiederholen?</label>
                   <select class="form-select pf-field" id="f-series-rhythm">
-                    <option value="weekly">Wöchentlich</option>
+                    <option value="weekly">Jede Woche</option>
                     <option value="biweekly">Alle 2 Wochen</option>
                   </select>
                 </div>
-                <div>
-                  <label class="form-label">Wochentage</label>
-                  <div class="d-flex gap-1 flex-wrap" id="f-series-days">
-                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="1"><span class="form-check-label">Mo</span></label>
-                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="2"><span class="form-check-label">Di</span></label>
-                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="3"><span class="form-check-label">Mi</span></label>
-                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="4"><span class="form-check-label">Do</span></label>
-                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="5"><span class="form-check-label">Fr</span></label>
-                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="6"><span class="form-check-label">Sa</span></label>
-                    <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" value="7"><span class="form-check-label">So</span></label>
-                  </div>
+              </div>
+              <!-- B-2026-06-04-04: Wochentage als eigener, klar beschrifteter Schritt.
+                   Vorher in 3. Spalte gequetscht → unklar, ob die Auswahl genommen wird. -->
+              <div class="mt-2">
+                <label class="form-label">An welchen Wochentagen? <span class="text-secondary" style="font-weight:400">— mehrere möglich; alle sieben anhaken = täglich</span></label>
+                <div class="d-flex gap-1 flex-wrap" id="f-series-days">
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="f-day-1" value="1"><span class="form-check-label">Mo</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="f-day-2" value="2"><span class="form-check-label">Di</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="f-day-3" value="3"><span class="form-check-label">Mi</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="f-day-4" value="4"><span class="form-check-label">Do</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="f-day-5" value="5"><span class="form-check-label">Fr</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="f-day-6" value="6"><span class="form-check-label">Sa</span></label>
+                  <label class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="f-day-7" value="7"><span class="form-check-label">So</span></label>
                 </div>
               </div>
               <div class="card mt-2" style="border:1px dashed var(--tblr-border-color)">
@@ -541,6 +543,11 @@
   function resetSeriesToggle() {
     document.getElementById('f-series-toggle').checked = false;
     document.getElementById('series-section').style.display = 'none';
+    // B-2026-06-04-04: Serientermin NUR bei neuem Kurs anbieten. Im Bearbeiten-
+    // Modus ist die Serien-Erstellung deaktiviert (isSeries = ... && !editingGroupId);
+    // den Schalter ausblenden, sonst verspricht die Vorschau Termine, die beim
+    // Speichern nicht angelegt werden ("bleibt bei 1").
+    document.getElementById('series-toggle-row').style.display = editingGroupId ? 'none' : '';
     document.getElementById('f-date-label').textContent = 'Datum *';
     document.getElementById('f-series-end').value = '';
     document.querySelectorAll('#f-series-days input').forEach(function(cb) { cb.checked = false; });
@@ -1135,9 +1142,21 @@
       return;
     }
     var dayNamesShort = ['So','Mo','Di','Mi','Do','Fr','Sa'];
-    var html = '<strong>' + dates.length + ' Termine</strong> werden erstellt:<br><div class="row g-1 mt-1">';
+    // B-2026-06-04-04: Klartext-Zusammenfassung, damit sichtbar ist, DASS die
+    // angehakten Wochentage genommen werden (alle 7 = täglich).
+    var rhythmLabel = document.getElementById('f-series-rhythm').value === 'biweekly' ? 'Alle 2 Wochen' : 'Jede Woche';
+    var dayMap = { 1:'Mo', 2:'Di', 3:'Mi', 4:'Do', 5:'Fr', 6:'Sa', 7:'So' };
+    var pickedDays = [];
+    document.querySelectorAll('#f-series-days input:checked').forEach(function(cb){ pickedDays.push(parseInt(cb.value)); });
+    pickedDays.sort(function(a, b){ return a - b; });
+    var daysText = pickedDays.length === 7 ? 'täglich' : pickedDays.map(function(n){ return dayMap[n]; }).join(', ');
+    var html = '<div class="mb-1"><strong>' + rhythmLabel + '</strong> an: <strong>' + daysText + '</strong></div>';
+    html += '<strong>' + dates.length + ' Termine</strong> werden erstellt:<br><div class="row g-1 mt-1">';
     dates.slice(0, 12).forEach(function(d) {
-      html += '<div class="col-md-4"><span class="text-secondary">' + dayNamesShort[d.getDay()] + ', ' + formatDate(d.toISOString().split('T')[0]) + '</span></div>';
+      // B-2026-06-04-04: lokales Datum bilden (NICHT toISOString = UTC → Vortag bei
+      // +X-Zeitzonen). Passt zum Speicher-Pfad (getFullYear/getMonth/getDate).
+      var localStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      html += '<div class="col-md-4"><span class="text-secondary">' + dayNamesShort[d.getDay()] + ', ' + formatDate(localStr) + '</span></div>';
     });
     if (dates.length > 12) html += '<div class="col-12 text-secondary">... +' + (dates.length - 12) + ' weitere</div>';
     html += '</div>';
