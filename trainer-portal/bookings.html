@@ -1273,6 +1273,10 @@
             body: JSON.stringify({
               bookingId: rescheduleBookingId,
               proposed_location_id: rescheduleSelectedLocationId,
+              // B-29-03: Die Pille ist immer ein vom Kunden angebotener Ort →
+              // sofort uebernehmen, KEINE Kunden-Bestaetigung (auch bei einer
+              // Kunden-eigenen Adresse mit is_custom=true).
+              location_is_trainer_proposal: false,
             }),
           });
         } else {

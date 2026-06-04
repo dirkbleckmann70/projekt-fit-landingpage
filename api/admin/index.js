@@ -2972,11 +2972,23 @@ async function handleBookingsPut(req, res, supabase) {
     const locTimestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
     let locAuditNote;
 
-    if (loc.is_custom !== true) {
-      // B-29-02/B-29-03: Trainer waehlt einen der vom Kunden angebotenen Orte
-      // (is_custom=false) -> SOFORT uebernehmen, KEINE Kunden-Bestaetigung noetig.
+    // B-29-03 (04.06.2026): Ob es ein Trainer-DRITTORT (Kunde muss bestaetigen)
+    // oder ein vom KUNDEN angebotener Ort (sofort uebernehmen) ist, signalisiert
+    // der Client explizit (`location_is_trainer_proposal`). Grund: `is_custom`
+    // unterscheidet NICHT zwischen einer vom Kunden selbst eingegebenen eigenen
+    // Adresse (is_custom=true, trotzdem Kunden-Ort) und einem echten Trainer-
+    // Drittort -> sonst wird der Kunde fuer seinen EIGENEN Ort um Bestaetigung
+    // gebeten. Fallback fuer alte Clients ohne das Feld: bisherige is_custom-
+    // Heuristik (Pille=Kunden-Ort wurde frueher per is_custom=false erkannt).
+    const isTrainerProposal = typeof body.location_is_trainer_proposal === 'boolean'
+      ? body.location_is_trainer_proposal
+      : (loc.is_custom === true);
+
+    if (!isTrainerProposal) {
+      // Trainer waehlt einen der vom Kunden angebotenen Orte (Pille) -> SOFORT
+      // uebernehmen, KEINE Kunden-Bestaetigung noetig (auch wenn es eine
+      // vom Kunden eingegebene eigene Adresse mit is_custom=true ist).
       // Geschaeftsregel ARCHITEKTUR.md Vorgang 3 (29.05.2026).
-      // `!== true`: null/undefined (Altdaten) gelten als Kunden-Ort.
       // Haengendes Vorschlag-Flag aus einem frueheren Drittort-Vorschlag AKTIV
       // bereinigen — sonst zeigt der Kunde weiter den Annehmen-Block.
       update.location_name = loc.name;
@@ -2986,9 +2998,10 @@ async function handleBookingsPut(req, res, supabase) {
       update.location_proposed_at = null;
       locAuditNote = `[Location ${locTimestamp}] Trainer waehlt Kunden-Treffpunkt (sofort uebernommen): ${loc.name} (vorher: ${currentLoc.location_name || '—'})`;
     } else {
-      // Trainer-Drittort (is_custom=true) -> Vorschlag mit Kunden-Bestaetigung
-      // (bisheriges Verhalten). Name/Adresse werden erst beim Akzeptieren
-      // (handleLocationAccept) in die Buchung uebernommen.
+      // Trainer-Drittort (Trainer hat einen NEUEN, eigenen Ort angelegt)
+      // -> Vorschlag mit Kunden-Bestaetigung (bisheriges Verhalten). Name/Adresse
+      // werden erst beim Akzeptieren (handleLocationAccept) in die Buchung
+      // uebernommen.
       update.flag_neuer_ort_vorgeschlagen = true;
       update.location_proposed_by = 'trainer';
       update.location_proposed_at = new Date().toISOString();
