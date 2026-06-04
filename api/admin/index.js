@@ -2146,12 +2146,20 @@ async function handleData(req, res, supabase) {
       const caller = await getCallerInfo(req);
       if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
       let trainerId, mode;
-      if (caller.actorType === 'admin') { trainerId = req.query.trainer_id; mode = 'full'; }
-      else if (caller.actorType === 'trainer') {
+      const queryTid = req.query.trainer_id;
+      if (caller.actorType === 'admin' && queryTid) {
+        // Admin-Detailseite uebergibt eine trainer_id -> Voll-Sicht (mit Geld).
+        trainerId = queryTid; mode = 'full';
+      } else {
+        // Trainer-Portal-Kontext (KEIN trainer_id-Param): immer den EIGENEN Trainer
+        // ableiten, betrieblich/ohne Geld. Gilt auch fuer Doppelrollen 'admin,trainer'
+        // (sonst landet ein admin,trainer-Konto faelschlich im Admin-Zweig ohne Param).
+        // Sicherheit: ein Trainer kann durch Mitschicken einer fremden trainer_id NICHT
+        // fremde Daten sehen — wir nehmen IMMER sein eigenes Profil.
         const { data: tp } = await supabase.from('trainer_profiles').select('id').eq('auth_user_id', caller.authUid).maybeSingle();
-        if (!tp) return res.status(403).json({ error: 'Kein Trainer-Profil' });
+        if (!tp) return res.status(403).json({ error: 'Kein Trainer-Profil fuer diesen Account' });
         trainerId = tp.id; mode = 'trainer';
-      } else { return res.status(403).json({ error: 'Kein Zugriff' }); }
+      }
       if (!trainerId || !UUID_RE.test(trainerId)) return res.status(400).json({ error: 'trainer_id fehlt/ungueltig' });
       const events = await buildPersonAuditLog(supabase, { column: 'trainer_id', personId: trainerId, mode });
       return res.json({ data: events });
