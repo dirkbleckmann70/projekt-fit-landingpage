@@ -278,9 +278,15 @@
       const licenseBadge = licenseCount > 0
         ? DESIGN.badge('confirmed').replace('</span>', ` (${licenseCount})</span>`)
         : DESIGN.badge('expired').replace('</span>', ' Keine</span>');
+      const isNewApplication = t.status === 'pending'
+        && window.pfBadgeSeen && !window.pfBadgeSeen.isSeen('admin-bewerbung', t.id);
+      const dot = isNewApplication
+        ? '<span title="Neue Bewerbung" style="flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:var(--tblr-red,#d63939);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">1</span>'
+        : '';
       return `
         <tr data-row-index="${idx}" style="cursor:pointer">
           <td style="display:flex;align-items:center;gap:8px">
+            ${dot}
             ${t.avatar_url
               ? `<img src="${t.avatar_url}" style="width:32px;height:32px;border-radius:50%;object-fit:cover">`
               : `<div style="width:32px;height:32px;border-radius:50%;background:#374151;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">${(t.full_name||'T').charAt(0)}</div>`
@@ -377,6 +383,11 @@
   function openDetailModal(id) {
     const t = allTrainers.find(tr => tr.id === id);
     if (!t) return;
+    if (t.status === 'pending' && window.pfBadgeSeen) {
+      window.pfBadgeSeen.markSeen('admin-bewerbung', t.id);
+      renderTrainers();
+      if (window.pfLoadAdminTrainersBadge) window.pfLoadAdminTrainersBadge();
+    }
     editingTrainerId = id;
 
     const nameParts = (t.full_name || '').split(' ');
@@ -443,12 +454,15 @@
         </div>
         <div class="form-group pf-form-full">
           <label class="form-label">Einsatzorte <span class="text-muted" style="font-weight:400">(mehrere möglich — anhaken)</span></label>
+          ${t.bewerbung_wunsch_display ? `<div class="text-muted" style="font-size:13px;margin-bottom:6px">📍 <strong>Wunsch-Einsatzorte der Bewerbung:</strong> ${t.bewerbung_wunsch_display}</div>` : ''}
           <div class="pf-field" id="edit-city-list" style="max-height:160px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:10px 13px">
             ${serviceLocations.length === 0
               ? '<span class="text-muted" style="font-size:13px">Keine Einsatzorte angelegt — zuerst unter „Standorte" anlegen.</span>'
               : serviceLocations.map(l => {
-                  // Häkchen NUR aus der Einsatzort-Zuweisung — Wohnort zählt NICHT.
-                  const sel = Array.isArray(t.city_ids) && t.city_ids.includes(l.id);
+                  // Häkchen aus der Zuweisung; bei noch nicht zugewiesenem Trainer zusätzlich aus den AKTIVEN Bewerbungs-Wünschen.
+                  const assigned = Array.isArray(t.city_ids) && t.city_ids.length > 0;
+                  const wishActive = (!assigned && Array.isArray(t.bewerbung_wunsch_active_ids)) ? t.bewerbung_wunsch_active_ids : [];
+                  const sel = (Array.isArray(t.city_ids) && t.city_ids.includes(l.id)) || wishActive.includes(l.id);
                   return `<label class="form-check" style="margin:0">
                     <input class="form-check-input edit-city-cb" type="checkbox" id="edit-city-cb-${l.id}" value="${l.id}" ${sel ? 'checked' : ''}>
                     <span class="form-check-label">${l.city}</span>
