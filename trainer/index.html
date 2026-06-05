@@ -647,12 +647,18 @@
                     </div>
                 </div>
 
-                <!-- Einsatzort -->
+                <!-- Einsatzorte (Mehrfachauswahl) -->
                 <div class="form-group" id="g-city">
-                    <label>Gew&uuml;nschter Einsatzort <span class="req">*</span></label>
-                    <input type="text" id="f-city" placeholder="z.B. K&ouml;ln, D&uuml;sseldorf, Bonn..." required>
-                    <div class="field-hint">Stadt oder Region, in der du trainieren m&ouml;chtest.</div>
-                    <div class="field-error">Bitte Einsatzort angeben.</div>
+                    <label>Gew&uuml;nschte Einsatzorte</label>
+                    <div id="f-city-list" style="max-height:180px;overflow-y:auto;border:1px solid var(--border,#2a2f3a);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:8px">
+                        <span style="opacity:.6;font-size:14px">St&auml;dte werden geladen&hellip;</span>
+                    </div>
+                    <div class="field-hint">W&auml;hle alle St&auml;dte, in denen du trainieren m&ouml;chtest. Mehrfachauswahl m&ouml;glich, freiwillig.</div>
+                </div>
+                <div class="form-group" id="g-city-other">
+                    <label>Deine Stadt ist nicht dabei?</label>
+                    <input type="text" id="f-city-other" placeholder="z.B. Ulm, Augsburg &hellip;">
+                    <div class="field-hint">Trag hier St&auml;dte ein, die noch nicht in der Liste stehen &mdash; wir bauen den Trainerpool aus.</div>
                 </div>
 
                 <!-- ── Profil ── -->
@@ -831,12 +837,30 @@
         }).join('');
     }
 
+    // ═══ EINSATZORTE LADEN (Häkchen-Liste, alle Städte inkl. nicht-aktive) ═══
+    function loadCityCheckboxes() {
+        var box = document.getElementById('f-city-list');
+        fetch('/api/service-cities')
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+                var cities = (d && d.cities) ? d.cities : [];
+                if (cities.length === 0) { box.innerHTML = '<span style="opacity:.6;font-size:14px">Zurzeit keine St&auml;dte hinterlegt.</span>'; return; }
+                box.innerHTML = cities.map(function(c){
+                    var inactive = c.is_active === false ? ' <span style="opacity:.55">(zurzeit nicht aktiv)</span>' : '';
+                    return '<label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-size:15px">' +
+                        '<input type="checkbox" class="f-city-cb" value="' + c.id + '" style="width:18px;height:18px;flex:0 0 auto">' +
+                        '<span>' + (c.city || '') + inactive + '</span></label>';
+                }).join('');
+            })
+            .catch(function(){ box.innerHTML = '<span style="opacity:.6;font-size:14px">St&auml;dte konnten nicht geladen werden.</span>'; });
+    }
+    loadCityCheckboxes();
+
     // ═══ FORM VALIDATION ═══
     var reqFields = [
         { id: 'f-firstname', group: 'g-firstname', type: 'text' },
         { id: 'f-lastname', group: 'g-lastname', type: 'text' },
         { id: 'f-email', group: 'g-email', type: 'email' },
-        { id: 'f-city', group: 'g-city', type: 'text' },
         { id: 'f-qual', group: 'g-qual', type: 'text' },
     ];
 
@@ -909,7 +933,8 @@
             lastName: document.getElementById('f-lastname').value.trim(),
             email: document.getElementById('f-email').value.trim(),
             phone: document.getElementById('f-phone').value.trim(),
-            city: document.getElementById('f-city').value.trim(),
+            cityIds: Array.prototype.slice.call(document.querySelectorAll('.f-city-cb:checked')).map(function(cb){ return cb.value; }),
+            cityOther: document.getElementById('f-city-other').value.trim(),
             qualification: document.getElementById('f-qual').value.trim(),
             message: document.getElementById('f-msg').value.trim(),
             address: document.getElementById('f-address').value.trim(),
