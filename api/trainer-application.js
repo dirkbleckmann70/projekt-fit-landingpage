@@ -33,7 +33,8 @@ export default async function handler(req, res) {
     name,
     email,
     phone,
-    city,
+    cityIds,
+    cityOther,
     qualification,
     message,
     steuernummer,
@@ -49,8 +50,8 @@ export default async function handler(req, res) {
     : (name ? name.trim() : '');
 
   // Validate required fields
-  if (!fullName || !email || !city || !qualification) {
-    return res.status(400).json({ success: false, error: 'Pflichtfelder fehlen (Vorname, Nachname, E-Mail, Einsatzort, Qualifikation)' });
+  if (!fullName || !email || !qualification) {
+    return res.status(400).json({ success: false, error: 'Pflichtfelder fehlen (Vorname, Nachname, E-Mail, Qualifikation)' });
   }
 
   const emailTrimmed = email.trim().toLowerCase();
@@ -84,12 +85,26 @@ export default async function handler(req, res) {
     console.error('Duplikat-Check Exception:', err);
   }
 
+  // Wunsch-Einsatzorte: angehakte Stadt-IDs + freier Text. city (Übergangsfeld) =
+  // Name der ERSTEN aktiven angehakten Stadt (per SELECT, nie hardcoded).
+  const ids = Array.isArray(cityIds) ? cityIds.filter(Boolean).map(String) : [];
+  const otherText = (cityOther || '').trim() || null;
+  let cityName = null;
+  if (ids.length > 0) {
+    const { data: locs } = await supabase
+      .from('service_locations').select('id, city, is_active').in('id', ids);
+    const firstActive = (locs || []).find(l => l.is_active);
+    cityName = firstActive ? firstActive.city : null;
+  }
+  const bewerbungWunsch = (ids.length > 0 || otherText) ? { city_ids: ids, text: otherText } : null;
+
   // Build insert payload
   const insertData = {
     full_name: fullName,
     email: emailTrimmed,
     phone: phone ? phone.trim() : null,
-    city: city.trim(),
+    city: cityName,
+    bewerbung_wunsch: bewerbungWunsch,
     bio: message ? message.trim() : null,
     specializations: qualification ? qualification.trim() : null,
     status: 'pending',
