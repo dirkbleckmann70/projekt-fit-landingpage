@@ -1709,6 +1709,33 @@ async function handleData(req, res, supabase) {
         console.error('all_trainers cities-Anreicherung fehlgeschlagen:', e?.message || e);
       }
 
+      // Wunsch-Einsatzorte der Bewerbung auflösen (Anzeige-String + aktive Vorhak-IDs).
+      // ALLE service_locations (auch inaktive) — separat von der aktiv-only Anreicherung.
+      try {
+        const hasWish = (data || []).some(t => t.bewerbung_wunsch && (
+          (Array.isArray(t.bewerbung_wunsch.city_ids) && t.bewerbung_wunsch.city_ids.length) || t.bewerbung_wunsch.text));
+        if (hasWish) {
+          const { data: allLocs } = await supabase.from('service_locations').select('id, city, is_active');
+          const locMap = {};
+          (allLocs || []).forEach(l => { locMap[String(l.id)] = l; });
+          (data || []).forEach(t => {
+            const w = t.bewerbung_wunsch;
+            if (!w) return;
+            const wishIds = Array.isArray(w.city_ids) ? w.city_ids.map(String) : [];
+            const parts = wishIds.map(id => {
+              const l = locMap[id];
+              if (!l) return null;
+              return l.is_active ? l.city : `${l.city} (zurzeit nicht aktiv)`;
+            }).filter(Boolean);
+            if (w.text) parts.push(`zusätzlich gemeldet: ${w.text}`);
+            t.bewerbung_wunsch_display = parts.length ? parts.join(', ') : null;
+            t.bewerbung_wunsch_active_ids = wishIds.filter(id => locMap[id] && locMap[id].is_active);
+          });
+        }
+      } catch (e) {
+        console.error('Bewerbungs-Wunsch-Aufloesung fehlgeschlagen:', e?.message || e);
+      }
+
       return res.json({ data });
     }
 
@@ -1719,6 +1746,16 @@ async function handleData(req, res, supabase) {
         .eq('status', 'active')
         .eq('is_active', true)
         .order('full_name');
+      if (error) throw error;
+      return res.json({ data });
+    }
+
+    case 'pending_trainers': {
+      const { data, error } = await supabase
+        .from('trainer_profiles')
+        .select('id, full_name, created_at')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
       if (error) throw error;
       return res.json({ data });
     }
