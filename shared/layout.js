@@ -47,7 +47,10 @@ window.renderAdminSidebar = function renderAdminSidebar(activePage) {
         </div>`).join('');
 
   // Nach dem DOM-Einbau den Ersatz-Suche-Zaehler laden (laeuft auf jeder Admin-Seite).
-  setTimeout(function () { if (window.pfLoadAdminBookingsBadge) window.pfLoadAdminBookingsBadge(); }, 60);
+  setTimeout(function () {
+    if (window.pfLoadAdminBookingsBadge) window.pfLoadAdminBookingsBadge();
+    if (window.pfLoadAdminTrainersBadge) window.pfLoadAdminTrainersBadge();
+  }, 60);
   return `<aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="light">
   <div class="container-fluid">
     <h1 class="navbar-brand navbar-brand-autodark" style="display:block;width:100%;text-align:center;padding:8px 0;margin-bottom:8px">
@@ -268,6 +271,28 @@ window.pfLoadAdminBookingsBadge = async function pfLoadAdminBookingsBadge() {
         !window.pfBadgeSeen.isSeen('admin-ersatz', b.id + '|' + (b.replacement_search_started_at || ''));
     }).length;
     window.pfSetBookingsBadge(n);
+  } catch (e) { /* still */ }
+};
+
+// Setzt das Bewerbungs-Zeichen am Menue „Trainer" (Sidebar + Mobile-Navi).
+window.pfSetTrainersBadge = function pfSetTrainersBadge(count) {
+  ['pf-menu-badge-trainers', 'pf-navbadge-trainers'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (count > 0) { el.textContent = count; el.classList.remove('d-none'); }
+    else { el.textContent = ''; el.classList.add('d-none'); }
+  });
+};
+
+// Admin: zaehlt offene Bewerbungen (status=pending), die noch NICHT gesehen wurden.
+window.pfLoadAdminTrainersBadge = async function pfLoadAdminTrainersBadge() {
+  try {
+    if (typeof adminApi !== 'function') return;
+    var res = await adminApi('/api/admin?action=data&type=pending_trainers');
+    var n = (res.data || []).filter(function (t) {
+      return !window.pfBadgeSeen.isSeen('admin-bewerbung', t.id);
+    }).length;
+    window.pfSetTrainersBadge(n);
   } catch (e) { /* still */ }
 };
 
