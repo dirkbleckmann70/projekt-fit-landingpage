@@ -209,10 +209,13 @@
       ptAll = all;
 
       // GT-Kurse im Monat / gesamt (nur aktive Kurse zaehlen als Buchung).
+      // "Monat" = laufender KALENDERmonat (Praefix YYYY-MM), NICHT ">= Monatsanfang"
+      // (sonst wuerden zukuenftige Termine mitgezaehlt -> Abweichung zum Kreisdiagramm).
+      const monthPrefix = monthISO.slice(0, 7);
       const gtActive = gtClasses.filter(c => c.is_active);
-      const gtMonth = gtActive.filter(c => (c.scheduled_date || '') >= monthISO);
+      const gtMonth = gtActive.filter(c => (c.scheduled_date || '').startsWith(monthPrefix));
 
-      const monthActive = all.filter(b => b.scheduled_date >= monthISO);
+      const monthActive = all.filter(b => (b.scheduled_date || '').startsWith(monthPrefix));
       document.getElementById('kpi-month').textContent = monthActive.length + gtMonth.length;
 
       const monthEarnings =
