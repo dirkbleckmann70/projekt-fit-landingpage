@@ -169,8 +169,10 @@
     // Teilnehmerzahl + Trainer-Honorar je Kurs (aktive Teilnahmen).
     function gtCount(classId) { return (gtPartsByClass[classId] || []).length; }
     function gtPayout(classId) {
+      // Nur abgeschlossene Teilnahmen zaehlen — Honorar-Regel "Trainer bekommt nie
+      // Honorar fuer ein nicht stattgefundenes Training" (konsistent zur PT-Verdienst-KPI).
       return (gtPartsByClass[classId] || [])
-        .filter(p => ['bestaetigt', 'abgeschlossen', 'laeuft gerade'].includes(p.status))
+        .filter(p => p.status === 'abgeschlossen')
         .reduce((s, p) => s + (p.trainer_payout_cents || 0), 0);
     }
 
