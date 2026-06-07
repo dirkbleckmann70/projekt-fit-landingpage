@@ -60,18 +60,18 @@
            weil sie der Pending-Liste oben widerspricht) -->
       <div class="row row-deck row-cards mb-3">
         <div class="col-12 col-lg-4">
-          <div class="pf-stat-card">
+          <a href="/trainer-portal/bookings.html" class="pf-stat-card" style="text-decoration:none;color:inherit;cursor:pointer">
             <div class="pf-stat-label">Buchungen (Monat)</div>
             <div class="pf-stat-num" id="kpi-month"><div class="spinner-border spinner-border-sm"></div></div>
             <div class="kpi-sub" id="kpi-month-total"></div>
-          </div>
+          </a>
         </div>
         <div class="col-12 col-lg-4">
-          <div class="pf-stat-card">
+          <a href="/trainer-portal/bookings.html" class="pf-stat-card" style="text-decoration:none;color:inherit;cursor:pointer">
             <div class="pf-stat-label">Verdienst (Monat)</div>
             <div class="pf-stat-num" id="kpi-earnings"><div class="spinner-border spinner-border-sm"></div></div>
             <div class="kpi-sub" id="kpi-earnings-total"></div>
-          </div>
+          </a>
         </div>
         <div class="col-12 col-lg-4">
           <div class="pf-stat-card">
@@ -143,29 +143,65 @@
     monthStart.setDate(1);
     const monthISO = monthStart.toISOString().slice(0, 10);
 
+    // GT-Kurse des Trainers + ihre Teilnahmen einmal laden (fuer KPI + Termine).
+    let gtClasses = [];
+    let gtPartsByClass = {};   // class_id -> [{status, trainer_payout_cents}]
     try {
-      // Teilspec 1: 7-Wert-Kanon. PT-Einzeltrainings filtern (GT-Statistik haengt im Trainer-Portal nicht hier).
+      const { data: gcs } = await sb
+        .from('group_classes')
+        .select('*')
+        .eq('trainer_id', trainerId);
+      gtClasses = gcs || [];
+      const gtIds = gtClasses.map(c => c.id);
+      if (gtIds.length > 0) {
+        const { data: gparts } = await sb
+          .from('bookings')
+          .select('group_class_id, status, trainer_payout_cents')
+          .eq('art', 'gt_teilnahme')
+          .in('group_class_id', gtIds)
+          .neq('status', 'storniert');
+        (gparts || []).forEach(p => {
+          (gtPartsByClass[p.group_class_id] = gtPartsByClass[p.group_class_id] || []).push(p);
+        });
+      }
+    } catch (err) { console.warn('GT laden fehlgeschlagen:', err && err.message); }
+
+    // Teilnehmerzahl + Trainer-Honorar je Kurs (aktive Teilnahmen).
+    function gtCount(classId) { return (gtPartsByClass[classId] || []).length; }
+    function gtPayout(classId) {
+      return (gtPartsByClass[classId] || [])
+        .filter(p => ['bestaetigt', 'abgeschlossen', 'laeuft gerade'].includes(p.status))
+        .reduce((s, p) => s + (p.trainer_payout_cents || 0), 0);
+    }
+
+    try {
+      // PT-Einzeltrainings (7-Wert-Kanon).
       const { data: allBookings } = await sb
         .from('bookings')
         .select('id, trainer_payout_cents, status, scheduled_date')
         .eq('trainer_id', trainerId)
         .eq('art', 'pt_einzel')
         .in('status', ['bestaetigt', 'laeuft gerade', 'abgeschlossen']);
-
       const all = allBookings || [];
 
-      const monthActive = all.filter(b => b.scheduled_date >= monthISO);
-      document.getElementById('kpi-month').textContent = monthActive.length;
+      // GT-Kurse im Monat / gesamt (nur aktive Kurse zaehlen als Buchung).
+      const gtActive = gtClasses.filter(c => c.is_active);
+      const gtMonth = gtActive.filter(c => (c.scheduled_date || '') >= monthISO);
 
-      const monthEarnings = monthActive
-        .filter(b => b.status === 'abgeschlossen')
-        .reduce((sum, b) => sum + (b.trainer_payout_cents || 0), 0);
+      const monthActive = all.filter(b => b.scheduled_date >= monthISO);
+      document.getElementById('kpi-month').textContent = monthActive.length + gtMonth.length;
+
+      const monthEarnings =
+        monthActive.filter(b => b.status === 'abgeschlossen')
+          .reduce((sum, b) => sum + (b.trainer_payout_cents || 0), 0)
+        + gtMonth.reduce((sum, c) => sum + gtPayout(c.id), 0);
       document.getElementById('kpi-earnings').textContent = formatEuro(monthEarnings);
 
-      document.getElementById('kpi-month-total').textContent = `Gesamt: ${all.length}`;
-      const totalEarnings = all
-        .filter(b => b.status === 'abgeschlossen')
-        .reduce((sum, b) => sum + (b.trainer_payout_cents || 0), 0);
+      document.getElementById('kpi-month-total').textContent = `Gesamt: ${all.length + gtActive.length}`;
+      const totalEarnings =
+        all.filter(b => b.status === 'abgeschlossen')
+          .reduce((sum, b) => sum + (b.trainer_payout_cents || 0), 0)
+        + gtActive.reduce((sum, c) => sum + gtPayout(c.id), 0);
       document.getElementById('kpi-earnings-total').textContent = `Gesamt: ${formatEuro(totalEarnings)}`;
     } catch (err) {
       console.error('KPIs:', err);
@@ -173,10 +209,11 @@
       document.getElementById('kpi-earnings').textContent = '–';
     }
 
-    // ─── Upcoming Bookings ────────────────────────────────────────
-    const today = new Date().toISOString().slice(0, 10);
+    // ─── Naechste Termine (PT + GT) ───────────────────────────────
+    const today = new Date().toISOString().slice(0, 10);   // IIFE-Scope, vor try — Pending-Block braucht es
     try {
-      const { data: upcoming } = await sb
+      // PT: bestaetigte, zukuenftige Einzeltrainings.
+      const { data: ptUpcoming } = await sb
         .from('bookings')
         .select('*')
         .eq('trainer_id', trainerId)
@@ -184,25 +221,57 @@
         .eq('status', 'bestaetigt')
         .gte('scheduled_date', today)
         .order('scheduled_date', { ascending: true })
-        .limit(5);
+        .limit(10);
+
+      // Kundennamen fuer PT nachladen (analog Pending-Block).
+      let ptItems = ptUpcoming || [];
+      const ptCustIds = [...new Set(ptItems.map(b => b.customer_id).filter(Boolean))];
+      if (ptCustIds.length > 0) {
+        try {
+          const r = await adminApi('/api/admin?action=data&type=customer_names&ids=' + ptCustIds.join(','));
+          const map = {};
+          (r.data || []).forEach(c => { map[c.id] = c.full_name || [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Kunde'; });
+          ptItems = ptItems.map(b => Object.assign({}, b, { _display: map[b.customer_id] || b.customer_name || 'Kunde' }));
+        } catch (e) { console.warn('Kundennamen laden fehlgeschlagen:', e.message); }
+      }
+
+      // Termine vereinheitlichen: { date, time, title, location, badge }.
+      const ptEntries = ptItems.map(b => ({
+        date: b.scheduled_date, time: b.scheduled_time,
+        title: b._display || b.customer_name || 'Kunde',
+        location: b.location_name || b.location || '–',
+        badge: DESIGN.badge(b.status),
+      }));
+      const gtEntries = gtClasses
+        .filter(c => c.is_active && (c.scheduled_date || '') >= today)
+        .map(c => ({
+          date: c.scheduled_date, time: c.scheduled_time,
+          title: c.name || 'Gruppentraining',
+          location: c.city || '–',
+          badge: DESIGN.gtBadge(gtCount(c.id), c.min_participants, c.is_active),
+        }));
+
+      const entries = ptEntries.concat(gtEntries)
+        .sort((a, b) => ((a.date || '') + (a.time || '')).localeCompare((b.date || '') + (b.time || '')))
+        .slice(0, 5);
 
       const list = document.getElementById('upcoming-list');
-      if (!upcoming || upcoming.length === 0) {
+      if (entries.length === 0) {
         list.innerHTML = '<div class="card-body text-center text-secondary"><i class="ti ti-calendar-off mb-2" style="font-size:2rem"></i><br>Keine kommenden Termine</div>';
       } else {
-        list.innerHTML = '<div class="card-body p-0">' + upcoming.map(b => `
-          <div class="p-3 border-bottom" style="border-color:var(--tblr-border-color)!important">
+        list.innerHTML = '<div class="card-body p-0">' + entries.map(e => `
+          <a href="/trainer-portal/bookings.html" class="d-block p-3 border-bottom" style="text-decoration:none;color:inherit;border-color:var(--tblr-border-color)!important">
             <div class="d-flex justify-content-between align-items-start">
               <div>
-                <div class="fw-bold">${b.customer_name || 'Kunde'}</div>
+                <div class="fw-bold">${e.title}</div>
                 <div class="text-secondary" style="font-size:13px">
-                  <i class="ti ti-calendar" style="font-size:14px"></i> ${formatDate(b.scheduled_date)} · ${formatTime(b.scheduled_time)}<br>
-                  <i class="ti ti-map-pin" style="font-size:14px"></i> ${b.location_name || b.location || '–'}
+                  <i class="ti ti-calendar" style="font-size:14px"></i> ${formatDate(e.date)} · ${formatTime(e.time)}<br>
+                  <i class="ti ti-map-pin" style="font-size:14px"></i> ${e.location}
                 </div>
               </div>
-              ${statusBadge(b.status)}
+              ${e.badge}
             </div>
-          </div>
+          </a>
         `).join('') + '</div>';
       }
     } catch (err) {
