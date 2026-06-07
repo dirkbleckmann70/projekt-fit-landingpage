@@ -29,6 +29,7 @@
     completed:            { bg: '#eff6ff', text: '#0369a1', label: 'Erledigt' },
     cancelled:            { bg: '#fef2f2', text: '#dc2626', label: 'Storniert' },
     expired:              { bg: '#f1f5f9', text: '#64748b', label: 'Abgelaufen' },
+    geplant:              { bg: '#f1f5f9', text: '#64748b', label: 'Geplant' },
     reschedule_proposed:  { bg: '#faf5ff', text: '#7c3aed', label: 'Umbuchen' },
     location_proposed:    { bg: '#faf5ff', text: '#7c3aed', label: 'Neuer Ort' },
     disputed:             { bg: '#fef2f2', text: '#dc2626', label: 'Strittig' },
@@ -48,6 +49,27 @@
   function badge(status) {
     const def = STATUS[status] || { bg: '#f1f5f9', text: '#64748b', label: status || '–' };
     return `<span class="pf-badge" style="background:${def.bg};color:${def.text}">${def.label}</span>`;
+  }
+
+  /**
+   * gtBadge(participantCount, minParticipants, isActive) → Status-Kennzeichen
+   * fuer einen Gruppenkurs.
+   *   - inaktiv/vergangen            → "Abgelaufen"
+   *   - aktiv + genug Teilnehmer     → "Bestaetigt"
+   *   - aktiv + zu wenige Teilnehmer → "Geplant · X/Y" (X=aktuell, Y=Mindestzahl)
+   * Mindestzahl null/0/1 gilt als immer erfuellt (kein Mindest-Gate).
+   * @param {number} participantCount
+   * @param {number} minParticipants
+   * @param {boolean} isActive
+   * @returns {string}
+   */
+  function gtBadge(participantCount, minParticipants, isActive) {
+    if (!isActive) return badge('expired');
+    const count = participantCount || 0;
+    const min = minParticipants || 0;
+    if (min <= 1 || count >= min) return badge('confirmed');
+    const def = STATUS.geplant;
+    return `<span class="pf-badge" style="background:${def.bg};color:${def.text}">Geplant · ${count}/${min}</span>`;
   }
 
   // ─── Knopf-Klassen ────────────────────────────────────────────────────────
@@ -76,6 +98,7 @@
     {
       STATUS,
       badge,
+      gtBadge,
       BTN,
       MODAL,
       FIELD_READONLY_CLASS,
