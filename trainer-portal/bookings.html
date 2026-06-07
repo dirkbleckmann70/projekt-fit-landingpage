@@ -332,9 +332,7 @@
 
   function statusBadgeBK(item) {
     if (item._type === 'gt') {
-      return item.is_active
-        ? DESIGN.badge('confirmed')
-        : DESIGN.badge('expired');
+      return DESIGN.gtBadge(item.participant_count, item.min_participants, item.is_active);
     }
     return DESIGN.badge(item.status);
   }
@@ -500,6 +498,7 @@
           group_class_name:       gc.name || 'Gruppentraining',
           participant_count:      pcMap[gc.id] || 0,
           max_participants:       gc.max_participants,
+          min_participants:       gc.min_participants,
           price_per_person_cents: gc.price_per_person_cents,
           participants:           participantsMap[gc.id] || [],
         }));
