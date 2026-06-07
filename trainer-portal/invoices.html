@@ -108,12 +108,14 @@
               <tr>
                 <th>Nr.</th><th>Datum</th><th>Typ</th><th>Teilnehmer / Kunde</th>
                 <th style="text-align:right">Netto</th><th style="text-align:right">MwSt</th>
-                <th style="text-align:right">Brutto</th><th style="text-align:center">PDF</th>
+                <th style="text-align:right">Brutto</th>
+                <th style="text-align:center">Öffnen</th>
+                <th style="text-align:center">PDF</th>
                 <th style="text-align:center">Druck</th>
               </tr>
             </thead>
             <tbody id="invoices-body">
-              <tr><td colspan="9" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</td></tr>
+              <tr><td colspan="10" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</td></tr>
             </tbody>
             <tfoot id="invoices-foot" style="display:none">
               <tr class="sum-row">
@@ -121,7 +123,7 @@
                 <td style="text-align:right" id="sum-netto"></td>
                 <td style="text-align:right" class="text-secondary" id="sum-mwst"></td>
                 <td class="text-primary" style="text-align:right" id="sum-brutto"></td>
-                <td></td><td></td>
+                <td></td><td></td><td></td>
               </tr>
             </tfoot>
           </table>
@@ -267,7 +269,7 @@
       ['kpi-count','kpi-netto','kpi-mwst','kpi-brutto'].forEach(id =>
         document.getElementById(id).textContent = '–');
       document.getElementById('invoices-body').innerHTML =
-        '<tr><td colspan="9" class="text-secondary text-center" style="padding:16px">Kein Trainer-Profil verknüpft.</td></tr>';
+        '<tr><td colspan="10" class="text-secondary text-center" style="padding:16px">Kein Trainer-Profil verknüpft.</td></tr>';
       return;
     }
 
@@ -285,7 +287,11 @@
     const year = selectedYear;
 
     try {
-      const { data, error } = await sb
+      // Schritt 1: alle Trainer-Belege (Gutschrift + Stornobelege) des Jahres.
+      // NUR 'gutschrift' + 'stornobeleg' laden — NICHT 'stornobeleg_gt_card':
+      // GT-Karten-Stornos betreffen die Prepaid-10er-Karte des KUNDEN und sind
+      // nie Trainer-eigen. (B-07-03)
+      const { data: raw, error } = await sb
         .from('invoices')
         .select('*')
         .eq('trainer_id', tid)
@@ -293,19 +299,20 @@
         .gte('issued_at', `${year}-01-01`)
         .lte('issued_at', `${year}-12-31`)
         .order('issued_at', { ascending: false });
-
       if (error) throw error;
 
-      allInvoices = data || [];
+      allInvoices = await filterTrainerOwnInvoices(sb, raw || []);
 
-      const { data: yearRows } = await sb
+      // Jahres-Auswahl: ueber ALLE Jahre, ebenfalls gefiltert auf Trainer-eigen.
+      const { data: yearRaw } = await sb
         .from('invoices')
-        .select('issued_at')
+        .select('id, type, storno_ref, issued_at')
         .eq('trainer_id', tid)
         .in('type', ['gutschrift', 'stornobeleg'])
         .order('issued_at', { ascending: false });
+      const yearOwn = await filterTrainerOwnInvoices(sb, yearRaw || []);
 
-      const years = [...new Set((yearRows || []).map(r => (r.issued_at || '').slice(0, 4)).filter(Boolean))].sort().reverse();
+      const years = [...new Set(yearOwn.map(r => (r.issued_at || '').slice(0, 4)).filter(Boolean))].sort().reverse();
       if (!years.includes(String(selectedYear))) years.unshift(String(selectedYear));
 
       const sel = document.getElementById('year-select');
@@ -316,10 +323,33 @@
       applyFilters();
     } catch (err) {
       document.getElementById('invoices-body').innerHTML =
-        `<tr><td colspan="9" class="text-danger text-center" style="padding:20px">Fehler: ${err.message}</td></tr>`;
+        `<tr><td colspan="10" class="text-danger text-center" style="padding:20px">Fehler: ${err.message}</td></tr>`;
       ['kpi-count','kpi-netto','kpi-mwst','kpi-brutto'].forEach(id =>
         document.getElementById(id).textContent = '–');
     }
+  }
+
+  // Behaelt nur Trainer-eigene Belege: Gutschriften IMMER; Stornobelege NUR,
+  // wenn ihr Original (storno_ref -> invoice_number) selbst eine Gutschrift ist.
+  // Verhindert, dass der Kunden-Stornobeleg (traegt nur zur Zuordnung die
+  // trainer_id) mit Kundenpreis in der Trainer-Ansicht erscheint. Default =
+  // ausblenden (kein Original lesbar/keine Gutschrift -> raus). (B-07-03)
+  async function filterTrainerOwnInvoices(sb, rows) {
+    const gutschriften = rows.filter(inv => (inv.type || '') === 'gutschrift');
+    const stornos = rows.filter(inv => isStorno(inv));
+    if (stornos.length === 0) return gutschriften;
+
+    const refs = [...new Set(stornos.map(s => s.storno_ref).filter(Boolean))];
+    let gutschriftRefs = new Set();
+    if (refs.length > 0) {
+      const { data: origs } = await sb
+        .from('invoices')
+        .select('invoice_number, type')
+        .in('invoice_number', refs);
+      (origs || []).forEach(o => { if ((o.type || '') === 'gutschrift') gutschriftRefs.add(o.invoice_number); });
+    }
+    const ownStornos = stornos.filter(s => s.storno_ref && gutschriftRefs.has(s.storno_ref));
+    return gutschriften.concat(ownStornos);
   }
 
   function applyFilters() {
@@ -348,7 +378,7 @@
     const tfoot = document.getElementById('invoices-foot');
 
     if (data.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-secondary" style="padding:32px">Keine Gutschriften gefunden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="text-center text-secondary" style="padding:32px">Keine Gutschriften gefunden</td></tr>';
       tfoot.style.display = 'none';
       return;
     }
@@ -356,8 +386,8 @@
     tbody.innerHTML = data.map(inv => {
       const storno     = isStorno(inv);
       const bt         = getBookingType(inv);
-      const bruttoCents = storno ? -(Math.abs(inv.amount_gross_cents || 0)) : (inv.amount_gross_cents || 0);
-      const nettoCents  = storno ? -(Math.abs(inv.amount_net_cents  || 0)) : (inv.amount_net_cents  || 0);
+      const bruttoCents = storno ? -(Math.abs(inv.total_cents || 0)) : (inv.total_cents || 0);
+      const nettoCents  = storno ? -(Math.abs(inv.net_amount_cents || 0)) : (inv.net_amount_cents || 0);
       const mwstCents   = bruttoCents - nettoCents;
       const rowClass   = storno ? ' class="storno-row"' : '';
 
@@ -385,6 +415,12 @@
         ${bruttoCell}
         <td style="text-align:center">
           ${inv.pdf_path
+            ? `<button class="pf-btn pf-btn-neutral" onclick="openPdf('${inv.pdf_path}')" title="Beleg anzeigen"><i class="ti ti-eye"></i></button>`
+            : '<span class="text-secondary" style="font-size:12px">–</span>'
+          }
+        </td>
+        <td style="text-align:center">
+          ${inv.pdf_path
             ? `<button class="pf-btn pf-btn-neutral" onclick="downloadPdf('${inv.pdf_path}')" title="PDF herunterladen"><i class="ti ti-download"></i></button>`
             : '<span class="text-secondary" style="font-size:12px">–</span>'
           }
@@ -397,11 +433,11 @@
 
     const sumNetto  = data.reduce((s, inv) => {
       const storno = isStorno(inv);
-      return s + (storno ? -(Math.abs(inv.amount_net_cents || 0)) : (inv.amount_net_cents || 0));
+      return s + (storno ? -(Math.abs(inv.net_amount_cents || 0)) : (inv.net_amount_cents || 0));
     }, 0);
     const sumBrutto = data.reduce((s, inv) => {
       const storno = isStorno(inv);
-      return s + (storno ? -(Math.abs(inv.amount_gross_cents || 0)) : (inv.amount_gross_cents || 0));
+      return s + (storno ? -(Math.abs(inv.total_cents || 0)) : (inv.total_cents || 0));
     }, 0);
     const sumMwst   = sumBrutto - sumNetto;
 
@@ -414,18 +450,26 @@
 
   function updateKPIs(data) {
     const gutschriften = data.filter(inv => !isStorno(inv));
-    const sumBrutto = data.reduce((s, inv) => {
-      return s + (isStorno(inv) ? -(Math.abs(inv.amount_gross_cents || 0)) : (inv.amount_gross_cents || 0));
-    }, 0);
-    const sumNetto = data.reduce((s, inv) => {
-      return s + (isStorno(inv) ? -(Math.abs(inv.amount_net_cents || 0)) : (inv.amount_net_cents || 0));
-    }, 0);
+    const sumBrutto = data.reduce((s, inv) =>
+      s + (isStorno(inv) ? -(Math.abs(inv.total_cents || 0)) : (inv.total_cents || 0)), 0);
+    const sumNetto = data.reduce((s, inv) =>
+      s + (isStorno(inv) ? -(Math.abs(inv.net_amount_cents || 0)) : (inv.net_amount_cents || 0)), 0);
     const sumMwst = sumBrutto - sumNetto;
 
     document.getElementById('kpi-count').textContent  = gutschriften.length;
     document.getElementById('kpi-netto').textContent  = fSigned(sumNetto);
     document.getElementById('kpi-mwst').textContent   = fSigned(sumMwst);
     document.getElementById('kpi-brutto').textContent = fSigned(sumBrutto);
+  }
+
+  async function openPdf(pdfPath) {
+    const sb = getSupabase();
+    try {
+      const { data, error } = await sb.storage.from('invoices').createSignedUrl(pdfPath, 3600);
+      if (error) throw error;
+      if (data?.signedUrl) { window.open(data.signedUrl, '_blank'); }
+      else { alert('Beleg konnte nicht geladen werden.'); }
+    } catch (err) { alert('Fehler beim Öffnen des Belegs: ' + err.message); }
   }
 
   async function downloadPdf(pdfPath) {
@@ -475,8 +519,8 @@
     const headers = ['Nr.','Datum','Typ','Kunde','Netto (EUR)','MwSt (EUR)','Brutto (EUR)'];
     const rows = filtered.map(inv => {
       const storno      = isStorno(inv);
-      const bruttoCents = storno ? -(Math.abs(inv.amount_gross_cents || 0)) : (inv.amount_gross_cents || 0);
-      const nettoCents  = storno ? -(Math.abs(inv.amount_net_cents  || 0)) : (inv.amount_net_cents  || 0);
+      const bruttoCents = storno ? -(Math.abs(inv.total_cents || 0)) : (inv.total_cents || 0);
+      const nettoCents  = storno ? -(Math.abs(inv.net_amount_cents || 0)) : (inv.net_amount_cents || 0);
       const mwstCents   = bruttoCents - nettoCents;
       return [
         inv.invoice_number || inv.number || '',
