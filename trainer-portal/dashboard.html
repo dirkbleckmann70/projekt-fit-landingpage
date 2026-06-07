@@ -71,6 +71,34 @@
         </div>
       </div>
 
+      <!-- Diagramme -->
+      <div class="row row-cards mb-3">
+        <div class="col-12 col-lg-5">
+          <div class="card h-100"><div class="card-header"><h3 class="card-title">Trainings diesen Monat</h3></div>
+            <div class="card-body"><div id="chart-donut"></div></div></div>
+        </div>
+        <div class="col-12 col-lg-7">
+          <div class="card h-100"><div class="card-header"><h3 class="card-title">Buchungen gesamt</h3><span class="ms-auto text-secondary" style="font-size:12px">12 Monate</span></div>
+            <div class="card-body"><div id="chart-total"></div></div></div>
+        </div>
+      </div>
+      <div class="row row-cards mb-3">
+        <div class="col-12 col-lg-6">
+          <div class="card h-100"><div class="card-header"><h3 class="card-title">PT / GT Buchungen</h3><span class="ms-auto text-secondary" style="font-size:12px">12 Monate</span></div>
+            <div class="card-body"><div id="chart-ptgt"></div></div></div>
+        </div>
+        <div class="col-12 col-lg-6">
+          <div class="card h-100"><div class="card-header"><h3 class="card-title">Kunden</h3><span class="ms-auto text-secondary" style="font-size:12px">12 Monate</span></div>
+            <div class="card-body"><div id="chart-kunden"></div></div></div>
+        </div>
+      </div>
+      <div class="row row-cards mb-3">
+        <div class="col-12">
+          <div class="card"><div class="card-header"><h3 class="card-title">Verdienst</h3><span class="ms-auto text-secondary" style="font-size:12px">12 Monate · nur abgeschlossen</span></div>
+            <div class="card-body"><div id="chart-verdienst"></div></div></div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -85,6 +113,8 @@
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
 <script src="auth-check.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="dashboard-charts.js"></script>
 <script>
   (async () => {
     const trainer = await checkTrainerAuth();
@@ -341,6 +371,11 @@
     // Endpunkt noch nicht deployed ist.
     window._replCandidateId = trainerId;
     await loadReplacementRequests();
+
+    // ─── Diagramme (duerfen das Dashboard nicht blockieren) ───────
+    try {
+      window.renderDashboardCharts({ ptBookings: ptAll, gtClasses, gtPartsByClass });
+    } catch (err) { console.warn('Diagramme fehlgeschlagen:', err && err.message); }
   })();
 
   // Offene Vertretungs-Anfragen des angemeldeten Trainers laden + rendern.
