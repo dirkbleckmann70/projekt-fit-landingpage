@@ -220,17 +220,6 @@
       ? '<div class="text-secondary mt-1" style="font-size:12px">' + klartext + '</div>'
       : '';
 
-    // Roh-JSON nur fuer Tech-Pruefung, eingeklappt + kleiner Schriftgrad.
-    // Bei synthetischen Eintraegen (rekonstruiert aus Buchungs-Spalten) entfaellt der Toggle,
-    // weil die Roh-Felder identisch sind zur Klartext-Zusammenfassung.
-    let rohHtml = '';
-    if (!e.synthetic && e.details && typeof e.details === 'object' && Object.keys(e.details).length > 0) {
-      const detailJson = JSON.stringify(e.details, null, 2);
-      rohHtml = '<details class="mt-1"><summary class="text-secondary" style="cursor:pointer;font-size:10px;opacity:0.7">Roh-Daten anzeigen</summary>'
-        + '<pre style="font-size:10px;margin:4px 0 0 0;white-space:pre-wrap;word-break:break-word;opacity:0.7">' + auditEscape(detailJson) + '</pre>'
-        + '</details>';
-    }
-
     // Bei Buchungs-Eintraegen ist der kindLabel ("Buchung") redundant — der Kontext ist klar.
     // Bei Zahlung/Rechnung zeigt der kindLabel, woher der Eintrag stammt, das hilft.
     const actorSuffix = (e.kind === 'booking')
@@ -245,7 +234,6 @@
       +   actorSuffix
       +   context
       +   klartextHtml
-      +   rohHtml
       + '</div>'
       + '</div>';
   }
