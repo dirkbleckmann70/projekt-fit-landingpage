@@ -136,6 +136,7 @@
     // GT-Kurse des Trainers + ihre Teilnahmen einmal laden (fuer KPI + Termine).
     let gtClasses = [];
     let gtPartsByClass = {};   // class_id -> [{status, trainer_payout_cents}]
+    let ptAll = [];   // PT-Buchungen (aktive Status, all-time) — fuer KPI + Diagramme
     try {
       const { data: gcs } = await sb
         .from('group_classes')
@@ -146,7 +147,7 @@
       if (gtIds.length > 0) {
         const { data: gparts } = await sb
           .from('bookings')
-          .select('group_class_id, status, trainer_payout_cents')
+          .select('group_class_id, status, trainer_payout_cents, customer_id')
           .eq('art', 'gt_teilnahme')
           .in('group_class_id', gtIds)
           .neq('status', 'storniert');
@@ -170,11 +171,12 @@
       // PT-Einzeltrainings (7-Wert-Kanon).
       const { data: allBookings } = await sb
         .from('bookings')
-        .select('id, trainer_payout_cents, status, scheduled_date')
+        .select('id, trainer_payout_cents, status, scheduled_date, customer_id')
         .eq('trainer_id', trainerId)
         .eq('art', 'pt_einzel')
         .in('status', ['bestaetigt', 'laeuft gerade', 'abgeschlossen']);
       const all = allBookings || [];
+      ptAll = all;
 
       // GT-Kurse im Monat / gesamt (nur aktive Kurse zaehlen als Buchung).
       const gtActive = gtClasses.filter(c => c.is_active);
