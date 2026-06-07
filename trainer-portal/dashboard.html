@@ -25,39 +25,7 @@
 
       <h1 class="mb-3" id="welcome">Willkommen!</h1>
 
-      <!-- Vertretung gesucht — Ersatztrainer-Vorgang 6. Versteckt wenn keine Anfragen. -->
-      <div class="card mb-3" id="replacement-card" style="display:none">
-        <div class="card-header">
-          <h3 class="card-title">Vertretung gesucht</h3>
-          <span class="ms-auto badge bg-warning-lt" id="replacement-count" style="display:none"></span>
-        </div>
-        <div id="replacement-list"></div>
-      </div>
-
-      <!-- Pending Requests — oben, weil prioritaet -->
-      <div class="card mb-3">
-        <div class="card-header">
-          <h3 class="card-title">Neue Anfragen</h3>
-          <span class="ms-auto badge bg-warning-lt" id="pending-count" style="display:none"></span>
-        </div>
-        <div id="pending-list">
-          <div class="card-body"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</div>
-        </div>
-      </div>
-
-      <!-- Upcoming Bookings — direkt darunter -->
-      <div class="card mb-3">
-        <div class="card-header d-flex justify-content-between align-items-center">
-          <h3 class="card-title">Naechste Termine</h3>
-          <a href="/trainer-portal/bookings.html" class="pf-btn pf-btn-neutral">Alle anzeigen</a>
-        </div>
-        <div id="upcoming-list">
-          <div class="card-body"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</div>
-        </div>
-      </div>
-
-      <!-- Zahlen-Reihe unten — drei Karten (Naechste-Buchung-Kachel raus,
-           weil sie der Pending-Liste oben widerspricht) -->
+      <!-- Kennzahlen GANZ OBEN -->
       <div class="row row-deck row-cards mb-3">
         <div class="col-12 col-lg-4">
           <a href="/trainer-portal/bookings.html" class="pf-stat-card" style="text-decoration:none;color:inherit;cursor:pointer">
@@ -78,6 +46,28 @@
             <div class="pf-stat-label">Bewertung</div>
             <div class="pf-stat-num" id="kpi-rating"><div class="spinner-border spinner-border-sm"></div></div>
           </div>
+        </div>
+      </div>
+
+      <!-- Vertretung gesucht — Ersatztrainer-Vorgang 6. Versteckt wenn keine Anfragen. -->
+      <div class="card mb-3" id="replacement-card" style="display:none">
+        <div class="card-header">
+          <h3 class="card-title">Vertretung gesucht</h3>
+          <span class="ms-auto badge bg-warning-lt" id="replacement-count" style="display:none"></span>
+        </div>
+        <div id="replacement-list"></div>
+      </div>
+
+      <!-- Heute & Anfragen — eine Karte: offene Anfragen oben (rot), heutige Termine darunter -->
+      <div class="card mb-3">
+        <div class="card-header d-flex align-items-center">
+          <h3 class="card-title">Heute &amp; Anfragen</h3>
+          <span class="ms-auto pf-badge" id="pending-count" style="display:none;background:#fef2f2;color:#dc2626"></span>
+          <a href="/trainer-portal/bookings.html" class="pf-btn pf-btn-neutral" style="margin-left:10px">Alle anzeigen</a>
+        </div>
+        <div id="pending-list"></div>
+        <div id="upcoming-list">
+          <div class="card-body"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</div>
         </div>
       </div>
 
