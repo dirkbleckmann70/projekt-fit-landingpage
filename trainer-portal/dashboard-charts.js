@@ -4,14 +4,13 @@
 (function () {
   const PT = '#22C55E', GT = '#FB923C', KUNDEN = '#38BDF8', TOTAL = '#6366F1', GELD = '#16A34A';
 
-  // 12 Monats-Buckets (rollierend, inkl. aktueller Monat), aeltester zuerst.
+  // 12 Monats-Buckets: laufendes KALENDERJAHR Jan..Dez (in Reihenfolge).
   function buildMonths() {
+    const year = new Date().getFullYear();
     const months = [];
-    const base = new Date(); base.setDate(1);
-    for (let i = 11; i >= 0; i--) {
-      const m = new Date(base.getFullYear(), base.getMonth() - i, 1);
-      const key = m.getFullYear() + '-' + String(m.getMonth() + 1).padStart(2, '0');
-      months.push({ key, label: m.toLocaleDateString('de-DE', { month: 'short' }) });
+    for (let m = 0; m < 12; m++) {
+      const key = year + '-' + String(m + 1).padStart(2, '0');
+      months.push({ key, label: new Date(year, m, 1).toLocaleDateString('de-DE', { month: 'short' }) });
     }
     return months;
   }
@@ -66,7 +65,7 @@
 
     const kunden = kundenSets.map(s => s.size);
     const total = months.map((m, i) => ptCount[i] + gtCount[i]);
-    const lastI = months.length - 1;
+    const nowI = new Date().getMonth();   // aktueller Monat (0-11) im Kalenderjahr
 
     const baseBar = {
       chart: { type: 'bar', height: 230, fontFamily: 'inherit', toolbar: { show: false } },
@@ -78,10 +77,10 @@
     };
     const mk = (sel, opts) => { const el = document.querySelector(sel); if (el) new ApexCharts(el, opts).render(); };
 
-    // Kreisdiagramm: dieser Monat (letzter Bucket)
+    // Kreisdiagramm: dieser Monat (aktueller Monat im Kalenderjahr)
     mk('#chart-donut', {
       chart: { type: 'donut', height: 250, fontFamily: 'inherit' },
-      series: [ptCount[lastI], gtCount[lastI]],
+      series: [ptCount[nowI], gtCount[nowI]],
       labels: ['Einzeltraining', 'Gruppenkurs'], colors: [PT, GT], legend: { show: false },
       dataLabels: { enabled: true, formatter: (v, o) => o.w.config.series[o.seriesIndex] },
       plotOptions: { pie: { donut: { size: '68%', labels: { show: true,
