@@ -6,6 +6,14 @@
      renderPulslyFooter();
    ============================================================ */
 
+// Archivo Black fuer das eingebettete K2-Logo nachladen (einmalig)
+if (typeof document !== 'undefined' && !document.querySelector('link[href*="Archivo+Black"]')) {
+  var pnFont = document.createElement('link');
+  pnFont.rel = 'stylesheet';
+  pnFont.href = 'https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap';
+  document.head.appendChild(pnFont);
+}
+
 function renderPulslyNav(activePage) {
   var root = document.getElementById('pulsly-nav');
   if (!root) return;
@@ -218,8 +226,8 @@ function renderPulslyNav(activePage) {
   root.innerHTML = `
     <nav class="pn-nav" id="pn-nav-bar">
       <div class="pn-inner">
-        <a href="/" class="pn-logo">
-          <img src="/assets/logo-pulsly.svg" alt="Pulsly" />
+        <a href="/" class="pn-logo" aria-label="pulsly">
+          <svg viewBox="16 22 172 42" style="height:38px;width:auto;display:block" xmlns="http://www.w3.org/2000/svg" aria-label="pulsly"><text x="20" y="50" font-family="'Archivo Black','Arial Black',sans-serif" font-weight="900" font-size="36" letter-spacing="-1.6" fill="#fff">pulsly</text><path d="M138,45 L143,45 L146,42 L149,48 L152,45 L156,45 L159,30 L162,60 L165,38 L168,52 L171,45 L175,45" stroke="#FB923C" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="179" cy="45" r="4" fill="#FB923C"/></svg>
         </a>
         <ul class="pn-links">
           ${linksHtml}
@@ -418,7 +426,7 @@ function renderPulslyFooter() {
 
           <!-- Brand -->
           <div class="pf-brand">
-            <a href="/"><img src="/assets/logo-pulsly.svg" alt="Pulsly" /></a>
+            <a href="/" aria-label="pulsly"><svg viewBox="16 22 172 42" style="height:32px;width:auto;display:block" xmlns="http://www.w3.org/2000/svg" aria-label="pulsly"><text x="20" y="50" font-family="'Archivo Black','Arial Black',sans-serif" font-weight="900" font-size="36" letter-spacing="-1.6" fill="#fff">pulsly</text><path d="M138,45 L143,45 L146,42 L149,48 L152,45 L156,45 L159,30 L162,60 L165,38 L168,52 L171,45 L175,45" stroke="#FB923C" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/><circle cx="179" cy="45" r="4" fill="#FB923C"/></svg></a>
             <p class="pf-tagline">Dein Pocket Coach. &Uuml;berall.</p>
           </div>
 
