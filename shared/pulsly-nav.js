@@ -50,7 +50,7 @@ function renderPulslyNav(activePage) {
       flex-shrink: 0;
     }
     .pn-logo img {
-      height: 28px;
+      height: 38px;
       width: auto;
     }
 
