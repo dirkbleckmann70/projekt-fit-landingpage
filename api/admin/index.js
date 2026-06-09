@@ -2965,6 +2965,67 @@ async function handleBookingsPut(req, res, supabase) {
     return res.json({ success: true, escalated: didEscalate });
   }
 
+  // ── No-Show Phase C (C-1): Trainer „Kunde kommt noch" ──────────────────────
+  // Zurück auf `bestaetigt` + 15-Min-Schonfrist; der Cron pausiert bis dahin und
+  // re-eskaliert danach automatisch (escalation_started_at=NULL). R3: nur aus
+  // `strittig` (gewinnt-genau-einer gegen Cron/C-3). R6: max. 2 Schonfristen.
+  if (body.no_show_resume === true) {
+    const caller = await getCallerInfo(req);
+    if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+
+    const { data: bk, error: bkErr } = await supabase
+      .from('bookings')
+      .select('trainer_id, customer_id, status, no_show_resume_count')
+      .eq('id', bookingId).maybeSingle();
+    if (bkErr || !bk) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+
+    if (caller.actorType !== 'admin') {
+      const { data: tp } = await supabase.from('trainer_profiles').select('id').eq('auth_user_id', caller.authUid).maybeSingle();
+      if (!tp || tp.id !== bk.trainer_id) return res.status(403).json({ error: 'Kein Zugriff auf diese Buchung' });
+    }
+    if ((bk.no_show_resume_count ?? 0) >= 2) {
+      return res.status(400).json({ error: 'Maximale Schonfrist erreicht. Bitte verschieben oder stornieren.' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const graceUntil = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const { data: resumed, error: resErr } = await supabase.from('bookings')
+      .update({
+        status: 'bestaetigt',
+        escalation_started_at: null,
+        no_show_grace_until: graceUntil,
+        no_show_resume_count: (bk.no_show_resume_count ?? 0) + 1,
+        updated_at: nowIso,
+      })
+      .eq('id', bookingId).eq('status', 'strittig')
+      .lt('no_show_resume_count', 2) // R6/F1: atomare Limit-Sperre (verhindert >2 bei Race)
+      .select('id');
+    if (resErr) throw resErr;
+    const didResume = !!(resumed && resumed.length > 0);
+
+    if (didResume) {
+      try {
+        await supabase.from('booking_audit').insert({
+          booking_id: bookingId,
+          action: 'no_show_resolved',
+          actor_type: caller.actorType || 'trainer',
+          actor_id: caller.authUid || null,
+          details: { outcome: 'kommt_noch', grace_until: graceUntil, source: 'trainer_app' },
+        });
+      } catch (e) { console.error('Audit no_show_resolved kommt_noch (best-effort):', e.message); }
+      const pushToken = process.env.SERVICE_ROLE_JWT ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+      try {
+        if (bk.customer_id) {
+          const { data: cust } = await supabase.from('customers').select('auth_user_id').eq('id', bk.customer_id).maybeSingle();
+          if (cust?.auth_user_id) {
+            await callEdgeFunction('send-push', pushToken, { user_id: cust.auth_user_id, title: 'Termin läuft weiter', body: 'Ihr habt euch abgestimmt — wir warten noch kurz. Bitte eincheckt, sobald ihr da seid.', data: { type: 'no_show_resumed', bookingId } });
+          }
+        }
+      } catch (e) { console.error('No-Show-Resume-Push (best-effort):', e.message); }
+    }
+    return res.json({ success: true, resumed: didResume });
+  }
+
   const update = {};
   // Logbuch Schritt 1: zusaetzliche Bewegungs-Eintraege (best-effort), die NACH
   // dem erfolgreichen UPDATE geschrieben werden. Bewegungen die NICHT ueber den
@@ -3079,8 +3140,11 @@ async function handleBookingsPut(req, res, supabase) {
       return res.status(404).json({ error: 'Buchung nicht gefunden' });
     }
 
-    if (!['angefragt', 'reserviert', 'bestaetigt'].includes(current.status)) {
-      return res.status(400).json({ error: `Reschedule nur bei angefragt/reserviert/bestaetigt moeglich, aktuell: ${current.status}` });
+    // No-Show Phase C (C-2): Reschedule auch aus `strittig` erlauben (Trainer schlägt
+    // statt Storno einen neuen Termin vor). Die 24h-Regel gilt NUR fuer `bestaetigt`
+    // (ein strittiger Termin liegt bereits in der Vergangenheit).
+    if (!['angefragt', 'reserviert', 'bestaetigt', 'strittig'].includes(current.status)) {
+      return res.status(400).json({ error: `Reschedule nur bei angefragt/reserviert/bestaetigt/strittig moeglich, aktuell: ${current.status}` });
     }
 
     if (current.status === 'bestaetigt') {
@@ -3159,6 +3223,12 @@ async function handleBookingsPut(req, res, supabase) {
     update.reschedule_proposed_at = new Date().toISOString();
     update.flag_neuer_termin_vorgeschlagen = true;
     update.status = 'bestaetigt';
+    // No-Show Phase C (C-2 aus `strittig`): Eskalations-/Schonfrist-Marker löschen,
+    // damit der Cron den Termin mit offenem Vorschlag nicht erneut anfasst (R5).
+    if (current.status === 'strittig') {
+      update.escalation_started_at = null;
+      update.no_show_grace_until = null;
+    }
 
     const timestamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
     const oldDate = current.scheduled_date;
