@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   // ── Auth Check ──
   // Bestimmte Endpoints sind auch fuer Trainer zugaenglich
-  const trainerAllowedTypes = ['customer_names', 'booking_locations', 'trainer_audit_log'];
+  const trainerAllowedTypes = ['customer_names', 'booking_locations', 'trainer_audit_log', 'no_show_customer_phone'];
   const isTrainerAllowedRead = action === 'data' && req.method === 'GET' && trainerAllowedTypes.includes(req.query.type);
   const isTrainerAllowedWrite = (action === 'bookings' && req.method === 'PUT') ||
                                (action === 'update-participant' && req.method === 'PUT');
@@ -1984,6 +1984,36 @@ async function handleData(req, res, supabase) {
       return res.json({ data: data || [] });
     }
 
+    // ─── No-Show Teil 2 (Phase A): Kunden-Telefon NUR fuer den eigenen aktiven ──
+    // Termin des anfragenden Trainers. Datenschutz: keine breite Telefon-Liste —
+    // der Trainer bekommt die Nummer ausschliesslich fuer EINE eigene Buchung,
+    // und nur waehrend der Termin aktiv/strittig ist (kein Abgreifen aus Altdaten).
+    case 'no_show_customer_phone': {
+      const caller = await getCallerInfo(req);
+      if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+      const bookingId = req.query.booking_id;
+      if (!bookingId || !UUID_RE.test(bookingId)) return res.status(400).json({ error: 'booking_id fehlt/ungueltig' });
+
+      const { data: bk } = await supabase
+        .from('bookings')
+        .select('trainer_id, customer_id, status')
+        .eq('id', bookingId).maybeSingle();
+      if (!bk) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+
+      // Ownership: Trainer darf nur seine EIGENE Buchung abfragen (fremde trainer_id
+      // bringt nichts — wir leiten das Profil aus dem Token ab). Admin darf immer.
+      if (caller.actorType !== 'admin') {
+        const { data: tp } = await supabase.from('trainer_profiles').select('id').eq('auth_user_id', caller.authUid).maybeSingle();
+        if (!tp || tp.id !== bk.trainer_id) return res.status(403).json({ error: 'Kein Zugriff auf diese Buchung' });
+      }
+      if (!['bestaetigt', 'strittig', 'laeuft gerade'].includes(bk.status)) {
+        return res.status(403).json({ error: 'Telefonnummer nur waehrend des aktiven Termins' });
+      }
+      if (!bk.customer_id) return res.json({ phone: null });
+      const { data: cust } = await supabase.from('customers').select('phone').eq('id', bk.customer_id).maybeSingle();
+      return res.json({ phone: cust?.phone ?? null });
+    }
+
     // ─── Calendar: Bookings für Woche + Trainer ───────────────────────
     case 'calendar_bookings': {
       const trainerIds = req.query.trainer_ids ? req.query.trainer_ids.split(',') : [];
@@ -2784,6 +2814,10 @@ async function handleBookingsPut(req, res, supabase) {
   const bookingId = stripGpPrefix(body.bookingId);
 
   if (!bookingId) return res.status(400).json({ error: 'bookingId ist erforderlich' });
+  // Format-Schutz: ungueltige IDs sauber als 400 abweisen statt PostgREST-500 zu
+  // riskieren (Review No-Show Teil 2). Gilt fuer alle PUT-Pfade; GT-IDs sind nach
+  // stripGpPrefix reine Buchungs-UUIDs.
+  if (!UUID_RE.test(bookingId)) return res.status(400).json({ error: 'bookingId ist keine gueltige UUID' });
 
   // ── Ersatztrainer FINAL zuweisen (Admin-Hoheit, Vorgang 6) — B-2026-06-02-09 ──
   // Eigener Pfad mit fruehem return: umgeht bewusst den isConfirm/confirm-and-charge-
@@ -2866,6 +2900,69 @@ async function handleBookingsPut(req, res, supabase) {
     } catch (e) { console.error('Ersatz-Push (best-effort):', e.message); }
 
     return res.json({ success: true, replacement_assigned: true });
+  }
+
+  // ── No-Show Teil 2 (Phase B): Trainer startet die Eskalation aus der App ──
+  // Eigener Pfad mit fruehem return (Trainer-Writes auf bookings sind sonst RLS-
+  // gesperrt → muss ueber Service-Role hier laufen). Setzt status='strittig' +
+  // escalation_started_at ATOMAR in EINEM Update — derselbe Invariant wie der
+  // App-Pfad onNoShowEscalate + der Cron no-show-resolve: nie `strittig` ohne
+  // escalation_started_at (sonst greift Cron-Stufe 2 bei +60min nie). Idempotent:
+  // nur aus `bestaetigt` + nur wenn noch nicht eskaliert.
+  if (body.no_show_escalate === true) {
+    const caller = await getCallerInfo(req);
+    if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+
+    const { data: bk, error: bkErr } = await supabase
+      .from('bookings')
+      .select('trainer_id, customer_id, status, escalation_started_at')
+      .eq('id', bookingId).maybeSingle();
+    if (bkErr || !bk) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+
+    // Ownership: nur der eigene Trainer (oder Admin) darf eskalieren.
+    if (caller.actorType !== 'admin') {
+      const { data: tp } = await supabase.from('trainer_profiles').select('id').eq('auth_user_id', caller.authUid).maybeSingle();
+      if (!tp || tp.id !== bk.trainer_id) return res.status(403).json({ error: 'Kein Zugriff auf diese Buchung' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const { data: esc, error: escErr } = await supabase.from('bookings')
+      .update({ status: 'strittig', escalation_started_at: nowIso, updated_at: nowIso })
+      .eq('id', bookingId).eq('status', 'bestaetigt').is('escalation_started_at', null)
+      .select('id');
+    if (escErr) throw escErr;
+    const didEscalate = !!(esc && esc.length > 0);
+
+    if (didEscalate) {
+      // Audit (best-effort, GoBD). Tabelle: booking_audit (NICHT _log).
+      try {
+        await supabase.from('booking_audit').insert({
+          booking_id: bookingId,
+          action: 'no_show_escalated',
+          actor_type: caller.actorType || 'trainer',
+          actor_id: caller.authUid || null,
+          details: { stage: 1, source: 'trainer_app' },
+        });
+      } catch (e) { console.error('Audit no_show_escalated (best-effort):', e.message); }
+
+      // Push an beide (best-effort). send-push ist verify-jwt → Service-Role-JWT,
+      // NICHT caller.token (Trainer-ES256 → 401-Risiko).
+      const pushToken = process.env.SERVICE_ROLE_JWT ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+      try {
+        if (bk.customer_id) {
+          const { data: cust } = await supabase.from('customers').select('auth_user_id').eq('id', bk.customer_id).maybeSingle();
+          if (cust?.auth_user_id) {
+            await callEdgeFunction('send-push', pushToken, { user_id: cust.auth_user_id, title: 'Termin: bitte abstimmen', body: 'Zu deinem bestaetigten Termin gab es keinen Check-in. Bitte mit deinem Trainer abstimmen.', data: { type: 'no_show_escalated', bookingId } });
+          }
+        }
+        const { data: tpush } = await supabase.from('trainer_profiles').select('auth_user_id').eq('id', bk.trainer_id).maybeSingle();
+        if (tpush?.auth_user_id) {
+          await callEdgeFunction('send-push', pushToken, { user_id: tpush.auth_user_id, title: 'Termin: bitte abstimmen', body: 'Du hast den Termin als strittig gemeldet. Bitte mit dem Kunden abstimmen.', data: { type: 'no_show_escalated', bookingId } });
+        }
+      } catch (e) { console.error('No-Show-Eskalations-Push (best-effort):', e.message); }
+    }
+
+    return res.json({ success: true, escalated: didEscalate });
   }
 
   const update = {};
