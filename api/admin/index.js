@@ -3026,6 +3026,51 @@ async function handleBookingsPut(req, res, supabase) {
     return res.json({ success: true, resumed: didResume });
   }
 
+  // ── No-Show Phase D / Stufe 4: Trainer-Widerspruch „ich war da" ────────────
+  // In der offenen 24h-Frist (no_show_trainer_deadline gesetzt, noch strittig,
+  // noch nicht final) setzt der Trainer no_show_trainer_disputed=true → der Cron
+  // Stufe 3 (`no_show_trainer_disputed = false`) loest NICHT automatisch zugunsten
+  // des Kunden auf, der Fall geht an den Admin (manuelle Entscheidung).
+  if (body.no_show_dispute === true) {
+    const caller = await getCallerInfo(req);
+    if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+
+    const { data: bk, error: bkErr } = await supabase
+      .from('bookings')
+      .select('trainer_id, customer_id, status, no_show_trainer_deadline')
+      .eq('id', bookingId).maybeSingle();
+    if (bkErr || !bk) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+
+    if (caller.actorType !== 'admin') {
+      const { data: tp } = await supabase.from('trainer_profiles').select('id').eq('auth_user_id', caller.authUid).maybeSingle();
+      if (!tp || tp.id !== bk.trainer_id) return res.status(403).json({ error: 'Kein Zugriff auf diese Buchung' });
+    }
+
+    const nowIso = new Date().toISOString();
+    const { data: disp, error: dispErr } = await supabase.from('bookings')
+      .update({ no_show_trainer_disputed: true, updated_at: nowIso })
+      .eq('id', bookingId)
+      .eq('status', 'strittig')
+      .not('no_show_trainer_deadline', 'is', null)
+      .is('storno_grund', null)
+      .select('id');
+    if (dispErr) throw dispErr;
+    const didDispute = !!(disp && disp.length > 0);
+
+    if (didDispute) {
+      try {
+        await supabase.from('booking_audit').insert({
+          booking_id: bookingId,
+          action: 'no_show_escalated',
+          actor_type: caller.actorType || 'trainer',
+          actor_id: caller.authUid || null,
+          details: { stage: 4, outcome: 'trainer_widerspruch', source: 'trainer_app' },
+        });
+      } catch (e) { console.error('Audit no_show_dispute (best-effort):', e.message); }
+    }
+    return res.json({ success: true, disputed: didDispute });
+  }
+
   const update = {};
   // Logbuch Schritt 1: zusaetzliche Bewegungs-Eintraege (best-effort), die NACH
   // dem erfolgreichen UPDATE geschrieben werden. Bewegungen die NICHT ueber den
