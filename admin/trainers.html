@@ -526,6 +526,11 @@
           <input class="pf-field" type="number" id="edit-mwst-satz" step="1" min="0" max="100" value="${t.mwst_satz ?? 19}">
           <div class="form-hint">Standard 19. Kleinunternehmer (§19 UStG) = 0.</div>
         </div>
+        <div class="form-group">
+          <label class="form-label">Nicht erschienen (Gesamt)</label>
+          <input class="pf-field" type="text" readonly value="${t.no_show_count ?? 0}"${(t.no_show_count ?? 0) > 0 ? ' style="color:#dc2626;font-weight:600"' : ''}>
+          <div class="form-hint">Wie oft dieser Trainer zu einem bestätigten Termin nicht erschienen ist (No-Show-Zähler).</div>
+        </div>
       </div>
 
       <!-- Aktivieren-Button fuer nicht-aktive Trainer -->
