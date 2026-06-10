@@ -302,8 +302,34 @@
       </div></div>` : `<h4 class="text-muted">Getroffene Entscheidung</h4>
       <div class="card mb-3"><div class="card-body"><b>${entscheidungTxt}</b><div class="text-muted small mt-1">Vollständiger Ablauf im Reiter „Verlauf".</div></div></div>`}
       <h4 class="text-muted">Beweis-Auszug (gerichtsfest, dauerhaft)</h4>
-      <div class="card"><div class="card-body text-muted">Entsteht automatisch bei der Auflösung (folgt in Kürze).</div></div>
+      <div class="card"><div class="card-body" id="evidence-list"><span class="text-muted">lade…</span></div></div>
     `;
+    loadEvidenceList(b.id);
+  }
+
+  // No-Show Teil 3 (B5) — Liste der Beweis-Auszuege + „Öffnen"-Knopf (Signed-URL).
+  async function loadEvidenceList(bookingId) {
+    const el = document.getElementById('evidence-list');
+    if (!el) return;
+    try {
+      const r = await adminApi('/api/admin?action=data&type=booking_evidence&booking_id=' + encodeURIComponent(bookingId));
+      const rows = (r && r.data) || [];
+      if (!rows.length) {
+        el.innerHTML = '<span class="text-muted">Noch kein Beweis-Auszug. Entsteht automatisch bei der Auflösung des Streitfalls.</span>';
+        return;
+      }
+      el.innerHTML = rows.map(function(x){
+        const dt = new Date(x.created_at).toLocaleString('de-DE');
+        const trig = x.trigger === 'admin_decision' ? 'Admin-Entscheidung' : 'automatisch';
+        const btn = x.signed_url
+          ? '<a class="btn btn-sm btn-outline-primary" href="' + x.signed_url + '" target="_blank" rel="noopener">Öffnen</a>'
+          : '<span class="text-muted small">Datei nicht verfügbar</span>';
+        return '<div class="d-flex justify-content-between align-items-center py-1">' +
+          '<div><b>Beweis-Auszug</b> · ' + dt + ' <span class="text-muted small">(' + trig + ')</span></div>' + btn + '</div>';
+      }).join('');
+    } catch(e) {
+      el.innerHTML = '<span class="text-danger">Beweis-Auszüge konnten nicht geladen werden.</span>';
+    }
   }
 
   // No-Show Teil 3 — Admin-Entscheidung absenden (echter Geld-Vorgang).

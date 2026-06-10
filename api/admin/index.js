@@ -2095,6 +2095,28 @@ async function handleData(req, res, supabase) {
       return res.json({ data: data ?? [] });
     }
 
+    // ─── Beweis-Auszuege zu einer Buchung (No-Show Teil 3 B5) ─────────────────
+    // Admin-only (NICHT in trainerAllowedTypes) — Beweis-PDFs sind vertraulich.
+    case 'booking_evidence': {
+      const beBookingId = stripGpPrefix(req.query.booking_id);
+      if (!beBookingId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(beBookingId)) {
+        return res.status(400).json({ error: 'booking_id (uuid) erforderlich' });
+      }
+      const { data: beRows, error: beErr } = await supabase
+        .from('booking_evidence')
+        .select('id, pdf_path, trigger, admin_outcome, created_at')
+        .eq('booking_id', beBookingId)
+        .order('created_at', { ascending: false });
+      if (beErr) return res.status(500).json({ error: beErr.message });
+      // Signed-URLs (60 Min, wie invoice-pdf) fuer den Vorschau-Knopf — Bucket privat.
+      const beWithUrls = [];
+      for (const r of (beRows ?? [])) {
+        const { data: signed } = await supabase.storage.from('invoices').createSignedUrl(r.pdf_path, 3600);
+        beWithUrls.push({ ...r, signed_url: signed?.signedUrl ?? null });
+      }
+      return res.json({ data: beWithUrls });
+    }
+
     // ─── Status-Logbuch zu einer Buchung (booking_audit + payment_events + invoice_audit) ──
     case 'booking_audit_log': {
       const bookingId = stripGpPrefix(req.query.booking_id);
@@ -3151,6 +3173,20 @@ async function handleBookingsPut(req, res, supabase) {
         details: { no_show_outcome: outcome, note, source: 'admin_klaerungsfall' },
       });
     } catch (e) { console.error('No-Show-Pflicht-Kommentar (best-effort):', e.message); }
+
+    // B5: gerichtsfesten Beweis-Auszug erzeugen (best-effort, kein throw — sonst HTTP 500
+    // nach erfolgtem Geld-Vorgang; CLAUDE.md Audit-Helper-Regel). generate-evidence-pdf
+    // laeuft MIT JWT-Verify -> direkter fetch mit Service-Role-Key als Bearer UND apikey
+    // (identisches Muster wie generate-invoice; NICHT callEdgeFunction, das apikey=anon setzt).
+    try {
+      const evKey = process.env.SERVICE_ROLE_JWT ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? '';
+      const evResp = await fetch(`${process.env.SUPABASE_URL}/functions/v1/generate-evidence-pdf`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${evKey}`, 'apikey': evKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ booking_id: bookingId, trigger: 'admin_decision', admin_outcome: outcome }),
+      });
+      if (!evResp.ok) console.error('[no_show_resolve_admin] generate-evidence-pdf non-ok:', evResp.status, await evResp.text().catch(() => ''));
+    } catch (e) { console.error('[no_show_resolve_admin] generate-evidence-pdf (best-effort):', e.message); }
 
     return res.json({ success: true, outcome });
   }
