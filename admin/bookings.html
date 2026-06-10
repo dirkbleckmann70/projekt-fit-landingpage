@@ -82,6 +82,7 @@
           <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-details">Details</a></li>
           <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-history">Verlauf</a></li>
           <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-invoice">Beleg</a></li>
+          <li class="nav-item" id="tab-li-klarungsfall" style="display:none"><a class="nav-link" data-bs-toggle="tab" href="#tab-klarungsfall">⚠ Klärungsfall</a></li>
         </ul>
         <div class="tab-content">
           <div class="tab-pane active show" id="tab-details">
@@ -92,6 +93,9 @@
           </div>
           <div class="tab-pane" id="tab-invoice">
             <div id="modal-invoice" class="text-center text-secondary p-4">Noch kein Beleg vorhanden</div>
+          </div>
+          <div class="tab-pane" id="tab-klarungsfall">
+            <div id="modal-klarungsfall"></div>
           </div>
         </div>
       </div>
@@ -112,6 +116,7 @@
 <script src="../shared/table-utils.js"></script>
 <script src="../shared/layout.js"></script>
 <script src="../shared/toast.js"></script>
+<script src="../shared/no-show-format.js"></script>
 <script src="auth-guard.js"></script>
 <script src="../shared/form-dirty.js"></script>
 <script src="assets/js/storno-dialog.js"></script>
@@ -207,6 +212,69 @@
     const ersatz = allBookings.filter(b => ersatzDotUnseen(b)).length;
     const streit = allBookings.filter(b => ['disputed','escalated','strittig'].includes(b.status)).length;
     if (window.pfSetBookingsBadge) window.pfSetBookingsBadge(ersatz + streit);
+  }
+
+  // No-Show Teil 3 — fuellt den Klaerungsfall-Tab (nur Anzeige; Knoepfe folgen).
+  function renderKlaerungsfall(b) {
+    const el = document.getElementById('modal-klarungsfall');
+    if (!el) return;
+    const g = window.geldStaende(b);
+    const widerspruch = b.no_show_trainer_disputed === true;
+    const kundeCheckin = b.flag_kunde_anwesend === true || !!b.kunde_checkin_at;
+    const trainerCheckin = !!b.trainer_checked_in_at;
+    const payTxt = g.trainerAuszahlung === 'ausgezahlt' ? 'Ausgezahlt'
+      : g.trainerAuszahlung === 'gesperrt' ? '🔒 Gesperrt' : 'Offen';
+    const payCls = g.trainerAuszahlung === 'gesperrt' ? 'bg-yellow text-dark'
+      : g.trainerAuszahlung === 'ausgezahlt' ? 'bg-green text-white' : 'bg-secondary-lt';
+    let ortTxt = '';
+    if (kundeCheckin) {
+      const dist = b.kunde_checkin_distance_m != null ? Math.round(b.kunde_checkin_distance_m) + ' m' : 'Distanz unbekannt';
+      const ortOk = b.kunde_checkin_ort_ok;
+      ortTxt = ' · ' + (ortOk === false ? '⚠ am falschen Ort' : (ortOk === true ? 'am Treffpunkt' : 'Ort nicht geprüft')) + ' (' + dist + ')';
+    }
+    const fristTxt = window.fmtFristRest(b.no_show_trainer_deadline, new Date());
+    const gutschein = b.storno_grund === 'no_show_trainer' ? 'vergeben' : 'nicht vergeben';
+    el.innerHTML = `
+      <div class="alert ${widerspruch ? 'alert-danger' : 'alert-warning'} d-flex align-items-center" role="alert">
+        <i class="ti ti-alert-triangle me-2" style="font-size:20px"></i>
+        <div><b>Klärungsfall (Streitfall).</b> Trainer-Auszahlung ist gesperrt, bis du entscheidest.${widerspruch ? ' Der Trainer hat widersprochen („Ich war da") → automatische Auflösung ist gestoppt.' : ''}</div>
+      </div>
+      <h4 class="text-muted">Geld-Stände</h4>
+      <div class="row mb-3">
+        <div class="col-md-4 mb-2"><div class="card"><div class="card-body py-2">
+          <div class="text-muted small">Kunde bezahlt</div>
+          <div style="font-size:19px;font-weight:700">${formatEuro(g.kundeBetragCents)} <span class="badge ${g.kundeBezahlt ? 'bg-green text-white' : 'bg-secondary-lt'}">${g.kundeBezahlt ? '✓ Ja' : 'Nein'}</span></div>
+        </div></div></div>
+        <div class="col-md-4 mb-2"><div class="card"><div class="card-body py-2">
+          <div class="text-muted small">Trainer-Auszahlung</div>
+          <div style="font-size:19px;font-weight:700">${formatEuro(g.trainerBetragCents)} <span class="badge ${payCls}">${payTxt}</span></div>
+        </div></div></div>
+        <div class="col-md-4 mb-2"><div class="card"><div class="card-body py-2">
+          <div class="text-muted small">Entschuldigungs-Gutschein</div>
+          <div style="font-size:19px;font-weight:700">— <span class="badge bg-secondary-lt">${gutschein}</span></div>
+        </div></div></div>
+      </div>
+      <h4 class="text-muted">Check-in-Lage &amp; Frist</h4>
+      <table class="table table-sm mb-3">
+        <tr><td class="text-muted">Kunde eingecheckt</td><td class="text-end fw-bold ${kundeCheckin ? 'text-success' : 'text-danger'}">${kundeCheckin ? '✓ Ja' + (b.kunde_checkin_at ? ' · ' + new Date(b.kunde_checkin_at).toLocaleString('de-DE') : '') + ortTxt : '✗ Nein'}</td></tr>
+        <tr><td class="text-muted">Trainer eingecheckt</td><td class="text-end fw-bold ${trainerCheckin ? 'text-success' : 'text-danger'}">${trainerCheckin ? '✓ Ja · ' + new Date(b.trainer_checked_in_at).toLocaleString('de-DE') : '✗ Nein'}</td></tr>
+        <tr><td class="text-muted">Trainer-Widerspruch</td><td class="text-end fw-bold" style="${widerspruch ? 'color:#d6a206' : ''}">${widerspruch ? '⚠ „Ich war da"' : 'kein Widerspruch'}</td></tr>
+        <tr><td class="text-muted">Frist läuft ab</td><td class="text-end fw-bold">${b.no_show_trainer_deadline ? new Date(b.no_show_trainer_deadline).toLocaleString('de-DE') + ' (' + fristTxt + ')' : '– keine Frist'}</td></tr>
+      </table>
+      <h4 class="text-muted">Entscheidung treffen</h4>
+      <div class="card mb-3"><div class="card-body">
+        <label class="form-label">Begründung / Notiz <span class="text-danger">(Pflicht)</span></label>
+        <textarea class="form-control mb-3" id="klaerung-note" rows="2" placeholder="Begründung der Entscheidung …"></textarea>
+        <div class="row g-2">
+          <div class="col-md-4"><button class="btn btn-success w-100" disabled title="folgt in Kürze">Trainer war nicht da</button></div>
+          <div class="col-md-4"><button class="btn btn-warning w-100" disabled title="folgt in Kürze">Kunde war nicht da</button></div>
+          <div class="col-md-4"><button class="btn btn-info w-100" disabled title="folgt in Kürze">Training fand doch statt</button></div>
+        </div>
+        <div class="text-muted small mt-2">Entscheidung + Notiz werden im Verlauf protokolliert und erscheinen im Beweis-Auszug.</div>
+      </div></div>
+      <h4 class="text-muted">Beweis-Auszug (gerichtsfest, dauerhaft)</h4>
+      <div class="card"><div class="card-body text-muted">Entsteht automatisch bei der Auflösung (folgt in Kürze).</div></div>
+    `;
   }
 
   function getBookingType(b) {
@@ -602,6 +670,12 @@
 
     // Verlauf-Tab fuellen
     renderHistory(b);
+
+    // Klaerungsfall-Tab nur bei Streitfaellen einblenden + fuellen (No-Show Teil 3)
+    const STRITTIG_S = ['disputed', 'escalated', 'strittig'];
+    const klTabLi = document.getElementById('tab-li-klarungsfall');
+    if (klTabLi) klTabLi.style.display = STRITTIG_S.includes(b.status) ? '' : 'none';
+    if (STRITTIG_S.includes(b.status)) renderKlaerungsfall(b);
 
     // Kontaktdaten asynchron nachladen (Admin sieht immer beide)
     loadAdminContacts(b);
