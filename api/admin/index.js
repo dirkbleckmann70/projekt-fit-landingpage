@@ -2350,14 +2350,17 @@ async function handleData(req, res, supabase) {
         supabase.from('trainer_profiles').select('id', { count: 'exact', head: true }).eq('status', 'active'),
         supabase.from('trainer_profiles').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('bookings').select('id', { count: 'exact', head: true }).gte('scheduled_date', mondayISO).in('status', ['bestaetigt', 'laeuft gerade', 'abgeschlossen']),
-        supabase.from('bookings').select('price_cents').eq('status', 'abgeschlossen').gte('scheduled_date', monthISO),
+        supabase.from('bookings').select('price_cents, final_price_cents, paid').eq('status', 'abgeschlossen').gte('scheduled_date', monthISO),
       ]);
 
       return res.json({
         active_trainers: trainersRes.count ?? 0,
         pending_trainers: pendingRes.count ?? 0,
         week_bookings: weekBookingsRes.count ?? 0,
-        month_revenue_cents: (monthRevenueRes.data || []).reduce((sum, b) => sum + (b.price_cents || 0), 0),
+        // B-2026-06-10-01: final_price_cents (nach Rabatt, von Stripe belastet) statt
+        // price_cents (Listenpreis) + nur bezahlte zählen — analog kpi_revenue_month
+        // (B-2026-05-14-50). status='abgeschlossen' schliesst Storno/disputed bereits aus.
+        month_revenue_cents: (monthRevenueRes.data || []).reduce((sum, b) => sum + (b.paid ? (b.final_price_cents ?? b.price_cents ?? 0) : 0), 0),
       });
     }
 
