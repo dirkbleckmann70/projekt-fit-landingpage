@@ -271,15 +271,44 @@
         <label class="form-label">Begründung / Notiz <span class="text-danger">(Pflicht)</span></label>
         <textarea class="form-control mb-3" id="klaerung-note" rows="2" placeholder="Begründung der Entscheidung …"></textarea>
         <div class="row g-2">
-          <div class="col-md-4"><button class="btn btn-success w-100" disabled title="folgt in Kürze">Trainer war nicht da</button></div>
-          <div class="col-md-4"><button class="btn btn-warning w-100" disabled title="folgt in Kürze">Kunde war nicht da</button></div>
-          <div class="col-md-4"><button class="btn btn-info w-100" disabled title="folgt in Kürze">Training fand doch statt</button></div>
+          <div class="col-md-4"><button class="btn btn-success w-100" onclick="resolveNoShow('trainer_nicht_da')">Trainer war nicht da</button></div>
+          <div class="col-md-4"><button class="btn btn-warning w-100" onclick="resolveNoShow('kunde_nicht_da')">Kunde war nicht da</button></div>
+          <div class="col-md-4"><button class="btn btn-info w-100" onclick="resolveNoShow('training_fand_statt')">Training fand doch statt</button></div>
         </div>
         <div class="text-muted small mt-2">Entscheidung + Notiz werden im Verlauf protokolliert und erscheinen im Beweis-Auszug.</div>
       </div></div>
       <h4 class="text-muted">Beweis-Auszug (gerichtsfest, dauerhaft)</h4>
       <div class="card"><div class="card-body text-muted">Entsteht automatisch bei der Auflösung (folgt in Kürze).</div></div>
     `;
+  }
+
+  // No-Show Teil 3 — Admin-Entscheidung absenden (echter Geld-Vorgang).
+  async function resolveNoShow(outcome) {
+    const noteEl = document.getElementById('klaerung-note');
+    const note = ((noteEl && noteEl.value) || '').trim();
+    if (!note) { alert('Bitte eine Begründung eingeben (Pflicht).'); if (noteEl) noteEl.focus(); return; }
+    const folge = {
+      trainer_nicht_da: 'Der Kunde bekommt die volle Erstattung + Entschuldigungs-Gutschein, der Trainer 0 €.',
+      kunde_nicht_da: 'Der Kunde zahlt voll, kein Geld zurück, der Trainer 0 €.',
+      training_fand_statt: 'Die Buchung wird normal abgeschlossen, der Trainer wird über die reguläre Frist ausgezahlt.',
+    }[outcome];
+    if (!confirm('Entscheidung:\n' + folge + '\n\nDas löst einen echten Geld-Vorgang aus und ist endgültig. Fortfahren?')) return;
+    // F-07: Doppelklick-Schutz — alle Knoepfe im Tab sperren waehrend des Calls.
+    const btns = document.querySelectorAll('#modal-klarungsfall button');
+    btns.forEach(x => { x.disabled = true; });
+    try {
+      const resp = await adminApi('/api/admin?action=bookings', {
+        method: 'PUT',
+        body: JSON.stringify({ bookingId: editingBookingId, no_show_resolve_admin: true, outcome, note }),
+      });
+      if (resp && resp.error) { alert('Fehler: ' + resp.error); btns.forEach(x => { x.disabled = false; }); return; }
+      if (window.showPfToast) showPfToast('Streitfall entschieden.', 'success');
+      bootstrap.Modal.getInstance(document.getElementById('detail-modal'))?.hide();
+      loadBookings();
+    } catch (e) {
+      alert('Fehler beim Speichern: ' + ((e && e.message) || e));
+      btns.forEach(x => { x.disabled = false; });
+    }
   }
 
   function getBookingType(b) {
@@ -302,7 +331,10 @@
     // entfernt (Bug B-2026-04-25-02). Storno-Button ist der EINZIGE Weg, eine Buchung zu stornieren.
     const custName = (b.customer_name || '').replace(/'/g,"\\'");
     const gross = b.final_price_cents || b.price_cents || 0;
-    const excluded = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED'];
+    // STRITTIG/DISPUTED/ESCALATED: KEIN allgemeiner Storno in der Liste — die
+    // Streitfall-Aufloesung laeuft ausschliesslich ueber den Klaerungsfall-Tab
+    // (kein zweiter Geld-Weg, vgl. B-2026-05-11-01).
+    const excluded = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED','DISPUTED','ESCALATED','STRITTIG'];
     const stornoBtn = (!b.storno_invoice_id && !excluded.includes(s))
       ? `<button class="pf-btn pf-btn-danger" title="Stornieren (mit Stornobeleg + Rueckzahlung)" onclick="event.stopPropagation();stornoBooking('${id}','${custName}',${gross})"><i class="ti ti-x"></i> Stornieren</button>`
       : '';
@@ -650,7 +682,7 @@
     // Storno-Button im Modal-Footer ein-/ausblenden
     const stornoFooterBtn = document.getElementById('modal-storno-btn');
     const st = (b.status || '').toUpperCase();
-    const excludedForStorno = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED'];
+    const excludedForStorno = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED','STRITTIG','DISPUTED','ESCALATED'];
     if (!b.storno_invoice_id && !excludedForStorno.includes(st)) {
       stornoFooterBtn.style.display = '';
       stornoFooterBtn.onclick = function() {
@@ -679,7 +711,13 @@
     // Klaerungsfall-Tab nur bei Streitfaellen einblenden + fuellen (No-Show Teil 3)
     const klTabLi = document.getElementById('tab-li-klarungsfall');
     if (klTabLi) klTabLi.style.display = isStreitfall(b) ? '' : 'none';
-    if (isStreitfall(b)) renderKlaerungsfall(b);
+    if (isStreitfall(b)) {
+      renderKlaerungsfall(b);
+      // S2: allgemeinen Status-Dropdown sperren — die Entscheidung laeuft AUSSCHLIESSLICH
+      // ueber den Klaerungsfall-Tab (sonst zweiter Geld-Weg, vgl. B-2026-05-11-01).
+      const stSel = document.getElementById('edit-booking-status');
+      if (stSel) { stSel.disabled = true; stSel.title = 'Streitfall — Entscheidung über den Tab „Klärungsfall"'; }
+    }
 
     // Kontaktdaten asynchron nachladen (Admin sieht immer beide)
     loadAdminContacts(b);

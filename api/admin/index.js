@@ -3071,6 +3071,90 @@ async function handleBookingsPut(req, res, supabase) {
     return res.json({ success: true, disputed: didDispute });
   }
 
+  // ─── No-Show Teil 3: Admin loest Streitfall auf (3 Ausgaenge) ──────────────
+  // outcome: trainer_nicht_da (Refund+SORRY+Trainer0+Zaehler) | kunde_nicht_da
+  // (Kunde zahlt, kein Refund, Trainer0) | training_fand_statt (normaler Abschluss,
+  // Trainer-Auszahlung ueber regulaere Frist). Pflicht-Notiz. Pre-Impl-Review 10.06.
+  if (body.no_show_resolve_admin === true) {
+    const caller = await getCallerInfo(req);
+    if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+    // B1: action=bookings PUT ist auch fuer Trainer offen → expliziter Admin-Gate.
+    if (caller.actorType !== 'admin') return res.status(403).json({ error: 'Nur Admins duerfen Streitfaelle aufloesen' });
+
+    const outcome = body.outcome;
+    const note = (body.note || '').trim();
+    if (!['trainer_nicht_da', 'kunde_nicht_da', 'training_fand_statt'].includes(outcome)) {
+      return res.status(400).json({ error: 'Ungueltiger outcome' });
+    }
+    if (!note) return res.status(400).json({ error: 'Begruendung (note) ist Pflicht' });
+
+    const { data: bk, error: bkErr } = await supabase
+      .from('bookings')
+      .select('id, trainer_id, customer_id, status, scheduled_date, scheduled_time, completed_at')
+      .eq('id', bookingId).maybeSingle();
+    if (bkErr || !bk) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+    if (bk.status !== 'strittig') return res.status(409).json({ error: 'Buchung ist nicht (mehr) strittig' });
+
+    const nowIso = new Date().toISOString();
+
+    if (outcome === 'training_fand_statt') {
+      // Ausgang 3: normaler Abschluss. KEIN Sofort-Transfer — die regulaere
+      // Auszahlung (trainer-payout-grace, 48h ab completed_at) uebernimmt. User-Freigabe
+      // 10.06.: normale Frist, Architektur-konform. completed_at = Originaltermin
+      // (Grace laeuft ab Termin-Zeit, Training fand DANN statt).
+      const terminIso = bk.scheduled_date
+        ? new Date(`${bk.scheduled_date}T${bk.scheduled_time || '00:00:00'}`).toISOString()
+        : nowIso;
+      const { data: upd, error: updErr } = await supabase.from('bookings')
+        .update({ status: 'abgeschlossen', completed_at: bk.completed_at || terminIso, no_show_resolving_at: nowIso, updated_at: nowIso })
+        .eq('id', bookingId).eq('status', 'strittig').is('storno_grund', null).is('no_show_resolving_at', null)
+        .select('id');
+      if (updErr) throw updErr;
+      if (!upd || upd.length === 0) return res.status(409).json({ error: 'Buchung wird bereits aufgeloest oder ist nicht mehr strittig' });
+    } else {
+      // Ausgang 1 + 2: vorhandene Geld-Mechanik (cancel-or-refund) wiederverwenden.
+      const reason = outcome === 'trainer_nicht_da' ? 'no_show_trainer' : 'no_show_kunde';
+      // F-03: resolving_at als atomarer Pre-Lock (verhindert Cron-Wettlauf).
+      const { data: lock, error: lockErr } = await supabase.from('bookings')
+        .update({ no_show_resolving_at: nowIso })
+        .eq('id', bookingId).eq('status', 'strittig').is('storno_grund', null).is('no_show_resolving_at', null)
+        .select('id');
+      if (lockErr) throw lockErr;
+      if (!lock || lock.length === 0) return res.status(409).json({ error: 'Buchung wird bereits aufgeloest' });
+
+      const r = await callEdgeFunction('cancel-or-refund', caller.token, {
+        booking_id: bookingId, reason, actor_type: 'admin', note,
+      });
+      // B2: callEdgeFunction liefert { httpOk, status, body } — NICHT r.ok.
+      if (!r.httpOk) {
+        await supabase.from('bookings').update({ no_show_resolving_at: null }).eq('id', bookingId);
+        return res.status(502).json({ error: 'cancel-or-refund fehlgeschlagen', detail: r.body });
+      }
+      // B3 + F-04: Zaehler NUR bei Trainer-No-Show, NUR nach Erfolg, best-effort.
+      if (reason === 'no_show_trainer') {
+        try {
+          const { error: cntErr } = await supabase.rpc('increment_trainer_no_show_count', { p_trainer_id: bk.trainer_id });
+          if (cntErr) console.error('increment_trainer_no_show_count (best-effort):', cntErr.message);
+        } catch (e) { console.error('increment_trainer_no_show_count (best-effort):', e.message); }
+      }
+    }
+
+    // Pflicht-Kommentar revisionssicher: Buchungs-Notiz + Tagebuch (best-effort, kein throw).
+    try {
+      const { data: ex } = await supabase.from('bookings').select('notes').eq('id', bookingId).maybeSingle();
+      const stamp = nowIso.slice(0, 16).replace('T', ' ');
+      const newNote = `[Admin ${stamp}] No-Show-Entscheidung: ${outcome} — ${note}`;
+      await supabase.from('bookings').update({ notes: ex?.notes ? `${ex.notes}\n${newNote}` : newNote }).eq('id', bookingId);
+      await supabase.from('booking_audit').insert({
+        booking_id: bookingId, action: 'admin_note',
+        actor_type: 'admin', actor_id: caller.authUid || null,
+        details: { no_show_outcome: outcome, note, source: 'admin_klaerungsfall' },
+      });
+    } catch (e) { console.error('No-Show-Pflicht-Kommentar (best-effort):', e.message); }
+
+    return res.json({ success: true, outcome });
+  }
+
   const update = {};
   // Logbuch Schritt 1: zusaetzliche Bewegungs-Eintraege (best-effort), die NACH
   // dem erfolgreichen UPDATE geschrieben werden. Bewegungen die NICHT ueber den
