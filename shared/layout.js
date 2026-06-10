@@ -267,8 +267,10 @@ window.pfLoadAdminBookingsBadge = async function pfLoadAdminBookingsBadge() {
     if (typeof adminApi !== 'function') return;
     var res = await adminApi('/api/admin?action=data&type=all_bookings');
     var n = (res.data || []).filter(function (b) {
-      return b.flag_ersatz_trainer_gesucht === true &&
+      var ersatz = b.flag_ersatz_trainer_gesucht === true &&
         !window.pfBadgeSeen.isSeen('admin-ersatz', b.id + '|' + (b.replacement_search_started_at || ''));
+      var streit = ['disputed', 'escalated', 'strittig'].indexOf(b.status) !== -1;
+      return ersatz || streit;
     }).length;
     window.pfSetBookingsBadge(n);
   } catch (e) { /* still */ }

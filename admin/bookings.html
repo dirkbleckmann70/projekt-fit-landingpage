@@ -171,7 +171,7 @@
         return da.localeCompare(db);
       });
       renderBookings();
-      updateErsatzBadge();
+      updateMenuBadge();
     } catch (err) {
       document.getElementById('bookings-body').innerHTML =
         `<tr><td colspan="12" class="text-error" style="padding:20px">Fehler: ${err.message}</td></tr>`;
@@ -201,9 +201,12 @@
     return null;
   }
 
-  function updateErsatzBadge() {
-    const n = allBookings.filter(b => ersatzDotUnseen(b)).length;
-    if (window.pfSetBookingsBadge) window.pfSetBookingsBadge(n);
+  function updateMenuBadge() {
+    // Menue-Hinweiszeichen am Punkt „Buchungen" = Faelle, die Admin-Aufmerksamkeit
+    // brauchen: laufende Ersatz-Suche (Vorgang 6) PLUS offene Streitfaelle (No-Show Teil 3).
+    const ersatz = allBookings.filter(b => ersatzDotUnseen(b)).length;
+    const streit = allBookings.filter(b => ['disputed','escalated','strittig'].includes(b.status)).length;
+    if (window.pfSetBookingsBadge) window.pfSetBookingsBadge(ersatz + streit);
   }
 
   function getBookingType(b) {
@@ -464,7 +467,7 @@
     if (b.flag_ersatz_trainer_gesucht === true && window.pfBadgeSeen) {
       window.pfBadgeSeen.markSeen('admin-ersatz', ersatzSeenKey(b));
       renderBookings();
-      updateErsatzBadge();
+      updateMenuBadge();
     }
 
     document.getElementById('modal-body').innerHTML = `
