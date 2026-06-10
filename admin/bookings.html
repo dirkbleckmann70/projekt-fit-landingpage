@@ -82,7 +82,7 @@
           <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-details">Details</a></li>
           <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-history">Verlauf</a></li>
           <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-invoice">Beleg</a></li>
-          <li class="nav-item" id="tab-li-klarungsfall" style="display:none"><a class="nav-link" data-bs-toggle="tab" href="#tab-klarungsfall"><span class="badge bg-red" title="Streitfall – Entscheidung nötig" style="border-radius:50%;margin-right:6px">⚠</span>Klärungsfall</a></li>
+          <li class="nav-item" id="tab-li-klarungsfall" style="display:none"><a class="nav-link" data-bs-toggle="tab" href="#tab-klarungsfall"><span id="tab-klarungsfall-badge" class="badge bg-red" title="Streitfall – Entscheidung nötig" style="border-radius:50%;margin-right:6px">⚠</span>Klärungsfall</a></li>
         </ul>
         <div class="tab-content">
           <div class="tab-pane active show" id="tab-details">
@@ -244,6 +244,11 @@
     const widerspruch = b.no_show_trainer_disputed === true;
     const kundeCheckin = b.flag_kunde_anwesend === true || !!b.kunde_checkin_at;
     const trainerCheckin = !!b.trainer_checked_in_at;
+    // offen = Streitfall noch nicht entschieden (Knoepfe zeigen). Sonst Rueckblick.
+    const offen = isStreitfall(b);
+    const entscheidungTxt = b.storno_grund === 'no_show_trainer' ? 'Trainer war nicht da — Kunde erstattet, Trainer 0 €'
+      : b.storno_grund === 'no_show_kunde' ? 'Kunde war nicht da — Kunde zahlt, Trainer 0 €'
+      : (['abgeschlossen', 'completed'].indexOf(b.status) !== -1 ? 'Training fand doch statt — regulär abgeschlossen' : 'entschieden');
     const pay = auszahlungLabel(g, b);
     const payTxt = pay.txt;
     const payCls = pay.cls;
@@ -256,9 +261,11 @@
     const fristTxt = window.fmtFristRest(b.no_show_trainer_deadline, new Date());
     const gutschein = b.storno_grund === 'no_show_trainer' ? 'vergeben' : 'nicht vergeben';
     el.innerHTML = `
-      <div class="alert ${widerspruch ? 'alert-danger' : 'alert-warning'} d-flex align-items-center" role="alert">
-        <i class="ti ti-alert-triangle me-2" style="font-size:20px"></i>
-        <div><b>Klärungsfall (Streitfall).</b> Trainer-Auszahlung ist gesperrt, bis du entscheidest.${widerspruch ? ' Der Trainer hat widersprochen („Ich war da") → automatische Auflösung ist gestoppt.' : ''}</div>
+      <div class="alert ${offen ? (widerspruch ? 'alert-danger' : 'alert-warning') : 'alert-success'} d-flex align-items-center" role="alert">
+        <i class="ti ti-${offen ? 'alert-triangle' : 'circle-check'} me-2" style="font-size:20px"></i>
+        <div>${offen
+          ? '<b>Klärungsfall (Streitfall).</b> Trainer-Auszahlung ist gesperrt, bis du entscheidest.' + (widerspruch ? ' Der Trainer hat widersprochen („Ich war da") → automatische Auflösung ist gestoppt.' : '')
+          : '<b>Streitfall erledigt.</b> Entscheidung: ' + entscheidungTxt + '. (Rückblick — keine Aktion mehr nötig, Ablauf im Reiter „Verlauf".)'}</div>
       </div>
       <h4 class="text-muted">Geld-Stände</h4>
       <div class="row mb-3">
@@ -282,7 +289,7 @@
         <tr><td class="text-muted">Trainer-Widerspruch</td><td class="text-end fw-bold" style="${widerspruch ? 'color:#d6a206' : ''}">${widerspruch ? '⚠ „Ich war da"' : 'kein Widerspruch'}</td></tr>
         <tr><td class="text-muted">Frist läuft ab</td><td class="text-end fw-bold">${b.no_show_trainer_deadline ? new Date(b.no_show_trainer_deadline).toLocaleString('de-DE') + ' (' + fristTxt + ')' : '– keine Frist'}</td></tr>
       </table>
-      <h4 class="text-muted">Entscheidung treffen</h4>
+      ${offen ? `<h4 class="text-muted">Entscheidung treffen</h4>
       <div class="card mb-3"><div class="card-body">
         <label class="form-label">Begründung / Notiz <span class="text-danger">(Pflicht)</span></label>
         <textarea class="form-control mb-3" id="klaerung-note" rows="2" placeholder="Begründung der Entscheidung …"></textarea>
@@ -292,7 +299,8 @@
           <div class="col-md-4"><button class="btn btn-info w-100" onclick="resolveNoShow('training_fand_statt')">Training fand doch statt</button></div>
         </div>
         <div class="text-muted small mt-2">Entscheidung + Notiz werden im Verlauf protokolliert und erscheinen im Beweis-Auszug.</div>
-      </div></div>
+      </div></div>` : `<h4 class="text-muted">Getroffene Entscheidung</h4>
+      <div class="card mb-3"><div class="card-body"><b>${entscheidungTxt}</b><div class="text-muted small mt-1">Vollständiger Ablauf im Reiter „Verlauf".</div></div></div>`}
       <h4 class="text-muted">Beweis-Auszug (gerichtsfest, dauerhaft)</h4>
       <div class="card"><div class="card-body text-muted">Entsteht automatisch bei der Auflösung (folgt in Kürze).</div></div>
     `;
@@ -728,11 +736,18 @@
     // Verlauf-Tab fuellen
     renderHistory(b);
 
-    // Klaerungsfall-Tab nur bei Streitfaellen einblenden + fuellen (No-Show Teil 3)
+    // Klaerungsfall-Tab: bei offenem Streitfall ODER wenn die Buchung mal eskaliert war
+    // (escalation_started_at bleibt nach Entscheidung gesetzt) -> als Rueckblick sichtbar
+    // lassen, damit der Admin Check-in-Lage + getroffene Entscheidung nachschlagen kann.
     const klTabLi = document.getElementById('tab-li-klarungsfall');
-    if (klTabLi) klTabLi.style.display = isStreitfall(b) ? '' : 'none';
-    if (isStreitfall(b)) {
-      renderKlaerungsfall(b);
+    const klOffen = isStreitfall(b);
+    const klSichtbar = klOffen || !!b.escalation_started_at;
+    if (klTabLi) klTabLi.style.display = klSichtbar ? '' : 'none';
+    // Roter Aktions-Punkt am Tab nur bei NOCH offenem Streitfall.
+    const klBadge = document.getElementById('tab-klarungsfall-badge');
+    if (klBadge) klBadge.style.display = klOffen ? '' : 'none';
+    if (klSichtbar) renderKlaerungsfall(b);
+    if (klOffen) {
       // S2: allgemeinen Status-Dropdown sperren — die Entscheidung laeuft AUSSCHLIESSLICH
       // ueber den Klaerungsfall-Tab (sonst zweiter Geld-Weg, vgl. B-2026-05-11-01).
       const stSel = document.getElementById('edit-booking-status');

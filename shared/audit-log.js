@@ -149,6 +149,16 @@
       } else if (action === 'trainer_checkout') {
         if (d.trainer_checked_out_at) parts.push('Zeitpunkt: ' + auditEscape(formatDateTime(d.trainer_checked_out_at)));
       } else if (action === 'admin_note') {
+        // No-Show Teil 3: Streitfall-Entscheidung wird als admin_note mit
+        // no_show_outcome geschrieben — als klare Entscheidung darstellen.
+        if (d.no_show_outcome) {
+          const nsLabel = {
+            trainer_nicht_da: 'Trainer war nicht da (Kunde erstattet)',
+            kunde_nicht_da: 'Kunde war nicht da (Kunde zahlt)',
+            training_fand_statt: 'Training fand doch statt (regulär abgeschlossen)',
+          }[d.no_show_outcome] || d.no_show_outcome;
+          parts.push('Entscheidung: <strong>' + auditEscape(nsLabel) + '</strong>');
+        }
         if (d.note) parts.push('Notiz: ' + auditEscape(d.note));
       } else if (action === 'admin_field_change') {
         // Zwei Detail-Formen: Status-only {field,from,to} ODER Geld/Termin {changed_fields,...}
@@ -196,7 +206,12 @@
     if (e.kind === 'payment') { map = AUDIT_PAYMENT_ACTIONS; kindLabel = 'Zahlung'; }
     if (e.kind === 'invoice') { map = AUDIT_INVOICE_ACTIONS; kindLabel = 'Rechnung'; }
     if (e.kind === 'cash')    { map = AUDIT_CASH_ACTIONS;    kindLabel = 'Bar-Zahlung'; }
-    const meta = (map && map[e.action]) || { icon: '•', label: e.action || '(unbekannte Aktion)' };
+    let meta = (map && map[e.action]) || { icon: '•', label: e.action || '(unbekannte Aktion)' };
+    // No-Show Teil 3: Streitfall-Entscheidung (admin_note + no_show_outcome) klar betiteln
+    // statt generisch "Notiz".
+    if (e.kind === 'booking' && e.action === 'admin_note' && e.details && e.details.no_show_outcome) {
+      meta = { icon: '⚖️', label: 'Streitfall entschieden' };
+    }
     const actor = AUDIT_ACTORS[e.actor_type] || (e.actor_type || 'unbekannt');
 
     let context = '';
