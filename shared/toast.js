@@ -62,7 +62,10 @@
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'bookings' }, function(payload) {
         var b = payload.new;
         var old = payload.old;
-        if (b.status !== old.status) {
+        // old.status ist nur gesetzt wenn bookings REPLICA IDENTITY FULL hat (Migration
+        // 20260610140000). Fehlt es (DEFAULT -> nur PK in old), NICHT feuern statt bei
+        // jedem UPDATE einen falschen "Status geaendert"-Toast zu zeigen.
+        if (old.status !== undefined && b.status !== old.status) {
           var statusText = (typeof STATUS_LABELS !== 'undefined' && STATUS_LABELS[b.status]) || b.status;
           showPfToast('Status geaendert', 'Buchung #' + (b.id || '').slice(0,8) + ' → ' + statusText, 'warning');
         }
