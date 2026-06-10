@@ -661,11 +661,11 @@
       <div class="pf-form-divider">Zahlung</div>
       <div class="pf-form-grid pf-form-grid-2col">
         <div class="form-group">
-          <label>Kundenpreis (EUR)</label>
+          <label>Kundenpreis vor Rabatt (EUR)</label>
           <input class="pf-field" type="number" step="0.01" min="0" id="edit-booking-price" value="${b.price_cents ? (b.price_cents / 100).toFixed(2) : '0.00'}">
         </div>
         <div class="form-group">
-          <label>Endpreis (EUR)</label>
+          <label>Zahlbetrag nach Rabatt (EUR)</label>
           <input class="pf-field" type="number" step="0.01" min="0" id="edit-booking-final-price" value="${(b.final_price_cents || b.price_cents) ? ((b.final_price_cents || b.price_cents) / 100).toFixed(2) : '0.00'}">
         </div>
         <div class="form-group">
