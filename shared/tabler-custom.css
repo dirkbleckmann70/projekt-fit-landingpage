@@ -284,6 +284,7 @@ tr.row-overdue { border-left: 3px solid #dc2626; }
 .pf-modal-sm .modal-dialog { max-width: 600px; }
 .pf-modal-md .modal-dialog { max-width: 720px; }
 .pf-modal-lg .modal-dialog { max-width: 920px; }
+.pf-modal-xl .modal-dialog { max-width: 1140px; }
 .pf-modal-footer { display: flex; align-items: center; gap: 8px; background: #fafbfc; }
 
 /* ── pf-form-grid ────────────────────────────────────────────────────────── */
