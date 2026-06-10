@@ -210,8 +210,13 @@
     // Menue-Hinweiszeichen am Punkt „Buchungen" = Faelle, die Admin-Aufmerksamkeit
     // brauchen: laufende Ersatz-Suche (Vorgang 6) PLUS offene Streitfaelle (No-Show Teil 3).
     const ersatz = allBookings.filter(b => ersatzDotUnseen(b)).length;
-    const streit = allBookings.filter(b => ['disputed','escalated','strittig'].includes(b.status)).length;
+    const streit = allBookings.filter(b => isStreitfall(b)).length;
     if (window.pfSetBookingsBadge) window.pfSetBookingsBadge(ersatz + streit);
+  }
+
+  // No-Show Teil 3 — Streitfall-Erkennung (Liste-Marker, Menue-Zaehler, Tab).
+  function isStreitfall(b) {
+    return ['disputed', 'escalated', 'strittig'].includes(b.status);
   }
 
   // No-Show Teil 3 — fuellt den Klaerungsfall-Tab (nur Anzeige; Knoepfe folgen).
@@ -411,8 +416,8 @@
       const price = effectivePrice(b);
       const cost  = effectiveCost(b);
       return `
-        <tr class="${isOverdue(b) ? 'row-overdue' : ''}" data-row-index="${i}">
-          <td>${ersatzDotUnseen(b) ? `<span class="badge bg-red" title="Ersatztrainer wird gesucht – Aktion nötig" style="border-radius:50%;margin-right:6px">1</span>` : ''}${formatDate(b.scheduled_date)}</td>
+        <tr class="${isOverdue(b) ? 'row-overdue' : ''}${isStreitfall(b) ? ' row-dispute' : ''}" data-row-index="${i}">
+          <td>${isStreitfall(b) ? `<span class="badge bg-red" title="Streitfall – Entscheidung nötig" style="border-radius:50%;margin-right:6px">⚠</span>` : ''}${ersatzDotUnseen(b) ? `<span class="badge bg-red" title="Ersatztrainer wird gesucht – Aktion nötig" style="border-radius:50%;margin-right:6px">1</span>` : ''}${formatDate(b.scheduled_date)}</td>
           <td>${b.trainer_city || b.city || '–'}</td>
           <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
           <td><span class="badge ${b.booking_type === 'group' ? 'badge-paused' : 'badge-pending'}">${getBookingType(b)}</span></td>
@@ -672,10 +677,9 @@
     renderHistory(b);
 
     // Klaerungsfall-Tab nur bei Streitfaellen einblenden + fuellen (No-Show Teil 3)
-    const STRITTIG_S = ['disputed', 'escalated', 'strittig'];
     const klTabLi = document.getElementById('tab-li-klarungsfall');
-    if (klTabLi) klTabLi.style.display = STRITTIG_S.includes(b.status) ? '' : 'none';
-    if (STRITTIG_S.includes(b.status)) renderKlaerungsfall(b);
+    if (klTabLi) klTabLi.style.display = isStreitfall(b) ? '' : 'none';
+    if (isStreitfall(b)) renderKlaerungsfall(b);
 
     // Kontaktdaten asynchron nachladen (Admin sieht immer beide)
     loadAdminContacts(b);

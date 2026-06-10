@@ -258,6 +258,10 @@ small, .small { font-size: 0.8125rem; }
 
 /* ── Tabellen: Overdue-Zeile ─────────────────────────────────────────────── */
 tr.row-overdue { border-left: 3px solid #dc2626; }
+/* Streitfall (No-Show Teil 3): deutlich hervorheben, geht sonst zwischen roten Status unter */
+tr.row-dispute > td { background: #fff1f1; }
+tr.row-dispute { border-left: 4px solid #dc2626; }
+tr.row-dispute:hover > td { background: #ffe3e3; }
 
 /* ══════════════════════════════════════════════════════════════════════════
    NEUE DESIGN-SYSTEM-KLASSEN (pf-*)
