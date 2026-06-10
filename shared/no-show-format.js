@@ -19,19 +19,38 @@
   }
 
   // Leitet die getrennten Geld-Staende aus dem Buchungsobjekt ab.
-  // kundeBezahlt: bool | trainerAuszahlung: 'ausgezahlt' | 'gesperrt' | 'offen'
-  function geldStaende(b) {
+  // kundeBezahlt: bool | trainerAuszahlung: 'ausgezahlt' | 'gesperrt' | 'faellig' | 'offen'
+  //   ausgezahlt = trainer_paid_out_at gesetzt
+  //   gesperrt   = Streitfall offen (strittig/disputed/escalated)
+  //   faellig    = abgeschlossen + bezahlt, aber noch nicht ausgezahlt -> laeuft ueber die
+  //                regulaere Frist (default 48h ab completed_at). auszahlungFaelligAt = wann.
+  //   offen      = alles andere (noch nicht abgeschlossen)
+  // graceHours: Frist-Stunden (company_settings.trainer_payout_grace_hours, Default 48).
+  function geldStaende(b, graceHours) {
     b = b || {};
+    var stunden = (graceHours == null) ? 48 : graceHours;
     var strittig = ['strittig', 'disputed', 'escalated'].indexOf(b.status) !== -1;
+    var abgeschlossen = ['abgeschlossen', 'completed'].indexOf(b.status) !== -1;
     var trainerAuszahlung;
-    if (b.trainer_paid_out_at) trainerAuszahlung = 'ausgezahlt';
-    else if (strittig) trainerAuszahlung = 'gesperrt';
-    else trainerAuszahlung = 'offen';
+    var auszahlungFaelligAt = null;
+    if (b.trainer_paid_out_at) {
+      trainerAuszahlung = 'ausgezahlt';
+    } else if (strittig) {
+      trainerAuszahlung = 'gesperrt';
+    } else if (abgeschlossen && b.paid) {
+      trainerAuszahlung = 'faellig';
+      if (b.completed_at) {
+        auszahlungFaelligAt = new Date(new Date(b.completed_at).getTime() + stunden * 3600000).toISOString();
+      }
+    } else {
+      trainerAuszahlung = 'offen';
+    }
     return {
       kundeBezahlt: !!b.paid,
       kundeBetragCents: b.final_price_cents != null ? b.final_price_cents : (b.price_cents || 0),
       trainerAuszahlung: trainerAuszahlung,
-      trainerBetragCents: b.trainer_payout_cents || 0
+      trainerBetragCents: b.trainer_payout_cents || 0,
+      auszahlungFaelligAt: auszahlungFaelligAt
     };
   }
 

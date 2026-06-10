@@ -24,4 +24,22 @@ const g3 = geldStaende({ paid: false, status: 'bestaetigt' });
 assert.equal(g3.kundeBezahlt, false);
 assert.equal(g3.trainerAuszahlung, 'offen');
 
+// abgeschlossen + bezahlt + noch nicht ausgezahlt -> 'faellig' + Fristdatum (Default 48h)
+const g4 = geldStaende({ paid: true, status: 'abgeschlossen', completed_at: '2026-06-15T10:00:00Z', trainer_payout_cents: 4500, trainer_paid_out_at: null });
+assert.equal(g4.trainerAuszahlung, 'faellig');
+assert.equal(g4.auszahlungFaelligAt, '2026-06-17T10:00:00.000Z'); // +48h
+
+// Frist-Stunden konfigurierbar (z.B. 72h)
+const g5 = geldStaende({ paid: true, status: 'abgeschlossen', completed_at: '2026-06-15T10:00:00Z', trainer_paid_out_at: null }, 72);
+assert.equal(g5.auszahlungFaelligAt, '2026-06-18T10:00:00.000Z'); // +72h
+
+// abgeschlossen aber NICHT bezahlt -> bleibt 'offen' (keine Faelligkeit)
+const g6 = geldStaende({ paid: false, status: 'abgeschlossen', completed_at: '2026-06-15T10:00:00Z' });
+assert.equal(g6.trainerAuszahlung, 'offen');
+assert.equal(g6.auszahlungFaelligAt, null);
+
+// ausgezahlt schlaegt abgeschlossen -> 'ausgezahlt' (kein 'faellig')
+const g7 = geldStaende({ paid: true, status: 'abgeschlossen', completed_at: '2026-06-15T10:00:00Z', trainer_paid_out_at: '2026-06-17T11:00:00Z' });
+assert.equal(g7.trainerAuszahlung, 'ausgezahlt');
+
 console.log('no-show-format: alle Tests OK');
