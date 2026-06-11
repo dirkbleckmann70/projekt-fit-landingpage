@@ -502,6 +502,24 @@
           price_per_person_cents: gc.price_per_person_cents,
           participants:           participantsMap[gc.id] || [],
         }));
+
+        // B-2026-06-07-06: GT-Teilnahmen liegen in bookings OHNE Klarname/Telefon.
+        // Kontakte (Name + Telefon) ueber gescopten Endpunkt nachladen — liefert nur
+        // Teilnehmer der EIGENEN Kurse (server-seitig auf den Trainer gescopt).
+        try {
+          const contactResp = await adminApi('/api/admin?action=data&type=gt_participant_contacts');
+          const contactMap = contactResp.data || {};
+          allGTClasses.forEach(gc => {
+            (gc.participants || []).forEach(p => {
+              const c = contactMap[p.customer_id];
+              if (c) {
+                p.customer_name  = c.customer_name;
+                p.customer_phone = c.customer_phone;
+                p.customer_email = c.customer_email;
+              }
+            });
+          });
+        } catch (e) { /* Namen bleiben auf Fallback 'Teilnehmer' */ }
       }
 
       renderBookings();
@@ -882,9 +900,12 @@
       participantListHtml = `<div class="mb-3"><label class="form-label text-secondary">Teilnehmer</label>
         <div class="list-group list-group-flush" style="font-size:13px">
           ${gc.participants.map(p => {
-            // Teilspec 1: customer_name/email gibt es in bookings nicht mehr — Trainer
-            // sieht GT-Teilnehmer ohnehin anonymisiert; paid loest customer_paid ab.
+            // B-2026-06-07-06: Klarname + Telefon kommen ueber gt_participant_contacts
+            // (gescopt auf eigene Kurse). paid loest customer_paid ab.
             const name = p.customer_name || p.customer_email || 'Teilnehmer';
+            const phoneHtml = p.customer_phone
+              ? `<span class="text-secondary ms-2" style="font-size:12px"><i class="ti ti-phone"></i> ${p.customer_phone}</span>`
+              : '';
             const paidBadge = (p.paid ?? p.customer_paid)
               ? '<span class="badge bg-success-lt ms-2">Bezahlt</span>'
               : '<span class="badge bg-warning-lt ms-2">Offen</span>';
@@ -894,7 +915,7 @@
             const cardBadge = p.gt_card_id
               ? '<span class="badge bg-green-lt ms-2">10er-Karte</span>'
               : '<span class="badge bg-blue-lt ms-2">Einzelbuchung</span>';
-            return `<div class="list-group-item" style="background:transparent;border-color:var(--tblr-border-color);padding:6px 0">${name}${paidBadge}${cardBadge}${checkedOutBadge}</div>`;
+            return `<div class="list-group-item" style="background:transparent;border-color:var(--tblr-border-color);padding:6px 0">${name}${phoneHtml}${paidBadge}${cardBadge}${checkedOutBadge}</div>`;
           }).join('')}
         </div></div>`;
     }

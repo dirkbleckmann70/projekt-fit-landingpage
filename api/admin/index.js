@@ -39,7 +39,7 @@ export default async function handler(req, res) {
 
   // ── Auth Check ──
   // Bestimmte Endpoints sind auch fuer Trainer zugaenglich
-  const trainerAllowedTypes = ['customer_names', 'booking_locations', 'trainer_audit_log', 'no_show_customer_phone'];
+  const trainerAllowedTypes = ['customer_names', 'booking_locations', 'trainer_audit_log', 'no_show_customer_phone', 'gt_participant_contacts'];
   const isTrainerAllowedRead = action === 'data' && req.method === 'GET' && trainerAllowedTypes.includes(req.query.type);
   const isTrainerAllowedWrite = (action === 'bookings' && req.method === 'PUT') ||
                                (action === 'update-participant' && req.method === 'PUT');
@@ -1875,7 +1875,34 @@ async function handleData(req, res, supabase) {
         if (error.code === '42P01') return res.json({ data: [] });
         throw error;
       }
-      const mapped = (data || []).map(withFrontendStatus);
+      // B-2026-06-07-06: bookings hat customer_name/email/phone NICHT mehr direkt
+      // (GT-Teilnahmen wurden nach bookings migriert) → Kundendaten per JOIN auf
+      // customers nachladen, sonst zeigt groups.html Name/E-Mail/Telefon als „–"
+      // (Teilnehmerliste wirkte leer). Status-Mapping (withFrontendStatus) bleibt.
+      const partCustomerIds = [...new Set((data || []).map(b => b.customer_id).filter(Boolean))];
+      const partCustomerMap = {};
+      if (partCustomerIds.length > 0) {
+        const { data: custs } = await supabase
+          .from('customers')
+          .select('id, full_name, first_name, last_name, email, phone')
+          .in('id', partCustomerIds);
+        if (custs) custs.forEach(c => { partCustomerMap[c.id] = c; });
+      }
+      const mapped = (data || []).map(row => {
+        const c = partCustomerMap[row.customer_id] || {};
+        return {
+          ...row,
+          status: mapStatusForFrontend(row),
+          customer_name:
+            row.customer_name
+            || c.full_name
+            || [c.first_name, c.last_name].filter(Boolean).join(' ')
+            || c.email
+            || '–',
+          customer_email: row.customer_email || c.email || null,
+          customer_phone: row.customer_phone || c.phone || null,
+        };
+      });
       return res.json({ data: mapped });
     }
 
@@ -2012,6 +2039,58 @@ async function handleData(req, res, supabase) {
       if (!bk.customer_id) return res.json({ phone: null });
       const { data: cust } = await supabase.from('customers').select('phone').eq('id', bk.customer_id).maybeSingle();
       return res.json({ phone: cust?.phone ?? null });
+    }
+
+    // ─── GT-Teilnehmer-Kontakte (Name + Telefon) — B-2026-06-07-06 ──────────────
+    // Trainer + Admin sollen die Teilnehmer ihrer Gruppenkurse mit Klarname +
+    // Telefon sehen (so wie bei Einzeltraining). Datenschutz: server-seitig auf
+    // die EIGENEN Kurse des Trainers gescopt (trainer_profiles via auth_user_id),
+    // Admin sieht alle. Der Client kann KEINE fremden customer_ids abgreifen —
+    // es werden ausschliesslich Teilnehmer der erlaubten Kurse zurueckgegeben.
+    case 'gt_participant_contacts': {
+      const caller = await getCallerInfo(req);
+      if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+
+      let classQuery = supabase.from('group_classes').select('id');
+      if (caller.actorType === 'admin') {
+        if (req.query.group_id) classQuery = classQuery.eq('id', req.query.group_id);
+      } else {
+        const { data: tp } = await supabase
+          .from('trainer_profiles').select('id').eq('auth_user_id', caller.authUid).maybeSingle();
+        if (!tp) return res.status(403).json({ error: 'Kein Trainer-Profil' });
+        classQuery = classQuery.eq('trainer_id', tp.id);
+        if (req.query.group_id) classQuery = classQuery.eq('id', req.query.group_id);
+      }
+      const { data: classes } = await classQuery;
+      const classIds = (classes || []).map(c => c.id);
+      if (classIds.length === 0) return res.json({ data: {} });
+
+      const { data: parts } = await supabase
+        .from('bookings')
+        .select('customer_id')
+        .eq('art', 'gt_teilnahme')
+        .in('group_class_id', classIds)
+        .neq('status', 'storniert');
+      const custIds = [...new Set((parts || []).map(p => p.customer_id).filter(Boolean))];
+      if (custIds.length === 0) return res.json({ data: {} });
+
+      const { data: custs } = await supabase
+        .from('customers')
+        .select('id, full_name, first_name, last_name, phone, email')
+        .in('id', custIds);
+      const contactMap = {};
+      (custs || []).forEach(c => {
+        contactMap[c.id] = {
+          customer_name:
+            c.full_name
+            || [c.first_name, c.last_name].filter(Boolean).join(' ')
+            || c.email
+            || 'Teilnehmer',
+          customer_phone: c.phone || null,
+          customer_email: c.email || null,
+        };
+      });
+      return res.json({ data: contactMap });
     }
 
     // ─── Calendar: Bookings für Woche + Trainer ───────────────────────
