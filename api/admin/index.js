@@ -1858,7 +1858,27 @@ async function handleData(req, res, supabase) {
         if (error.code === '42P01') return res.json({ data: [] });
         throw error;
       }
-      return res.json({ data: data || [] });
+      const groups = data || [];
+      // B-2026-06-11-01: Teilnehmerzahl je Kurs aus bookings (art='gt_teilnahme')
+      // zaehlen. Die alte Spalte group_classes.current_participants existiert NICHT
+      // mehr (GT-Teilnahmen liegen seit Teilspec 1 in bookings) → die Kursliste +
+      // KPIs in admin/groups.html zeigten ueberall „0/12". Nicht-stornierte
+      // Teilnahmen = angemeldet (analog Trainer-Portal pcMap + fetchGroupParticipantsAsBookings).
+      if (groups.length > 0) {
+        const groupIds = groups.map(g => g.id);
+        const { data: parts } = await supabase
+          .from('bookings')
+          .select('group_class_id')
+          .eq('art', 'gt_teilnahme')
+          .in('group_class_id', groupIds)
+          .neq('status', 'storniert');
+        const countByClass = {};
+        (parts || []).forEach(p => {
+          if (p.group_class_id) countByClass[p.group_class_id] = (countByClass[p.group_class_id] || 0) + 1;
+        });
+        groups.forEach(g => { g.current_participants = countByClass[g.id] || 0; });
+      }
+      return res.json({ data: groups });
     }
 
     case 'group_participants': {
