@@ -910,7 +910,7 @@
             const paidBadge = (p.paid ?? p.customer_paid)
               ? '<span class="badge bg-success-lt ms-2">Bezahlt</span>'
               : '<span class="badge bg-warning-lt ms-2">Offen</span>';
-            const checkedOutBadge = p.trainer_checked_out_at
+            const checkedOutBadge = p.status === 'abgeschlossen'
               ? '<span class="badge bg-primary-lt ms-2">Abgeschlossen</span>'
               : '';
             const cardBadge = p.gt_card_id
