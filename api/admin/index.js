@@ -42,7 +42,8 @@ export default async function handler(req, res) {
   const trainerAllowedTypes = ['customer_names', 'booking_locations', 'trainer_audit_log', 'no_show_customer_phone', 'gt_participant_contacts'];
   const isTrainerAllowedRead = action === 'data' && req.method === 'GET' && trainerAllowedTypes.includes(req.query.type);
   const isTrainerAllowedWrite = (action === 'bookings' && req.method === 'PUT') ||
-                               (action === 'update-participant' && req.method === 'PUT');
+                               (action === 'update-participant' && req.method === 'PUT') ||
+                               (action === 'gt_kurs_abschluss' && req.method === 'PUT');
   const isCustomerAllowed = ['location-accept', 'location-reject', 'reschedule-accept', 'reschedule-reject'].includes(action) && req.method === 'PUT';
   const isTrainerAllowed = isTrainerAllowedRead || isTrainerAllowedWrite || isCustomerAllowed;
 
@@ -138,6 +139,60 @@ export default async function handler(req, res) {
       case 'update-participant': {
         if (req.method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
         return await handleUpdateParticipant(req, res, supabase);
+      }
+
+      // ═══════════════════════════════════════════════════════════════════
+      // GT-KURS-ABSCHLUSS – PUT (Trainer "Kurs abschließen" + Admin-Notfall)
+      // Setzt group_classes.durchfuehrung_status='abgeschlossen' + durchgefuehrt_am
+      // und nimmt die gt_teilnahme-Buchungen atomisch auf 'abgeschlossen' mit.
+      // ═══════════════════════════════════════════════════════════════════
+      case 'gt_kurs_abschluss': {
+        if (req.method !== 'PUT') return res.status(405).json({ error: 'Method not allowed' });
+        const body = await getBody(req);
+        const caller = await getCallerInfo(req);
+        if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+
+        const groupClassId = body.group_class_id;
+        if (!groupClassId || !/^[0-9a-f-]{36}$/i.test(groupClassId)) {
+          return res.status(400).json({ error: 'group_class_id (UUID) erforderlich' });
+        }
+
+        const { data: gc, error: gcErr } = await supabase
+          .from('group_classes').select('id, trainer_id, durchfuehrung_status').eq('id', groupClassId).maybeSingle();
+        if (gcErr || !gc) return res.status(404).json({ error: 'Kurs nicht gefunden' });
+
+        // Ownership: Admin darf alles; Trainer nur eigenen Kurs.
+        if (caller.actorType !== 'admin') {
+          const { data: tp } = await supabase.from('trainer_profiles').select('id').eq('auth_user_id', caller.authUid).maybeSingle();
+          if (!tp || tp.id !== gc.trainer_id) return res.status(403).json({ error: 'Kein Zugriff auf diesen Kurs' });
+        }
+
+        if (!['geplant', 'laeuft'].includes(gc.durchfuehrung_status)) {
+          return res.status(409).json({ error: `Kurs bereits ${gc.durchfuehrung_status}` });
+        }
+
+        const nowIso = new Date().toISOString();
+        // 1) Kurs abschließen — atomarer Race-/Doppelklick-Schutz via .in()
+        const { data: upd, error: updErr } = await supabase
+          .from('group_classes')
+          .update({ durchfuehrung_status: 'abgeschlossen', durchgefuehrt_am: nowIso })
+          .eq('id', groupClassId)
+          .in('durchfuehrung_status', ['geplant', 'laeuft'])
+          .select('id');
+        if (updErr) return res.status(500).json({ error: updErr.message });
+        if (!upd || upd.length === 0) return res.status(409).json({ error: 'Abschluss nicht möglich (Status geändert)' });
+
+        // 2) Teilnehmer-Buchungen mitnehmen (Kunde sieht "fand statt"). Nicht-stornierte gt_teilnahme.
+        const { error: partErr } = await supabase
+          .from('bookings')
+          .update({ status: 'abgeschlossen', completed_at: nowIso })
+          .eq('group_class_id', groupClassId)
+          .eq('art', 'gt_teilnahme')
+          .not('status', 'in', '("storniert","abgeschlossen")')
+          .select('id');
+        if (partErr) { console.error('gt_kurs_abschluss participant-sync (best-effort):', partErr.message); }
+
+        return res.status(200).json({ ok: true, group_class_id: groupClassId });
       }
 
       // ═══════════════════════════════════════════════════════════════════

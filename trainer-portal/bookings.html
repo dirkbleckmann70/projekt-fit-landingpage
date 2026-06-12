@@ -491,6 +491,7 @@
           _type:                  'gt',
           id:                     'gc_' + gc.id,
           gc_id:                  gc.id,
+          durchfuehrung_status:   gc.durchfuehrung_status,
           scheduled_date:         gc.scheduled_date,
           scheduled_time:         gc.scheduled_time,
           city:                   gc.city,
@@ -891,7 +892,7 @@
       ? `${gc.participant_count} / ${gc.max_participants}`
       : String(gc.participant_count);
 
-    const alreadyCheckedOut = gc.participants.length > 0 && gc.participants.every(p => p.trainer_checked_out_at);
+    const alreadyCheckedOut = gc.durchfuehrung_status === 'abgeschlossen';
     const terminVorbei = isTerminVorbei(gc);
 
     // Teilnehmerliste
@@ -1377,9 +1378,9 @@
 
   async function gtCheckout(gcId) {
     const gc = allGTClasses.find(x => x.gc_id === gcId);
-    if (!gc || gc.participants.length === 0) return;
+    if (!gc) return;
 
-    if (!confirm(`Kurs "${gc.group_class_name}" als abgeschlossen markieren? Damit wird die Trainer-Vergütung für ${gc.participants.length} Teilnehmer freigegeben.`)) return;
+    if (!confirm(`Kurs "${gc.group_class_name}" als durchgeführt abschließen? Das gibt die Trainer-Auszahlung nach der Reklamationsfrist frei.`)) return;
 
     // Alle offenen Modals schliessen
     document.querySelectorAll('.modal.show').forEach(function(m) {
@@ -1387,23 +1388,17 @@
       if (inst) inst.hide();
     });
 
-    const now = new Date().toISOString();
-    let errors = 0;
-    for (const p of gc.participants) {
-      if (p.trainer_checked_out_at) continue; // schon ausgecheckt
-      try {
-        await adminApi('/api/admin?action=update-participant', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: p.id, trainer_checked_out_at: now }),
-        });
-      } catch (e) { errors++; }
-    }
-
-    if (errors > 0) {
-      showAlert(`Checkout teilweise fehlgeschlagen (${errors} Fehler)`, 'error');
-    } else {
-      showAlert(`Kurs "${gc.group_class_name}" abgeschlossen – Vergütung freigegeben`, 'success');
+    // EIN Kurs-Endpunkt statt Pro-Teilnehmer-Stempel: setzt durchfuehrung_status='abgeschlossen'
+    // am Kurs + nimmt die Teilnehmer-Buchungen atomisch mit.
+    try {
+      await adminApi('/api/admin?action=gt_kurs_abschluss', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group_class_id: gcId }),
+      });
+      showAlert(`Kurs "${gc.group_class_name}" abgeschlossen`, 'success');
+    } catch (e) {
+      showAlert(e.message || 'Abschluss fehlgeschlagen', 'error');
     }
     await loadBookings();
   }
