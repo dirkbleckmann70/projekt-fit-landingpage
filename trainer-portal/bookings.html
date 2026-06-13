@@ -242,6 +242,12 @@
   let _detailModal, _locationModal, _rescheduleModal;
 
   const CANCELLED = [BOOKING_STATUS.CANCELLED, BOOKING_STATUS.CANCELLED_BY_TRAINER, BOOKING_STATUS.REFUNDED, BOOKING_STATUS.FULLY_CANCELLED];
+  // B-2026-06-10-01 T5/T6: Trainer-Verdienst zaehlt nur DURCHGEFUEHRTE (realisierte)
+  // Trainings. Whitelist statt Storno-Blacklist: schliesst kommende (bestaetigt/
+  // laeuft gerade/confirmed) + Storno/expired automatisch aus. PT-Items kommen nach
+  // mapDbStatusToLegacy als 'completed'; GT-Teilnehmer direkt aus DB als 'abgeschlossen'.
+  const TRAINER_REALISIERT_PT = [BOOKING_STATUS.COMPLETED, BOOKING_STATUS.PAID, BOOKING_STATUS.ABGESCHLOSSEN];
+  const TRAINER_REALISIERT_GT = [BOOKING_STATUS.ABGESCHLOSSEN];
   // Muss mit shared/constants.js ACTIVE_STATUSES synchron sein. CHECKED_IN +
   // AWAITING_CHECKOUT erfassen Termine im Status DB-`laeuft gerade` (Trainer
   // hat in der App eingecheckt) — sonst sind sie in keinem Tab sichtbar.
@@ -352,15 +358,23 @@
       // Sortier-Gewicht — Summe der Teilnehmer-Payouts mit aktivem Status.
       // Frueher wurde der Trainer-Stundensatz durch Teilnehmer-Anzahl geteilt,
       // was bei echten Per-Teilnehmer-Payouts in der DB falsche Werte ergab.
+      // B-2026-06-10-01 T6: nur abgeschlossene (realisierte) Teilnahmen als Verdienst
+      // anzeigen — konsistent zur Verdienst-Summe (calcSumCents).
       const sum = (item.participants || [])
-        .filter(p => ['bestaetigt', 'abgeschlossen', 'laeuft gerade'].includes(p.status))
+        .filter(p => TRAINER_REALISIERT_GT.includes(p.status))
         .reduce((s, p) => s + (p.trainer_payout_cents || 0), 0);
       if (sum === 0) return '<span class="text-secondary">0,00 €</span>';
       return formatEuro(sum);
     }
+    // Storno zeigt bewusst '0,00 €' (nicht '–') — der Termin war angelegt, faellt
+    // aber als Verdienst weg. Anschliessender Whitelist-Check bremst kommende Termine.
     if (CANCELLED.includes(item.status)) return '<span class="text-secondary">0,00 €</span>';
     if (item.status === BOOKING_STATUS.EXPIRED) return '<span class="text-secondary">0,00 € (ausstehend)</span>';
     if (item.status === BOOKING_STATUS.PENDING) return '–';
+    // B-2026-06-10-01 T6: kommende/noch nicht durchgefuehrte Termine (confirmed/
+    // bestaetigt/laeuft gerade) sind KEIN realisierter Verdienst → '–' (konsistent
+    // zur Verdienst-Summe; keine "erwartet"-Zahl). Nur realisierte zeigen Betrag.
+    if (!TRAINER_REALISIERT_PT.includes(item.status)) return '–';
     // B-2026-05-14-50 Folge: korrekte DB-Spalte ist `trainer_payout_cents`,
     // nicht `payout_cents`. Frueher fiel jeder Lookup auf den Trainer-Default zurueck.
     const payout = item.trainer_payout_cents ?? rate;
@@ -401,12 +415,14 @@
           // nicht pauschal Trainer-Stundensatz. Geschaeftsregel: kein Honorar
           // fuer nicht-stattgefundene Trainings.
           if (item._type === 'gt') {
+            // B-2026-06-10-01 T6: nur abgeschlossene (realisierte) Teilnahmen
             const sum = (item.participants || [])
-              .filter(p => ['bestaetigt', 'abgeschlossen', 'laeuft gerade'].includes(p.status))
+              .filter(p => TRAINER_REALISIERT_GT.includes(p.status))
               .reduce((s, p) => s + (p.trainer_payout_cents || 0), 0);
             return sum / 100;
           }
-          if (CANCELLED.includes(item.status) || item.status === BOOKING_STATUS.PENDING) return 0;
+          // B-2026-06-10-01 T6: nur realisierte PT-Termine als Verdienst (kommende raus)
+          if (!TRAINER_REALISIERT_PT.includes(item.status)) return 0;
           // Korrekte DB-Spalte: trainer_payout_cents (nicht payout_cents)
           return (item.trainer_payout_cents ?? rate) / 100;
         } },
@@ -538,12 +554,14 @@
       // Honorar fuer nicht-stattgefundene Trainings. Termine ohne Teilnehmer
       // oder mit ausschliesslich stornierten Teilnehmern ergeben 0.
       if (item._type === 'gt') {
+        // B-2026-06-10-01 T5: nur abgeschlossene (realisierte) Teilnahmen
         const gtSum = (item.participants || [])
-          .filter(p => ['bestaetigt', 'abgeschlossen', 'laeuft gerade'].includes(p.status))
+          .filter(p => TRAINER_REALISIERT_GT.includes(p.status))
           .reduce((s, p) => s + (p.trainer_payout_cents || 0), 0);
         return sum + gtSum;
       }
-      if (item.status === BOOKING_STATUS.CONFIRMED || item.status === BOOKING_STATUS.COMPLETED) {
+      // B-2026-06-10-01 T5: nur realisierte PT-Termine (confirmed/kommende zaehlen NICHT)
+      if (TRAINER_REALISIERT_PT.includes(item.status)) {
         // Korrekte DB-Spalte ist `trainer_payout_cents` (nicht `payout_cents`).
         return sum + (item.trainer_payout_cents ?? rate ?? 0);
       }

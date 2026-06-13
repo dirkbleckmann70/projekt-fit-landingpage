@@ -58,12 +58,6 @@
         </div>
         <div class="col-6 col-lg">
           <div class="pf-stat-card">
-            <div class="pf-stat-label">Abzüge</div>
-            <div class="pf-stat-num" id="kpi-abzuege"><div class="spinner-border spinner-border-sm"></div></div>
-          </div>
-        </div>
-        <div class="col-6 col-lg">
-          <div class="pf-stat-card">
             <div class="pf-stat-label">Auszahlung</div>
             <div class="pf-stat-num" id="kpi-auszahlung"><div class="spinner-border spinner-border-sm"></div></div>
           </div>
@@ -100,12 +94,11 @@
                 <th>Vergütung brutto</th>
                 <th>MwSt</th>
                 <th>Vergütung netto</th>
-                <th>Abzüge</th>
                 <th>Auszahlung</th>
               </tr>
             </thead>
             <tbody id="month-body">
-              <tr><td colspan="7" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</td></tr>
+              <tr><td colspan="6" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Laden...</td></tr>
             </tbody>
           </table>
         </div>
@@ -130,12 +123,11 @@
                 <th>Stadt</th>
                 <th>Status</th>
                 <th>Vergütung</th>
-                <th>Rabatt-Abzug</th>
                 <th>Details</th>
               </tr>
             </thead>
             <tbody id="revenue-body">
-              <tr><td colspan="9" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Daten werden geladen...</td></tr>
+              <tr><td colspan="8" class="text-center"><div class="spinner-border spinner-border-sm me-2"></div> Daten werden geladen...</td></tr>
             </tbody>
           </table>
         </div>
@@ -249,10 +241,10 @@
     initRealtimeToasts(getSupabase(), 'trainer');
 
     if (!trainer.id) {
-      ['kpi-brutto','kpi-mwst','kpi-netto','kpi-abzuege','kpi-auszahlung','kpi-ausgezahlt','kpi-ausstehend'].forEach(id =>
+      ['kpi-brutto','kpi-mwst','kpi-netto','kpi-auszahlung','kpi-ausgezahlt','kpi-ausstehend'].forEach(id =>
         document.getElementById(id).textContent = '–');
       document.getElementById('month-body').innerHTML =
-        '<tr><td colspan="7" class="text-secondary" style="padding:16px">Kein Trainer-Profil verknüpft.</td></tr>';
+        '<tr><td colspan="6" class="text-secondary" style="padding:16px">Kein Trainer-Profil verknüpft.</td></tr>';
       return;
     }
 
@@ -354,7 +346,7 @@
     } catch (err) {
       document.getElementById('revenue-body').innerHTML =
         `<tr><td colspan="8" class="text-danger" style="padding:20px">Fehler: ${err.message}</td></tr>`;
-      ['kpi-brutto','kpi-mwst','kpi-netto','kpi-abzuege','kpi-auszahlung','kpi-ausgezahlt','kpi-ausstehend'].forEach(id =>
+      ['kpi-brutto','kpi-mwst','kpi-netto','kpi-auszahlung','kpi-ausgezahlt','kpi-ausstehend'].forEach(id =>
         document.getElementById(id).textContent = '–');
     }
   }
@@ -378,7 +370,6 @@
         { key: 'city',       type: 'select', getValue: b => b.location_name || '' },
         { key: 'status',     type: 'select', getValue: b => b.status || '' },
         { key: 'verguetung', type: 'number', getValue: b => effBrutto(b) / 100 },
-        { key: 'rabatt',    type: 'number', getValue: b => (b.discount_amount_cents || 0) / 100 },
         null,
       ]);
       tableFilter.onFilterChange(() => renderBookingsTable());
@@ -394,10 +385,10 @@
     document.getElementById('kpi-mwst-label').textContent = `MwSt ${_mwstSatz}%`;
     document.getElementById('kpi-mwst').textContent      = f(mwst);
     document.getElementById('kpi-netto').textContent     = f(netto);
-    // Rabatt-Abzüge: Summe aller discount_amount_cents bei Buchungen dieses Trainers
-    const abzuege = yearData.reduce((s, b) => s + (b.discount_amount_cents || 0), 0);
-    document.getElementById('kpi-abzuege').textContent   = abzuege > 0 ? `-${f(abzuege)}` : f(0);
-    document.getElementById('kpi-auszahlung').textContent = f(Math.max(0, netto - abzuege));
+    // B-2026-06-10-01 T9: Trainer-Honorar ist rabatt-unabhängig (der Kundenrabatt
+    // betrifft nur den Kundenpreis, nicht das Trainer-Honorar) → keine Rabatt-Abzüge,
+    // Auszahlung = netto.
+    document.getElementById('kpi-auszahlung').textContent = f(netto);
 
     // B-2026-05-14-50: Auszahlungs-Status — brutto Verdienst gesplittet nach Stripe-Transfer.
     // 'Bereits ausgezahlt' = Geld ist auf Trainer-Bankkonto unterwegs (Transfer-ID gesetzt).
@@ -417,7 +408,7 @@
   function renderMonthTable() {
     const now          = new Date();
     const currentMonth = now.getFullYear() === selectedYear ? now.getMonth() : -1;
-    let totCount = 0, totB = 0, totM = 0, totN = 0, totA = 0;
+    let totCount = 0, totB = 0, totM = 0, totN = 0;
 
     const rows = MONTHS_DE.map((name, mi) => {
       const prefix = `${selectedYear}-${String(mi + 1).padStart(2, '0')}`;
@@ -430,14 +421,13 @@
       const mbCompleted = mb.filter(b => effBrutto(b) > 0);
       const count  = mbCompleted.length;
       const brutto = mbCompleted.reduce((s, b) => s + effBrutto(b), 0);
-      const abzug  = mbCompleted.reduce((s, b) => s + (b.discount_amount_cents || 0), 0);
       const netto  = _mwstSatz > 0 ? Math.round(brutto / (1 + _mwstSatz / 100)) : brutto;
       const mwst   = brutto - netto;
-      totCount += count; totB += brutto; totM += mwst; totN += netto; totA += abzug;
+      totCount += count; totB += brutto; totM += mwst; totN += netto;
 
       const cls = mi === currentMonth ? ' class="fin-month-highlight"' : '';
       if (count === 0) {
-        return `<tr${cls}><td>${name}</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td></tr>`;
+        return `<tr${cls}><td>${name}</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td><td class="text-secondary">–</td></tr>`;
       }
       return `<tr${cls}>
         <td>${name}</td>
@@ -445,8 +435,7 @@
         <td>${f(brutto)}</td>
         <td class="text-secondary">${f(mwst)}</td>
         <td>${f(netto)}</td>
-        <td class="text-warning">${abzug > 0 ? `-${f(abzug)}` : f(0)}</td>
-        <td>${f(Math.max(0, netto - abzug))}</td>
+        <td>${f(netto)}</td>
       </tr>`;
     });
 
@@ -456,8 +445,7 @@
       <td>${f(totB)}</td>
       <td>${f(totM)}</td>
       <td>${f(totN)}</td>
-      <td class="text-warning">${totA > 0 ? `-${f(totA)}` : f(0)}</td>
-      <td>${f(Math.max(0, totN - totA))}</td>
+      <td>${f(totN)}</td>
     </tr>`);
 
     document.getElementById('month-body').innerHTML = rows.join('');
@@ -487,7 +475,6 @@
         <td>${city}</td>
         <td>${statusBadge(b.status)}</td>
         <td>${vergütungCell(b)}</td>
-        <td class="text-warning">${b.discount_amount_cents > 0 ? `<span title="${b.discount_code || ''}">-${f(b.discount_amount_cents)}</span>` : '–'}</td>
         <td><button class="pf-btn pf-btn-neutral" onclick="openFinanceDetail('${b.id}')">Details</button></td>
       </tr>`;
     }).join('');
