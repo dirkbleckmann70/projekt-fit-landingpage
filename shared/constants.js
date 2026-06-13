@@ -182,6 +182,24 @@ const CANCELLED_STATUSES = Object.freeze([
   BOOKING_STATUS.STORNIERT, // neuer Kanon
 ]);
 
+/** Storno-Kanon fuer GELD-Summen (Einnahme/Verdienst = 0). Vereinigt
+ *  CANCELLED_STATUSES mit den zusaetzlichen Nicht-Einnahme-Status
+ *  (expired/rejected/payment_open/disputed). Spiegelt admin/finances.html
+ *  FIN_CANCELLED (B-2026-05-14-50) + 'storniert' (neuer Kanon).
+ *  NUR fuer Einnahme-/Verdienst-Ausschluss verwenden, NICHT fuer
+ *  Status-Styling/Filter (dort weiter CANCELLED_STATUSES). B-2026-06-10-01. */
+const FIN_CANCELLED = Object.freeze([
+  BOOKING_STATUS.CANCELLED,
+  BOOKING_STATUS.REFUNDED,
+  BOOKING_STATUS.CANCELLED_BY_TRAINER,
+  BOOKING_STATUS.EXPIRED,
+  BOOKING_STATUS.REJECTED,
+  BOOKING_STATUS.FULLY_CANCELLED,
+  BOOKING_STATUS.PAYMENT_OPEN,
+  BOOKING_STATUS.DISPUTED,
+  BOOKING_STATUS.STORNIERT,
+]);
+
 /** Aktive Status-Werte (Termin steht noch bevor) */
 const ACTIVE_STATUSES = Object.freeze([
   BOOKING_STATUS.PENDING,
@@ -334,6 +352,9 @@ function overdueDays(booking) {
 
 if (typeof window !== 'undefined') {
   window.statusBadge = statusBadge;
+  // B-2026-06-10-01: Geld-Storno-Kanon explizit am window verfuegbar machen,
+  // damit Portal-Inline-Scripts (admin/bookings.html etc.) ihn nutzen koennen.
+  window.FIN_CANCELLED = FIN_CANCELLED;
 }
 
 // ─── Optional: Node/Test-Export (Browser ignoriert das) ───────────────────
@@ -347,6 +368,7 @@ if (typeof module !== 'undefined' && module.exports) {
     STATUS_LABELS,
     STATUS_BADGE_CLASS,
     CANCELLED_STATUSES,
+    FIN_CANCELLED,
     ACTIVE_STATUSES,
     COMPLETED_STATUSES,
     ESCALATED_STATUSES,

@@ -530,9 +530,11 @@
       if (!g.scheduled_date) return;
       const d = new Date(g.scheduled_date + 'T00:00:00');
       if (d.getMonth() === month && d.getFullYear() === year) {
-        const p = g.current_participants || 0;
-        monthParticipants += p;
-        monthRevenue += p * (g.price_per_person_cents || 0);
+        monthParticipants += g.current_participants || 0;
+        // B-2026-06-10-01 A11: realisierter Umsatz aus BEZAHLTEN Teilnehmer-Buchungen
+        // (g.paid_revenue_cents, von all_groups-API aggregiert) statt Prognose
+        // (Teilnehmerzahl x Listenpreis).
+        monthRevenue += g.paid_revenue_cents || 0;
       }
     });
     document.getElementById('kpi-participants').textContent = monthParticipants;

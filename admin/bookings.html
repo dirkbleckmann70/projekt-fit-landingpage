@@ -446,20 +446,25 @@
     stornoBooking(b.id, custName, gross);
   }
 
-  // Nutzt CANCELLED_STATUSES aus shared/constants.js (lowercase)
-  // effectivePrice/effectiveCost vergleichen mit .toUpperCase(), daher uppercase-Kopie
-  const CANCELLED_STATUSES_UC = CANCELLED_STATUSES.map(s => s.toUpperCase());
+  // B-2026-06-10-01: Geld-Summe Tabellenfuss = nur REALISIERTE Einnahmen.
+  // FIN_CANCELLED (shared/constants.js) statt lokalem CANCELLED_STATUSES —
+  // deckt zusaetzlich expired/rejected/payment_open/disputed ab. Plus paid-Check
+  // (nur tatsaechlich eingezogene Zahlungen) + final_price_cents ?? price_cents
+  // (Betrag nach Rabatt zuerst). Konsistent zu admin/finances.html effBrutto/effKosten.
+  const FIN_CANCELLED_UC = (window.FIN_CANCELLED || []).map(s => s.toUpperCase());
 
   function effectivePrice(b) {
     const st = (b.status || '').toUpperCase();
-    if (CANCELLED_STATUSES_UC.includes(st)) return 0;
-    return b.price_cents || b.final_price_cents || 0;
+    if (FIN_CANCELLED_UC.includes(st)) return 0;
+    if (!b.paid) return 0;                              // nur bezahlt = realisiert
+    return b.final_price_cents ?? b.price_cents ?? 0;   // Betrag nach Rabatt zuerst
   }
 
   function effectiveCost(b) {
     const st = (b.status || '').toUpperCase();
-    if (CANCELLED_STATUSES_UC.includes(st)) return 0;
+    if (FIN_CANCELLED_UC.includes(st)) return 0;
     if (st === 'EXPIRED') return 0; // Trainer bekommt nichts bis Klärung
+    if (!b.paid) return 0;          // Trainer-Honorar nur bei realisierter Zahlung (analog finances.html effKosten)
     // B-2026-05-14-50 Folge: korrekte DB-Spalte ist `trainer_payout_cents`.
     // Aber: Admin-API `enrichBookings` synthetisiert `payout_cents` fuer
     // GT-Teilnahmen (siehe api/admin/index.js Z. 1433). Daher Kompat-Chain:

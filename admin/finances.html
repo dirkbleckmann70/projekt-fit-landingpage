@@ -452,7 +452,9 @@
       // wurden bisher gleichbehandelt obwohl ohne Stripe-Verifikation. Jetzt
       // zwei Wege explizit: Stripe-succeeded ODER admin_manual.
       const cardRevenue = cards
-        .filter(c => c.paid && (c.stripe_payment_status === 'succeeded' || c.payment_source === 'admin_manual'))
+        .filter(c => c.paid
+          && (c.stripe_payment_status === 'succeeded' || c.payment_source === 'admin_manual')
+          && !c.storno_invoice_id)   // B-2026-06-10-01: erstattete Karten zaehlen nicht als Umsatz
         .reduce((s, c) => s + (c.price_cents || 0), 0);
       document.getElementById('kpi-kartenumsatz').textContent = f(cardRevenue);
     } catch (err) {

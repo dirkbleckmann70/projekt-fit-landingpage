@@ -359,6 +359,9 @@ export default async function handler(req, res) {
             trainer:trainer_profiles!bookings_trainer_id_fkey(full_name, email)
           `)
           .eq('flag_zahlung_offen', true)
+          // B-2026-06-10-01 A7: stornierte Buchungen mit noch gesetztem
+          // flag_zahlung_offen duerfen NICHT als offene Forderung erscheinen.
+          .not('status', 'in', '("storniert","cancelled","refunded","cancelled_by_trainer","fully_cancelled")')
           .order('zahlung_offen_seit', { ascending: true });
         if (error) return res.status(500).json({ error: error.message });
         // GT-Teilnahmen bekommen gp_-Prefix auf die ID (Buchungs-Integrations-Karte §4),
@@ -1921,17 +1924,31 @@ async function handleData(req, res, supabase) {
       // Teilnahmen = angemeldet (analog Trainer-Portal pcMap + fetchGroupParticipantsAsBookings).
       if (groups.length > 0) {
         const groupIds = groups.map(g => g.id);
+        // B-2026-06-10-01 A11: zusaetzlich zur Teilnehmerzahl (current_participants,
+        // B-2026-06-11-01) den REALISIERTEN Umsatz je Kurs aus BEZAHLTEN Teilnahmen
+        // aggregieren (paid_revenue_cents). gt_cards/Karten-Teilnahmen sind ohne
+        // Einzel-paid-Flag; hier zaehlen die bezahlten Einzel-Buchungen. Frontend
+        // (admin/groups.html Monats-KPI) nutzt paid_revenue_cents statt Prognose.
         const { data: parts } = await supabase
           .from('bookings')
-          .select('group_class_id')
+          .select('group_class_id, paid, price_cents, final_price_cents')
           .eq('art', 'gt_teilnahme')
           .in('group_class_id', groupIds)
           .neq('status', 'storniert');
         const countByClass = {};
+        const paidRevByClass = {};
         (parts || []).forEach(p => {
-          if (p.group_class_id) countByClass[p.group_class_id] = (countByClass[p.group_class_id] || 0) + 1;
+          if (!p.group_class_id) return;
+          countByClass[p.group_class_id] = (countByClass[p.group_class_id] || 0) + 1;
+          if (p.paid) {
+            paidRevByClass[p.group_class_id] =
+              (paidRevByClass[p.group_class_id] || 0) + (p.final_price_cents ?? p.price_cents ?? 0);
+          }
         });
-        groups.forEach(g => { g.current_participants = countByClass[g.id] || 0; });
+        groups.forEach(g => {
+          g.current_participants = countByClass[g.id] || 0;
+          g.paid_revenue_cents   = paidRevByClass[g.id] || 0;
+        });
       }
       return res.json({ data: groups });
     }

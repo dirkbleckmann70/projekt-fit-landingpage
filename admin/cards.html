@@ -350,8 +350,11 @@
     const now = new Date();
     const active = allCards.filter(c => c.is_active && (!c.expires_at || new Date(c.expires_at) >= now));
     const expired = allCards.filter(c => isExpired(c));
-    const paidCards = allCards.filter(c => c.paid || c.stripe_payment_status === 'succeeded');
-    const revenue = paidCards.reduce((s, c) => s + (c.final_price_cents || c.price_cents || 0), 0);
+    // B-2026-06-10-01: erstattete Karten (storno_invoice_id gesetzt) zaehlen nicht
+    // als Umsatz. gt_cards hat KEIN final_price_cents (Karte IST der Rabatt) → price_cents.
+    const paidCards = allCards.filter(c =>
+      (c.paid || c.stripe_payment_status === 'succeeded') && !c.storno_invoice_id);
+    const revenue = paidCards.reduce((s, c) => s + (c.price_cents || 0), 0);
     const remaining = active.reduce((s, c) => s + (c.sessions_remaining ?? c.sessions_total ?? 10), 0);
 
     document.getElementById('kpi-active').textContent = active.length;
