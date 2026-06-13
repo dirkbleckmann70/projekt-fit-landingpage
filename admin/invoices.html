@@ -319,6 +319,7 @@
       <div style="${sectionTitle}">Beleg-Informationen</div>
       <div style="${gridStyle}">
         <div><label style="${lblStyle}">Belegnummer</label><div>${inv.invoice_number || '–'}</div></div>
+        <div><label style="${lblStyle}">Buchungs-ID</label><div style="font-family:monospace;font-size:12px;word-break:break-all">${inv.booking_id || inv.group_class_id || '–'}</div></div>
         <div><label style="${lblStyle}">Typ</label><div>${typeBadge(inv)} ${typeLabel(inv)}</div></div>
         <div><label style="${lblStyle}">Ausstellungsdatum</label><div>${formatDate(inv.issued_at)}</div></div>
         <div><label style="${lblStyle}">Leistungsdatum</label><div>${formatDate(inv.service_date)}</div></div>
