@@ -13,6 +13,8 @@
   <style>
     /* Zeilen-Klick-Cursor fuer Buchungs-Tabelle */
     #bookings-table tbody tr { cursor: pointer; }
+    /* F7: dezenter Marker fuer Trainer-Off-Ort-Check-in (milder als Streitfall) */
+    tr.row-trainer-offort td:first-child { box-shadow: inset 3px 0 0 #d6a206; }
   </style>
 </head>
 <body class="page">
@@ -258,6 +260,11 @@
       const ortOk = b.kunde_checkin_ort_ok;
       ortTxt = ' · ' + (ortOk === false ? '⚠ am falschen Ort' : (ortOk === true ? 'am Treffpunkt' : 'Ort nicht geprüft')) + ' (' + dist + ')';
     }
+    let trainerOrtTxt = '';
+    if (trainerCheckin && b.trainer_checkin_ort_ok != null) {
+      const tdist = b.trainer_checkin_distance_m != null ? Math.round(b.trainer_checkin_distance_m) + ' m' : 'Distanz unbekannt';
+      trainerOrtTxt = ' · ' + (b.trainer_checkin_ort_ok === false ? '⚠ am falschen Ort' : 'am Treffpunkt') + ' (' + tdist + ')';
+    }
     const fristTxt = window.fmtFristRest(b.no_show_trainer_deadline, new Date());
     const gutschein = b.storno_grund === 'no_show_trainer' ? 'vergeben' : 'nicht vergeben';
     el.innerHTML = `
@@ -285,7 +292,7 @@
       <h4 class="text-muted">Check-in-Lage &amp; Frist</h4>
       <table class="table table-sm mb-3">
         <tr><td class="text-muted">Kunde eingecheckt</td><td class="text-end fw-bold ${kundeCheckin ? 'text-success' : 'text-danger'}">${kundeCheckin ? '✓ Ja' + (b.kunde_checkin_at ? ' · ' + new Date(b.kunde_checkin_at).toLocaleString('de-DE') : '') + ortTxt : '✗ Nein'}</td></tr>
-        <tr><td class="text-muted">Trainer eingecheckt</td><td class="text-end fw-bold ${trainerCheckin ? 'text-success' : 'text-danger'}">${trainerCheckin ? '✓ Ja · ' + new Date(b.trainer_checked_in_at).toLocaleString('de-DE') : '✗ Nein'}</td></tr>
+        <tr><td class="text-muted">Trainer eingecheckt</td><td class="text-end fw-bold ${trainerCheckin ? 'text-success' : 'text-danger'}">${trainerCheckin ? '✓ Ja · ' + new Date(b.trainer_checked_in_at).toLocaleString('de-DE') + trainerOrtTxt : '✗ Nein'}</td></tr>
         <tr><td class="text-muted">Trainer-Widerspruch</td><td class="text-end fw-bold" style="${widerspruch ? 'color:#d6a206' : ''}">${widerspruch ? '⚠ „Ich war da"' : 'kein Widerspruch'}</td></tr>
         <tr><td class="text-muted">Frist läuft ab</td><td class="text-end fw-bold">${b.no_show_trainer_deadline ? new Date(b.no_show_trainer_deadline).toLocaleString('de-DE') + ' (' + fristTxt + ')' : '– keine Frist'}</td></tr>
       </table>
@@ -503,7 +510,7 @@
       const price = effectivePrice(b);
       const cost  = effectiveCost(b);
       return `
-        <tr class="${isOverdue(b) ? 'row-overdue' : ''}${isStreitfall(b) ? ' row-dispute' : ''}" data-row-index="${i}">
+        <tr class="${isOverdue(b) ? 'row-overdue' : ''}${isStreitfall(b) ? ' row-dispute' : ''}${b.trainer_checkin_ort_ok === false && !isStreitfall(b) ? ' row-trainer-offort' : ''}" data-row-index="${i}">
           <td>${isStreitfall(b) ? `<span class="badge bg-red" title="Streitfall – Entscheidung nötig" style="border-radius:50%;margin-right:6px">⚠</span>` : ''}${ersatzDotUnseen(b) ? `<span class="badge bg-red" title="Ersatztrainer wird gesucht – Aktion nötig" style="border-radius:50%;margin-right:6px">1</span>` : ''}${formatDate(b.scheduled_date)}</td>
           <td>${b.trainer_city || b.city || '–'}</td>
           <td>${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'}</td>
@@ -666,6 +673,9 @@
           <input class="pf-field pf-field-readonly" value="${getBookingType(b)}" disabled>
         </div>
       </div>
+      ${b.trainer_checkin_ort_ok === false ? `<div class="alert alert-warning py-2 px-3 mb-2" style="font-size:13px">
+        ⚠️ Trainer hat außerhalb des Treffpunkts eingecheckt${b.trainer_checkin_distance_m != null ? ' — Abstand ca. ' + Math.round(b.trainer_checkin_distance_m) + ' m' : ''} (bewusst bestätigt)${b.trainer_checked_in_at ? ' · ' + new Date(b.trainer_checked_in_at).toLocaleString('de-DE') : ''}
+      </div>` : ''}
       ${ersatzStufe(b) ? `<div style="background:rgba(244,169,64,0.08);border:1px solid rgba(244,169,64,0.25);border-radius:10px;padding:12px;margin:12px 0">
         <div style="font-weight:700;color:#F4A940;margin-bottom:8px"><i class="ti ti-users"></i> Ersatztrainer: ${ersatzStufe(b)}</div>
         <div style="font-size:12px;color:#8a93a5;margin-bottom:4px">Angeschriebene Trainer:</div>
