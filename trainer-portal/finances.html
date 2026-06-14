@@ -185,11 +185,12 @@
   // raus, damit der Trainer keine noch-nicht-finalisierten Trainings als
   // 'verdient' sieht. 'completed'/'paid' bleiben als Pre-Migration-Fallback.
   //
-  // G-1 (User-Audit 16.05.2026 abends): GT-Teilnahmen ohne trainer_payout_cents
-  // (1 echte Zeitbombe in der DB) duerfen NICHT auf den PT-Stundensatz des
-  // Trainers fallen. Sonst zeigt der Trainer 30/45 EUR fuer eine GT-Teilnahme
-  // ohne dass ein Wert in der DB steht. Bei GT explizit 0 wenn NULL — bei PT
-  // bleibt der Default-Fallback fuer Legacy-Buchungen ohne payout-Spalte.
+  // T9 (B-2026-06-14-12, User-Option-A 14.06.): GT-Honorar wird in loadFinances
+  // EINMAL pro Kurs auf die Traeger-Teilnahme gelegt (payout_snapshot_cents,
+  // Fallback Trainer-Satz), alle anderen GT-Zeilen tragen 0. Daher hier nur noch
+  // `b.trainer_payout_cents || 0` (Traeger=voll, Rest=0) — kein Aufsummieren je
+  // Teilnehmer mehr. Loest die alte G-1-Regel ab (deren Mehrfach-Zaehl-Gefahr
+  // entfaellt durch „einmal pro Kurs"). PT behaelt den _trainerRate-Fallback.
   function effBrutto(b) {
     if (!['abgeschlossen', 'completed', 'paid'].includes(b.status)) return 0;
     if (b.booking_type === 'group') return b.trainer_payout_cents || 0;
@@ -229,9 +230,9 @@
     if (['angefragt', 'reserviert', 'bestaetigt', 'pending', 'confirmed'].includes(status)) {
       return '<span class="text-secondary">–</span>';
     }
-    // B-2026-05-14-50 Folge (Post-Review): konsistent zu effBrutto. GT-Teilnahmen
-    // ohne trainer_payout_cents (NULL in DB) liefern explizit 0, fallen NICHT
-    // auf den PT-Stundensatz zurueck. PT-Buchungen behalten den Default-Fallback.
+    // T9 (B-2026-06-14-12): konsistent zu effBrutto. GT-Honorar liegt einmal pro
+    // Kurs auf der Traeger-Teilnahme (sonst 0), daher hier `|| 0`. PT behaelt den
+    // _trainerRate-Fallback fuer Legacy-Buchungen ohne payout-Spalte.
     const v = b.booking_type === 'group' ? (b.trainer_payout_cents || 0) : (b.trainer_payout_cents ?? _trainerRate);
     if (v === 0) return '<span class="text-secondary">0,00 €</span>';
     return `<span style="color:var(--tblr-primary);font-weight:600">${f(v)}</span>`;
@@ -277,7 +278,7 @@
       // Erst alle Group-Classes des Trainers laden, dann die Teilnehmer.
       const { data: trainerClasses } = await sb
         .from('group_classes')
-        .select('id, name, scheduled_date, scheduled_time, location_name, city, price_per_person_cents')
+        .select('id, name, scheduled_date, scheduled_time, location_name, city, price_per_person_cents, payout_snapshot_cents')
         .eq('trainer_id', trainerId);
 
       const classMap = {};
@@ -296,9 +297,31 @@
           .eq('art', 'gt_teilnahme')
           .in('group_class_id', classIds);
 
+        // T9 (B-2026-06-14-12, User-Option-A): GT-Honorar faellt EINMAL pro Kurs
+        // an (= group_classes.payout_snapshot_cents, Fallback Trainer-Satz), NICHT
+        // je Teilnahme. Frueher summierte das Trainer-Portal trainer_payout_cents
+        // je Teilnehmer (zu hoch). Loesung: das Kurs-Honorar EINER Traeger-Teilnahme
+        // zuordnen, alle anderen 0 → Summe je Kurs = 1x Honorar. Traeger-Rang:
+        // bereits ausgezahlt > realisierter Status > sonst aktiv (damit effBrutto
+        // + der ausgezahlt/ausstehend-Split korrekt greifen).
+        const GT_REALIZED = ['abgeschlossen', 'completed', 'paid'];
+        const gtCarrier = {};  // group_class_id -> { id, rank }
+        const carrierRank = (p) => {
+          if (p.trainer_paid_out_at) return 3;
+          if (GT_REALIZED.includes((p.status || '').toLowerCase())) return 2;
+          return 1;
+        };
+        (participants || []).forEach(p => {
+          if ((p.status || '').toLowerCase() === 'storniert') return;
+          const cid = p.group_class_id;
+          const r = carrierRank(p);
+          if (!gtCarrier[cid] || r > gtCarrier[cid].rank) gtCarrier[cid] = { id: p.id, rank: r };
+        });
+
         gtRows = (participants || []).map(p => {
           const gc = classMap[p.group_class_id] || {};
           const isCancelled = (p.status || '').toLowerCase() === 'storniert';
+          const isCarrier = !isCancelled && gtCarrier[p.group_class_id]?.id === p.id;
           return {
             id: `gp_${p.id}`,
             scheduled_date: gc.scheduled_date || null,
@@ -308,8 +331,9 @@
             location_address: null,
             status: p.status || 'bestaetigt',
             storno_grund: p.storno_grund || null,
-            // Trainer-Verguetung aus participant-Spalte oder null-Fallback
-            trainer_payout_cents: isCancelled ? 0 : (p.trainer_payout_cents ?? 0),
+            // T9: nur die Traeger-Teilnahme traegt das einmalige Kurs-Honorar
+            // (payout_snapshot_cents, Fallback Trainer-Satz _trainerRate), Rest 0.
+            trainer_payout_cents: isCarrier ? (gc.payout_snapshot_cents ?? _trainerRate) : 0,
             // Auszahlungs-Stand (B-2026-05-14-50)
             trainer_paid_out_at: p.trainer_paid_out_at || null,
             stripe_transfer_id: p.stripe_transfer_id || null,

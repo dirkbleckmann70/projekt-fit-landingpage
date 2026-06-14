@@ -1567,13 +1567,22 @@ async function fetchGroupParticipantsAsBookings(supabase) {
     if (customers) customers.forEach(c => { customerMap[c.id] = c; });
   }
 
-  // Aktive Teilnehmer pro Kurs zaehlen (fuer anteilige Trainer-Kosten)
-  const activeCountByClass = {};
+  // T9 (B-2026-06-14-12): GT-Trainer-Honorar faellt EINMAL pro Kurs an
+  // (= group_classes.payout_snapshot_cents, Fallback Trainer-Satz payout_cents),
+  // NICHT je Teilnahme. Frueher trug jede Teilnahme-Zeile ein eigenes
+  // anteiliges/Roh-Honorar → Admin-Finanzen + Buchungsliste summierten das
+  // Honorar je Teilnehmer (zu hoch). Loesung: das einmalige Kurs-Honorar EINER
+  // aktiven Teilnahme zuordnen (bevorzugt einer bezahlten, damit der paid-Check
+  // in effKosten/effectiveCost greift), alle anderen 0 → Summe je Kurs = 1x
+  // Honorar. bookings.trainer_payout_cents ist je Teilnahme unzuverlaessig
+  // (500/3000/4500 gemischt) und wird fuer die Honorar-Anzeige NICHT mehr genutzt.
+  const payoutCarrierByClass = {};  // group_class_id -> { id, paid }
   participants.forEach(p => {
-    const st = (p.status || '').toLowerCase();
-    if (st !== 'storniert') {
-      activeCountByClass[p.group_class_id] = (activeCountByClass[p.group_class_id] || 0) + 1;
-    }
+    if ((p.status || '').toLowerCase() === 'storniert') return;
+    const cid = p.group_class_id;
+    const cur = payoutCarrierByClass[cid];
+    if (!cur) payoutCarrierByClass[cid] = { id: p.id, paid: !!p.paid };
+    else if (!cur.paid && p.paid) payoutCarrierByClass[cid] = { id: p.id, paid: true };
   });
 
   return participants.map(p => {
@@ -1584,15 +1593,14 @@ async function fetchGroupParticipantsAsBookings(supabase) {
 
     const priceFromParticipant      = p.price_cents;
     const finalPriceFromParticipant = p.final_price_cents;
-    const payoutFromParticipant     = p.trainer_payout_cents;
-
-    // Fallback (alte GT-Buchungen ohne Payment-Spalten): anteiliger Payout
-    const count = activeCountByClass[p.group_class_id] || 1;
-    const payoutShare = trainer.payout_cents ? Math.round(trainer.payout_cents / count) : 0;
 
     const priceCents      = priceFromParticipant     ?? (gc.price_per_person_cents || 0);
     const finalPriceCents = finalPriceFromParticipant ?? priceCents;
-    const payoutCents     = payoutFromParticipant    ?? payoutShare;
+
+    // T9 (B-2026-06-14-12): nur die Traeger-Teilnahme des Kurses traegt das
+    // einmalige Kurs-Honorar, alle anderen 0 (Summe je Kurs = 1x Honorar).
+    const isPayoutCarrier = !isCancelled && payoutCarrierByClass[p.group_class_id]?.id === p.id;
+    const payoutCents     = isPayoutCarrier ? (gc.payout_snapshot_cents ?? trainer.payout_cents ?? 0) : 0;
     // bookings hat keine mwst_satz-Spalte — Fallback auf Trainer-Profil
     const mwstSatz        = trainer.mwst_satz ?? null;
 
