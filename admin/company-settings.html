@@ -229,10 +229,11 @@
                 <label class="form-label">Trainer-Auszahlung Wartezeit (Stunden)</label>
                 <input class="form-control" type="number" id="trainer_payout_grace_hours" placeholder="48" min="1" max="168">
               </div>
-              <div class="form-group">
-                <label class="form-label">Gruppentraining Standard-Mindest-Teilnehmer</label>
-                <input class="form-control" type="number" id="gt_threshold_default" placeholder="6" min="1" max="30">
-              </div>
+              <!-- „Gruppentraining Standard-Mindest-Teilnehmer" (gt_threshold_default)
+                   bewusst entfernt (User 14.06.): die Mindest-Teilnehmerzahl wird
+                   pro Kurs gesetzt (group_classes.min_participants), nicht zentral.
+                   Das Feld wurde im Code nirgends gelesen → keine Funktion. DB-Spalte
+                   bleibt erhalten (nicht-destruktiv). -->
               <div class="form-group">
                 <label class="form-label">Schwellen-Check Stunden vor Termin</label>
                 <input class="form-control" type="number" id="gt_threshold_check_hours_before" placeholder="24" min="1" max="168">
@@ -336,7 +337,7 @@
     'invoice_prefix', 'next_invoice_number', 'invoice_footer_text',
     // Bezahl- und Buchungs-Konfiguration (Teilspec 2, alle NOT NULL in DB)
     'processing_fee_percent', 'processing_fee_min_cents',
-    'gt_threshold_default', 'gt_threshold_check_hours_before',
+    'gt_threshold_check_hours_before',
     'trainer_payout_grace_hours',
     'payment_open_reminder_days', 'payment_open_admin_alert_days',
     'sorry_code_validity_months', 'sorry_code_discount_percent',
@@ -355,7 +356,7 @@
   const INTEGER_FIELDS = new Set([
     'next_invoice_number',
     'processing_fee_min_cents',
-    'gt_threshold_default', 'gt_threshold_check_hours_before',
+    'gt_threshold_check_hours_before',
     'trainer_payout_grace_hours',
     'payment_open_admin_alert_days',
     'sorry_code_validity_months', 'sorry_code_discount_percent',
@@ -368,7 +369,7 @@
   const NOT_NULL_FIELDS = new Set([
     'mwst_satz',
     'processing_fee_percent', 'processing_fee_min_cents',
-    'gt_threshold_default', 'gt_threshold_check_hours_before',
+    'gt_threshold_check_hours_before',
     'trainer_payout_grace_hours',
     'payment_open_reminder_days', 'payment_open_admin_alert_days',
     'sorry_code_validity_months', 'sorry_code_discount_percent',
