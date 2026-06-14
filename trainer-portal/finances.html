@@ -197,7 +197,10 @@
   }
   function effNetto(b)      { return _mwstSatz > 0 ? Math.round(effBrutto(b) / (1 + _mwstSatz / 100)) : effBrutto(b); }
   function effMwSt(b)       { return effBrutto(b) - effNetto(b); }
-  function effAuszahlung(b) { return effNetto(b); }
+  // B-2026-06-14-05: Auszahlung = BRUTTO. Der Trainer bekommt den vollen Honorar-
+  // betrag (payout_snapshot_cents) ueberwiesen — process-payout zieht KEINE MwSt ab
+  // (nur evtl. Trainer-Schulden). Netto/MwSt sind nur Info fuer die Trainer-Buchhaltung.
+  function effAuszahlung(b) { return effBrutto(b); }
 
   // B-2026-05-14-50: Brutto-Verguetung der Buchung, gesplittet nach Auszahlungs-Stand.
   // 'Bereits ausgezahlt' = trainer_paid_out_at gesetzt (Stripe Transfer durch).
@@ -388,10 +391,10 @@
     document.getElementById('kpi-mwst-label').textContent = `MwSt ${_mwstSatz}%`;
     document.getElementById('kpi-mwst').textContent      = f(mwst);
     document.getElementById('kpi-netto').textContent     = f(netto);
-    // B-2026-06-10-01 T9: Trainer-Honorar ist rabatt-unabhängig (der Kundenrabatt
-    // betrifft nur den Kundenpreis, nicht das Trainer-Honorar) → keine Rabatt-Abzüge,
-    // Auszahlung = netto.
-    document.getElementById('kpi-auszahlung').textContent = f(netto);
+    // B-2026-06-14-05: Auszahlung = BRUTTO (voller Honorarbetrag wird ueberwiesen,
+    // keine MwSt-Abzug). Trainer-Honorar ist rabatt-unabhaengig (Kundenrabatt betrifft
+    // nur den Kundenpreis). Netto/MwSt nur als Info-Kacheln.
+    document.getElementById('kpi-auszahlung').textContent = f(brutto);
 
     // B-2026-05-14-50: Auszahlungs-Status — brutto Verdienst gesplittet nach Stripe-Transfer.
     // 'Bereits ausgezahlt' = Geld ist auf Trainer-Bankkonto unterwegs (Transfer-ID gesetzt).
@@ -438,7 +441,7 @@
         <td>${f(brutto)}</td>
         <td class="text-secondary">${f(mwst)}</td>
         <td>${f(netto)}</td>
-        <td>${f(netto)}</td>
+        <td>${f(brutto)}</td>
       </tr>`;
     });
 
@@ -531,7 +534,7 @@
         <div class="pf-field pf-field-readonly"><label>Vergütung brutto</label><div style="color:var(--tblr-primary);font-weight:700">${f(brutto)}</div></div>
         <div class="pf-field pf-field-readonly"><label>MwSt (${_mwstSatz}%)</label><div class="text-secondary">${f(mwst)}</div></div>
         <div class="pf-field pf-field-readonly"><label>Vergütung netto</label><div style="font-weight:600">${f(netto)}</div></div>
-        <div class="pf-field pf-field-readonly"><label>Auszahlung</label><div style="color:var(--tblr-primary);font-weight:700">${f(netto)}</div></div>
+        <div class="pf-field pf-field-readonly"><label>Auszahlung</label><div style="color:var(--tblr-primary);font-weight:700">${f(brutto)}</div></div>
         ${b.notes ? `<div class="pf-field pf-field-readonly" style="grid-column:1/-1"><label>Notizen</label><div class="text-secondary">${b.notes}</div></div>` : ''}
       </div>
       <div class="text-secondary" style="font-size:11px;border-top:1px solid var(--tblr-border-color);padding-top:12px;margin-top:4px">Buchungs-ID: ${b.id}</div>
