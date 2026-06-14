@@ -157,7 +157,13 @@
     return cents < 0 ? '−' + formatted : formatted;
   }
 
-  function isStorno(inv) { return (inv.type || '').toLowerCase() === 'stornobeleg'; }
+  // B-2026-06-14-08 (T11): storno_gutschrift (Gegenbeleg einer zurueckgeholten
+  // Trainer-Gutschrift) zaehlt wie ein Storno — negativ + roter Stil. Eine
+  // Erweiterung hier kaskadiert in Filter, Summen und CSV (alle nutzen isStorno).
+  function isStorno(inv) {
+    const t = (inv.type || '').toLowerCase();
+    return t === 'stornobeleg' || t === 'storno_gutschrift';
+  }
 
   function getBookingType(inv) {
     const bt = (inv.booking_type || inv.session_type || '').toLowerCase();
@@ -287,15 +293,15 @@
     const year = selectedYear;
 
     try {
-      // Schritt 1: alle Trainer-Belege (Gutschrift + Stornobelege) des Jahres.
-      // NUR 'gutschrift' + 'stornobeleg' laden — NICHT 'stornobeleg_gt_card':
+      // Schritt 1: alle Trainer-Belege (Gutschrift + Stornobeleg + Storno-Gutschrift)
+      // des Jahres. NUR diese 3 Typen — NICHT 'stornobeleg_gt_card':
       // GT-Karten-Stornos betreffen die Prepaid-10er-Karte des KUNDEN und sind
       // nie Trainer-eigen. (B-07-03)
       const { data: raw, error } = await sb
         .from('invoices')
         .select('*')
         .eq('trainer_id', tid)
-        .in('type', ['gutschrift', 'stornobeleg'])
+        .in('type', ['gutschrift', 'stornobeleg', 'storno_gutschrift'])
         .gte('issued_at', `${year}-01-01`)
         .lte('issued_at', `${year}-12-31`)
         .order('issued_at', { ascending: false });
@@ -308,7 +314,7 @@
         .from('invoices')
         .select('id, type, storno_ref, issued_at')
         .eq('trainer_id', tid)
-        .in('type', ['gutschrift', 'stornobeleg'])
+        .in('type', ['gutschrift', 'stornobeleg', 'storno_gutschrift'])
         .order('issued_at', { ascending: false });
       const yearOwn = await filterTrainerOwnInvoices(sb, yearRaw || []);
 
