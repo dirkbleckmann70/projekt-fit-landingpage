@@ -211,6 +211,13 @@
   // zweite gleichnamige const im Inline-Script = SyntaxError → ganze Seite tot
   // (Kacheln in Dauerladeschleife). Werte unveraendert.
   const FIN_CANCELLED_LOCAL = ['cancelled', 'refunded', 'cancelled_by_trainer', 'expired', 'rejected', 'fully_cancelled', 'payment_open', 'disputed'];
+  // B-2026-06-14-13 (T10): EINNAHMEN nutzen FIN_CANCELLED_LOCAL (OHNE 'storniert') —
+  // ein Storno ohne Erstattung (Ausfallhonorar, status 'storniert' + paid=true)
+  // zaehlt als Einnahme (T1); echte Erstattungen sind paid=false (paid-Check faengt
+  // sie). TRAINER-KOSTEN dagegen schliessen 'storniert' MIT aus — der Trainer bekommt
+  // kein Honorar fuer ein nicht stattgefundenes Training. Spiegelt admin/bookings.html
+  // (effectivePrice ohne 'storniert' / effectiveCost mit 'storniert').
+  const FIN_COST_CANCELLED_LOCAL = [...FIN_CANCELLED_LOCAL, 'storniert'];
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
   // ── Berechnungen ──────────────────────────────────────────────────────────
@@ -245,7 +252,9 @@
   // Zahlung. 'confirmed' (Training noch nicht stattgefunden) liefert 0.
   function effKosten(b) {
     const s = (b.status || '').toLowerCase();
-    if (FIN_CANCELLED_LOCAL.includes(s)) return 0;
+    // T10: Trainer-Kosten schliessen auch 'storniert' aus (kein Honorar fuer
+    // nicht stattgefundenes Training — anders als die Einnahmen-Seite effBrutto).
+    if (FIN_COST_CANCELLED_LOCAL.includes(s)) return 0;
     if (!b.paid) return 0;
     return (b.trainer_payout_cents ?? b.payout_cents ?? b.trainer_rate_cents ?? 0);
   }

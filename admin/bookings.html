@@ -459,10 +459,17 @@
   // (nur tatsaechlich eingezogene Zahlungen) + final_price_cents ?? price_cents
   // (Betrag nach Rabatt zuerst). Konsistent zu admin/finances.html effBrutto/effKosten.
   const FIN_CANCELLED_UC = (window.FIN_CANCELLED || []).map(s => s.toUpperCase());
+  // B-2026-06-14-13 (T10): EINNAHMEN schliessen 'storniert' NICHT pauschal aus.
+  // Seit T1 behaelt ein Storno ohne Erstattung (kunde_spaet/no_show_kunde =
+  // Ausfallhonorar) das Geld → Status 'storniert' + paid=true MUSS als Einnahme
+  // zaehlen. Echte Erstattungen setzen paid=false → der paid-Check faengt sie.
+  // Trainer-KOSTEN schliessen 'storniert' weiter aus (kein Honorar fuer ein nicht
+  // stattgefundenes Training). Konsistent zu admin/finances.html effBrutto/effKosten.
+  const FIN_REVENUE_EXCL_UC = FIN_CANCELLED_UC.filter(s => s !== 'STORNIERT');
 
   function effectivePrice(b) {
     const st = (b.status || '').toUpperCase();
-    if (FIN_CANCELLED_UC.includes(st)) return 0;
+    if (FIN_REVENUE_EXCL_UC.includes(st)) return 0;
     if (!b.paid) return 0;                              // nur bezahlt = realisiert
     return b.final_price_cents ?? b.price_cents ?? 0;   // Betrag nach Rabatt zuerst
   }
