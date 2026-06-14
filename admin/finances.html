@@ -194,6 +194,11 @@
   let yearData     = [];
   let tableFilter  = null;
   let selectedYear = new Date().getFullYear();
+  // B-2026-06-14-11 (T8): Kunden-USt = Firmen-Satz (company_settings.mwst_satz),
+  // NICHT Trainer-Satz. Pulsly stellt dem Kunden die Rechnung (Verkaeufer), also
+  // gilt der Firmen-MwSt-Satz (wie generate-invoice handleRechnung + B-2026-05-14-51).
+  // Wird in loadFinances() aus dem company-settings-Endpunkt gefuellt; Default 19.
+  let companyMwstSatz = 19;
 
   // B-2026-05-14-50 Q-01 (User-GELD-Befund 16.05.2026 abends): FIN_CANCELLED
   // muss ALLE Storno-Varianten aus mapStatusForFrontend (api/admin/index.js
@@ -209,7 +214,11 @@
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
   // ── Berechnungen ──────────────────────────────────────────────────────────
-  function mwstFaktor(b) { const satz = b.trainer_mwst_satz ?? 19; return satz / 100; }
+  // B-2026-06-14-11 (T8): Kundenumsatz traegt den FIRMEN-Satz (companyMwstSatz),
+  // nicht den Trainer-Satz. Parameterlos, weil der Satz fuer alle Kunden-Buchungen
+  // gleich ist. Trainer-USt (trainer_mwst_satz) gilt NUR auf der Honorar-/
+  // Auszahlungs-Seite (trainer-portal/finances.html), nicht hier.
+  function mwstFaktor() { return companyMwstSatz / 100; }
   // B-2026-05-14-50 Folge C.1: final_price_cents ist der tatsaechlich von Stripe
   // belastete Betrag nach Rabatt — muss zuerst gelesen werden. Vorher wurde
   // price_cents (Listenpreis) zuerst genommen, dadurch zeigten Rabatt-Buchungen
@@ -225,7 +234,7 @@
     if (!b.paid) return 0;
     return (b.final_price_cents ?? b.price_cents ?? 0);
   }
-  function effNetto(b)   { return Math.round(effBrutto(b) / (1 + mwstFaktor(b))); }
+  function effNetto(b)   { return Math.round(effBrutto(b) / (1 + mwstFaktor())); }
   function effMwSt(b)    { return effBrutto(b) - effNetto(b); }
   // B-2026-05-14-50 Folge: Spalten-Kompat-Chain wie in admin/bookings.html.
   // trainer_payout_cents ist die echte DB-Spalte; payout_cents wird von der
@@ -260,6 +269,14 @@
   // ── Daten laden ───────────────────────────────────────────────────────────
   async function loadFinances() {
     try {
+      // B-2026-06-14-11 (T8): Firmen-MwSt-Satz fuer den Kundenumsatz laden.
+      // Eigener try/catch + Fallback 19, damit ein Fehler hier die Finanzseite
+      // nicht blockiert (Default-Satz greift dann).
+      try {
+        const cs = await adminApi('/api/admin?action=company-settings');
+        companyMwstSatz = cs?.data?.mwst_satz ?? 19;
+      } catch { companyMwstSatz = 19; }
+
       const res = await adminApi('/api/admin?action=data&type=finances');
       allData = res.data || [];
 
@@ -314,10 +331,9 @@
   function updateKPIs() {
     let brutto = 0, netto = 0, kosten = 0;
     yearData.forEach(b => { brutto += effBrutto(b); netto += effNetto(b); kosten += effKosten(b); });
-    // MwSt-Label: wenn alle Buchungen den gleichen Satz haben, diesen anzeigen
-    const saetze = [...new Set(yearData.map(b => b.trainer_mwst_satz ?? 19))];
-    const mwstLabel = saetze.length === 1 ? `MwSt ${saetze[0]}%` : 'MwSt (gemischt)';
-    document.getElementById('kpi-mwst-label').textContent = mwstLabel;
+    // MwSt-Label: Kundenumsatz traegt den Firmen-Satz (B-2026-06-14-11, T8) —
+    // einheitlich, daher kein "gemischt" mehr.
+    document.getElementById('kpi-mwst-label').textContent = `MwSt ${companyMwstSatz}%`;
     document.getElementById('kpi-brutto').textContent  = f(brutto);
     document.getElementById('kpi-mwst').textContent    = f(brutto - netto);
     document.getElementById('kpi-netto').textContent   = f(netto);
@@ -479,7 +495,7 @@
       // Status als deutsches Klartext-Label fuer den CSV-Export — Steuerberater bekommt
       // sonst englische DB-Werte wie "cancelled_by_trainer" statt "Trainer abgesagt".
       (typeof STATUS_LABELS !== 'undefined' && STATUS_LABELS[b.status]) || b.status || '',
-      String(b.trainer_mwst_satz ?? 19),
+      String(companyMwstSatz),
       (effBrutto(b)  / 100).toFixed(2).replace('.', ','),
       (effMwSt(b)    / 100).toFixed(2).replace('.', ','),
       (effNetto(b)   / 100).toFixed(2).replace('.', ','),
@@ -538,7 +554,7 @@
       </div>
       <div class="two-col">
         <div class="form-group"><label>Einnahmen brutto</label><input class="pf-field pf-field-readonly" value="${f(effBrutto(b))}" disabled></div>
-        <div class="form-group"><label>MwSt (${b.trainer_mwst_satz ?? 19}%)</label><input class="pf-field pf-field-readonly" value="${f(effMwSt(b))}" disabled></div>
+        <div class="form-group"><label>MwSt (${companyMwstSatz}%)</label><input class="pf-field pf-field-readonly" value="${f(effMwSt(b))}" disabled></div>
       </div>
       <div class="two-col">
         <div class="form-group"><label>Einnahmen netto</label><input class="pf-field pf-field-readonly" value="${f(effNetto(b))}" disabled></div>
