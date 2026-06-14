@@ -201,7 +201,11 @@
   // 'fully_cancelled', 'payment_open', 'disputed'. Folge: Buchungen mit
   // diesen Status zaehlten faelschlich als Einnahme.
   // payment_open = Karte abgelehnt, keine Zahlung; disputed = strittig.
-  const FIN_CANCELLED = ['cancelled', 'refunded', 'cancelled_by_trainer', 'expired', 'rejected', 'fully_cancelled', 'payment_open', 'disputed'];
+  // B-2026-06-14-04: lokaler Name (NICHT FIN_CANCELLED) — shared/constants.js
+  // deklariert seit dem Geld-Kennzahl-Umbau global `const FIN_CANCELLED`; eine
+  // zweite gleichnamige const im Inline-Script = SyntaxError → ganze Seite tot
+  // (Kacheln in Dauerladeschleife). Werte unveraendert.
+  const FIN_CANCELLED_LOCAL = ['cancelled', 'refunded', 'cancelled_by_trainer', 'expired', 'rejected', 'fully_cancelled', 'payment_open', 'disputed'];
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
   // ── Berechnungen ──────────────────────────────────────────────────────────
@@ -217,7 +221,7 @@
   // wirklich bezahlte Buchungen (paid=true) sind echte Einnahmen.
   function effBrutto(b) {
     const s = (b.status || '').toLowerCase();
-    if (FIN_CANCELLED.includes(s)) return 0;
+    if (FIN_CANCELLED_LOCAL.includes(s)) return 0;
     if (!b.paid) return 0;
     return (b.final_price_cents ?? b.price_cents ?? 0);
   }
@@ -232,7 +236,7 @@
   // Zahlung. 'confirmed' (Training noch nicht stattgefunden) liefert 0.
   function effKosten(b) {
     const s = (b.status || '').toLowerCase();
-    if (FIN_CANCELLED.includes(s)) return 0;
+    if (FIN_CANCELLED_LOCAL.includes(s)) return 0;
     if (!b.paid) return 0;
     return (b.trainer_payout_cents ?? b.payout_cents ?? b.trainer_rate_cents ?? 0);
   }

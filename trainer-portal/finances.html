@@ -172,7 +172,10 @@
 
   // Teilspec 1: 7-Wert-Kanon. 'storniert' loest cancelled/refunded/cancelled_by_trainer ab;
   // Legacy-Werte als Fallback fuer evtl. alte Cache-Daten.
-  const FIN_CANCELLED = ['storniert', 'cancelled', 'refunded', 'cancelled_by_trainer'];
+  // B-2026-06-14-04: lokaler Name (NICHT FIN_CANCELLED) — kollidiert sonst mit
+  // dem globalen `const FIN_CANCELLED` aus shared/constants.js → SyntaxError →
+  // Kacheln in Dauerladeschleife. Werte unveraendert (Trainer-eigene Liste).
+  const FIN_CANCELLED_LOCAL = ['storniert', 'cancelled', 'refunded', 'cancelled_by_trainer'];
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August',
                          'September','Oktober','November','Dezember'];
 
@@ -208,7 +211,7 @@
 
   function vergütungCell(b) {
     const status = (b.status || '').toLowerCase();
-    if (FIN_CANCELLED.includes(status)) {
+    if (FIN_CANCELLED_LOCAL.includes(status)) {
       // Teilspec 1: bei 'storniert' ist der Sub-Grund in storno_grund —
       // 'past_termin' bzw. 'expired' wird weiter als „ausstehend" markiert.
       const grund = (b.storno_grund || '').toLowerCase();
