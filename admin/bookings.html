@@ -368,6 +368,18 @@
     }
   }
 
+  // IST-Trainingsdauer "HH:MM – HH:MM (X Min)" aus zwei ISO-Zeitstempeln (reine Anzeige).
+  // Liefert null bei fehlendem Wert / Ende <= Start (B-2026-06-15-09).
+  function formatSessionSpan(checkinAt, checkoutAt) {
+    if (!checkinAt || !checkoutAt) return null;
+    var s = new Date(checkinAt), e = new Date(checkoutAt);
+    if (isNaN(s) || isNaN(e)) return null;
+    var min = Math.round((e - s) / 60000);
+    if (min <= 0) return null;
+    var hh = function (d) { return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+    return hh(s) + ' – ' + hh(e) + ' (' + min + ' Min)';
+  }
+
   function getBookingType(b) {
     if (b.booking_type === 'group') return 'Gruppentraining';
     return 'Personal Training';
@@ -711,6 +723,7 @@
           ${b.location_address ? '<input class="pf-field pf-field-readonly mt-1" value="' + b.location_address + '" disabled style="color:#F4A940;font-size:13px">' : ''}
         </div>` : ''}
       </div>` : ''}
+      ${(() => { const sp = formatSessionSpan(b.trainer_checked_in_at, b.trainer_checked_out_at); return sp ? `<div class="pf-form-divider">Durchführung</div><div class="pf-form-grid pf-form-grid-2col"><div class="form-group"><label>Trainingszeit</label><input class="pf-field pf-field-readonly" value="${sp}" disabled></div></div>` : ''; })()}
       <div class="pf-form-divider">Zahlung</div>
       <div class="pf-form-grid pf-form-grid-2col">
         <div class="form-group">

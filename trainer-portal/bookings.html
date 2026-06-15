@@ -336,6 +336,18 @@
     });
   }
 
+  // IST-Trainingsdauer "HH:MM – HH:MM (X Min)" aus zwei ISO-Zeitstempeln (reine Anzeige,
+  // KEIN Honorar-Bezug). Liefert null bei fehlendem Wert / Ende <= Start (B-2026-06-15-09).
+  function formatSessionSpan(checkinAt, checkoutAt) {
+    if (!checkinAt || !checkoutAt) return null;
+    var s = new Date(checkinAt), e = new Date(checkoutAt);
+    if (isNaN(s) || isNaN(e)) return null;
+    var min = Math.round((e - s) / 60000);
+    if (min <= 0) return null;
+    var hh = function (d) { return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+    return hh(s) + ' – ' + hh(e) + ' (' + min + ' Min)';
+  }
+
   function statusBadgeBK(item) {
     if (item._type === 'gt') {
       return DESIGN.gtBadge(item.participant_count, item.min_participants, item.is_active);
@@ -1087,6 +1099,7 @@
         <div class="col-6"><label class="form-label text-secondary">Verguetung</label><div style="color:var(--tblr-primary);font-weight:700">${vergütung}</div></div>
         ${hasRating ? `<div class="col-6"><label class="form-label text-secondary">Bewertung</label><div>${b.rating}/5${b.review_comment ? '<br><span class="text-secondary" style="font-size:13px">„' + b.review_comment + '"</span>' : ''}</div></div>` : '<div class="col-6"></div>'}
       </div>
+      ${(() => { const sp = formatSessionSpan(b.trainer_checked_in_at, b.trainer_checked_out_at); return sp ? `<div class="row mb-3"><div class="col-12"><label class="form-label text-secondary">Trainingszeit</label><div>${sp}</div></div></div>` : ''; })()}
       ${b.proposed_date ? `<div class="alert alert-warning mb-3" style="font-size:13px">
         <div class="fw-bold mb-1"><i class="ti ti-calendar-event"></i> Terminaenderung vorgeschlagen</div>
         <div><span style="text-decoration:line-through;opacity:0.6">${b.scheduled_date ? formatDate(b.scheduled_date) : '–'} · ${b.scheduled_time ? b.scheduled_time.slice(0,5) : '–'} Uhr</span></div>
