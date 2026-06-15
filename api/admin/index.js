@@ -3138,6 +3138,8 @@ async function handleBookingsPut(req, res, supabase) {
     const didEscalate = !!(esc && esc.length > 0);
 
     if (didEscalate) {
+      // B-2026-06-15-10: optionale Begruendung des Trainers (Freitext) mitschreiben.
+      const escNote = typeof body.note === 'string' ? body.note.trim() : '';
       // Audit (best-effort, GoBD). Tabelle: booking_audit (NICHT _log).
       try {
         await supabase.from('booking_audit').insert({
@@ -3145,9 +3147,20 @@ async function handleBookingsPut(req, res, supabase) {
           action: 'no_show_escalated',
           actor_type: caller.actorType || 'trainer',
           actor_id: caller.authUid || null,
-          details: { stage: 1, source: 'trainer_app' },
+          details: { stage: 1, source: 'trainer_app', ...(escNote ? { note: escNote } : {}) },
         });
       } catch (e) { console.error('Audit no_show_escalated (best-effort):', e.message); }
+
+      // B-2026-06-15-10: Begruendung in bookings.notes anhaengen (Muster wie
+      // Admin-Klaerungsfall no_show_resolve_admin) — fuer Verlauf/Beweis.
+      if (escNote) {
+        try {
+          const { data: exN } = await supabase.from('bookings').select('notes').eq('id', bookingId).maybeSingle();
+          const stampN = nowIso.slice(0, 16).replace('T', ' ');
+          const newN = `[Trainer ${stampN}] Eskalation: ${escNote}`;
+          await supabase.from('bookings').update({ notes: exN?.notes ? `${exN.notes}\n${newN}` : newN }).eq('id', bookingId);
+        } catch (e) { console.error('No-Show-Eskalations-Note (best-effort):', e.message); }
+      }
 
       // Push an beide (best-effort). send-push ist verify-jwt → Service-Role-JWT,
       // NICHT caller.token (Trainer-ES256 → 401-Risiko).
