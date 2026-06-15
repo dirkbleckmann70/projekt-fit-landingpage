@@ -775,6 +775,15 @@
       stornoFooterBtn.style.display = 'none';
     }
 
+    // B-2026-06-15-08: Stale-State vermeiden — beim Oeffnen IMMER mit dem Details-Tab
+    // starten (sonst bleibt ein zuvor aktiver Klaerungsfall-Tab/-Pane sichtbar und zeigt
+    // den Inhalt der VORHER geoeffneten Buchung). Bootstrap haelt den Tab-Zustand ueber
+    // CSS-Klassen → hier explizit zuruecksetzen.
+    document.querySelectorAll('#detail-modal .nav-tabs .nav-link').forEach(a => a.classList.remove('active'));
+    document.querySelectorAll('#detail-modal .tab-content > .tab-pane').forEach(p => p.classList.remove('active', 'show'));
+    document.querySelector('#detail-modal .nav-link[href="#tab-details"]').classList.add('active');
+    document.getElementById('tab-details').classList.add('active', 'show');
+
     new bootstrap.Modal(document.getElementById('detail-modal')).show();
 
     // Bei cancelled_by_trainer: Trainer-Dropdown mit aktiven Trainern befuellen
@@ -799,7 +808,10 @@
     // Roter Aktions-Punkt am Tab nur bei NOCH offenem Streitfall.
     const klBadge = document.getElementById('tab-klarungsfall-badge');
     if (klBadge) klBadge.style.display = klOffen ? '' : 'none';
+    // B-2026-06-15-08: Pane immer fuellen ODER leeren — sonst bleibt der
+    // Klaerungsfall-Inhalt der vorherigen (strittigen) Buchung stehen.
     if (klSichtbar) renderKlaerungsfall(b);
+    else document.getElementById('modal-klarungsfall').innerHTML = '';
     if (klOffen) {
       // S2: allgemeinen Status-Dropdown sperren — die Entscheidung laeuft AUSSCHLIESSLICH
       // ueber den Klaerungsfall-Tab (sonst zweiter Geld-Weg, vgl. B-2026-05-11-01).

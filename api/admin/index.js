@@ -3494,17 +3494,20 @@ async function handleBookingsPut(req, res, supabase) {
       return res.status(400).json({ error: `Reschedule nur bei angefragt/reserviert/bestaetigt/strittig moeglich, aktuell: ${current.status}` });
     }
 
-    if (current.status === 'bestaetigt') {
-      const bookingDateTime = new Date(`${current.scheduled_date}T${current.scheduled_time}`);
-      const now = new Date();
-      const diffHours = (bookingDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-      if (diffHours < 24) {
-        return res.status(400).json({ error: 'Terminaenderung nur >= 24h vor dem Termin moeglich' });
-      }
-    }
-
     const proposedDateTime = new Date(`${proposed_date}T${proposed_time}`);
-    if (proposedDateTime <= new Date()) {
+    const now = new Date();
+    // B-2026-06-15-11: ARCHITEKTUR.md Vorgang 3 = "24h-Mindestvorlauf zum NEUEN Termin".
+    // Frueher mass der Check den Abstand zum ALTEN Termin — bei einem ueberfaelligen
+    // bestaetigten Termin (z.B. nach handleTrainerResume strittig->bestaetigt) ist der
+    // negativ → jede Verschiebung wurde abgelehnt. Jetzt wird der VORGESCHLAGENE Termin
+    // geprueft. Gilt nur fuer 'bestaetigt'; im Streitfall ('strittig', C-2) stimmen sich
+    // Trainer + Kunde direkt ab → kein 24h-Mindestvorlauf, nur "in der Zukunft".
+    if (current.status === 'bestaetigt') {
+      const diffHours = (proposedDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (diffHours < 24) {
+        return res.status(400).json({ error: 'Neuer Termin muss mindestens 24h in der Zukunft liegen' });
+      }
+    } else if (proposedDateTime <= now) {
       return res.status(400).json({ error: 'Vorgeschlagener Termin muss in der Zukunft liegen' });
     }
 
