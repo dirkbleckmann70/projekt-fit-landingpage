@@ -203,21 +203,27 @@
   // B-2026-05-14-50 Q-01 (User-GELD-Befund 16.05.2026 abends): FIN_CANCELLED
   // muss ALLE Storno-Varianten aus mapStatusForFrontend (api/admin/index.js
   // Z. 1128-1136) abdecken — bisher fehlten 'expired', 'rejected',
-  // 'fully_cancelled', 'payment_open', 'disputed'. Folge: Buchungen mit
+  // 'fully_cancelled', 'payment_open'. Folge frueher: Buchungen mit
   // diesen Status zaehlten faelschlich als Einnahme.
-  // payment_open = Karte abgelehnt, keine Zahlung; disputed = strittig.
+  // payment_open = Karte abgelehnt, keine Zahlung.
   // B-2026-06-14-04: lokaler Name (NICHT FIN_CANCELLED) — shared/constants.js
   // deklariert seit dem Geld-Kennzahl-Umbau global `const FIN_CANCELLED`; eine
   // zweite gleichnamige const im Inline-Script = SyntaxError → ganze Seite tot
-  // (Kacheln in Dauerladeschleife). Werte unveraendert.
-  const FIN_CANCELLED_LOCAL = ['cancelled', 'refunded', 'cancelled_by_trainer', 'expired', 'rejected', 'fully_cancelled', 'payment_open', 'disputed'];
+  // (Kacheln in Dauerladeschleife).
+  // B-2026-06-15-14: 'disputed' (DB 'strittig') ist aus der EINNAHMEN-Liste RAUS —
+  // bei 'strittig' ist nur die TRAINER-AUSZAHLUNG gesperrt (ARCHITEKTUR.md), das
+  // Kundengeld ist da (paid=true) → Einnahme zaehlt (analog 'storniert'/T10). Echte
+  // Erstattung setzt paid=false (paid-Check faengt sie). 'disputed' bleibt in
+  // FIN_COST_CANCELLED_LOCAL (Trainer-Kosten = 0 bei strittig). Die separate Liste
+  // _FIN_STORNO_STATUSES (Zahlungs-Label) behaelt 'disputed' bewusst — anderer Zweck.
+  const FIN_CANCELLED_LOCAL = ['cancelled', 'refunded', 'cancelled_by_trainer', 'expired', 'rejected', 'fully_cancelled', 'payment_open'];
   // B-2026-06-14-13 (T10): EINNAHMEN nutzen FIN_CANCELLED_LOCAL (OHNE 'storniert') —
   // ein Storno ohne Erstattung (Ausfallhonorar, status 'storniert' + paid=true)
   // zaehlt als Einnahme (T1); echte Erstattungen sind paid=false (paid-Check faengt
-  // sie). TRAINER-KOSTEN dagegen schliessen 'storniert' MIT aus — der Trainer bekommt
-  // kein Honorar fuer ein nicht stattgefundenes Training. Spiegelt admin/bookings.html
-  // (effectivePrice ohne 'storniert' / effectiveCost mit 'storniert').
-  const FIN_COST_CANCELLED_LOCAL = [...FIN_CANCELLED_LOCAL, 'storniert'];
+  // sie). TRAINER-KOSTEN dagegen schliessen 'storniert' UND 'disputed' MIT aus — der
+  // Trainer bekommt kein Honorar fuer ein nicht stattgefundenes / strittiges Training.
+  // Spiegelt admin/bookings.html (effectivePrice ohne storniert/disputed / effectiveCost mit).
+  const FIN_COST_CANCELLED_LOCAL = [...FIN_CANCELLED_LOCAL, 'storniert', 'disputed'];
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
   // ── Berechnungen ──────────────────────────────────────────────────────────

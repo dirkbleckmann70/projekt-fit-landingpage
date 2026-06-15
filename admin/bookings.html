@@ -463,9 +463,14 @@
   // Seit T1 behaelt ein Storno ohne Erstattung (kunde_spaet/no_show_kunde =
   // Ausfallhonorar) das Geld → Status 'storniert' + paid=true MUSS als Einnahme
   // zaehlen. Echte Erstattungen setzen paid=false → der paid-Check faengt sie.
-  // Trainer-KOSTEN schliessen 'storniert' weiter aus (kein Honorar fuer ein nicht
-  // stattgefundenes Training). Konsistent zu admin/finances.html effBrutto/effKosten.
-  const FIN_REVENUE_EXCL_UC = FIN_CANCELLED_UC.filter(s => s !== 'STORNIERT');
+  // B-2026-06-15-14: 'disputed' (DB 'strittig', von api/admin auf 'disputed'
+  // gemappt) GENAUSO behandeln — bei 'strittig' ist nur die TRAINER-AUSZAHLUNG
+  // gesperrt (ARCHITEKTUR.md), das Kundengeld ist da (paid=true). Solange kein
+  // Refund (paid bleibt true) zaehlt der Umsatz; echte Erstattung setzt paid=false.
+  // Trainer-KOSTEN schliessen 'storniert' UND 'disputed' weiter aus (kein Honorar
+  // bzw. Auszahlung gesperrt) — effectiveCost nutzt das volle FIN_CANCELLED_UC.
+  // Konsistent zu admin/finances.html effBrutto/effKosten.
+  const FIN_REVENUE_EXCL_UC = FIN_CANCELLED_UC.filter(s => s !== 'STORNIERT' && s !== 'DISPUTED');
 
   function effectivePrice(b) {
     const st = (b.status || '').toUpperCase();
