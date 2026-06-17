@@ -963,11 +963,8 @@
           ? `<button class="pf-btn pf-btn-neutral" title="PDF öffnen" onclick="openBookingInvoicePdf('${inv.id}')"><i class="ti ti-file-text"></i> Öffnen</button>`
           : '<span class="text-muted" style="font-size:12px">kein PDF</span>';
         return `
-          <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);margin-bottom:8px">
-            <div>
-              <div style="font-weight:600;color:var(--text-primary);margin-bottom:2px">${typeLabel} · <span style="${isNegative ? 'color:#e5484d' : ''}">${betrag}</span></div>
-              <div style="font-size:12px;color:var(--text-secondary)">${nummerHtml}${datum ? ' · ' + datum : ''}${statusLabel ? ' · ' + statusLabel : ''}${inv.storno_ref ? ' · storniert via ' + inv.storno_ref : ''}</div>
-            </div>
+          <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);margin-bottom:8px">
+            <div style="font-size:14px;color:var(--text-primary)"><span style="font-weight:600">${typeLabel}</span> · <span style="font-weight:600${isNegative ? ';color:#e5484d' : ''}">${betrag}</span> · <span style="color:var(--text-secondary)">${nummerHtml}${datum ? ' · ' + datum : ''}${statusLabel ? ' · ' + statusLabel : ''}${inv.storno_ref ? ' · storniert via ' + inv.storno_ref : ''}</span></div>
             ${pdfBtn}
           </div>`;
       }).join('');
