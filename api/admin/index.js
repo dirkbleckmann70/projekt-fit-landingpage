@@ -2296,6 +2296,26 @@ async function handleData(req, res, supabase) {
       return res.json({ data: beWithUrls });
     }
 
+    // ─── Belege zu einer Buchung (B-2026-06-17-01) ────────────────────────────
+    // Alle zu dieser Buchung gehoerenden Belege (Rechnung, Gutschrift,
+    // Storno-Gutschrift, Stornobeleg, …). Verbindung wie in booking_audit_log:
+    // booking_id (PT) ODER group_participant_id (GT-Bridge, 1:1 gespiegelt).
+    // Admin-only (NICHT in trainerAllowedTypes) — Honorar-/Belegdaten vertraulich.
+    // PDF-Oeffnen laeuft ueber den bestehenden 'invoice-pdf'-Endpunkt (id).
+    case 'booking_invoices': {
+      const biBookingId = stripGpPrefix(req.query.booking_id);
+      if (!biBookingId || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(biBookingId)) {
+        return res.status(400).json({ error: 'booking_id (uuid) erforderlich' });
+      }
+      const { data, error } = await supabase
+        .from('invoices')
+        .select('id, invoice_number, type, status, total_cents, storno_ref, issued_at, recipient_name, pdf_path')
+        .or(`booking_id.eq.${biBookingId},group_participant_id.eq.${biBookingId}`)
+        .order('issued_at', { ascending: true });
+      if (error) return res.status(500).json({ error: error.message });
+      return res.json({ data: data ?? [] });
+    }
+
     // ─── Status-Logbuch zu einer Buchung (booking_audit + payment_events + invoice_audit) ──
     case 'booking_audit_log': {
       const bookingId = stripGpPrefix(req.query.booking_id);

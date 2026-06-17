@@ -403,7 +403,9 @@
     // STRITTIG/DISPUTED/ESCALATED: KEIN allgemeiner Storno in der Liste — die
     // Streitfall-Aufloesung laeuft ausschliesslich ueber den Klaerungsfall-Tab
     // (kein zweiter Geld-Weg, vgl. B-2026-05-11-01).
-    const excluded = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED','DISPUTED','ESCALATED','STRITTIG'];
+    // 'COMPLETED'/'ABGESCHLOSSEN': nach Abschluss KEIN Storno mehr (Beschluss 17.06.2026,
+    // ARCHITEKTUR.md — Honorar wird nie zurueckgeholt; Auszahlungsstopp laeuft ueber strittig).
+    const excluded = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED','DISPUTED','ESCALATED','STRITTIG','COMPLETED','ABGESCHLOSSEN'];
     const stornoBtn = (!b.storno_invoice_id && !excluded.includes(s))
       ? `<button class="pf-btn pf-btn-danger" title="Stornieren (mit Stornobeleg + Rueckzahlung)" onclick="event.stopPropagation();stornoBooking('${id}','${custName}',${gross})"><i class="ti ti-x"></i> Stornieren</button>`
       : '';
@@ -776,7 +778,8 @@
     // Storno-Button im Modal-Footer ein-/ausblenden
     const stornoFooterBtn = document.getElementById('modal-storno-btn');
     const st = (b.status || '').toUpperCase();
-    const excludedForStorno = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED','STRITTIG','DISPUTED','ESCALATED'];
+    // 'COMPLETED'/'ABGESCHLOSSEN': nach Abschluss KEIN Storno mehr (Beschluss 17.06.2026).
+    const excludedForStorno = ['FULLY_CANCELLED','CANCELLED','EXPIRED','REJECTED','REFUNDED','STRITTIG','DISPUTED','ESCALATED','COMPLETED','ABGESCHLOSSEN'];
     if (!b.storno_invoice_id && !excludedForStorno.includes(st)) {
       stornoFooterBtn.style.display = '';
       stornoFooterBtn.onclick = function() {
@@ -837,6 +840,10 @@
 
     // Standort-Vorschlaege asynchron nachladen
     loadLocationProposals(b.id);
+
+    // Belege (Rechnung/Gutschrift/Storno) asynchron in den Beleg-Tab laden.
+    // Wird bei JEDEM Oeffnen neu gesetzt (kein Stale-State, vgl. B-2026-06-15-08).
+    loadBookingInvoices(b.id);
 
     if (window._bookingDirty) window._bookingDirty.destroy();
     window._bookingDirty = initFormDirty({
@@ -912,6 +919,71 @@
         </div>`;
     } catch {
       // Fehler still ignorieren – Proposals sind optional
+    }
+  }
+
+  // ─── Belege-Tab (B-2026-06-17-01) ───────────────────────────────────────────
+  // Laedt alle zu dieser Buchung gehoerenden Belege (Rechnung/Gutschrift/Storno)
+  // ueber den Server (Service-Role, RLS) und zeigt sie im Beleg-Tab. PDF-Oeffnen
+  // ueber den bestehenden invoice-pdf-Endpunkt. Setzt #modal-invoice IMMER neu
+  // (kein Stale-State, vgl. B-2026-06-15-08).
+  const INVOICE_TYPE_LABELS = {
+    rechnung: 'Rechnung',
+    gutschrift: 'Gutschrift',
+    storno_gutschrift: 'Storno-Gutschrift',
+    stornobeleg: 'Stornobeleg',
+    stornobeleg_gt_card: 'Stornobeleg (Karte)',
+    rechnung_gt_card: 'Karten-Rechnung',
+    rechnung_geschenk: 'Geschenk-Rechnung',
+    offene_forderung: 'Offene Forderung',
+  };
+  const INVOICE_STATUS_LABELS = { issued: 'ausgestellt', cancelled: 'entwertet' };
+
+  async function loadBookingInvoices(bookingId) {
+    const el = document.getElementById('modal-invoice');
+    if (!el) return;
+    el.innerHTML = '<div class="text-center text-secondary p-4"><div class="spinner-border spinner-border-sm"></div> lade…</div>';
+    try {
+      const res = await adminApi(`/api/admin?action=booking_invoices&booking_id=${bookingId}`);
+      const invoices = res.data || [];
+      if (invoices.length === 0) {
+        el.innerHTML = '<div class="text-center text-secondary p-4">Noch kein Beleg vorhanden</div>';
+        return;
+      }
+      const rows = invoices.map(inv => {
+        const typeLabel = INVOICE_TYPE_LABELS[inv.type] || inv.type || 'Beleg';
+        const statusLabel = INVOICE_STATUS_LABELS[inv.status] || inv.status || '';
+        const isCancelled = inv.status === 'cancelled';
+        const isNegative = (inv.total_cents || 0) < 0;
+        const betrag = ((inv.total_cents || 0) / 100).toFixed(2).replace('.', ',') + ' €';
+        const nummer = inv.invoice_number || '–';
+        const nummerHtml = isCancelled ? `<s>${nummer}</s>` : nummer;
+        const datum = inv.issued_at ? new Date(inv.issued_at).toLocaleDateString('de-DE') : '';
+        const pdfBtn = inv.pdf_path
+          ? `<button class="pf-btn pf-btn-neutral" title="PDF öffnen" onclick="openBookingInvoicePdf('${inv.id}')"><i class="ti ti-file-text"></i> Öffnen</button>`
+          : '<span class="text-muted" style="font-size:12px">kein PDF</span>';
+        return `
+          <div style="display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);margin-bottom:8px">
+            <div>
+              <div style="font-weight:600;color:var(--text-primary);margin-bottom:2px">${typeLabel} · <span style="${isNegative ? 'color:#e5484d' : ''}">${betrag}</span></div>
+              <div style="font-size:12px;color:var(--text-secondary)">${nummerHtml}${datum ? ' · ' + datum : ''}${statusLabel ? ' · ' + statusLabel : ''}${inv.storno_ref ? ' · storniert via ' + inv.storno_ref : ''}</div>
+            </div>
+            ${pdfBtn}
+          </div>`;
+      }).join('');
+      el.innerHTML = `<div style="padding:4px 0">${rows}</div>`;
+    } catch (err) {
+      el.innerHTML = `<div class="text-center text-danger p-4">Belege konnten nicht geladen werden: ${err.message}</div>`;
+    }
+  }
+
+  async function openBookingInvoicePdf(id) {
+    if (!id) return;
+    try {
+      const res = await adminApi(`/api/admin?action=invoice-pdf&id=${id}`);
+      window.open(res.url, '_blank');
+    } catch (err) {
+      showAlert('alert-box', 'PDF-Fehler: ' + err.message, 'error');
     }
   }
 
