@@ -944,7 +944,7 @@
     if (!el) return;
     el.innerHTML = '<div class="text-center text-secondary p-4"><div class="spinner-border spinner-border-sm"></div> lade…</div>';
     try {
-      const res = await adminApi(`/api/admin?action=booking_invoices&booking_id=${bookingId}`);
+      const res = await adminApi(`/api/admin?action=data&type=booking_invoices&booking_id=${bookingId}`);
       const invoices = res.data || [];
       if (invoices.length === 0) {
         el.innerHTML = '<div class="text-center text-secondary p-4">Noch kein Beleg vorhanden</div>';
