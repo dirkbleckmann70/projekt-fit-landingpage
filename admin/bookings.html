@@ -690,12 +690,12 @@
             : `<input class="pf-field pf-field-readonly" value="${b.trainer_name || '–'}" disabled>`}
         </div>
         <div class="form-group">
-          <label>Datum</label>
-          <input class="pf-field" type="date" id="edit-booking-date" value="${b.scheduled_date || ''}">
-        </div>
-        <div class="form-group">
-          <label>Uhrzeit</label>
-          <input class="pf-field" type="time" id="edit-booking-time" value="${b.scheduled_time ? b.scheduled_time.slice(0,5) : ''}">
+          <label>Termin</label>
+          <input class="pf-field pf-field-readonly" id="edit-booking-date-display" value="${b.scheduled_date ? (b.scheduled_date.split('-').reverse().join('.') + (b.scheduled_time ? ' · ' + b.scheduled_time.slice(0,5) + ' Uhr' : '')) : '–'}" disabled>
+          <!-- B-2026-06-18-06: Verschieben laeuft ueber einen eigenen verbindlichen Pfad
+               (mit Frist-Pruefung + Benachrichtigung), NICHT mehr ueber das generische
+               Feld-Speichern. Datum/Uhrzeit hier nur noch Anzeige. -->
+          <button class="pf-btn pf-btn-edit mt-2" type="button" onclick="openAdminRescheduleModal()"><i class="ti ti-calendar-event"></i> Termin verschieben</button>
         </div>
         <div class="form-group">
           <label>Ort</label>
@@ -1003,11 +1003,9 @@
     // Status
     payload.status = document.getElementById('edit-booking-status').value;
 
-    // Termin
-    const dateVal = document.getElementById('edit-booking-date').value;
-    if (dateVal) payload.scheduled_date = dateVal;
-    const timeVal = document.getElementById('edit-booking-time').value;
-    if (timeVal) payload.scheduled_time = timeVal;
+    // Termin: B-2026-06-18-06 — Verschieben laeuft ueber submitAdminReschedule()
+    // (verbindlicher Pfad mit Frist + Benachrichtigung), NICHT mehr ueber dieses
+    // generische Speichern. scheduled_date/scheduled_time werden hier nicht gesendet.
 
     // Preise (EUR → Cent)
     const priceVal = document.getElementById('edit-booking-price').value;
@@ -1314,7 +1312,69 @@
       alert('Fehler: ' + e.message);
     }
   }
+
+  let _adminRescheduleModal;
+  function openAdminRescheduleModal() {
+    if (!editingBookingId) return;
+    const el = document.getElementById('admin-reschedule-modal');
+    document.getElementById('admin-reschedule-error').style.display = 'none';
+    // BLOCKER 1 (Pre-Impl-Review): es gibt KEINE globale `editingBooking` — der
+    // geoeffnete Datensatz steckt in `allBookings` (vgl. openDetail). Vorbefuellen
+    // aus dem Array, sonst bleiben die Felder leer.
+    const b = allBookings.find(x => x.id === editingBookingId) || null;
+    document.getElementById('admin-reschedule-date').value = b?.scheduled_date || '';
+    document.getElementById('admin-reschedule-time').value = b?.scheduled_time ? b.scheduled_time.slice(0,5) : '';
+    _adminRescheduleModal = new bootstrap.Modal(el);
+    _adminRescheduleModal.show();
+  }
+
+  async function submitAdminReschedule() {
+    if (!editingBookingId) return;
+    const date = document.getElementById('admin-reschedule-date').value;
+    const time = document.getElementById('admin-reschedule-time').value;
+    const errEl = document.getElementById('admin-reschedule-error');
+    errEl.style.display = 'none';
+    if (!date || !time) { errEl.textContent = 'Bitte Datum und Uhrzeit waehlen.'; errEl.style.display = 'block'; return; }
+    const btn = document.getElementById('admin-reschedule-submit');
+    btn.disabled = true; btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
+    try {
+      await adminApi('/api/admin?action=bookings', {
+        method: 'PUT',
+        body: JSON.stringify({ bookingId: editingBookingId, admin_reschedule: { date, time } }),
+      });
+      _adminRescheduleModal?.hide();
+      closeModal();
+      showAlert('alert-box', 'Termin verschoben — Kunde und Trainer wurden benachrichtigt.', 'success');
+      await loadBookings();
+    } catch (err) {
+      errEl.textContent = 'Fehler: ' + err.message; errEl.style.display = 'block';
+    } finally {
+      btn.disabled = false; btn.innerHTML = 'Verschieben';
+    }
+  }
 </script>
+
+<!-- B-2026-06-18-06: Admin Termin verschieben (verbindlich) -->
+<div class="modal modal-blur fade" id="admin-reschedule-modal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Termin verschieben</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="text-secondary" style="font-size:13px">Der Termin wird verbindlich verschoben. Kunde und Trainer werden benachrichtigt.</p>
+        <div class="mb-3"><label class="form-label">Neues Datum</label>
+          <input type="date" id="admin-reschedule-date" class="form-control"></div>
+        <div class="mb-3"><label class="form-label">Neue Uhrzeit</label>
+          <input type="time" id="admin-reschedule-time" class="form-control"></div>
+        <div id="admin-reschedule-error" class="text-danger" style="font-size:13px;display:none"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="pf-btn" data-bs-dismiss="modal">Abbrechen</button>
+        <button type="button" class="pf-btn pf-btn-primary" id="admin-reschedule-submit" onclick="submitAdminReschedule()">Verschieben</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
