@@ -3406,6 +3406,146 @@ async function handleBookingsPut(req, res, supabase) {
     return res.json({ success: true, outcome });
   }
 
+  // ── Admin "Termin verschieben" (verbindlich, B-2026-06-18-06) ──
+  // Eigener Pfad mit fruehem return (Muster: assign_replacement / no_show_escalate).
+  // Verbindliches Verschieben durch den Admin: setzt scheduled_date/-time DIREKT.
+  // KEIN proposed_date/flag_neuer_termin_vorgeschlagen — das ist der Trainer-VORSCHLAG-
+  // Weg (body.reschedule), der hier bewusst NICHT genutzt + NICHT veraendert wird.
+  // Frist + Doppeltermin + Verfuegbarkeit gespiegelt vom reschedule-Block
+  // (Z.3526-3601), bewusst dupliziert statt diesen umzubauen (Regressionsschutz,
+  // Watchlist B-2026-06-15-11). mapStatusForFrontend bleibt unberuehrt.
+  if (body.admin_reschedule) {
+    const caller = await getCallerInfo(req);
+    if (!caller) return res.status(401).json({ error: 'Nicht authentifiziert' });
+    if (caller.actorType !== 'admin') return res.status(403).json({ error: 'Nur der Admin darf verbindlich verschieben' });
+
+    const newDate = body.admin_reschedule.date;
+    const newTimeRaw = body.admin_reschedule.time;
+    if (!newDate || !newTimeRaw) return res.status(400).json({ error: 'admin_reschedule braucht date und time' });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return res.status(400).json({ error: 'date muss YYYY-MM-DD sein' });
+    if (!/^\d{2}:\d{2}(:\d{2})?$/.test(newTimeRaw)) return res.status(400).json({ error: 'time muss HH:MM sein' });
+    const newTime = newTimeRaw.slice(0, 5);
+
+    const { data: current, error: fetchErr } = await supabase
+      .from('bookings')
+      .select('status, scheduled_date, scheduled_time, trainer_id, customer_id')
+      .eq('id', bookingId)
+      .single();
+    if (fetchErr || !current) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+
+    // 'laeuft gerade' + 'abgeschlossen' bewusst ausgeschlossen (laufendes/beendetes
+    // Training nicht verschiebbar; gleiche Liste wie der Trainer-reschedule-Block).
+    if (!['angefragt', 'reserviert', 'bestaetigt', 'strittig'].includes(current.status)) {
+      return res.status(400).json({ error: `Verschieben nur bei angefragt/reserviert/bestaetigt/strittig moeglich, aktuell: ${current.status}` });
+    }
+
+    // Frist: 24h bei 'bestaetigt', sonst nur "in der Zukunft" (B-15-11 / ARCHITEKTUR Vorgang 3).
+    // BEKANNT (Pre-Impl-Review, KEIN Rueckschritt): new Date("YYYY-MM-DDTHH:MM") parst in
+    // UTC (Vercel-TZ), nicht Europe/Berlin -> bis ~2h Versatz im Frist-Grenzfall. Bewusst
+    // IDENTISCH zum Trainer-reschedule-Block (Z.3530) gehalten ("Admin wie Trainer",
+    // User-Vorgabe 19.06.) statt hier abweichend DST-korrekt zu rechnen (sonst divergieren
+    // die beiden Pfade). Gemeinsamer Fix beider Pfade = eigener Bug-Eintrag (Task 3), NICHT
+    // in diesem Vorgang.
+    const proposedDateTime = new Date(`${newDate}T${newTime}`);
+    const now = new Date();
+    if (current.status === 'bestaetigt') {
+      const diffHours = (proposedDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+      if (diffHours < 24) return res.status(400).json({ error: 'Neuer Termin muss mindestens 24h in der Zukunft liegen' });
+    } else if (proposedDateTime <= now) {
+      return res.status(400).json({ error: 'Neuer Termin muss in der Zukunft liegen' });
+    }
+
+    // Doppeltermin: Trainer hat zur neuen Zeit keine andere aktive Buchung.
+    const { data: conflicts } = await supabase
+      .from('bookings')
+      .select('id')
+      .eq('trainer_id', current.trainer_id)
+      .eq('scheduled_date', newDate)
+      .eq('scheduled_time', newTime + ':00')
+      .in('status', ['angefragt', 'reserviert', 'bestaetigt', 'laeuft gerade'])
+      .neq('id', bookingId);
+    if (conflicts && conflicts.length > 0) return res.status(409).json({ error: 'Trainer hat bereits einen Termin zu dieser Zeit' });
+
+    // Verfuegbarkeit: Trainer laut trainer_availability im Dienst.
+    const dayOfWeek = (() => { const j = new Date(newDate + 'T00:00:00').getDay(); return j === 0 ? 7 : j; })();
+    const proposedHour = parseInt(newTime.split(':')[0]);
+    const { data: dateAvail } = await supabase.from('trainer_availability')
+      .select('start_hour, end_hour, start_time, end_time')
+      .eq('trainer_id', current.trainer_id).eq('specific_date', newDate).eq('is_active', true);
+    const { data: weekdayAvail } = await supabase.from('trainer_availability')
+      .select('start_hour, end_hour, start_time, end_time')
+      .eq('trainer_id', current.trainer_id).eq('day_of_week', dayOfWeek).is('specific_date', null).eq('is_active', true);
+    const availability = [...(dateAvail || []), ...(weekdayAvail || [])];
+    if (!availability || availability.length === 0) return res.status(400).json({ error: 'Trainer ist an diesem Tag nicht verfuegbar' });
+    const isInSlot = availability.some(function (s) {
+      if (s.start_time && s.end_time) {
+        var st = parseInt(s.start_time.split(':')[0]) * 60 + parseInt(s.start_time.split(':')[1]);
+        var et = parseInt(s.end_time.split(':')[0]) * 60 + parseInt(s.end_time.split(':')[1]);
+        var pt = proposedHour * 60 + parseInt((newTime.split(':')[1]) || '0');
+        return pt >= st && pt < et;
+      }
+      return proposedHour >= s.start_hour && proposedHour < s.end_hour;
+    });
+    if (!isInSlot) return res.status(400).json({ error: 'Trainer ist zu dieser Uhrzeit nicht verfuegbar' });
+
+    // Verbindliches Update — Termin DIREKT setzen. KEIN proposed_*/flag (kein Vorschlag).
+    // .select() gegen RLS-Silent-Fail (CLAUDE.md).
+    const nowIso = new Date().toISOString();
+    const oldDate = current.scheduled_date;
+    const oldTime = (current.scheduled_time || '').slice(0, 5);
+    // BLOCKER B2 (Pre-Impl-Review): bei Quelle 'strittig' die No-Show-Marker loeschen,
+    // sonst greift der No-Show-Cron erneut auf den verschobenen Termin zu / re-eskaliert
+    // (pendant Trainer-reschedule-Block Z.3611-3614).
+    const updatePayload = { scheduled_date: newDate, scheduled_time: newTime + ':00', updated_at: nowIso };
+    if (current.status === 'strittig') {
+      updatePayload.escalation_started_at = null;
+      updatePayload.no_show_grace_until = null;
+    }
+    const { data: moved, error: moveErr } = await supabase.from('bookings')
+      .update(updatePayload)
+      .eq('id', bookingId).select('id');
+    if (moveErr) throw moveErr;
+    if (!moved || moved.length === 0) return res.status(404).json({ error: 'Buchung nicht gefunden' });
+
+    // Audit 'rescheduled' (best-effort) — gleicher Typ wie der Trainer-Weg (Z.3622) →
+    // Logbuch zeigt "Termin verschoben (alt->neu)" (audit-log.js Z.129-131).
+    try {
+      await supabase.from('booking_audit').insert({
+        booking_id: bookingId,
+        action: 'rescheduled',
+        actor_type: caller.actorType || 'admin',
+        actor_id: caller.authUid || null,
+        details: { old_date: oldDate, new_date: newDate, old_time: oldTime, new_time: newTime, by: 'admin' },
+      });
+    } catch (e) { console.error('Audit rescheduled (admin, best-effort):', e.message); }
+
+    // Push (best-effort) an Kunde + Trainer. SERVICE_ROLE_JWT (send-push verify-jwt).
+    const pushToken = process.env.SERVICE_ROLE_JWT ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const [_y, _m, _d] = newDate.split('-');
+    const pushBody = `Dein Termin wurde auf ${_d}.${_m}.${_y} ${newTime} Uhr verschoben.`;
+    try {
+      let custUid = null, trainerUid = null;
+      if (current.customer_id) {
+        const { data: cust } = await supabase.from('customers').select('auth_user_id').eq('id', current.customer_id).maybeSingle();
+        custUid = cust?.auth_user_id || null;
+      }
+      if (current.trainer_id) {
+        const { data: tp } = await supabase.from('trainer_profiles').select('auth_user_id').eq('id', current.trainer_id).maybeSingle();
+        trainerUid = tp?.auth_user_id || null;
+      }
+      // Dedup falls Kunde == Trainer (pendant push-notify.ts): nur eine Nachricht.
+      const sent = new Set();
+      for (const uid of [custUid, trainerUid]) {
+        if (uid && !sent.has(uid)) {
+          sent.add(uid);
+          await callEdgeFunction('send-push', pushToken, { user_id: uid, title: 'Termin verschoben', body: pushBody, data: { type: 'rescheduled', bookingId } });
+        }
+      }
+    } catch (e) { console.error('Admin-Verschiebe-Push (best-effort):', e.message); }
+
+    return res.json({ success: true, rescheduled: true, new_date: newDate, new_time: newTime });
+  }
+
   const update = {};
   // Logbuch Schritt 1: zusaetzliche Bewegungs-Eintraege (best-effort), die NACH
   // dem erfolgreichen UPDATE geschrieben werden. Bewegungen die NICHT ueber den
