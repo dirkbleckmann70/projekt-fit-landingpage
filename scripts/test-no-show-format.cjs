@@ -42,4 +42,26 @@ assert.equal(g6.auszahlungFaelligAt, null);
 const g7 = geldStaende({ paid: true, status: 'abgeschlossen', completed_at: '2026-06-15T10:00:00Z', trainer_paid_out_at: '2026-06-17T11:00:00Z' });
 assert.equal(g7.trainerAuszahlung, 'ausgezahlt');
 
+// B-2026-06-18-05: No-Show Kunde (storniert, Geld behalten) -> Trainer-Auszahlung
+// ENTFAELLT, Betrag 0 (NICHT 'offen' mit Honorarsatz). DB-Rohwert 'storniert'.
+const g8 = geldStaende({ paid: true, status: 'storniert', price_cents: 10900, trainer_payout_cents: 4500, trainer_paid_out_at: null });
+assert.equal(g8.trainerAuszahlung, 'entfaellt');
+assert.equal(g8.trainerBetragCents, 0);
+assert.equal(g8.kundeBetragCents, 10900); // Kundenumsatz bleibt (Geld behalten)
+
+// Gleicher Fall mit api/admin-gemapptem Frontend-Wert 'cancelled'
+const g9 = geldStaende({ paid: true, status: 'cancelled', final_price_cents: 10900, trainer_payout_cents: 4500, trainer_paid_out_at: null });
+assert.equal(g9.trainerAuszahlung, 'entfaellt');
+assert.equal(g9.trainerBetragCents, 0);
+
+// strittig hat Vorrang vor storniert: solange Klaerung laeuft -> 'gesperrt'
+const g10 = geldStaende({ paid: true, status: 'strittig', trainer_payout_cents: 4500, trainer_paid_out_at: null });
+assert.equal(g10.trainerAuszahlung, 'gesperrt');
+
+// abgelehnte/abgelaufene Buchung -> ebenfalls 'entfaellt'
+const g11 = geldStaende({ paid: false, status: 'rejected' });
+assert.equal(g11.trainerAuszahlung, 'entfaellt');
+const g12 = geldStaende({ paid: false, status: 'expired' });
+assert.equal(g12.trainerAuszahlung, 'entfaellt');
+
 console.log('no-show-format: alle Tests OK');

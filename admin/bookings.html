@@ -235,6 +235,9 @@
       const f = g.auszahlungFaelligAt ? ' · fällig am ' + new Date(g.auszahlungFaelligAt).toLocaleDateString('de-DE') : '';
       return { txt: 'Läuft' + f, cls: 'bg-azure-lt' };
     }
+    // B-2026-06-18-05: stornierter/No-Show-Termin -> kein Honorar, "Entfällt"
+    // (nicht "Offen", das nach ausstehender Zahlung aussieht).
+    if (s === 'entfaellt') return { txt: 'Entfällt', cls: 'bg-secondary-lt' };
     return { txt: 'Offen', cls: 'bg-secondary-lt' };
   }
 
@@ -484,7 +487,12 @@
   // Trainer-KOSTEN schliessen 'storniert' UND 'disputed' weiter aus (kein Honorar
   // bzw. Auszahlung gesperrt) — effectiveCost nutzt das volle FIN_CANCELLED_UC.
   // Konsistent zu admin/finances.html effBrutto/effKosten.
-  const FIN_REVENUE_EXCL_UC = FIN_CANCELLED_UC.filter(s => s !== 'STORNIERT' && s !== 'DISPUTED');
+  // B-2026-06-18-05: Auch 'CANCELLED' aus dem EINNAHMEN-Ausschluss nehmen. Grund:
+  // api/admin mapStatusForFrontend mappt DB-'storniert' (z.B. No-Show Kunde) auf
+  // den Frontend-Wert 'cancelled' — deshalb griff der B-15-14-Fix (nur 'STORNIERT')
+  // in dieser Sicht nicht. Storno OHNE Erstattung behaelt das Geld (paid=true) ->
+  // zaehlt als Umsatz; echte Erstattung setzt paid=false -> der paid-Check faengt sie.
+  const FIN_REVENUE_EXCL_UC = FIN_CANCELLED_UC.filter(s => s !== 'STORNIERT' && s !== 'DISPUTED' && s !== 'CANCELLED');
 
   function effectivePrice(b) {
     const st = (b.status || '').toUpperCase();

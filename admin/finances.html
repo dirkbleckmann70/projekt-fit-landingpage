@@ -216,14 +216,21 @@
   // Erstattung setzt paid=false (paid-Check faengt sie). 'disputed' bleibt in
   // FIN_COST_CANCELLED_LOCAL (Trainer-Kosten = 0 bei strittig). Die separate Liste
   // _FIN_STORNO_STATUSES (Zahlungs-Label) behaelt 'disputed' bewusst — anderer Zweck.
-  const FIN_CANCELLED_LOCAL = ['cancelled', 'refunded', 'cancelled_by_trainer', 'expired', 'rejected', 'fully_cancelled', 'payment_open'];
-  // B-2026-06-14-13 (T10): EINNAHMEN nutzen FIN_CANCELLED_LOCAL (OHNE 'storniert') —
-  // ein Storno ohne Erstattung (Ausfallhonorar, status 'storniert' + paid=true)
-  // zaehlt als Einnahme (T1); echte Erstattungen sind paid=false (paid-Check faengt
-  // sie). TRAINER-KOSTEN dagegen schliessen 'storniert' UND 'disputed' MIT aus — der
-  // Trainer bekommt kein Honorar fuer ein nicht stattgefundenes / strittiges Training.
-  // Spiegelt admin/bookings.html (effectivePrice ohne storniert/disputed / effectiveCost mit).
-  const FIN_COST_CANCELLED_LOCAL = [...FIN_CANCELLED_LOCAL, 'storniert', 'disputed'];
+  // B-2026-06-18-05: 'cancelled' aus dem EINNAHMEN-Ausschluss genommen (analog der
+  // 'disputed'-Behandlung oben). Grund: api/admin enrichBookings/mapStatusForFrontend
+  // mappt DB-'storniert' (z.B. No-Show Kunde) auf den Frontend-Wert 'cancelled' — der
+  // B-15-14-Fix liess nur 'storniert' weg, griff hier also nicht (der Wert kommt nie
+  // als 'storniert' an). Storno OHNE Erstattung behaelt das Geld (paid=true) -> zaehlt
+  // als Umsatz; echte Erstattung setzt paid=false -> der paid-Check faengt sie.
+  const FIN_CANCELLED_LOCAL = ['refunded', 'cancelled_by_trainer', 'expired', 'rejected', 'fully_cancelled', 'payment_open'];
+  // B-2026-06-14-13 (T10): EINNAHMEN nutzen FIN_CANCELLED_LOCAL (OHNE 'storniert'/
+  // 'cancelled') — ein Storno ohne Erstattung (Ausfallhonorar, status 'storniert'/
+  // 'cancelled' + paid=true) zaehlt als Einnahme (T1); echte Erstattungen sind
+  // paid=false (paid-Check faengt sie). TRAINER-KOSTEN dagegen schliessen 'cancelled',
+  // 'storniert' UND 'disputed' MIT aus — der Trainer bekommt kein Honorar fuer ein
+  // nicht stattgefundenes / strittiges Training.
+  // Spiegelt admin/bookings.html (effectivePrice ohne storniert/disputed/cancelled / effectiveCost mit).
+  const FIN_COST_CANCELLED_LOCAL = [...FIN_CANCELLED_LOCAL, 'cancelled', 'storniert', 'disputed'];
   const MONTHS_DE     = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 
   // ── Berechnungen ──────────────────────────────────────────────────────────

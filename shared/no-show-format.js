@@ -19,7 +19,8 @@
   }
 
   // Leitet die getrennten Geld-Staende aus dem Buchungsobjekt ab.
-  // kundeBezahlt: bool | trainerAuszahlung: 'ausgezahlt' | 'gesperrt' | 'faellig' | 'offen'
+  // kundeBezahlt: bool | trainerAuszahlung: 'ausgezahlt' | 'gesperrt' | 'faellig' | 'entfaellt' | 'offen'
+  //   entfaellt  = storniert/abgebrochen -> kein Honorar (Training fand nicht statt)
   //   ausgezahlt = trainer_paid_out_at gesetzt
   //   gesperrt   = Streitfall offen (strittig/disputed/escalated)
   //   faellig    = abgeschlossen + bezahlt, aber noch nicht ausgezahlt -> laeuft ueber die
@@ -31,6 +32,14 @@
     var stunden = (graceHours == null) ? 48 : graceHours;
     var strittig = ['strittig', 'disputed', 'escalated'].indexOf(b.status) !== -1;
     var abgeschlossen = ['abgeschlossen', 'completed'].indexOf(b.status) !== -1;
+    // B-2026-06-18-05: storniert/abgebrochen (No-Show Kunde, Storno, abgelehnt,
+    // abgelaufen) -> Trainer-Auszahlung ENTFAELLT (das Training fand nicht statt,
+    // ARCHITEKTUR.md "Trainer bekommt nie Honorar fuer ein nicht stattgefundenes
+    // Training"). NICHT 'offen' (das suggeriert eine ausstehende Zahlung, die nie
+    // kommt -> "Offen 45 EUR"). Deckt DB-Rohwert ('storniert') UND den von
+    // api/admin gemappten Frontend-Wert ('cancelled' etc.) ab.
+    var storniert = ['storniert', 'cancelled', 'cancelled_by_trainer',
+      'fully_cancelled', 'expired', 'rejected'].indexOf(b.status) !== -1;
     var trainerAuszahlung;
     var auszahlungFaelligAt = null;
     if (b.trainer_paid_out_at) {
@@ -42,6 +51,8 @@
       if (b.completed_at) {
         auszahlungFaelligAt = new Date(new Date(b.completed_at).getTime() + stunden * 3600000).toISOString();
       }
+    } else if (storniert) {
+      trainerAuszahlung = 'entfaellt';
     } else {
       trainerAuszahlung = 'offen';
     }
@@ -49,7 +60,8 @@
       kundeBezahlt: !!b.paid,
       kundeBetragCents: b.final_price_cents != null ? b.final_price_cents : (b.price_cents || 0),
       trainerAuszahlung: trainerAuszahlung,
-      trainerBetragCents: b.trainer_payout_cents || 0,
+      // Bei 'entfaellt' 0 EUR ausweisen (kein Honorar) statt des Honorarsatzes.
+      trainerBetragCents: trainerAuszahlung === 'entfaellt' ? 0 : (b.trainer_payout_cents || 0),
       auszahlungFaelligAt: auszahlungFaelligAt
     };
   }
