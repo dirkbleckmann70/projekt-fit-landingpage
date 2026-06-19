@@ -1314,7 +1314,9 @@
   }
 
   let _adminRescheduleModal;
-  function openAdminRescheduleModal() {
+  let _adminReschedAvail = [];   // geladene Trainer-Verfuegbarkeit
+  let _adminReschedHour = null;  // gewaehlte Stunde (0-23)
+  async function openAdminRescheduleModal() {
     if (!editingBookingId) return;
     const el = document.getElementById('admin-reschedule-modal');
     document.getElementById('admin-reschedule-error').style.display = 'none';
@@ -1322,19 +1324,65 @@
     // geoeffnete Datensatz steckt in `allBookings` (vgl. openDetail). Vorbefuellen
     // aus dem Array, sonst bleiben die Felder leer.
     const b = allBookings.find(x => x.id === editingBookingId) || null;
-    document.getElementById('admin-reschedule-date').value = b?.scheduled_date || '';
-    document.getElementById('admin-reschedule-time').value = b?.scheduled_time ? b.scheduled_time.slice(0,5) : '';
+    const dateInput = document.getElementById('admin-reschedule-date');
+    dateInput.value = b?.scheduled_date || '';
+    _adminReschedAvail = [];
+    _adminReschedHour = b?.scheduled_time ? parseInt(b.scheduled_time.slice(0,2)) : null;
+    document.getElementById('admin-reschedule-time-grid').innerHTML = '';
+    document.getElementById('admin-reschedule-no-slots').style.display = 'none';
     _adminRescheduleModal = bootstrap.Modal.getOrCreateInstance(el);
     _adminRescheduleModal.show();
+    // Freie Zeiten des Trainers laden (gleiche Quelle wie Trainer-Portal-Reschedule).
+    const trainerId = b?.trainer_id;
+    if (trainerId) {
+      try {
+        const r = await adminApi('/api/admin?action=trainer-availability&trainerId=' + trainerId);
+        _adminReschedAvail = r.data || [];
+      } catch (e) { _adminReschedAvail = []; }
+    }
+    adminReschedUpdateGrid();
+    dateInput.onchange = adminReschedUpdateGrid;
+  }
+
+  // Baut die Stunden-Buttons aus der Verfuegbarkeit fuer das gewaehlte Datum
+  // (date-spezifische + woechentliche Slots, analog Trainer-Portal updateTimeGrid).
+  function adminReschedUpdateGrid() {
+    const dateVal = document.getElementById('admin-reschedule-date').value;
+    const grid = document.getElementById('admin-reschedule-time-grid');
+    const noSlots = document.getElementById('admin-reschedule-no-slots');
+    if (!dateVal) { grid.innerHTML = ''; noSlots.style.display = 'none'; return; }
+    const d = new Date(dateVal + 'T00:00:00');
+    const isoDay = d.getDay() === 0 ? 7 : d.getDay();
+    const slots = _adminReschedAvail.filter(s => s.is_active !== false && (
+      s.specific_date === dateVal || (!s.specific_date && s.day_of_week === isoDay)
+    ));
+    const hours = [];
+    for (const s of slots) {
+      const sh = s.start_time ? parseInt(s.start_time.split(':')[0]) : s.start_hour;
+      const eh = s.end_time ? parseInt(s.end_time.split(':')[0]) : s.end_hour;
+      for (let h = sh; h < eh; h++) if (!hours.includes(h)) hours.push(h);
+    }
+    hours.sort((a, b) => a - b);
+    if (hours.length === 0) { grid.innerHTML = ''; noSlots.style.display = ''; _adminReschedHour = null; return; }
+    noSlots.style.display = 'none';
+    if (!hours.includes(_adminReschedHour)) _adminReschedHour = hours[0];
+    grid.innerHTML = hours.map(h =>
+      `<button type="button" class="btn btn-sm ${h === _adminReschedHour ? 'btn-primary' : 'btn-outline-secondary'}" onclick="selectAdminReschedHour(${h})">${String(h).padStart(2,'0')}:00</button>`
+    ).join('');
+  }
+
+  function selectAdminReschedHour(h) {
+    _adminReschedHour = h;
+    adminReschedUpdateGrid();
   }
 
   async function submitAdminReschedule() {
     if (!editingBookingId) return;
     const date = document.getElementById('admin-reschedule-date').value;
-    const time = document.getElementById('admin-reschedule-time').value;
+    const time = _adminReschedHour != null ? String(_adminReschedHour).padStart(2, '0') + ':00' : '';
     const errEl = document.getElementById('admin-reschedule-error');
     errEl.style.display = 'none';
-    if (!date || !time) { errEl.textContent = 'Bitte Datum und Uhrzeit wählen.'; errEl.style.display = 'block'; return; }
+    if (!date || !time) { errEl.textContent = 'Bitte Datum und eine freie Uhrzeit wählen.'; errEl.style.display = 'block'; return; }
     const btn = document.getElementById('admin-reschedule-submit');
     btn.disabled = true; btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
     try {
@@ -1364,8 +1412,9 @@
         <p class="text-secondary" style="font-size:13px">Der Termin wird verbindlich verschoben. Kunde und Trainer werden benachrichtigt.</p>
         <div class="mb-3"><label class="form-label">Neues Datum</label>
           <input type="date" id="admin-reschedule-date" class="form-control"></div>
-        <div class="mb-3"><label class="form-label">Neue Uhrzeit</label>
-          <input type="time" id="admin-reschedule-time" class="form-control"></div>
+        <div class="mb-3"><label class="form-label">Neue Uhrzeit <span class="text-secondary" style="font-weight:400">(freie Zeiten des Trainers)</span></label>
+          <div id="admin-reschedule-time-grid" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px"></div>
+          <div id="admin-reschedule-no-slots" style="display:none;font-size:13px" class="text-danger mt-1">Der Trainer ist an diesem Tag nicht im Dienst — anderes Datum wählen.</div></div>
         <div id="admin-reschedule-error" class="text-danger" style="font-size:13px;display:none"></div>
       </div>
       <div class="modal-footer">
