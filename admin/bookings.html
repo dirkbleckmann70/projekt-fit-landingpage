@@ -1324,7 +1324,7 @@
     const b = allBookings.find(x => x.id === editingBookingId) || null;
     document.getElementById('admin-reschedule-date').value = b?.scheduled_date || '';
     document.getElementById('admin-reschedule-time').value = b?.scheduled_time ? b.scheduled_time.slice(0,5) : '';
-    _adminRescheduleModal = new bootstrap.Modal(el);
+    _adminRescheduleModal = bootstrap.Modal.getOrCreateInstance(el);
     _adminRescheduleModal.show();
   }
 
@@ -1334,7 +1334,7 @@
     const time = document.getElementById('admin-reschedule-time').value;
     const errEl = document.getElementById('admin-reschedule-error');
     errEl.style.display = 'none';
-    if (!date || !time) { errEl.textContent = 'Bitte Datum und Uhrzeit waehlen.'; errEl.style.display = 'block'; return; }
+    if (!date || !time) { errEl.textContent = 'Bitte Datum und Uhrzeit wählen.'; errEl.style.display = 'block'; return; }
     const btn = document.getElementById('admin-reschedule-submit');
     btn.disabled = true; btn.innerHTML = '<div class="spinner-border spinner-border-sm"></div>';
     try {
