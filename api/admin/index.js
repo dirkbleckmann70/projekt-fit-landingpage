@@ -3439,6 +3439,12 @@ async function handleBookingsPut(req, res, supabase) {
       return res.status(400).json({ error: `Verschieben nur bei angefragt/reserviert/bestaetigt/strittig moeglich, aktuell: ${current.status}` });
     }
 
+    // Verbindliches Verschieben braucht einen zugewiesenen Trainer (sonst greifen
+    // Doppeltermin-/Verfuegbarkeits-Pruefung mit irrefuehrender Meldung).
+    if (!current.trainer_id) {
+      return res.status(400).json({ error: 'Keine Trainerzuweisung — verbindliches Verschieben nicht moeglich' });
+    }
+
     // Frist: 24h bei 'bestaetigt', sonst nur "in der Zukunft" (B-15-11 / ARCHITEKTUR Vorgang 3).
     // BEKANNT (Pre-Impl-Review, KEIN Rueckschritt): new Date("YYYY-MM-DDTHH:MM") parst in
     // UTC (Vercel-TZ), nicht Europe/Berlin -> bis ~2h Versatz im Frist-Grenzfall. Bewusst
