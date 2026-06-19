@@ -3502,7 +3502,19 @@ async function handleBookingsPut(req, res, supabase) {
     // BLOCKER B2 (Pre-Impl-Review): bei Quelle 'strittig' die No-Show-Marker loeschen,
     // sonst greift der No-Show-Cron erneut auf den verschobenen Termin zu / re-eskaliert
     // (pendant Trainer-reschedule-Block Z.3611-3614).
-    const updatePayload = { scheduled_date: newDate, scheduled_time: newTime + ':00', updated_at: nowIso };
+    const updatePayload = {
+      scheduled_date: newDate,
+      scheduled_time: newTime + ':00',
+      updated_at: nowIso,
+      // Verbindliche Admin-Entscheidung schliesst einen etwaigen offenen Trainer-
+      // TERMIN-Vorschlag ab (sonst mappt mapStatusForFrontend weiter auf
+      // 'reschedule_proposed' -> Kunde sieht Annehmen/Ablehnen-Banner fuer einen
+      // ueberholten Vorschlag). Offener ORT-Vorschlag bleibt unberuehrt (Admin
+      // aendert nur die Zeit).
+      flag_neuer_termin_vorgeschlagen: false,
+      proposed_date: null,
+      proposed_time: null,
+    };
     if (current.status === 'strittig') {
       updatePayload.escalation_started_at = null;
       updatePayload.no_show_grace_until = null;
