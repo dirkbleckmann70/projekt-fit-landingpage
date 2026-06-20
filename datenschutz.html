@@ -136,7 +136,7 @@
         <a href="https://pulsly.de" class="back-link">← Zurück zu Pulsly</a>
 
         <h1>Datenschutzerklärung</h1>
-        <p class="subtitle">Stand: März 2026</p>
+        <p class="subtitle">Stand: Juni 2026</p>
 
         <h2>1. Verantwortlicher</h2>
         <div class="highlight-box">
@@ -157,54 +157,85 @@
             <li>Chat-Verlauf mit dem KI-Coach (FitBot)</li>
             <li>Einstellungen und Präferenzen</li>
         </ul>
-        <p>Sobald du ein <strong>Konto</strong> anlegst und Trainings buchst, verarbeiten wir zusätzlich folgende Daten auf Servern unseres Dienstleisters <strong>Supabase</strong> (Hosting in der EU):</p>
+        <p>Sobald du ein <strong>Konto</strong> anlegst und Trainings buchst, verarbeiten wir zusätzlich folgende Daten auf Servern unseres Dienstleisters <strong>Supabase</strong> (Supabase Inc.; Hosting-Region EU – Frankfurt am Main):</p>
         <ul>
             <li>Konto: E-Mail-Adresse, Passwort (verschlüsselt)</li>
             <li>Kontaktdaten: Name, Anschrift, ggf. Telefonnummer (für Buchung und Rechnung)</li>
-            <li>Buchungen von Personal- und Gruppentraining inkl. Termin und Status</li>
+            <li>Buchungen von Personal- und Gruppentraining inkl. Termin, Treffpunkt und Status</li>
+            <li>Mehrfach-/Geschenkkarten und Rabattcodes</li>
             <li>Rechnungen und Zahlungsbelege (gesetzliche Aufbewahrung)</li>
-            <li>Geräte-Kennung für Push-Benachrichtigungen (Versand über Expo/Apple)</li>
         </ul>
         <p><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung), Art. 6 Abs. 1 lit. c DSGVO (gesetzliche Aufbewahrung von Rechnungen).</p>
 
-        <h2>4. KI-Coach (OpenAI API)</h2>
-        <p>Die App bietet einen KI-gestützten Fitness-Coach (FitBot). Wenn du den Chat nutzt, werden deine <strong>Chat-Nachrichten an die OpenAI API</strong> (OpenAI, Inc., San Francisco, USA) übermittelt, um eine Antwort zu generieren.</p>
+        <h2>4. KI-Coach (OpenAI)</h2>
+        <p>Die App bietet einen KI-gestützten Fitness-Coach (FitBot). Dabei werden Daten an <strong>OpenAI</strong> (OpenAI, Inc., San Francisco, USA) übermittelt:</p>
         <ul>
+            <li><strong>Chat:</strong> Deine Textnachrichten sowie Kontextinformationen (Fitnesslevel, Trainingsziele) werden zur Erzeugung einer Antwort übermittelt.</li>
+            <li><strong>Sprachausgabe:</strong> Für die vorgelesene Coach-Stimme wird der auszugebende Text zur Audio-Erzeugung an OpenAI übermittelt (Text-to-Speech).</li>
             <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) bzw. Art. 6 Abs. 1 lit. a DSGVO (Einwilligung)</li>
-            <li><strong>Übermittelte Daten:</strong> Deine Textnachrichten im Chat sowie Kontextinformationen (Fitnesslevel, Trainingsziele) zur Personalisierung der Antworten</li>
-            <li><strong>Drittlandtransfer:</strong> USA. OpenAI hat sich zur Einhaltung geeigneter Garantien gemäß Art. 46 DSGVO verpflichtet (Standardvertragsklauseln)</li>
+            <li><strong>Drittlandtransfer:</strong> USA. OpenAI hat sich zur Einhaltung geeigneter Garantien gemäß Art. 46 DSGVO verpflichtet (Standardvertragsklauseln).</li>
             <li><strong>Datenschutzrichtlinie von OpenAI:</strong> <a href="https://openai.com/privacy" target="_blank">openai.com/privacy</a></li>
         </ul>
+        <p>Der <strong>Chat-Verlauf</strong> wird nur lokal auf deinem Gerät gespeichert; an OpenAI werden ausschließlich die einzelnen Anfragen zur Beantwortung übermittelt.</p>
 
-        <h2>5. Abo-Verwaltung (RevenueCat)</h2>
-        <p>Für die Verwaltung von In-App-Abonnements nutzen wir <strong>RevenueCat</strong> (RevenueCat, Inc., USA). Bei Abschluss eines Abos werden folgende Daten verarbeitet:</p>
+        <h2>5. Standortdaten</h2>
+        <p>Für das <strong>Einchecken am Treffpunkt</strong> und die Anzeige bzw. Auswahl von Trainings-Treffpunkten verarbeitet die App deinen <strong>Gerätestandort (GPS)</strong>. Der Standort wird nur dann erfasst, wenn du die entsprechende Funktion nutzt, und dient ausschließlich der Bestätigung, dass du am vereinbarten Treffpunkt bist, sowie der Kartendarstellung.</p>
         <ul>
-            <li>Anonyme App-User-ID</li>
-            <li>Kaufbelege und Abo-Status</li>
-            <li>Gerätetyp und Betriebssystem</li>
+            <li><strong>Übermittelte Daten:</strong> Geokoordinaten zum Zeitpunkt des Check-ins (Abstand zum Treffpunkt). Es findet kein dauerhaftes Standort-Tracking statt.</li>
+            <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung) bzw. Art. 6 Abs. 1 lit. a DSGVO (Einwilligung über die Standort-Berechtigungsabfrage deines Betriebssystems).</li>
+            <li>Du kannst die Standort-Berechtigung jederzeit in den Geräteeinstellungen widerrufen.</li>
         </ul>
-        <p>Die Zahlungsabwicklung für Abonnements erfolgt ausschließlich über Apple (App Store) bzw. Google (Play Store). Wir haben keinen Zugriff auf deine dortigen Zahlungsdaten.</p>
-        <p>Die Bezahlung gebuchter <strong>Trainings</strong> (Personal- und Gruppentraining) wickeln wir über <strong>Stripe</strong> (Stripe Payments Europe Ltd., Irland) per Kreditkarte oder PayPal ab. Vollständige Kartendaten werden direkt von Stripe verarbeitet; wir speichern sie nicht. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</p>
+
+        <h2>6. Gesundheitsdaten</h2>
+        <h3>a) Gesundheits-Selbstauskunft vor dem Training</h3>
+        <p>Vor der Durchführung eines Trainings bitten wir dich um eine freiwillige <strong>Gesundheits-Selbstauskunft</strong> (z. B. Hinweise zu Herz-Kreislauf, Gelenken, Schwangerschaft, Medikamenten oder Operationen). Diese Angaben sind <strong>Gesundheitsdaten und damit besondere Kategorien personenbezogener Daten</strong> gemäß Art. 9 DSGVO.</p>
+        <ul>
+            <li><strong>Zweck:</strong> sichere und auf dich abgestimmte Durchführung des Trainings.</li>
+            <li><strong>Empfänger:</strong> der für deinen Termin zuständige Trainer, soweit für die sichere Durchführung erforderlich.</li>
+            <li><strong>Rechtsgrundlage:</strong> deine <strong>ausdrückliche Einwilligung</strong> gemäß Art. 9 Abs. 2 lit. a DSGVO in Verbindung mit Art. 6 Abs. 1 lit. b DSGVO. Du kannst die Einwilligung jederzeit mit Wirkung für die Zukunft widerrufen.</li>
+            <li><strong>Speicherdauer:</strong> nur für die Dauer der Trainingsabwicklung; danach werden die Angaben gelöscht bzw. nicht weiter vorgehalten.</li>
+        </ul>
+        <h3>b) Apple Health / Health Connect</h3>
+        <p>Pulsly kann auf Gesundheits- und Fitnessdaten zugreifen, die in Apple Health (iOS) bzw. Health Connect (Android) gespeichert sind: Schritte, zurückgelegte Distanz, aktiver Kalorienverbrauch. Der Zugriff erfolgt ausschließlich nach deiner ausdrücklichen Einwilligung über die Berechtigungsabfrage deines Betriebssystems und ist jederzeit in den Geräteeinstellungen widerrufbar. Diese Daten werden <strong>ausschließlich lokal auf deinem Gerät</strong> verarbeitet und im Dashboard angezeigt; sie werden nicht an unsere Server oder Dritte übertragen, nicht gespeichert und nicht weitergegeben.</p>
+        <ul>
+            <li><strong>Rechtsgrundlage:</strong> Einwilligung gemäß Art. 9 Abs. 2 lit. a / Art. 6 Abs. 1 lit. a DSGVO in Verbindung mit der HealthKit/Health-Connect-Berechtigungsabfrage.</li>
+        </ul>
+
+        <h2>7. Zahlungsabwicklung (Stripe)</h2>
+        <p>Die Bezahlung gebuchter <strong>Trainings, Mehrfach- und Geschenkkarten</strong> wickeln wir über <strong>Stripe</strong> (Stripe Payments Europe Ltd., Irland; technische Verarbeitung auch durch Stripe, Inc., USA) per <strong>Kreditkarte oder PayPal</strong> ab. Vollständige Zahlungsdaten (z. B. Kartennummer) werden direkt von Stripe verarbeitet; wir speichern sie nicht.</p>
+        <ul>
+            <li><strong>Übermittelte Daten:</strong> Zahlungsbetrag, Zahlungsmittel, Name/E-Mail zur Zuordnung der Zahlung.</li>
+            <li><strong>Trainer-Auszahlungen (Stripe Connect):</strong> Für die Auszahlung an Trainer übermittelt der jeweilige Trainer seine Identitäts- und Bankdaten zur gesetzlich vorgeschriebenen Identitätsprüfung direkt an Stripe (Stripe Connect). Wir speichern keine vollständigen Bankdaten.</li>
+            <li><strong>Steuerermittlung:</strong> Zur korrekten Steuerausweisung kann Stripe Tax eingesetzt werden.</li>
+            <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung), Art. 6 Abs. 1 lit. c DSGVO (steuer-/handelsrechtliche Pflichten).</li>
+            <li><strong>Drittlandtransfer:</strong> USA (Standardvertragsklauseln gemäß Art. 46 DSGVO).</li>
+            <li><strong>Datenschutzrichtlinie von Stripe:</strong> <a href="https://stripe.com/de/privacy" target="_blank">stripe.com/de/privacy</a></li>
+        </ul>
+
+        <h2>8. Abo-Verwaltung (RevenueCat)</h2>
+        <p>Für die Verwaltung von In-App-Abonnements nutzen wir <strong>RevenueCat</strong> (RevenueCat, Inc., USA). Verarbeitet werden eine anonyme App-User-ID, Kaufbelege/Abo-Status sowie Gerätetyp und Betriebssystem. Die Zahlungsabwicklung für Abonnements erfolgt ausschließlich über Apple (App Store) bzw. Google (Play Store); wir haben keinen Zugriff auf die dortigen Zahlungsdaten.</p>
         <ul>
             <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung)</li>
             <li><strong>Drittlandtransfer:</strong> USA (Standardvertragsklauseln)</li>
             <li><strong>Datenschutzrichtlinie von RevenueCat:</strong> <a href="https://www.revenuecat.com/privacy" target="_blank">revenuecat.com/privacy</a></li>
         </ul>
 
-        <h2>6. Apple Health / HealthKit</h2>
-        <p>Pulsly kann auf deine Gesundheits- und Fitnessdaten zugreifen, die in Apple Health (iOS) bzw. Health Connect (Android) gespeichert sind. Dies umfasst:</p>
+        <h2>9. E-Mail-Versand (Brevo)</h2>
+        <p>Für den Versand von Buchungs-, System- und Rechnungs-E-Mails (z. B. Bestätigungen, Belege) nutzen wir den Dienst <strong>Brevo</strong> (Sendinblue GmbH / Brevo, Frankreich) als Auftragsverarbeiter.</p>
         <ul>
-            <li>Schritte (tägliche Schrittzahl)</li>
-            <li>Zurückgelegte Distanz (in Kilometern)</li>
-            <li>Aktiver Kalorienverbrauch</li>
-        </ul>
-        <p>Der Zugriff erfolgt ausschließlich nach deiner ausdrücklichen Einwilligung über die Berechtigungsabfrage deines Betriebssystems. Du kannst diese Berechtigung jederzeit in den Geräteeinstellungen widerrufen.</p>
-        <p>Die aus Apple Health / Health Connect gelesenen Daten werden <strong>ausschließlich lokal auf deinem Gerät</strong> verarbeitet und im Dashboard der App angezeigt. Es erfolgt keine Übertragung dieser Gesundheitsdaten an unsere Server, an Dritte oder an andere Dienste. Die Daten werden nicht gespeichert, nicht analysiert und nicht weitergegeben.</p>
-        <ul>
-            <li><strong>Rechtsgrundlage:</strong> Einwilligung gemäß Art. 6 Abs. 1 lit. a DSGVO in Verbindung mit der HealthKit/Health Connect-Berechtigungsabfrage</li>
+            <li><strong>Übermittelte Daten:</strong> E-Mail-Adresse, Name, Inhalt der jeweiligen Nachricht.</li>
+            <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Vertragserfüllung).</li>
+            <li><strong>Datenschutzrichtlinie von Brevo:</strong> <a href="https://www.brevo.com/de/legal/privacypolicy/" target="_blank">brevo.com/de/legal/privacypolicy</a></li>
         </ul>
 
-        <h2>7. Website (pulsly.de)</h2>
+        <h2>10. Push-Benachrichtigungen (Expo)</h2>
+        <p>Für Push-Benachrichtigungen (z. B. Termin-Erinnerungen, Status-Updates) verarbeiten wir eine gerätebezogene <strong>Push-Kennung (Token)</strong>. Der Versand erfolgt über den Dienst <strong>Expo</strong> (Expo / 650 Industries, Inc., USA) sowie die Push-Dienste von Apple bzw. Google.</p>
+        <ul>
+            <li><strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. a DSGVO (Einwilligung über die Push-Berechtigung) bzw. Art. 6 Abs. 1 lit. b DSGVO.</li>
+            <li>Du kannst Push-Benachrichtigungen jederzeit in den Geräteeinstellungen deaktivieren.</li>
+        </ul>
+
+        <h2>11. Website (pulsly.de)</h2>
         <p>Die Website pulsly.de wird über <strong>Vercel</strong> (Vercel Inc., USA) gehostet. Beim Besuch der Website werden automatisch folgende Daten erfasst (Server-Logfiles):</p>
         <ul>
             <li>IP-Adresse (anonymisiert)</li>
@@ -217,10 +248,10 @@
             <li><strong>Datenschutzrichtlinie von Vercel:</strong> <a href="https://vercel.com/legal/privacy-policy" target="_blank">vercel.com/legal/privacy-policy</a></li>
         </ul>
 
-        <h2>8. Keine Cookies, kein Tracking</h2>
+        <h2>12. Keine Cookies, kein Tracking</h2>
         <p>Wir setzen auf unserer Website und in der App <strong>keine Cookies, keine Analyse-Tools und kein Werbe-Tracking</strong> ein.</p>
 
-        <h2>9. Deine Rechte</h2>
+        <h2>13. Deine Rechte</h2>
         <p>Du hast jederzeit folgende Rechte gemäß DSGVO:</p>
         <ul>
             <li><strong>Auskunft</strong> (Art. 15 DSGVO) – Welche Daten wir über dich haben</li>
@@ -233,7 +264,7 @@
         <p>Lokal gespeicherte Daten kannst du jederzeit selbst löschen (App deinstallieren oder App-Daten in den Geräteeinstellungen löschen). Dein <strong>Konto</strong> kannst du direkt in der App löschen (Einstellungen → „Konto löschen"): Dabei werden dein Zugang und alle nicht gesetzlich aufbewahrungspflichtigen persönlichen Daten gelöscht oder anonymisiert. Rechnungen müssen wir aus gesetzlichen Gründen (§ 147 AO, § 14b UStG) bis zu 10 Jahre aufbewahren; sie werden danach nur noch zu diesem Zweck gespeichert und sind nicht mehr über die App abrufbar.</p>
         <p>Für Anfragen wende dich an: <a href="mailto:info@pulsly.de">info@pulsly.de</a></p>
 
-        <h2>10. Beschwerderecht</h2>
+        <h2>14. Beschwerderecht</h2>
         <p>Du hast das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu beschweren. Zuständig ist:</p>
         <div class="highlight-box">
             <p><strong>Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen</strong></p>
@@ -241,7 +272,7 @@
             <p><a href="https://www.ldi.nrw.de" target="_blank">www.ldi.nrw.de</a></p>
         </div>
 
-        <h2>11. Änderungen</h2>
+        <h2>15. Änderungen</h2>
         <p>Wir behalten uns vor, diese Datenschutzerklärung anzupassen, um sie an geänderte Rechtslagen oder Änderungen der App anzupassen. Die aktuelle Version findest du stets unter <a href="https://pulsly.de/datenschutz">pulsly.de/datenschutz</a>.</p>
 
         <div class="footer">
