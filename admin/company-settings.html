@@ -286,18 +286,6 @@
                   <label class="form-label">Geschäftsführer (kommagetrennt)</label>
                   <input class="form-control" type="text" id="geschaeftsfuehrer" placeholder="Max Mustermann, Erika Musterfrau">
                 </div>
-                <div class="form-group">
-                  <label class="form-label">Rechnungs-Präfix</label>
-                  <input class="form-control" type="text" id="invoice_prefix" placeholder="PF-">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Nächste Rechnungsnummer</label>
-                  <input class="form-control" type="number" id="next_invoice_number" placeholder="1001" min="1">
-                </div>
-                <div class="form-group form-group-full">
-                  <label class="form-label">Rechnungs-Fußtext</label>
-                  <textarea class="form-control" id="invoice_footer_text" rows="3" placeholder="Vielen Dank für Ihr Vertrauen..."></textarea>
-                </div>
               </div>
             </details>
           </div>
@@ -334,7 +322,6 @@
     'email', 'phone', 'website',
     'bank_name', 'iban', 'bic',
     'handelsregister_nr', 'registergericht', 'geschaeftsfuehrer',
-    'invoice_prefix', 'next_invoice_number', 'invoice_footer_text',
     // Bezahl- und Buchungs-Konfiguration (Teilspec 2, alle NOT NULL in DB)
     'processing_fee_percent', 'processing_fee_min_cents',
     'gt_threshold_check_hours_before',
@@ -354,7 +341,6 @@
   // Wird nur fuer Save genutzt — der GET liest beides als string ein und das
   // <input type="number"> macht das Browser-seitige Casting beim Anzeigen.
   const INTEGER_FIELDS = new Set([
-    'next_invoice_number',
     'processing_fee_min_cents',
     'gt_threshold_check_hours_before',
     'trainer_payout_grace_hours',
