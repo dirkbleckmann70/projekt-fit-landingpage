@@ -213,6 +213,7 @@
     try {
       const { data, error } = await sb.functions.invoke('stripe-connect-onboard', {
         body: { trainer_id: trainerId },
+        headers: { 'x-pulsly-env': 'test' },  // Portal arbeitet aktuell in der Test-Welt; bei Go-Live auf 'live' umstellen
       });
       if (error) throw error;
       if (data?.url) {
