@@ -2664,9 +2664,18 @@ async function handleData(req, res, supabase) {
 
 // ─── ACTION: trainers ────────────────────────────────────────────────────────
 
+// Kanonischer Wertesatz fuer trainer_profiles.status (englisch). Quelle der Wahrheit
+// fuer ALLE Filter/RLS/App/Ersatz-Suche. Spiegelt den DB-CHECK-Constraint
+// trainer_profiles_status_chk. KEINE deutschen Varianten ('aktiv') zulassen.
+const VALID_TRAINER_STATUS = ['pending', 'active', 'pausiert', 'gesperrt'];
+
 async function handleTrainersPost(req, res, supabase) {
   const body = await getBody(req);
   const { full_name, email, phone, city, street_address, postal_code, wohnort, specializations, bio, steuernummer, is_kleinunternehmer, hourly_rate_cents, payout_cents, status, city_ids } = body;
+
+  if (status != null && !VALID_TRAINER_STATUS.includes(status)) {
+    return res.status(400).json({ error: `Ungueltiger Status '${status}'. Erlaubt: ${VALID_TRAINER_STATUS.join(', ')}.` });
+  }
 
   const hasCityIds = Array.isArray(city_ids) && city_ids.length > 0;
 
@@ -2738,6 +2747,10 @@ async function handleTrainersPut(req, res, supabase) {
   }
   // Wenn Städte über city_ids kommen, besitzt die RPC das city-Feld (erste Stadt).
   if (hasCityIds) delete update.city;
+
+  if ('status' in update && !VALID_TRAINER_STATUS.includes(update.status)) {
+    return res.status(400).json({ error: `Ungueltiger Status '${update.status}'. Erlaubt: ${VALID_TRAINER_STATUS.join(', ')}.` });
+  }
 
   // Feld-Update (falls vorhanden) — K4: .select() gegen RLS-Silent-Fail.
   if (Object.keys(update).length > 0) {
