@@ -142,7 +142,7 @@
             </div>
             <div class="form-group" style="display:flex;align-items:center;padding-top:24px">
               <label class="form-check">
-                <input class="form-check-input" type="checkbox" id="new-kleinunternehmer">
+                <input class="form-check-input" type="checkbox" id="new-kleinunternehmer" onchange="onKleinToggle('new')">
                 <span class="form-check-label">Kleinunternehmer</span>
               </label>
             </div>
@@ -153,6 +153,11 @@
             <div class="form-group">
               <label class="form-label">Trainer-Vergütung (EUR)</label>
               <input class="pf-field" type="number" id="new-payout" placeholder="35.00" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label class="form-label">MwSt-Satz (%)</label>
+              <input class="pf-field" type="number" id="new-mwst-satz" step="1" min="0" max="100" value="19">
+              <div class="form-hint">Standard 19. Kleinunternehmer (§19 UStG) = 0 (wird automatisch gesetzt).</div>
             </div>
 
             <div class="pf-form-divider">Lizenzen & Zertifikate</div>
@@ -490,7 +495,7 @@
         </div>
         <div class="form-group" style="display:flex;align-items:center;padding-top:24px">
           <label class="form-check">
-            <input class="form-check-input" type="checkbox" id="edit-kleinunternehmer" ${t.is_kleinunternehmer ? 'checked' : ''}>
+            <input class="form-check-input" type="checkbox" id="edit-kleinunternehmer" ${t.is_kleinunternehmer ? 'checked' : ''} onchange="onKleinToggle('edit')">
             <span class="form-check-label">Kleinunternehmer</span>
           </label>
         </div>
@@ -515,8 +520,8 @@
         </div>
         <div class="form-group">
           <label class="form-label">MwSt-Satz (%)</label>
-          <input class="pf-field" type="number" id="edit-mwst-satz" step="1" min="0" max="100" value="${t.mwst_satz ?? 19}">
-          <div class="form-hint">Standard 19. Kleinunternehmer (§19 UStG) = 0.</div>
+          <input class="pf-field" type="number" id="edit-mwst-satz" step="1" min="0" max="100" value="${t.is_kleinunternehmer ? 0 : (t.mwst_satz ?? 19)}" ${t.is_kleinunternehmer ? 'disabled' : ''}>
+          <div class="form-hint">Standard 19. Kleinunternehmer (§19 UStG) = 0 (wird automatisch gesetzt).</div>
         </div>
         <div class="form-group">
           <label class="form-label">Nicht erschienen (Gesamt)</label>
@@ -934,6 +939,28 @@
     }
   }
 
+  // Kleinunternehmer (§19 UStG) ⟺ MwSt 0. Häkchen an: MwSt-Feld auf 0 + gesperrt.
+  // Häkchen aus: Feld frei, Default 19 (wenn es auf 0/leer stand). prefix = 'edit' | 'new'.
+  function onKleinToggle(prefix) {
+    const klein = document.getElementById(prefix + '-kleinunternehmer').checked;
+    const mwstEl = document.getElementById(prefix + '-mwst-satz');
+    if (!mwstEl) return;
+    if (klein) {
+      mwstEl.value = 0;
+      mwstEl.disabled = true;
+    } else {
+      if (mwstEl.value === '' || parseInt(mwstEl.value, 10) === 0) mwstEl.value = 19;
+      mwstEl.disabled = false;
+    }
+  }
+
+  // MwSt-Satz aus Formular: NaN-sicher (0 erlaubt!) + an Kleinunternehmer gekoppelt.
+  function readMwstSatz(prefix) {
+    if (document.getElementById(prefix + '-kleinunternehmer').checked) return 0;
+    const v = parseInt(document.getElementById(prefix + '-mwst-satz')?.value, 10);
+    return Number.isNaN(v) ? 19 : v;
+  }
+
   async function saveTrainer() {
     if (!editingTrainerId) return;
 
@@ -964,7 +991,7 @@
       status: document.getElementById('edit-status').value,
       hourly_rate_cents: document.getElementById('edit-hourly-rate').value ? Math.round(parseFloat(document.getElementById('edit-hourly-rate').value) * 100) : null,
       payout_cents: document.getElementById('edit-payout').value ? Math.round(parseFloat(document.getElementById('edit-payout').value) * 100) : null,
-      mwst_satz: parseInt(document.getElementById('edit-mwst-satz').value) || 19,
+      mwst_satz: readMwstSatz('edit'),
     };
 
     try {
@@ -1150,7 +1177,7 @@
           is_kleinunternehmer: document.getElementById('new-kleinunternehmer').checked,
           hourly_rate_cents: document.getElementById('new-hourly-rate').value ? Math.round(parseFloat(document.getElementById('new-hourly-rate').value) * 100) : null,
           payout_cents: document.getElementById('new-payout').value ? Math.round(parseFloat(document.getElementById('new-payout').value) * 100) : null,
-          mwst_satz: parseInt(document.getElementById('new-mwst-satz')?.value) || 19,
+          mwst_satz: readMwstSatz('new'),
           status: document.getElementById('new-status').value,
         }),
       });

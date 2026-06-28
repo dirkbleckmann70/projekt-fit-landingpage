@@ -2699,7 +2699,7 @@ const VALID_TRAINER_STATUS = ['pending', 'active', 'gesperrt'];
 
 async function handleTrainersPost(req, res, supabase) {
   const body = await getBody(req);
-  const { full_name, email, phone, city, street_address, postal_code, wohnort, specializations, bio, steuernummer, is_kleinunternehmer, hourly_rate_cents, payout_cents, status, city_ids } = body;
+  const { full_name, email, phone, city, street_address, postal_code, wohnort, specializations, bio, steuernummer, is_kleinunternehmer, mwst_satz, hourly_rate_cents, payout_cents, status, city_ids } = body;
 
   if (status != null && !VALID_TRAINER_STATUS.includes(status)) {
     return res.status(400).json({ error: `Ungueltiger Status '${status}'. Erlaubt: ${VALID_TRAINER_STATUS.join(', ')}.` });
@@ -2730,6 +2730,8 @@ async function handleTrainersPost(req, res, supabase) {
     bio: bio || null,
     steuernummer: steuernummer || null,
     is_kleinunternehmer: is_kleinunternehmer || false,
+    // Kleinunternehmer ⟺ 0; sonst gesendeter Satz (0 erlaubt via ??, Default 19).
+    mwst_satz: is_kleinunternehmer ? 0 : (mwst_satz ?? 19),
     hourly_rate_cents: hourly_rate_cents || null,
     payout_cents: payout_cents || null,
     status: status || 'pending',
@@ -2787,6 +2789,10 @@ async function handleTrainersPut(req, res, supabase) {
   if ('status' in update) {
     update.is_active = update.status === 'active';
   }
+
+  // B-2026-06-28-04: MwSt-Konsistenz — Kleinunternehmer (§19 UStG) ⟺ MwSt 0.
+  // Erzwingt die Invariante serverseitig, egal was das Formular sendet.
+  if (update.is_kleinunternehmer === true) update.mwst_satz = 0;
 
   // Feld-Update (falls vorhanden) — K4: .select() gegen RLS-Silent-Fail.
   if (Object.keys(update).length > 0) {
