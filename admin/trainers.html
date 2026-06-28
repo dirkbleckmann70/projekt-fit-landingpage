@@ -284,7 +284,7 @@
         ? '<span title="Neue Bewerbung" style="flex:0 0 auto;width:18px;height:18px;border-radius:50%;background:var(--tblr-red,#d63939);color:#fff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">1</span>'
         : '';
       return `
-        <tr data-row-index="${idx}" style="cursor:pointer">
+        <tr data-row-index="${idx}" style="cursor:pointer" onclick="openDetailModal('${t.id}')">
           <td style="display:flex;align-items:center;gap:8px">
             ${dot}
             ${t.avatar_url
@@ -301,11 +301,11 @@
           <td class="text-muted">${formatDate(t.created_at)}</td>
           <td>
             <div class="d-flex gap-1">
-              <button class="pf-btn pf-btn-edit" title="Details" onclick="openDetailModal('${t.id}')"><i class="ti ti-eye"></i> Details</button>
-              ${canActivate ? `<button class="pf-btn pf-btn-primary" title="Aktivieren" onclick="activateTrainer('${t.id}')"><i class="ti ti-check"></i> Aktivieren</button>` : ''}
-              ${canDeactivate ? `<button class="pf-btn pf-btn-danger" title="Deaktivieren" onclick="deactivateTrainer('${t.id}')"><i class="ti ti-player-pause"></i> Deaktivieren</button>` : ''}
+              <button class="pf-btn pf-btn-edit" title="Details" onclick="event.stopPropagation(); openDetailModal('${t.id}')"><i class="ti ti-eye"></i> Details</button>
+              ${canActivate ? `<button class="pf-btn pf-btn-primary" title="Aktivieren" onclick="event.stopPropagation(); activateTrainer('${t.id}')"><i class="ti ti-check"></i> Aktivieren</button>` : ''}
+              ${canDeactivate ? `<button class="pf-btn pf-btn-danger" title="Deaktivieren" onclick="event.stopPropagation(); deactivateTrainer('${t.id}')"><i class="ti ti-player-pause"></i> Deaktivieren</button>` : ''}
               ${t.status !== 'active'
-                ? `<button class="pf-btn pf-btn-danger" title="Trainer löschen" onclick="deleteTrainer('${t.id}','${(t.full_name||'').replace(/'/g,"\\'")}')" ><i class="ti ti-trash"></i> Löschen</button>`
+                ? `<button class="pf-btn pf-btn-danger" title="Trainer löschen" onclick="event.stopPropagation(); deleteTrainer('${t.id}','${(t.full_name||'').replace(/'/g,"\\'")}')" ><i class="ti ti-trash"></i> Löschen</button>`
                 : ''}
             </div>
           </td>
