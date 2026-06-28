@@ -39,6 +39,8 @@ Jede Aenderung MUSS committed + gepusht werden → Vercel deployed automatisch.
 - **Action-Buttons:** Icon-only Ghost-Buttons (`btn btn-sm btn-ghost-secondary` + Tabler Icon). Keine Text-Buttons in Tabellen.
 - **cleanUrls Gotcha:** `/admin` ohne Slash loest relative Pfade falsch auf. Redirects in `vercel.json` sind Pflicht fuer Index-Seiten.
 - **Inline-JS-Syntax pruefen (kein Build/tsc im Portal):** `node --check api/admin/index.js` fuer die Serverless-Function; fuer `<script>`-Bloecke in HTML: `node -e` mit `new Function(code)` ueber jeden Nicht-`src`-Script-Block (faengt Template-Literal-/Klammer-Fehler vor dem Vercel-Deploy).
+- **Vercel-`api/`-Function nach JEDER Aenderung am DEPLOYTEN Endpunkt smoke-testen** (`curl ".../api/admin?action=ping"` → 401/200 JSON, NICHT 500 `FUNCTION_INVOCATION_FAILED`). `node --check` prueft nur Syntax, NICHT Import-Aufloesung. **KEINE lokalen `.mjs`-Importe aus `../`-Pfaden** in `api/`-Functions (`package.json` ohne `"type":"module"` → Vercel buendelt sie nicht → Function crasht beim Laden → JSON.parse-Fehler im ganzen Portal). Helfer **inline** schreiben. Beleg B-2026-06-28-02.
+- **Browser-aufgerufene Edge-Functions, die `x-pulsly-env` (oder andere Custom-Header) senden, MUESSEN ihn in `Access-Control-Allow-Headers` listen** — sonst CORS-Preflight-Block „Failed to send a request to the Edge Function". Beleg B-2026-06-28-03.
 - **`form-dirty.js` schluesselt Felder ueber `el.id`** — bei Checkbox-/Mehrfach-Listen MUSS jede Checkbox eine eindeutige `id` haben, sonst meldet das „Ungespeicherte Aenderungen"-Tracking das Formular dauerhaft als geaendert.
 
 ---
