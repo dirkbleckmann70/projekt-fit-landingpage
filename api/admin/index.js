@@ -8,10 +8,37 @@
 import { createClient } from '@supabase/supabase-js';
 import formidable from 'formidable';
 import { readFileSync } from 'fs';
-import { hoursUntilBerlin } from '../../lib/berlin-frist.mjs';
 
 // Documents-Action braucht bodyParser: false → wird per config gesteuert
 export const config = { api: { bodyParser: false } };
+
+// B-2026-06-19-02 / B-2026-06-28-02: Stunden bis Termin in Europe/Berlin-Wandzeit
+// (DST-korrekt via Intl). INLINE statt Import aus ../../lib/berlin-frist.mjs:
+// Vercel buendelt eine lokale .mjs aus ../../lib/ NICHT zuverlaessig in diese
+// Serverless-Function (package.json ohne "type":"module") → FUNCTION_INVOCATION_FAILED,
+// das legte das ganze Admin-Portal lahm. Logik identisch zu lib/berlin-frist.mjs
+// (dort vom Unit-Test geprueft) — bei Aenderung BEIDE Stellen anpassen.
+function berlinOffsetMinutes(utcMs) {
+  const dtf = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Berlin', hourCycle: 'h23',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+  const map = {};
+  for (const p of dtf.formatToParts(new Date(utcMs))) {
+    if (p.type !== 'literal') map[p.type] = Number(p.value);
+  }
+  const asUtcOfBerlinWall = Date.UTC(map.year, map.month - 1, map.day, map.hour, map.minute, map.second);
+  return Math.round((asUtcOfBerlinWall - utcMs) / 60000);
+}
+function hoursUntilBerlin(date, time, nowMs = Date.now()) {
+  if (!date) return 0;
+  const [y, mo, da] = date.split('-').map(Number);
+  const [h, m] = (time ?? '00:00').split(':').map(Number);
+  const asIfUtc = Date.UTC(y, (mo ?? 1) - 1, da, h ?? 0, m ?? 0);
+  const startMs = asIfUtc - berlinOffsetMinutes(asIfUtc) * 60000;
+  return (startMs - nowMs) / 3600000;
+}
 
 const ALLOWED_ORIGINS = [
   'https://projektfit.net',
