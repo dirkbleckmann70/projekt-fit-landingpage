@@ -213,7 +213,7 @@
     try {
       const { data, error } = await sb.functions.invoke('stripe-connect-onboard', {
         body: { trainer_id: trainerId },
-        headers: { 'x-pulsly-env': 'test' },  // Portal arbeitet aktuell in der Test-Welt; bei Go-Live auf 'live' umstellen
+        headers: { 'x-pulsly-env': 'live' },  // Echtbetrieb: Trainer-Auszahlungskonto in der Live-Welt (passt zur Live-App, echte Buchungen -> echte Auszahlung). B-2026-06-28-03.
       });
       if (error) throw error;
       if (data?.url) {
