@@ -502,15 +502,7 @@
           <select class="pf-field" id="edit-status">
             <option value="pending" ${t.status === 'pending' ? 'selected' : ''}>Pending</option>
             <option value="active" ${t.status === 'active' ? 'selected' : ''}>Active</option>
-            <option value="pausiert" ${t.status === 'pausiert' ? 'selected' : ''}>Pausiert</option>
             <option value="gesperrt" ${t.status === 'gesperrt' ? 'selected' : ''}>Gesperrt</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Aktiv (sichtbar für Kunden)</label>
-          <select class="pf-field" id="edit-is-active">
-            <option value="false" ${!t.is_active ? 'selected' : ''}>Nein</option>
-            <option value="true" ${t.is_active ? 'selected' : ''}>Ja</option>
           </select>
         </div>
         <div class="form-group">
@@ -970,7 +962,6 @@
       steuernummer: document.getElementById('edit-steuernummer').value.trim() || null,
       is_kleinunternehmer: document.getElementById('edit-kleinunternehmer').checked,
       status: document.getElementById('edit-status').value,
-      is_active: document.getElementById('edit-is-active').value === 'true',
       hourly_rate_cents: document.getElementById('edit-hourly-rate').value ? Math.round(parseFloat(document.getElementById('edit-hourly-rate').value) * 100) : null,
       payout_cents: document.getElementById('edit-payout').value ? Math.round(parseFloat(document.getElementById('edit-payout').value) * 100) : null,
       mwst_satz: parseInt(document.getElementById('edit-mwst-satz').value) || 19,

@@ -2667,7 +2667,7 @@ async function handleData(req, res, supabase) {
 // Kanonischer Wertesatz fuer trainer_profiles.status (englisch). Quelle der Wahrheit
 // fuer ALLE Filter/RLS/App/Ersatz-Suche. Spiegelt den DB-CHECK-Constraint
 // trainer_profiles_status_chk. KEINE deutschen Varianten ('aktiv') zulassen.
-const VALID_TRAINER_STATUS = ['pending', 'active', 'pausiert', 'gesperrt'];
+const VALID_TRAINER_STATUS = ['pending', 'active', 'gesperrt'];
 
 async function handleTrainersPost(req, res, supabase) {
   const body = await getBody(req);
@@ -2738,7 +2738,7 @@ async function handleTrainersPut(req, res, supabase) {
   const allowed = [
     'full_name', 'email', 'phone', 'city', 'specializations', 'bio',
     'steuernummer', 'is_kleinunternehmer', 'mwst_satz', 'street_address', 'postal_code', 'wohnort',
-    'status', 'is_active', 'hourly_rate_cents', 'payout_cents', 'contract_files', 'avatar_url',
+    'status', 'hourly_rate_cents', 'payout_cents', 'contract_files', 'avatar_url',
   ];
 
   const update = {};
@@ -2750,6 +2750,14 @@ async function handleTrainersPut(req, res, supabase) {
 
   if ('status' in update && !VALID_TRAINER_STATUS.includes(update.status)) {
     return res.status(400).json({ error: `Ungueltiger Status '${update.status}'. Erlaubt: ${VALID_TRAINER_STATUS.join(', ')}.` });
+  }
+
+  // B-2026-06-27-01: status und is_active dürfen sich nie widersprechen.
+  // Wird der Status gesetzt, leiten wir is_active daraus ab: nur 'active' ist
+  // einsetzbar. So kann das Edit-Formular keinen 'gesperrt'-Trainer mit
+  // is_active=true (Portal-Zugang + Sichtbarkeit) hinterlassen.
+  if ('status' in update) {
+    update.is_active = update.status === 'active';
   }
 
   // Feld-Update (falls vorhanden) — K4: .select() gegen RLS-Silent-Fail.
@@ -2794,7 +2802,7 @@ async function handleActivateTrainer(req, res, supabase) {
   }
 
   // Reaktivierung: Trainer hatte schon einen Auth-Account und war bereits aktiv
-  const isReactivation = !!trainer.auth_user_id && ['active', 'pausiert', 'gesperrt'].includes(trainer.status);
+  const isReactivation = !!trainer.auth_user_id && ['active', 'gesperrt'].includes(trainer.status);
 
   let authUserId = trainer.auth_user_id;
 

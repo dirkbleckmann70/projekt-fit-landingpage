@@ -114,8 +114,6 @@ function statusBadge(status) {
   const fallbackMap = {
     pending: 'badge-pending',
     active: 'badge-active',
-    pausiert: 'badge-paused',
-    paused: 'badge-paused',
     gesperrt: 'badge-blocked',
     blocked: 'badge-blocked',
     confirmed: 'badge-confirmed',
