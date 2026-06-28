@@ -8,6 +8,7 @@
 import { createClient } from '@supabase/supabase-js';
 import formidable from 'formidable';
 import { readFileSync } from 'fs';
+import { hoursUntilBerlin } from '../../lib/berlin-frist.mjs';
 
 // Documents-Action braucht bodyParser: false → wird per config gesteuert
 export const config = { api: { bodyParser: false } };
@@ -3467,18 +3468,12 @@ async function handleBookingsPut(req, res, supabase) {
     }
 
     // Frist: 24h bei 'bestaetigt', sonst nur "in der Zukunft" (B-15-11 / ARCHITEKTUR Vorgang 3).
-    // BEKANNT (Pre-Impl-Review, KEIN Rueckschritt): new Date("YYYY-MM-DDTHH:MM") parst in
-    // UTC (Vercel-TZ), nicht Europe/Berlin -> bis ~2h Versatz im Frist-Grenzfall. Bewusst
-    // IDENTISCH zum Trainer-reschedule-Block (Z.3530) gehalten ("Admin wie Trainer",
-    // User-Vorgabe 19.06.) statt hier abweichend DST-korrekt zu rechnen (sonst divergieren
-    // die beiden Pfade). Gemeinsamer Fix beider Pfade = eigener Bug-Eintrag (Task 3), NICHT
-    // in diesem Vorgang.
-    const proposedDateTime = new Date(`${newDate}T${newTime}`);
-    const now = new Date();
+    // B-2026-06-19-02: in Europe/Berlin gerechnet (DST-korrekt), identisch zum
+    // Trainer-reschedule-Block. Admin-VERBINDLICH-Pfad bleibt davon unberührt.
+    const hoursUntil = hoursUntilBerlin(newDate, newTime);
     if (current.status === 'bestaetigt') {
-      const diffHours = (proposedDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-      if (diffHours < 24) return res.status(400).json({ error: 'Neuer Termin muss mindestens 24h in der Zukunft liegen' });
-    } else if (proposedDateTime <= now) {
+      if (hoursUntil < 24) return res.status(400).json({ error: 'Neuer Termin muss mindestens 24h in der Zukunft liegen' });
+    } else if (hoursUntil <= 0) {
       return res.status(400).json({ error: 'Neuer Termin muss in der Zukunft liegen' });
     }
 
@@ -3706,20 +3701,14 @@ async function handleBookingsPut(req, res, supabase) {
       return res.status(400).json({ error: `Reschedule nur bei angefragt/reserviert/bestaetigt/strittig moeglich, aktuell: ${current.status}` });
     }
 
-    const proposedDateTime = new Date(`${proposed_date}T${proposed_time}`);
-    const now = new Date();
-    // B-2026-06-15-11: ARCHITEKTUR.md Vorgang 3 = "24h-Mindestvorlauf zum NEUEN Termin".
-    // Frueher mass der Check den Abstand zum ALTEN Termin — bei einem ueberfaelligen
-    // bestaetigten Termin (z.B. nach handleTrainerResume strittig->bestaetigt) ist der
-    // negativ → jede Verschiebung wurde abgelehnt. Jetzt wird der VORGESCHLAGENE Termin
-    // geprueft. Gilt nur fuer 'bestaetigt'; im Streitfall ('strittig', C-2) stimmen sich
-    // Trainer + Kunde direkt ab → kein 24h-Mindestvorlauf, nur "in der Zukunft".
+    // B-2026-06-15-11 + B-2026-06-19-02: 24h-Vorlauf zum NEUEN Termin, in
+    // Europe/Berlin gerechnet. Gilt nur für 'bestaetigt'; sonst nur "in der Zukunft".
+    const hoursUntil = hoursUntilBerlin(proposed_date, proposed_time);
     if (current.status === 'bestaetigt') {
-      const diffHours = (proposedDateTime.getTime() - now.getTime()) / (1000 * 60 * 60);
-      if (diffHours < 24) {
+      if (hoursUntil < 24) {
         return res.status(400).json({ error: 'Neuer Termin muss mindestens 24h in der Zukunft liegen' });
       }
-    } else if (proposedDateTime <= now) {
+    } else if (hoursUntil <= 0) {
       return res.status(400).json({ error: 'Vorgeschlagener Termin muss in der Zukunft liegen' });
     }
 
