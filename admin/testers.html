@@ -50,7 +50,7 @@
       </div>
 
       <!-- Formular -->
-      <div class="card mb-3">
+      <div class="card mb-3" id="tester-form-card">
         <div class="card-header d-flex justify-content-between align-items-center">
           <h3 class="card-title" id="form-title">Neuen Tester hinzufügen</h3>
           <button class="pf-btn pf-btn-neutral" id="form-cancel-btn" style="display:none" onclick="resetForm()">Abbrechen</button>
@@ -229,7 +229,21 @@
     document.getElementById('submit-btn').textContent = 'Speichern';
     document.getElementById('form-cancel-btn').style.display = '';
 
-    document.getElementById('tester-form').scrollIntoView({ behavior: 'smooth' });
+    // Sichtbar machen, dass jetzt im oberen Formular bearbeitet wird:
+    // zum Formular springen + kurz grün aufblinken (sonst leicht zu übersehen,
+    // weil die Bearbeitung oben statt in der Zeile passiert).
+    const card = document.getElementById('tester-form-card');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.transition = 'none';
+      card.style.boxShadow = '0 0 0 3px #4ADE80';
+      card.style.backgroundColor = 'rgba(74,222,128,0.10)';
+      setTimeout(() => {
+        card.style.transition = 'box-shadow 0.6s ease, background-color 0.6s ease';
+        card.style.boxShadow = '';
+        card.style.backgroundColor = '';
+      }, 400);
+    }
   };
 
   // ─── Formular zurücksetzen ──────────────────────────────────────
