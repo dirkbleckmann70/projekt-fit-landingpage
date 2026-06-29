@@ -4947,7 +4947,7 @@ async function handleTesters(req, res, supabase) {
 
     case 'POST': {
       const body = await getBody(req);
-      const { email, is_active, premium_override, dev_tools, notes } = body;
+      const { email, is_active, premium_override, dev_tools, stripe_sandbox, notes } = body;
       if (!email) return res.status(400).json({ error: 'E-Mail ist erforderlich' });
 
       const { data, error } = await supabase
@@ -4957,6 +4957,7 @@ async function handleTesters(req, res, supabase) {
           is_active: is_active !== undefined ? is_active : true,
           premium_override: premium_override !== undefined ? premium_override : true,
           dev_tools: dev_tools !== undefined ? dev_tools : true,
+          stripe_sandbox: stripe_sandbox !== undefined ? stripe_sandbox : false,
           notes: notes || null,
         })
         .select()

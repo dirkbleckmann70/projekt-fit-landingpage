@@ -176,14 +176,19 @@
     const sb = getSupabase();
     const { data: profile } = await sb
       .from('trainer_profiles')
-      .select('stripe_onboarding_complete, stripe_account_id')
+      .select('stripe_onboarding_complete, stripe_onboarding_complete_test, stripe_onboarding_complete_live, stripe_account_id, stripe_account_id_test, stripe_account_id_live')
       .eq('auth_user_id', userId)
       .single();
 
     const banner = document.getElementById('stripe-banner');
     if (!profile) { banner.style.display = 'none'; return; }
 
-    if (profile.stripe_onboarding_complete) {
+    // Welt-getrennt (Weg B): in einer der Welten eingerichtet → aktiv. Altes Feld
+    // als Brücke (Webhook setzt es weiterhin mit).
+    const onboarded = profile.stripe_onboarding_complete_test
+      || profile.stripe_onboarding_complete_live
+      || profile.stripe_onboarding_complete;
+    if (onboarded) {
       banner.className = 'stripe-banner active';
       banner.innerHTML = `
         <div class="stripe-banner-left">

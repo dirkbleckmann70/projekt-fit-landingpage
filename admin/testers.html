@@ -81,6 +81,12 @@
                 <input type="checkbox" id="input-devtools" checked> Dev-Tools
               </label>
             </div>
+            <div style="min-width:120px">
+              <label class="form-label" style="display:block">&nbsp;</label>
+              <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="input-sandbox"> Sandbox
+              </label>
+            </div>
             <div style="flex:1;min-width:180px">
               <label class="form-label">Notiz</label>
               <input type="text" id="input-notes" class="form-control" placeholder="z.B. Beta-Tester, QA">
@@ -103,6 +109,7 @@
                 <th>Rolle</th>
                 <th>Premium</th>
                 <th>Dev-Tools</th>
+                <th>Sandbox</th>
                 <th>Notiz</th>
                 <th>Status</th>
                 <th>Erstellt</th>
@@ -164,7 +171,7 @@
   function renderTable() {
     const tbody = document.getElementById('testers-body');
     if (allTesters.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:24px">Keine Tester vorhanden</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted" style="padding:24px">Keine Tester vorhanden</td></tr>';
       return;
     }
 
@@ -181,6 +188,10 @@
           <td>
             <input type="checkbox" ${t.dev_tools ? 'checked' : ''}
               onchange="toggleField('${t.id}', 'dev_tools', this.checked)">
+          </td>
+          <td>
+            <input type="checkbox" ${t.stripe_sandbox ? 'checked' : ''}
+              onchange="toggleField('${t.id}', 'stripe_sandbox', this.checked)">
           </td>
           <td class="text-muted">${t.notes || '–'}</td>
           <td>
@@ -224,6 +235,7 @@
     document.getElementById('input-role').value = (t.notes || '').toLowerCase().includes('admin') ? 'admin' : 'tester';
     document.getElementById('input-premium').checked = t.premium_override;
     document.getElementById('input-devtools').checked = t.dev_tools;
+    document.getElementById('input-sandbox').checked = !!t.stripe_sandbox;
     document.getElementById('input-notes').value = t.notes || '';
     document.getElementById('form-title').textContent = 'Tester bearbeiten';
     document.getElementById('submit-btn').textContent = 'Speichern';
@@ -253,6 +265,7 @@
     document.getElementById('input-role').value = 'tester';
     document.getElementById('input-premium').checked = true;
     document.getElementById('input-devtools').checked = true;
+    document.getElementById('input-sandbox').checked = false;
     document.getElementById('input-notes').value = '';
     document.getElementById('form-title').textContent = 'Neuen Tester hinzufügen';
     document.getElementById('submit-btn').textContent = 'Hinzufügen';
@@ -281,6 +294,7 @@
     const role = document.getElementById('input-role').value;
     const premium = document.getElementById('input-premium').checked;
     const devtools = document.getElementById('input-devtools').checked;
+    const sandbox = document.getElementById('input-sandbox').checked;
     const notes = document.getElementById('input-notes').value.trim() || (role === 'admin' ? 'Admin' : null);
 
     if (!email) {
@@ -298,6 +312,7 @@
             email,
             premium_override: premium,
             dev_tools: devtools,
+            stripe_sandbox: sandbox,
             notes: notes,
           }),
         });
@@ -317,6 +332,7 @@
             is_active: true,
             premium_override: premium,
             dev_tools: devtools,
+            stripe_sandbox: sandbox,
             notes: notes,
           }),
         });
