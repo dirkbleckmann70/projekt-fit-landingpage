@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "test": "node scripts/run-portal-tests.cjs"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.49.1",
     "formidable": "^3.5.4"
