@@ -3829,6 +3829,11 @@ async function handleBookingsPut(req, res, supabase) {
   // docs/superpowers/specs/2026-05-26-reschedule-flow-fixes-design.md.
   // Architektur-Pendant zum reschedule-Block oben — parallele Flags erlaubt
   // (Kunde sieht ggf. beide Vorschlaege gleichzeitig).
+  // B-2026-07-05-03(c): Bei Sofort-Uebernahme eines Kunden-Ortes in eine BEREITS
+  // BESTAETIGTE Buchung wird der Kunde informiert (Merker hier, Push unten).
+  // Bewusst NICHT bei angefragt/reserviert: dort folgt ohnehin der
+  // „Termin bestaetigt"-Push aus confirm-and-charge (Plan v2 Punkt 4).
+  let locationTakeoverPushName = null;
   if (body.proposed_location_id) {
     const proposedLocationId = body.proposed_location_id;
     if (typeof proposedLocationId !== 'string') {
@@ -3905,6 +3910,7 @@ async function handleBookingsPut(req, res, supabase) {
       update.location_proposed_by = null;
       update.location_proposed_at = null;
       locAuditNote = `[Location ${locTimestamp}] Trainer waehlt Kunden-Treffpunkt (sofort uebernommen): ${loc.name} (vorher: ${currentLoc.location_name || '—'})`;
+      if (currentLoc.status === 'bestaetigt') locationTakeoverPushName = loc.name;
     } else {
       // Trainer-Drittort (Trainer hat einen NEUEN, eigenen Ort angelegt)
       // -> Vorschlag mit Kunden-Bestaetigung (bisheriges Verhalten). Name/Adresse
@@ -4171,6 +4177,23 @@ async function handleBookingsPut(req, res, supabase) {
         }
       }
     } catch (pushErr) { console.error('Vorschlags-Push (best-effort):', pushErr.message); }
+  }
+
+  // B-2026-07-05-03(c): Kunden-Ort in eine BEREITS BESTAETIGTE Buchung sofort
+  // uebernommen (Pillen-Zweig oben) → Kunde informieren. Best-effort, wirft nie.
+  // Gilt fuer alle drei Aufrufer des Zweigs (App-Dialog, App-Detail, Web-Portal).
+  if (locationTakeoverPushName) {
+    try {
+      const takeoverPushToken = process.env.SERVICE_ROLE_JWT ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+      const { data: bkRow } = await supabase.from('bookings').select('auth_user_id').eq('id', bookingId).maybeSingle();
+      if (bkRow?.auth_user_id) {
+        await callEdgeFunction('send-push', takeoverPushToken, {
+          user_id: bkRow.auth_user_id, title: 'Treffpunkt aktualisiert',
+          body: `Euer Treffpunkt ist jetzt: ${locationTakeoverPushName}.`,
+          data: { type: 'location_changed', bookingId },
+        });
+      }
+    } catch (pushErr) { console.error('Treffpunkt-Uebernahme-Push (best-effort):', pushErr.message); }
   }
 
   return res.json({ success: true });
