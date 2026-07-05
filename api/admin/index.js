@@ -4142,6 +4142,37 @@ async function handleBookingsPut(req, res, supabase) {
     console.error('handleBookingsPut Logbuch-Extra-Audit fehlgeschlagen (best-effort):', auditErr.message);
   }
 
+  // Spec 2026-07-05 (Lücken-Schließung, Review-Fund 6): Der Trainer-Portal-Weg
+  // für Termin-/Orts-Vorschlag setzte bisher NUR Flags — der Kunde bekam keine
+  // Push (das alte Pünktchen kam aus dem lokalen Stempel-Vergleich der App und
+  // entfällt mit dem Nachrichten-Bereich). Jetzt dieselbe Benachrichtigung wie
+  // der App-Weg (bookingFlow.onRescheduleProposed/onLocationProposed).
+  // Best-effort: niemals werfen, sonst geht der HTTP-200-Erfolg verloren.
+  if (update.flag_neuer_termin_vorgeschlagen === true || update.flag_neuer_ort_vorgeschlagen === true) {
+    try {
+      const proposalPushToken = process.env.SERVICE_ROLE_JWT ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+      // bookings.auth_user_id traegt direkt die Anmelde-ID des Kunden.
+      const { data: bkRow } = await supabase.from('bookings').select('auth_user_id').eq('id', bookingId).maybeSingle();
+      const custUid = bkRow?.auth_user_id || null;
+      if (custUid) {
+        if (update.flag_neuer_termin_vorgeschlagen === true) {
+          await callEdgeFunction('send-push', proposalPushToken, {
+            user_id: custUid, title: 'Terminänderung',
+            body: 'Dein Trainer schlägt einen neuen Termin vor. Bitte bestätige oder lehne ab.',
+            data: { type: 'reschedule_proposed', bookingId },
+          });
+        }
+        if (update.flag_neuer_ort_vorgeschlagen === true) {
+          await callEdgeFunction('send-push', proposalPushToken, {
+            user_id: custUid, title: 'Neuer Treffpunkt vorgeschlagen',
+            body: 'Dein Trainer schlägt einen anderen Treffpunkt vor. Bitte bestätige oder lehne ab.',
+            data: { type: 'location_proposed', bookingId },
+          });
+        }
+      }
+    } catch (pushErr) { console.error('Vorschlags-Push (best-effort):', pushErr.message); }
+  }
+
   return res.json({ success: true });
 }
 
